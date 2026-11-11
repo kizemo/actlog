@@ -1,0 +1,45 @@
+# Dart / Flutter 静态分析配置
+#
+# 门禁 G1 要求：`flutter analyze` 零 error 零 warning。
+# 这里用 recommended 规则集，并额外收紧几条容易出错的写法。
+
+include: package:lints/recommended.yaml
+
+analyzer:
+  errors:
+    # 把「未使用的导入/变量/私有成员」提升为 error —— 门禁 G1 零容忍
+    unused_import: error
+    unused_local_variable: error
+    unused_field: error
+    dead_code: error
+    # 避免无效的 null 比较
+    unnecessary_null_comparison: error
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/build/**"
+
+linter:
+  rules:
+    # 所有公共 API 必须有文档注释
+    public_member_api_docs: true
+    # 避免 print，诊断信息走 logger
+    avoid_print: true
+    # 优先用 const
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+    # 集合字面量用 const
+    prefer_iterable_whereType: true
+    # 强制使用大括号
+    always_put_control_body_on_new_line: true
+    # 避免空构造
+    avoid_empty_else: true
+    # 强制 {} 空集合而非 []
+    prefer_collection_literals: false
+    # 参数顺序：必需参数在前
+    always_declare_return_types: true
+    # sort_pub_dependencies
+    sort_pub_dependencies: true
+    # unawaited futures 需显式
+    unawaited_futures: true

@@ -1,0 +1,109 @@
+### QUERY: diary in:name,description stars:>150
+gnipbao/story-to-handdrawn-video`t2380`t330`tHTML`tMIT`tarchived=false`t2026-09-22`tAgent skill: convert Chinese story copy or ordered images into a hand-drawn diary-comic animation (silent MP4 picture track).
+mhss1/MyBrain`t2232`t194`tKotlin`tGPL-3.0`tarchived=false`t2026-10-03`tAll-in-one productivity app and AI assistant with Tasks, Notes, Calendar, Diary and Bookmarks.
+ZhuJHua/moodiary`t2059`t183`tDart`tAGPL-3.0`tarchived=false`t2026-11-02`tA fully open source cross-platform diary app written in Flutter and Rust.
+MaximeRivest/riddle`t1937`t181`tRust`tMIT`tarchived=false`t2026-07-12`tThe diary of Tom Riddle for the reMarkable Paper Pro — write with your pen, the page drinks your ink and answers in a flowing hand
+DaxiaK/MyDiary`t1640`t264`tJava`tNOASSERTION`tarchived=false`t2018-02-12`tIn the Movie "-your name.-" (君の名は。, 你的名字) , "My Diary" of android version.
+Yu-Core/SwashbucklerDiary`t1627`t156`tC#`tAGPL-3.0`tarchived=false`t2026-10-17`t侠客日记是一个开源、跨平台的本地日记app，使用Blazor开发，支持Android，Windows，macOS，Web，Linux。"SwashbucklerDiary" is an open source cross-platform local diary app using Blazor , support Android，Windows，macOS，Web，Linux.
+facontidavide/CPP_Optimizations_Diary`t1430`t90`tC++`tNOASSERTION`tarchived=false`t2023-12-21`tTips and tricks to optimize your C++ code
+Demizo/Daily_You`t1409`t77`tDart`tGPL-3.0`tarchived=false`t2026-11-05`tPrivate diary & mood journal
+samuelmeuli/mini-diary`t1087`t243`tTypeScript`tMIT`tarchived=true`t2021-07-11`t📘 Simple and secure journal app
+theachoem/storypad`t1009`t132`tDart`tGPL-3.0`tarchived=false`t2026-10-31`tAn open source diary & journal app with over 100k downloads 🪴
+seokju-na/geeks-diary`t690`t83`tTypeScript`tMIT`tarchived=true`t2022-02-11`tTIL writing tool for programmer
+AmazingRise/hugo-theme-diary`t671`t229`tHTML`tMIT`tarchived=false`t2026-01-30`tMoments piled up. A Hugo theme ported from SumiMakito/hexo-theme-Journal.
+harveyqing/BearDiary`t625`t218`tJavaScript`tMIT`tarchived=false`t2017-10-10`t微信小程序之小熊の日记
+maksimowiczm/FoodYou`t623`t67`tKotlin`tGPL-3.0`tarchived=false`t2026-11-01`tA free, open-source, and privacy-focused food diary and nutrition tracker
+hanjoongcho/aaf-easydiary`t562`t133`tKotlin`tGPL-3.0`tarchived=false`t2026-11-06`t:blue_book: A diary application optimized for user experience.
+PhiTux/DailyTxT`t510`t42`tSvelte`tMIT`tarchived=false`t2026-10-10`tEncrypted Diary Web-App
+aceberg/ExerciseDiary`t473`t19`tGo`tMIT`tarchived=false`t2024-11-15`tWorkout diary with GitHub-style year visualization
+duxins/alog`t460`t44`tSwift`tGPL-2.0`tarchived=false`t2026-02-01`tAI-Powered Audio Diary
+
+### QUERY: journal in:name,description stars:>150
+liketrek/TREK`t15404`t1322`tTypeScript`tAGPL-3.0`tarchived=false`t2026-11-06`tThe most complete open-source travel planner: real-time collaboration, bookings, budgets, packing lists, journals, offline PWA, SSO and an AI-ready MCP server, with planet-wide place search and routing built in.
+ChenLiu-1996/figures4papers`t9648`t661`tPython`tNOASSERTION`tarchived=false`t2026-10-19`tMy Python scripts to make high-quality figures for publications in top AI conferences and journals.
+JerryZLiu/Dayflow`t7394`t461`tSwift`tMIT`tarchived=false`t2026-11-03`tThe automatic work journal/time tracker. Privately turns your screen into a timeline of what you actually accomplished. Open-source and local-first.
+kallaway/100-days-of-code`t7027`t11520`tnull`tNOASSERTION`tarchived=false`t2024-08-20`tFork this template for the 100 days journal - to keep yourself accountable (multiple languages available)
+Doubiiu/ToonCrafter`t6058`t529`tPython`tApache-2.0`tarchived=false`t2025-03-19`t[SIGGRAPH Asia 2024, Journal Track] ToonCrafter: Generative Cartoon Interpolation
+GitJournal/GitJournal`t4245`t318`tDart`tAGPL-3.0`tarchived=false`t2026-05-26`tMobile first Note Taking integrated with Git
+caj2pdf/caj2pdf`t3250`t638`tPython`tNOASSERTION`tarchived=false`t2024-03-20`tConvert CAJ (China Academic Journals) files to PDF. 转换中国知网 CAJ 格式文献为 PDF。佛系转换，成功与否，皆是玄学。
+UdaraJay/Pile`t3122`t214`tJavaScript`tNOASSERTION`tarchived=false`t2024-12-26`tDesktop app for digital journaling. 
+coreos/go-systemd`t2719`t339`tGo`tApache-2.0`tarchived=false`t2026-07-23`tGo bindings to systemd socket activation, journal, D-Bus, and unit files
+hesamsheikh/ml-retreat`t2380`t253`tJupyter Notebook`tNOASSERTION`tarchived=false`t2025-09-08`tMachine Learning Journal for Intermediate to Advanced Topics. 
+amirhossein-kz/Awesome-Diffusion-Models-in-Medical-Imaging`t2116`t172`tnull`tMIT`tarchived=false`t2025-11-17`tDiffusion Models in Medical Imaging (Published in Medical Image Analysis Journal)
+wbkd/awesome-interactive-journalism`t1995`t110`tnull`tNOASSERTION`tarchived=false`t2019-11-20`tA list of awesome interactive journalism projects.
+openjournals/joss`t1933`t217`tRuby`tMIT`tarchived=false`t2026-11-05`tThe Journal of Open Source Software
+nvim-telekasten/telekasten.nvim`t1695`t102`tLua`tMIT`tarchived=false`t2026-03-17`tA Neovim (lua) plugin for working with a markdown zettelkasten / wiki and mixing it with a journal, based on telescope.nvim
+qingsongedu/awesome-AI-for-time-series-papers`t1635`t145`tnull`tMIT`tarchived=false`t2024-04-06`tA professional list of Papers, Tutorials, and Surveys on AI for Time Series in top AI conferences and journals.
+RevoltDevScript/Revolt-Script`t1567`t3`tnull`tNOASSERTION`tarchived=false`t2026-10-07`tRevolt automates Edgenuity, EdgeX, Edmentum, Subject, Brightspace (TRECA Digital Academy) and FLVS: Auto Advance, Auto Quiz/Exam, Auto Assignment, AI essays and projects with humanization, Auto Vocabulary, Auto Journal and more. Desktop and mobile. Visit https://revolt.ly to get started.
+rstudio/rticles`t1538`t515`tTeX`tNOASSERTION`tarchived=false`t2026-10-01`tLaTeX Journal Article Templates for R Markdown
+FOSSASIA-Web/perspektive89.com`t1527`t2`tnull`tNOASSERTION`tarchived=false`t2019-08-19`tOpen Source Journal Perspektive89.com
+
+### QUERY: "habit tracker" in:name,description stars:>300
+HabitRPG/habitica`t14293`t4461`tJavaScript`tNOASSERTION`tarchived=false`t2026-11-06`tA habit tracker app which treats your goals like a Role Playing Game.
+iSoron/uhabits`t10395`t1289`tKotlin`tGPL-3.0`tarchived=false`t2026-10-22`tLoop Habit Tracker, a mobile app for creating and maintaining long-term positive habits
+oppiliappan/dijo`t2923`t63`tRust`tMIT`tarchived=false`t2024-08-13`tscriptable, curses-based, digital habit tracker
+daya0576/beaverhabits`t1852`t86`tPython`tBSD-3-Clause`tarchived=false`t2026-10-31`tA self-hosted habit tracking app without "Goals"
+FriesI23/mhabit`t1691`t106`tDart`tApache-2.0`tarchived=false`t2026-11-05`tOpen-source Flutter habit tracker with smart scoring, WebDAV sync, local-first storage, privacy-focused design, and support for Android, iOS, Windows, macOS, and Linux.
+onejgordon/flow-dashboard`t1686`t186`tPython`tMIT`tarchived=false`t2024-05-02`t[UNMAINTAINED] A goal, task & habit tracker + personal dashboard to focus on what matters
+xpavle00/Habo`t1563`t183`tDart`tGPL-3.0`tarchived=false`t2026-10-14`tPrivacy-first habit tracker for iOS and Android. E2EE sync, self-hostable, built with Flutter.
+shub39/Grit`t1222`t82`tKotlin`tGPL-3.0`tarchived=false`t2026-11-06`t🔨 A Simple todo list and habit tracker for Android 
+InlitX/streak`t1116`t59`tDart`tGPL-3.0`tarchived=false`t2026-11-06`tMinimal, private, ad-free habit tracker built with Flutter — track habits, build streaks, all offline.
+coleam00/habit-tracker`t710`t240`tPython`tNOASSERTION`tarchived=false`t2026-01-07`tHabit Tracker for the AI Coding Workshop
+dohsimpson/HabitTrove`t694`t45`tTypeScript`tAGPL-3.0`tarchived=false`t2026-03-07`tGamified Habit Tracker - Find Your Treasure
+DanielRendox/RoutineTracker`t357`t32`tKotlin`tGPL-3.0`tarchived=false`t2024-09-23`tAn Android planner calendar app and a habit tracker that aims to simplify scheduling consistent activities and tracking your progress.
+jofoerster/habitsync`t349`t10`tTypeScript`tBSD-3-Clause`tarchived=false`t2026-08-20`tSelf hosted Habit Tracker featuring goals and challenges with friends
+dessalines/habit-maker`t348`t18`tKotlin`tAGPL-3.0`tarchived=false`t2026-11-01`tA reward-based habit tracker for android.
+Jinjinov/OpenHabitTracker`t308`t27`tC#`tGPL-3.0`tarchived=false`t2026-11-06`tC# .NET 10 Blazor habit tracker application. Works on Web, Windows, Linux, Android, iOS and macOS.
+
+### QUERY: "bullet journal" in:name,description
+Achuan-2/siyuan-plugin-task-note-management`t227`t55`tTypeScript`tAGPL-3.0`tarchived=false`t2026-11-05`t 一款在思源笔记里实现任务管理、项目管理功能的插件，为了践行防弹笔记法而开发。支持文档和块提醒、日历视图查看行事历、番茄钟专注、项目管理看板、任务四象限面板、习惯打卡等功能 A task note reminder plugin developed for practicing the Bullet Journal method, supporting document and block reminders, calendar view for scheduling, Pomodoro timer for focus, habit checkin and more.
+bastianallgeier/bulletjournal`t223`t33`tHTML`tNOASSERTION`tarchived=false`t2021-12-09`tA simple HTML bullet journal
+singerdmx/BulletJournal`t164`t45`tJava`tGPL-2.0`tarchived=false`t2023-06-03`tAn organizational system that helps you keep track of everything in your busy life
+Newbrict/obsidian-obligator`t91`t13`tTypeScript`tMIT`tarchived=false`t2024-01-23`tA fully featured replacement for the built-in daily notes plugin. Obligator functions like a virtual bullet journal by copying over unchecked to-do items to your new daily note, along with adding any scheduled items you've set up
+AngelCrawford/joplin-theme`t83`t10`tCSS`tNOASSERTION`tarchived=false`t2024-01-16`tMy private style for Joplin. It's build on top of the integrated "Dark" Theme included in Joplin. Inclusive a special Bullet Journal CSS style.
+mihaiconstantin/bujo`t75`t11`tTypeScript`tMIT`tarchived=false`t2022-07-08`tBullet Journal syntax highlighting in VS Code Markdown files.
+weekend-project-space/moon-note`t68`t5`tVue`tNOASSERTION`tarchived=false`t2023-03-03`tbullet journal, 子弹笔记
+PiotrSss/logseq-bujo-theme`t65`t21`tCSS`tNOASSERTION`tarchived=false`t2021-02-23`tCustom light and dark themes for https://logseq.com/, inspired by Bullet Journals.
+thefriedbee/Obsidian_BUJO_template`t62`t13`tnull`tNOASSERTION`tarchived=false`t2024-12-28`tmy bullet journal template for Obsidian note taking app
+jessarcher/rocketlog`t60`t11`tVue`tAGPL-3.0`tarchived=false`t2026-10-28`tYour digital bullet journal
+vonneudeck/remarkable-bujo`t60`t5`tnull`tNOASSERTION`tarchived=false`t2025-02-20`tBullet Journal templates for the reMarkable (2) paper tablet
+dballard/markdown-bullet-journal`t45`t2`tGo`tMIT`tarchived=false`t2020-11-02`tA digital bullet journal using markdown and daily migrations
+gokrazy/bull`t42`t3`tGo`t0BSD`tarchived=false`t2026-08-27`tbull is a minimalist bullet journaling program: it displays your markdown files in the browser and allows you to link pages using wiki-links
+uttam-salamander/koreader-life-tracker`t42`t1`tLua`tAGPL-3.0`tarchived=false`t2026-01-25`tA bullet journal-style life planner plugin for KOReader. Track quests, habits, mood, and reading stats on your e-reader (Kindle, Kobo, PocketBook).
+retran/meowary`t41`t2`tJavaScript`tMIT`tarchived=false`t2026-05-21`tAI-powered work journal template for software developers. PARA structure, Bullet Journal daily rhythm, Zettelkasten knowledge graph with semantic search, and structured coding workflows. Powered by OpenCode.
+frankolson/obsidian-bujo-bullets`t39`t11`tTypeScript`tMIT`tarchived=false`t2025-03-09`tAlternate checkbox types for Obsidian to support Bullet Journal bullets
+nathanielgreen/bulletbuddy`t39`t6`tVue`tNOASSERTION`tarchived=false`t2022-02-17`tThe analog organization system Bullet Journal in a digital format.
+fulgor/bulletjournal.md`t37`t11`tPython`tMIT`tarchived=false`t2024-08-03`tBullet Journal in an plain textfile with Markdown formatting
+
+### QUERY: "daily notes" in:name,description stars:>100
+ringhyacinth/Star-Office-UI`t7562`t803`tHTML`tNOASSERTION`tarchived=false`t2026-03-11`tA pixel office for your OpenClaw: turn invisible work states into a cozy little space with characters, daily notes, and guest agents. Code under MIT; art assets for non-commercial learning only.
+702573N/Obsidian-Tasks-Calendar`t958`t61`tJavaScript`tNOASSERTION`tarchived=false`t2023-02-12`tA custom view build with Obsidian-Dataview to display tasks from Obsidian-Tasks and from your daily notes in a highly customisable calendar with a wide variety of views
+djedi/DailyNotes`t709`t49`tVue`tMIT`tarchived=false`t2026-10-29`tApp for taking notes and tracking tasks on a daily basis
+702573N/Obsidian-Tasks-Timeline`t522`t41`tJavaScript`tNOASSERTION`tarchived=false`t2024-02-27`tA custom view build with Obsidian-Dataview to display tasks from Obsidian-Tasks and from your daily notes in a highly customisable timeline
+iridakos/stup`t426`t30`tShell`tMIT`tarchived=false`t2022-03-25`tDaily notes in the terminal :penguin:
+lumoe/obsidian-rollover-daily-todos`t371`t109`tJavaScript`tMIT`tarchived=false`t2026-05-12`tAn obsidian plugin that rolls over todo items from the previous daily note
+jgchristopher/obsidian-clipper`t302`t12`tTypeScript`tMIT`tarchived=false`t2025-07-13`tObsidian plugin that allows users to clip parts of a website into their obsidian daily note (or new note)
+Quorafind/Obsidian-Daily-Notes-Editor`t280`t33`tTypeScript`tNOASSERTION`tarchived=false`t2025-04-05`tA plugin for you to edit a bunch of daily notes in one page(inline), which works similar to Roam Research's default daily note view.
+tomlockwood/dn`t250`t12`tnull`tNOASSERTION`tarchived=false`t2019-12-15`tDaily notes command line tool
+lostintangent/gistpad-mcp`t207`t37`tTypeScript`tMIT`tarchived=false`t2026-01-16`t📓 An MCP server for managing your personal knowledge, daily notes, and re-usable prompts via GitHub Gists
+AkihikoWatanabe/paper_notes`t181`t5`tHTML`tMIT`tarchived=false`t2026-11-06`tDaily notes on AI research, especially those on LLMs, VLMs, AI agents and related techniques such as pre-, mid-, post-training, RL, continual learning, test-time scaling, RSI, and more.
+uptonking/note4yaoo`t175`t28`tHTML`tNOASSERTION`tarchived=false`t2026-11-04`tdaily notes
+dkaslovsky/textnote`t175`t5`tGo`tMIT`tarchived=false`t2023-11-28`tSimple tool for creating and organizing daily notes on the command line
+ryanjamurphy/review-obsidian`t164`t12`tTypeScript`tNOASSERTION`tarchived=false`t2024-12-10`tAdd the current note to a future daily note to remember to review it.
+qcam/worque`t125`t13`tRuby`tMIT`tarchived=false`t2017-07-03`tManage your daily notes like a bosssss
+maomao1996/daily-notes`t121`t11`tJavaScript`tNOASSERTION`tarchived=false`t2025-10-30`t不定期更新的日常笔记记录（零零散散啥都记系列）
+iiz00/obsidian-daily-note-outline`t121`t5`tTypeScript`tMIT`tarchived=false`t2024-03-31`tAdd a custom view which shows outline of multiple daily notes with headings, links, tags and list items
+liamcain/obsidian-daily-notes-interface`t110`t22`tTypeScript`tMIT`tarchived=false`t2026-05-13`tPackage to create, open, and find daily notes from your Obsidian plugin
+
+### QUERY: "life log" in:name,description stars:>100
+
+### QUERY: "daily review" in:name,description stars:>50
+quantskills/skill-market-daily-review`t53`t9`tPython`tGPL-3.0`tarchived=false`t2026-07-16`tAgent skill for Pandadata-based A-share after-close daily market review reports.
+
+### QUERY: "work journal" in:name,description stars:>50
+JerryZLiu/Dayflow`t7394`t461`tSwift`tMIT`tarchived=false`t2026-11-03`tThe automatic work journal/time tracker. Privately turns your screen into a timeline of what you actually accomplished. Open-source and local-first.
+Meridiona/meridian`t406`t26`tRust`tNOASSERTION`tarchived=false`t2026-11-01`tStop letting your work go unnoticed. Meridian keeps an automatic work journal of what you worked on and what you finished, summarised daily, and automatically drafts your project tickets for you.
+florinpop17/work-journal`t69`t32`tJavaScript`tMIT`tarchived=false`t2019-03-17`tA public personal work journal
+
+### QUERY: "mood tracker" in:name,description stars:>200
+

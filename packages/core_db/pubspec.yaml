@@ -1,0 +1,31 @@
+name: core_db
+description: 知行日志 ActLog 的数据库层（drift + SQLite）。纯 Dart，无 Flutter 依赖。
+version: 0.1.0
+publish_to: none
+
+# 本包是根 pub workspace 的成员：在根目录 `dart pub get` 一次性解析依赖，
+# 共享根 pubspec.lock 与 .dart_tool。单独在本目录跑 `dart pub get` 会报错。
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  # drift 主库 + 原生 SQLite 驱动。
+  # 纯 Dart 包：不依赖 flutter，因此可以在纯 Dart VM 上跑 `dart test`。
+  drift: ^2.35.0
+  sqlite3: ^3.9.0
+
+dev_dependencies:
+  build_runner: ^2.17.1
+  # 仅用于「枚举取值 ↔ schema CHECK 约束」交叉校验测试（只读引用，不修改 core_domain）。
+  core_domain:
+    path: ../core_domain
+  drift_dev: ^2.35.2
+  lints: ^6.0.0
+  test: ^1.25.0
+
+# sqlite3 build hook 的镜像配置（hooks.user_defines）**不在这里**，在仓库根的
+# pubspec.yaml 里。原因：本包是 pub workspace 成员，hook 的缓存与配置都按
+# workspace 根解析；写在本文件里会被静默忽略，`dart test` 于是直连 github.com
+# 并挂到超时。详见根 pubspec.yaml 中 hooks 段的注释。

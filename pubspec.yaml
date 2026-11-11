@@ -1,0 +1,44 @@
+# actlog 工作区根配置
+#
+# 这是 Dart pub workspace 的根。成员包用 path 依赖挂进来，
+# `dart pub get` 在根目录一次性解析全部依赖。
+#
+# 注意：core_domain / core_db 是**纯 Dart 包**（无 flutter 依赖），
+# 这样它们可以只跑 `dart test` 而不需要 Flutter 引擎。
+# 只有 core_ui / apps/* 依赖 flutter。
+
+name: actlog_workspace
+description: 知行日志 actlog 的 monorepo 工作区根。
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - packages/core_data
+  - packages/core_domain
+  - packages/core_db
+  # core_sync / core_backup 是纯 Dart 包，P5 再建
+  # core_ui 与 apps/* 依赖 Flutter，**不进 workspace** ——
+  #   Flutter 包由各自 pubspec 独立解析，用 path 依赖指向 core_domain/core_db。
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0
+
+# sqlite3 的 build hook 配置必须写在**workspace 根**，不能写在工作区成员包里。
+# 实测（2026-11-06）：把 url_pattern 只放在 packages/core_db/pubspec.yaml 时，
+# 成员加入 workspace 后 hook 的缓存目录搬到了根的 .dart_tool/hooks_runner/，
+# 该 define 被静默忽略 —— hook 回落到直连 github.com，本机不可达，
+# `dart test` 表现为「连续数分钟无任何输出」后以 HttpException 超时失败（exit 65）。
+# 报错里出现的 --packages=...\.dart_tool/package_config.json 就是根目录的标志。
+#
+# 本机直连 github.com 不可达（TLS handshake 失败），改走 GitHub 镜像下载同一个
+# 官方 release 资产；hook 仍按 sqlite3 包内置的 SHA256 校验内容，完整性不受影响。
+# 网络恢复后删掉本段即回到官方默认源。
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3
+      url_pattern: 'https://ghfast.top/https://github.com/simolus3/sqlite3.dart/releases/download/$RELEASE_TAG/$FILENAME'

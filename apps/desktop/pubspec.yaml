@@ -1,0 +1,82 @@
+# 知行日志 ActLog —— Windows 桌面端。
+#
+# 注意：本目录**不在** Dart workspace 里（workspace 只收纯 Dart 包）。
+# 这里用 path 依赖指向 packages/ 下的三个纯 Dart 包，由 `flutter pub get`
+# 独立解析。三个包内部带 `resolution: workspace`，能否被外部 path 依赖
+# 正常解析，已在 P1 开工时实测（见 docs/P1_进度.md）。
+
+name: actlog
+description: "知行日志 ActLog：面向高绩效人士的每日知行闭环桌面应用。"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- 本地业务层（纯 Dart 包，含 P1 全部业务规则与仓储） ---
+  core_data:
+    path: ../../packages/core_data
+  core_db:
+    path: ../../packages/core_db
+  core_domain:
+    path: ../../packages/core_domain
+
+  cupertino_icons: ^1.0.8
+  drift: ^2.35.0
+  # P2 才用得上，但先挂上：只有真正参与构建，才能验证 ATL 借用补丁有效。
+  flutter_local_notifications: ^19.4.0
+  flutter_riverpod: ^3.0.0
+  path: ^1.9.0
+  path_provider: ^2.1.5
+  window_manager: ^0.6.0
+  tray_manager: ^0.8.3
+
+dev_dependencies:
+  build_runner: ^2.7.0
+  drift_dev: ^2.35.0
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    # 托盘图标（tools/icons/make_brand_icon.py 程序化生成，源自 logo Set I / I03）。
+    - assets/icon.png
+    # 顶栏左上角品牌标记（logo Set I / I03 深蓝碗形叠合 + 基线，透明底纯形）。
+    - assets/brand_mark.png
+    # 字体许可证（OFL 要求重分发时随包附带）。
+    - assets/fonts/licenses/
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-400.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-500.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-600.ttf
+          weight: 600
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces-400.ttf
+          weight: 400
+        - asset: assets/fonts/Fraunces-600.ttf
+          weight: 600
+        - asset: assets/fonts/Fraunces-700.ttf
+          weight: 700
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-400.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono-500.ttf
+          weight: 500
+    # CJK 兜底族：本机 Noto Sans SC 可变字体的 wght=400 静态实例
+    # （OFL，随包分发）。
+    - family: Noto Sans SC
+      fonts:
+        - asset: assets/fonts/NotoSansSC-Regular.ttf
+          weight: 400

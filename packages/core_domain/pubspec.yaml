@@ -1,0 +1,16 @@
+name: core_domain
+description: 知行日志 ActLog 的纯领域模型层（无 IO 依赖）。
+version: 0.1.0
+publish_to: none
+
+# 属于根 pub workspace 的成员包。
+# ★ 漏掉这一行会导致根目录 `dart pub get / analyze / test` 全部失败，
+#   而包内单独跑又是好的 —— 非常容易被误判成「环境问题」。
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

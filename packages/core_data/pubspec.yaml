@@ -1,0 +1,19 @@
+name: core_data
+description: ActLog 仓储层与 P1 业务规则（纯 Dart，不依赖 Flutter）。
+publish_to: none
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  core_db:
+    path: ../core_db
+  core_domain:
+    path: ../core_domain
+  drift: ^2.35.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0
