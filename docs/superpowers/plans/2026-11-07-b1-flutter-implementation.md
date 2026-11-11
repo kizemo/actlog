@@ -7200,6 +7200,57 @@ B1 的前 18 个 Task 交付的是**功能**，不是**版面**。把 `apps\desk
 
 ---
 
+## Task 35 · 开源入库 / 循环任务 / 四维优先级标记 / 去页头标题（2026-11-11 夜 – 11-12 凌晨）
+
+**用户当轮 4 条**：
+
+1. commit，push 到 GitHub 仓库，并撰写 README 文档，详细写出项目的优势、特点、价值；
+2. 再增加一类任务：**循环任务**，点击添加可设定每周哪些天（是否只工作日）、几点钟执行；循环任务添加后**自动填入每天的计划中**；右侧边栏「习惯列表」模块**下面**添加「循环任务」列表模块，同样在右上角加添加按钮；
+3. 添加待办、计划时可点选**四维度**（重要、不重要、紧急、不紧急），对四个维度设计**四个不同标记**，在计划**名称前面**显示；
+4. **去除「闭环环」模块下面的标题模块**，包括「今日」、日期、星期，以及这一行中的两个按钮「完整」「极简」。
+
+**派工书（唯一实现契约）**：`.superpowers\sdd\2026-11-11-b1-task35\brief.md`
+
+**写集表**（R1：控制器零改 `apps\` / `packages\`，全部经 worker 子会话落笔）
+
+| 角色 | 独占路径 |
+| --- | --- |
+| worker A（去页头 + 四维标记） | `apps\desktop\lib\features\day\**`、`apps\desktop\lib\widgets\priority_marker.dart`、`apps\desktop\lib\features\day\widgets\unscheduled_strip.dart`、对应 test |
+| worker B（四维标记补齐未排期区） | `apps\desktop\lib\features\day\widgets\unscheduled_strip.dart`、`apps\desktop\test\**`（追加用例） |
+| worker C（循环任务主体） | `packages\core_db\lib\src\tables.dart`、`packages\core_db\lib\src\database.dart`、`packages\core_db\test\**`、`packages\core_data\lib\src\recurring.dart`（新建）、`packages\core_data\test\recurring_test.dart`（新建）、`apps\desktop\lib\features\recurring\**`（新建）、`apps\desktop\lib\features\right_rail\**` |
+| controller（仅台账） | `README.md`、`.gitignore`、`AGENTS.md`、本计划文件、`docs\B1_验收记录.md`、`.superpowers\sdd\**\handoff.md`、`reports\task35-*` |
+
+**Step**
+
+- [x] T0 读规范与状态（`AGENTS.md` 全文 / `task34-closeout.md` / `handoff.md` §27 / `B1_验收记录.md` Task 34 流水 / 本计划 Task 34 段）
+- [x] T1 `.gitignore` 新建并补全（80 行 / 2785 B，含 `__pycache__/`、`*.pyc`、`*.pyo`、`*.obj` 四项）
+- [x] T2 `git init -b main` → `remote add origin https://github.com/kizemo/actlog.git` → `fetch` → `reset --soft origin/main`（首提交挂在远端 `Initial commit d03ce96` 之上，**不 force-push**）
+- [x] T3 `git rm -r --cached -f` 清掉 3 个垃圾文件（`tools/icons/__pycache__`、`tools/spike/t_probe.obj`），磁盘文件按 R4 保留 ⇒ `TRACKED=299` / `DELETED=0` / `UNTRACKED=0`
+- [x] T4 worker A：去页头标题模块（`_PageHead` + `_ModeSwitch`，保留 `log.mode` / `dayModeMinimal` 数据语义）
+- [x] T5 worker A/B：四维优先级标记 `▲`(重要) / `▽`(不重要) / `◆`(紧急) / `◇`(不紧急)，渲染在名称**前面**，`quadrant == null` 不渲染不留位；未排期带 `UnscheduledStrip` 同步补齐
+- [x] T6 worker C：`recurring_task`（`weekday_mask` 周一=bit0…周日=bit6、`start_minute` 0–1439、`duration_minutes`、`active`、`deleted_at`）＋ `recurring_occurrence`（`UNIQUE(task_id, date)` 幂等）；`currentSchemaVersion` 1→2；物化时机 = 应用启动 + 选中日期变化；右轨模块插在「习惯速览」之后
+- [x] T7 worker C 收尾：`raw.dispose()` → `raw.close()`、过期注释订正、`oplog_writer` 同步白名单补齐（12 → 12 张同表，新增两表不写 oplog 的决策登记于 brief）
+- [x] T8 新建 `reports\task35-forbidden-check.ps1`（基线固定 `2026-11-11T23:30:00`，白名单 27 条）并实跑 ⇒ `VIOLATIONS=0` / `BOUNDARY_VERDICT=PASS`
+- [x] T9 门禁九步全绿（见下）
+- [x] T10 提交 `f460fc4` + `push -u origin main`（`d03ce96..f460fc4`，`ls-remote` 一致）
+- [x] T11 `README.md` 全文重写（21488 B / 340 行，13 个二级标题，11 个链接目标逐一 `Test-Path=True`）
+- [x] T12 首包装机包 `release\actlog-Setup-1.0.0_20261112-000727.exe` 产出后**判为坏包**（见「已知问题」①），已重建完成（见 T13）
+- [x] T13 重建 release 树（`flutter build windows --release`，44.9 s）后重打包 ⇒ `release\actlog-Setup-1.0.0_20261112-000947.exe`（15818676 B / sha16 `6CDFAA16D8D23130`），抽包 `data\app.so` = `4B756691A48DA94A` 与构建目录逐字相同
+- [ ] T14 真机目视：四维字形 `▲▽◆◇` 不缺字、循环任务「自动填入每天计划」可见
+- [x] T15 R3 三处同步（`AGENTS.md` R3 + §7 / `README.md` / `handoff.md` §28）+ `docs\B1_验收记录.md`
+
+**门禁期望**：`flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0）；desktop 全量 **+328**（Task 34 基线 +312 ＋ 去页头/四维标记/循环任务新增 16 条）；core_data **+151**（原 +141 ＋ `recurring_test.dart` 10 条）；core_db **+71**（本轮**首次**纳入门禁，schema 1→2 的直接判据）；`VIOLATIONS=0`；G3 `0 FAIL`。
+
+**已知问题（如实登记）**
+
+① **首包打的是旧代码**：`make_installer.ps1` 自带 `NOTE: this script never invokes flutter/dart; it always packages the existing release tree.` ⇒ 它**不会**替你编译。首包 `..._20261112-000727.exe`（15782107 B）实测 `data\app.so` mtime 仍为 `22:54:26`、sha16 `D9ACE771340DF3F3`（= Task 34 基线），而本轮源码最晚 `00:00:32` ⇒ 包内是旧代码；旁证：包体积与旧包 `..._20261111-225703.exe` **逐字节相等**（15782107 B）。⇒ 打新包前必须先跑 `flutter build windows --release`，脚本已固化为 `reports\task35-rebuild-installer.ps1`。
+
+② `docs\` 不改 ⇒ 无权威 `schema_v2.sql` 作第二份 DDL 对照，`schema_consistency_test.dart` 改用「v1 的 14 张逐项比对 ＋ 白名单放行两张新表 ＋ 索引集合校验」替代。
+
+③ 四维字形 `▲▽◆◇` 在 widget 测试里跑的是 Ahem 字体，**无法证明真机字体不缺字** ⇒ 必须一次装机目视。
+
+---
+
 ## 附录 A：命令清单（按执行顺序）
 
 ```powershell

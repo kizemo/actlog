@@ -149,7 +149,7 @@
                         │ 只依赖下面三个纯 Dart 包
 ┌───────────────────────▼───────────────────────────────────┐
 │  core_data   业务逻辑层：仓储 / 站会 / 心态 / 优先级视图    │
-│              107+ 单测，无 UI 依赖                          │
+│              151 单测，无 UI 依赖                           │
 ├───────────────────────────────────────────────────────────┤
 │  core_db     drift 表定义 / 迁移 / oplog 写入层             │
 │              69 单测，含约束有牙测试与 schema 一致性测试     │
@@ -257,7 +257,7 @@ pwsh -File tools/verify/exe_smoke.ps1                # release exe 冒烟
 
 门禁脚本兼容 Windows PowerShell 5.1 与 PowerShell 7，也可在 Linux 上用 `pwsh` 直接跑（CI 即如此）。
 
-**安装包**：`release/actlog-Setup-1.0.0_20261111-225703.exe`（NSIS，双击即装、免管理员；全新机器装到 `%PROGRAMFILES%\actlog`，建开始菜单与桌面快捷方式；中文显示名保留「知行日志」）。
+**安装包**：`release/actlog-Setup-1.0.0_20261112-000947.exe`（15818676 B / sha16 `6CDFAA16D8D23130`；NSIS，双击即装、免管理员；全新机器装到 `%PROGRAMFILES%\actlog`，建开始菜单与桌面快捷方式；中文显示名保留「知行日志」）。
 
 ---
 
@@ -311,7 +311,7 @@ CI（`.github/workflows/ci.yml`）在 push / PR 到 `main` 时以矩阵方式跑
 | 数据模型 | ✅ 已冻结 | [`docs/schema_v1.sql`](docs/schema_v1.sql)（v1，FROZEN @ P0-D2） |
 | `packages/core_domain` | ✅ 完成 | 纯 Dart 领域模型（实体 / 枚举 / 不变量），36 单测全绿 |
 | `packages/core_db` | ✅ 完成 | drift 表定义 / 迁移脚本 / oplog 写入层，69 单测全绿 |
-| `packages/core_data` | ✅ 完成 | 仓储 / 站会 / 心态 / 优先级视图，107+ 单测全绿 |
+| `packages/core_data` | ✅ 完成 | 仓储 / 站会 / 心态 / 优先级视图，151 单测全绿 |
 | `apps/desktop`（Windows 壳） | ✅ P1 已收尾 | 正式 Windows 桌面应用：八文件接线完成；托盘 ↔ 窗口互斥、UTF-8 中文窗口标题、`--selftest` 自检开关、正式图标资源全部落地；release exe 真机冒烟 PASS |
 | 循环任务 | ✅ 已落地 | 每周哪几天 + 几点，自动填入当天计划；右轨独立模块 |
 | 四维优先级标记 | ✅ 已落地 | 四枚可点芯片 + 四种字形标记，渲染在名称前 |

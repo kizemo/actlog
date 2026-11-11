@@ -57,17 +57,24 @@ $env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
 
 ### R3 · 分发禁令
 
-**唯一可分发** = `release\actlog-Setup-1.0.0_20261111-225703.exe`
-（15782107 B / sha16 `1A50EB997120E503` / mtime 2026-11-11 22:57:27；2026-11-11 本机**静默覆盖装机实测**
-`INSTALLER EXIT=0`，旧目录 `D:\Program Files\practilog` **已消失**、新目录 `D:\Program Files\actlog` 在位，
-安装器轨迹 `ACTLOG_MIGRATE=RENAME_OK`（**整目录改名**，`userdata` 原地保留 ⇒ 账本零丢失），
-日志 `reports\task34-probe\task34-install-out.txt` + `reports\task34-probe\task34-probe2-out.txt`）。
-Task 34 包：**安装目录名 `practilog` → `actlog`**（NSIS `Rename` 整目录，同盘零删除）+ **顶栏去掉 logo 右侧
-`actlog` 字并加 logo 顶边距** + **右轨拆成「待办列表」/「习惯速览」两模块，各带一枚 ＋ 弹窗**，
-门禁 `GATE_VERDICT=PASS`（analyze 逐字 `No issues found!` / desktop **+312** / core_data +141 / `VIOLATIONS=0`）。
-**真机目检已闭合**：`reports\task34-probe\app-window-screen2.png`（2160×1350 整窗，前台断言 `FG_MATCH=True`）
-目检 = 顶栏只剩 logo、logo 右侧无 `actlog` 字；右轨自上而下「待办列表＋」「习惯速览＋」「闭环提示」「快捷键」，
-旧「拖入时间轴」混合模块已消失。详见 `handoff.md` §27。
+**唯一可分发** = `release\actlog-Setup-1.0.0_20261112-000947.exe`
+（15818676 B / sha16 `6CDFAA16D8D23130` / mtime 2026-11-12 00:10:07；包内 `data\app.so` sha16 `4B756691A48DA94A`
+与本轮 `flutter build windows --release` 产物**逐字相同** ⇒ 新代码确在包内，证据 `reports\task35-rebuild-installer.txt`）。
+Task 35 包内容：**循环任务**（`recurring_task` + `recurring_occurrence` 两表、`currentSchemaVersion` 1→2、
+右轨「习惯速览」下方「循环任务＋」模块、添加后自动填入每天计划）+ **四维优先级标记**
+（`▲` 重要 / `▽` 不重要 / `◆` 紧急 / `◇` 不紧急，渲在计划**名称前面**）+ **去除「闭环环」模块下的页头标题**
+（今日 / 日期 / 星期 + 「完整」「极简」两枚按钮）；门禁 `GATE_VERDICT=PASS`（analyze 逐字 `No issues found!` /
+desktop **+328** / core_data +151 / core_db +71 / `VIOLATIONS=0`）。
+**真机目视未做** ⇒ 待装本包后验两件：① 四维字形 `▲▽◆◇` 在真机字体下不缺字 ② 循环任务添加后「自动填入每天计划」可见。
+
+⚠️ **打新包前必须先跑 `flutter build windows --release`**：`tools\build\make_installer.ps1` 自带
+`NOTE: this script never invokes flutter/dart; it always packages the existing release tree.` —— 它**只打包、不编译**。
+2026-11-12 首包 `…_20261112-000727.exe` 正是这么打成旧代码的（包内 `app.so` sha16 仍是 Task 34 的 `D9ACE771340DF3F3`，
+包体积与旧包**逐字节相等** 15782107 B，两条独立判据同向）。固化脚本：`reports\task35-rebuild-installer.ps1`。
+
+坏包 `actlog-Setup-1.0.0_20261112-000727.exe`（15782107 B）自 Task 35 起**降为坏包，严禁分发**（未跑 `flutter build` 就打包 ⇒ 包内是 Task 34 旧代码）。
+
+历史包 `actlog-Setup-1.0.0_20261111-225703.exe`（15782107 B / sha16 `1A50EB997120E503`）自 Task 35 起**降为历史包，不得分发**（Task 34 包：安装目录 `practilog`→`actlog` 整目录改名 + 顶栏去 logo 右侧 `actlog` 字 + 右轨拆「待办列表」/「习惯速览」两模块；2026-11-11 本机**静默覆盖装机实测** `INSTALLER EXIT=0`，旧目录 `D:\Program Files\practilog` 已消失、新目录 `D:\Program Files\actlog` 在位，轨迹 `ACTLOG_MIGRATE=RENAME_OK`，`userdata` 原地保留 ⇒ 账本零丢失；真机目检已闭合，证据 `reports\task34-probe\task34-install-out.txt` + `reports\task34-probe\task34-probe2-out.txt` + `reports\task34-probe\app-window-screen2.png`，详见 `handoff.md` §27）。
 
 历史包 `actlog-Setup-1.0.0_20261111-225437.exe`（15781029 B）自 Task 34 起**降为历史包，不得分发**（同轮第一版，迁移轨迹日志常量写不出导致 makensis 报 2 条 6000 警告并整段忽略，已由 `…_225703.exe` 取代）。
 
@@ -86,7 +93,7 @@ Task 34 包：**安装目录名 `practilog` → `actlog`**（NSIS `Rename` 整�
 历史包 `…_20261111-013828.exe`（15740862 B / sha16 `9FF92CF78678F1D6`）自 Task 29 起**降为历史包，不得分发**（不含四态双通道）。
 历史包 `…_214615.exe`（15703955 B / sha16 `CF137421F1637792`）自 Task 28 起**降为历史包，不得分发**。
 
-`release\` 下现共 **19 个 exe，仅上列 1 个可分发，其余 18 个严禁分发**（15 个历史 `PractiLog-Setup-*` + 被取代的 `actlog-Setup-1.0.0_20261111-215616.exe` / `…_220332.exe` / `…_225437.exe`）。
+`release\` 下现共 **21 个 exe，仅上列 1 个可分发，其余 20 个严禁分发**（15 个历史 `PractiLog-Setup-*` + 被取代的 `actlog-Setup-1.0.0_20261111-215616.exe` / `…_220332.exe` / `…_225437.exe` / `…_225703.exe` + 坏包 `…_20261112-000727.exe`）。
 
 以下**严禁分发**（缺许可、缺 Task 20/21/26 内容、或已被取代）：`…_132823.exe`、`…_121337.exe`、`…_095128.exe`、`…_20260918-181730.exe`，以及 `release\` 下其它任何历史 exe。
 真源：`docs\B1_验收记录.md` 第 5 节 + `reports\task26-closeout.md` §9。**打包新包后才更新本条**，且必须同步改这两处。
@@ -269,9 +276,11 @@ practilog/
 
 ---
 
-## 7. 当前状态快照（2026-11-11 深夜，Task 34 收口后）
+## 7. 当前状态快照（2026-11-12 凌晨，Task 35 收口后）
 
-- **Task 34（2026-11-11 深夜）已完成「安装目录改名 `actlog` + 顶栏去英文 + 右轨两模块拆分」**。**目录**：`installer.nsi` 加 1d 迁移段 —— 旧目录存在且新目录不存在 ⇒ `ClearErrors` + `Rename`（**同盘整目录改名、逐字节不变、零删除、`userdata` 原地保留**）；目标已存在 ⇒ robocopy 只复制程序文件、旧目录保留不删；失败 ⇒ 回退旧目录就地安装并弹框。真机 `INSTALLER EXIT=0`、`OLD_DIR_EXISTS_AFTER=False` / `NEW_DIR_EXISTS_AFTER=True`、轨迹 `ACTLOG_MIGRATE=RENAME_OK D:\Program Files\practilog -> D:\Program Files\actlog`、`USERDATA_HASH_SAME=1`。**界面**：顶栏删掉 logo 右侧 `actlog` 字并新增 `kBrandMarkTopGap=12` 顶部留白（`kTopBarHeight=32` 未动）；右轨自上而下改为「待办列表＋」「习惯速览＋」「闭环提示」「快捷键」，两模块右上角各一枚加号弹窗（习惯侧新建 `habit_quick_dialog.dart`），旧「拖入时间轴」混合模块删除、习惯拖拽源搬到 `HabitOverviewPanel`（key `overview-habit-<id>`）。**门禁**：`analyze` 逐字 `No issues found!` / desktop **+312** / core_data +141 / 越界 `VIOLATIONS=0`（`reports\task34-gate.txt`）。**包与装机**：`release\actlog-Setup-1.0.0_20261111-225703.exe` 唯一可分发（见 R3）；真机目检须先断言 `FG_MATCH` 再取帧。**账本零丢失**：整目录 `Rename` + 装机器 BEFORE/AFTER 对拍 + 停进程后 `sqlite3` 逐库 dump（`reports\task34-ledger-audit.txt`）；三库唯一有内容的记录 = 计划项「中国」（11-07 / `done`）逐字一致、所有 `day_log` 内容列长度皆 0 ⇒ 无用户文本丢失；**「改名未改库字节」只能由 BEFORE/AFTER 对拍 + 同盘 `Rename` 支撑，禁用 mtime**（SQLite 打开/checkpoint 会改 mtime 与哈希）。**遗留**：旧库另有 2 条空壳 `day_log` + `rev` 差异 + `oplog 17 vs 8`，**成因未坐实、不下结论**；合并需写 live 库、不可逆 ⇒ 待用户拍板。详见 `reports\task34-closeout.md` 与 `handoff.md` §27。
+- **Task 35（2026-11-12 凌晨）已完成「开源入库 + 循环任务 + 四维优先级标记 + 去页头标题」四项用户指令**。**开源入库**：仓库 `https://github.com/kizemo/actlog`（public / `main`），`main` = `f460fc4`（`ls-remote` 一致、`## main...origin/main` 不领先不落后），`TREE_FILES=299`；流程用 `init -b main` → `remote add origin` → `fetch` → `reset --soft origin/main` 把首提交挂在远端 `d03ce96 Initial commit` 之上（**未 force-push**），垃圾文件用 `git rm -r --cached -f` 清索引、磁盘文件按 R4 保留（302→299）；`.gitignore` 80 行（补 `__pycache__/` `*.pyc` `*.pyo` `*.obj`）；在版图书全文 `高绩效人士的五项管理_全文.md` **不入公开仓库**（本地保留），README「诚实说明」写明。`README.md` 全文重写 21488 B / 340 行（13 个二级标题、11 个链接逐一 `Test-Path=True`、不嵌图），单测数字校正为 151。**循环任务**：新表 `recurring_task`（`weekday_mask` 周一=bit0…周日=bit6、`start_minute` 0–1439、`duration_minutes`、`active`、`deleted_at`）+ `recurring_occurrence`（`UNIQUE(task_id, date)` 幂等），`currentSchemaVersion` 1→2，物化时机 = 应用启动 + 选中日期变化；右轨「习惯速览」下方新增「循环任务＋」模块。**四维优先级标记**：4 枚芯片分两组【重要/不重要】【紧急/不紧急】，映射既有 `Quadrant` Q1–Q4，标记 `▲`/`▽`/`◆`/`◇` 渲在计划**名称前面**，`quadrant == null` 不渲染不留位，**零 schema 变更**。**去页头**：删 `_PageHead` + `_ModeSwitch`（今日 / 日期 / 星期 + 完整 / 极简），保留 `log.mode` / `dayModeMinimal` 数据语义与 `DayGrid(minimal:)`。**门禁九步全绿**：`analyze` 逐字 `No issues found!` / desktop **+328** / core_data **+151** / core_db **+71**（本轮**首次**纳入门禁）/ 三包 `dart analyze` 逐字干净 / G3 `0 FAIL` / `FLUTTER_LOCK_SEEN=0` / 越界 `VIOLATIONS=0`（`reports\task35-forbidden-check.txt`）。**越界判据必须每轮新写**：`task34-forbidden-check.ps1` 的基线绑 Task 34 brief mtime、白名单绑 Task 34 写集 ⇒ 对本轮必然假红 23 条；本轮新建 `task35-forbidden-check.ps1`，基线固定 `2026-11-11T23:30:00`。**包**：`release\actlog-Setup-1.0.0_20261112-000947.exe`（15818676 B / sha16 `6CDFAA16D8D23130`）唯一可分发，包内 `app.so` sha16 `4B756691A48DA94A` 与构建产物逐字相同。**踩过的真坑**：`make_installer.ps1` **只打包不编译**，首包 `…_000727.exe` 打成 Task 34 旧代码（`app.so` 仍是 `D9ACE771340DF3F3`、体积与旧包逐字节相等）⇒ 已降为坏包；见 R3。**遗留**：① 真机目视未做（四维字形真机不缺字、循环任务自动填充）② `docs\` 不改 ⇒ 无 `schema_v2.sql` 第二份 DDL 对照，`schema_consistency_test` 改用「v1 十四张逐项比对 + 白名单放行两新表 + 索引集合校验」③ 计划历史未勾项 `7041` 仍挂账 ④ `progress.md` 仓库根不存在 ⑤ 旧库分叉与问卷 `ask_bc0b98b4aaab7c72b85afe28` 仍未拍板/未回收。详见 `handoff.md` §28。
+
+- **Task 34（2026-11-11 深夜）已完成「安装目录改名 `actlog` + 顶栏去英文 + 右轨两模块拆分」**。**目录**：`installer.nsi` 加 1d 迁移段 —— 旧目录存在且新目录不存在 ⇒ `ClearErrors` + `Rename`（**同盘整目录改名、逐字节不变、零删除、`userdata` 原地保留**）；目标已存在 ⇒ robocopy 只复制程序文件、旧目录保留不删；失败 ⇒ 回退旧目录就地安装并弹框。真机 `INSTALLER EXIT=0`、`OLD_DIR_EXISTS_AFTER=False` / `NEW_DIR_EXISTS_AFTER=True`、轨迹 `ACTLOG_MIGRATE=RENAME_OK D:\Program Files\practilog -> D:\Program Files\actlog`、`USERDATA_HASH_SAME=1`。**界面**：顶栏删掉 logo 右侧 `actlog` 字并新增 `kBrandMarkTopGap=12` 顶部留白（`kTopBarHeight=32` 未动）；右轨自上而下改为「待办列表＋」「习惯速览＋」「闭环提示」「快捷键」，两模块右上角各一枚加号弹窗（习惯侧新建 `habit_quick_dialog.dart`），旧「拖入时间轴」混合模块删除、习惯拖拽源搬到 `HabitOverviewPanel`（key `overview-habit-<id>`）。**门禁**：`analyze` 逐字 `No issues found!` / desktop **+312** / core_data +141 / 越界 `VIOLATIONS=0`（`reports\task34-gate.txt`）。**包与装机**：`release\actlog-Setup-1.0.0_20261111-225703.exe` 已于 Task 35 降为历史包（见 R3）；真机目检须先断言 `FG_MATCH` 再取帧。**账本零丢失**：整目录 `Rename` + 装机器 BEFORE/AFTER 对拍 + 停进程后 `sqlite3` 逐库 dump（`reports\task34-ledger-audit.txt`）；三库唯一有内容的记录 = 计划项「中国」（11-07 / `done`）逐字一致、所有 `day_log` 内容列长度皆 0 ⇒ 无用户文本丢失；**「改名未改库字节」只能由 BEFORE/AFTER 对拍 + 同盘 `Rename` 支撑，禁用 mtime**（SQLite 打开/checkpoint 会改 mtime 与哈希）。**遗留**：旧库另有 2 条空壳 `day_log` + `rev` 差异 + `oplog 17 vs 8`，**成因未坐实、不下结论**；合并需写 live 库、不可逆 ⇒ 待用户拍板。详见 `reports\task34-closeout.md` 与 `handoff.md` §27。
 
 - **Task 33（2026-11-11 晚）已完成「全面改名 `actlog` + 图标闭合 + GitHub 仓库改名」**。**GitHub**：`kizemo/PractiLog` → **`kizemo/actlog`**（public / main，旧 URL 自动重定向）。**改名**：81 文件机械改名（`package:practilog/`→`package:actlog/`、`PractiLog`→`ActLog`、`PRACTILOG`→`ACTLOG`、`practilog`→`actlog`），含 exe 名 / 注册表键 / Dart 包名类名 / 环境变量 / 文档；`installer.nsi` 全量重写（`.onInit` 就地升级段复用旧目录）；**旧数据目录 / `practilog.db` / 旧 `PRACTILOG_*` 环境变量新旧并存**（新为主 + 旧兜底 + 首启搬迁），中文「知行日志」保留；13 条 legacy 兼容测试锁死契约。**图标**：任务栏旧样 = **Windows 图标缓存 + 旧进程持旧映像（非代码 bug）**，重启 explorer 后成对帧差异带 `x=1359..1466` `green 180 → 0`、navy `4479 → 7410` ⇒ **Task 32 遗留「像素目检未判定」闭合**；app 左上角旧样 = `_BrandMarkPainter` **自绘方框**（真 bug）⇒ 改 `Image.asset('assets/brand_mark.png')`，真机目检 = I03 三瓣「a」标记 + `actlog` 字样。**门禁**：`analyze` 逐字 `No issues found!` / desktop **+306** / core_data +141 / 越界 `VIOLATIONS=0`。**包与装机**：`release\actlog-Setup-1.0.0_20261111-220332.exe`（15778514 B / sha16 `169D24D160ACA4D5`）唯一可分发；`INSTALLER EXIT=0`，旧 `practilog.exe` 已删、`userdata` 四文件哈希保留（**账本零丢失**）。**遗留**：本机安装目录名仍为 `D:\Program Files\practilog`（为保账本复用旧目录；全新机器用 `actlog` 目录）。详见 `handoff.md` §26。
 
