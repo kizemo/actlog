@@ -7248,7 +7248,7 @@ B1 的前 18 个 Task 交付的是**功能**，不是**版面**。把 `apps\desk
 
 **门禁期望**：`flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0）；desktop 全量 **+330**（Task 34 基线 +312 ＋ 去页头/四维标记/循环任务新增 16 条 ＋ T14 渲染取证新增 2 条；Task 35 收口时为 +328）；core_data **+151**（原 +141 ＋ `recurring_test.dart` 10 条）；core_db **+71**（本轮**首次**纳入门禁，schema 1→2 的直接判据）；`VIOLATIONS=0`；G3 `0 FAIL`。
 
-**T14 门禁实跑（2026-11-12 19:43–19:50，`reports\task35-t14-gate.txt`）**：**`GATE_VERDICT=PASS`** —— `ANALYZE_LITERAL=1` / `ANALYZE_ISSUE_LINES=0`、desktop **`+330`**、`GLYPH_RENDER_TEST_EXIT=0 / GLYPH_RENDER_TEST_COUNT=2`、PNG 43408 B / sha16 `660916AD45582185`、三包 `dart analyze` 逐字干净、core_db **71**、core_data **151**、`G3_FAIL_LINES=0`、`VIOLATIONS=0` / `PACKAGES_TOUCHED=0` / `BOUNDARY_VERDICT=PASS`、`FLUTTER_LOCK_SEEN=0`。本轮越界判据用**新写的** `reports\task35-t14-forbidden-check.ps1`（白名单补 worker 新增的渲染取证测试文件），旧 `task35-forbidden-check.ps1` 按 R4 原样保留。
+**T14 门禁实跑（2026-11-12 19:43–19:50，`reports\task35-t14-gate.txt`）**：**`GATE_VERDICT=PASS`** —— `ANALYZE_LITERAL=1` / `ANALYZE_ISSUE_LINES=0`、desktop **`+330`**、`GLYPH_RENDER_TEST_EXIT=0 / GLYPH_RENDER_TEST_COUNT=2`、PNG 43408 B / sha16 `660916AD45582185`、三包 `dart analyze` 逐字干净、core_db **71**、core_data **151**、`G3_FAIL_LINES=0`、`VIOLATIONS=0` / `PACKAGES_TOUCHED=0` / `BOUNDARY_VERDICT=PASS`、`FLUTTER_LOCK_SEEN=0`。本轮越界判据用**新写的** `reports\task35-t14-forbidden-check.ps1`（白名单补 worker 新增的渲染取证测试文件），旧 `task35-forbidden-check.ps1` 按 R4 原样保留。**README 数字订正（两处过期单测数）**：`packages/core_db` 原写 69（实测 **71**）、`packages/core_domain` 原写 36（实测 **62** —— `dart test` 实跑 `+62: All tests passed!`，G2 门禁 `tools\gates\g2_unittest.ps1` 三包全绿），四处已改（架构图 + 完成度表各一处）。
 
 **已知问题（如实登记）**
 
