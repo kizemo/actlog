@@ -7237,9 +7237,18 @@ B1 的前 18 个 Task 交付的是**功能**，不是**版面**。把 `apps\desk
 - [x] T12 首包装机包 `release\actlog-Setup-1.0.0_20261112-000727.exe` 产出后**判为坏包**（见「已知问题」①），已重建完成（见 T13）
 - [x] T13 重建 release 树（`flutter build windows --release`，44.9 s）后重打包 ⇒ `release\actlog-Setup-1.0.0_20261112-000947.exe`（15818676 B / sha16 `6CDFAA16D8D23130`），抽包 `data\app.so` = `4B756691A48DA94A` 与构建目录逐字相同
 - [ ] T14 真机目视：四维字形 `▲▽◆◇` 不缺字、循环任务「自动填入每天计划」可见
+- **T14 进展（2026-11-12 19:05–19:50，控制器直做 + worker 派工）**：
+  - **装机 PASS**：`release\actlog-Setup-1.0.0_20261112-000947.exe` 静默装机 `INSTALLER_PID=95756 EXIT=0`；装机副本 `data\app.so` sha16 `4B756691A48DA94A` **与构建产物逐字相同** ⇒ 新代码确在机（`INSTALLED_APPSO_MATCHES_BUILD=1` / `INSTALLED_APPSO_MATCHES_NEW=1`）。live 库 `D:\Program Files\actlog\userdata\actlog.db` 迁移到 `USER_VERSION=2`，`recurring_task` / `recurring_occurrence` 两表就位（含 `CHECK`、`UNIQUE (task_id, date)`、FK）；`plan_item.quadrant` 的 CHECK 合法值实测为 **`'Q1'|'Q2'|'Q3'|'Q4'`**（写 `'q1'` 会报 `plan_item_quadrant_check (19)`）。
+  - **循环任务「自动填入每天的计划」= PASS（数据层实证，真机装的包上）**：播种 2 条 `recurring_task`（`weekday_mask=127` 每日 08:30；`weekday_mask=8` 仅周四 19:00）后重启 app ⇒ `recurring_occurrence` 写入 **2 行**（`t35-rec-1|2026-11-12`、`t35-rec-2|2026-11-12`），并各生成 1 条 `plan_item`（`source_id=t35-rec-1`、`planned_start=1794443400000` = 2026-11-12 08:30、`planned_end` = +30 min）⇒ 「添加后自动填入每天的计划」成立。
+  - **四维字形字体覆盖 = PASS**：对**随包字体文件**做 TTF cmap 直解（`reports\task35-glyph-cmap.py`，纯 stdlib）⇒ `Inter-400.ttf` / `Inter-500.ttf`（应用首选正文字体）**不含** `▲▽◆◇`（cmap 仅 230 码位），`NotoSansSC-Regular.ttf`（`AppFonts.bodyFallback` 首项）**四个码位全部命中**（30890 码位）⇒ 真机由 Noto Sans SC 兜底，不会缺字。（GDI `GetGlyphIndicesW` 对 5 个字体给出**相同** GID ⇒ 无字体特异性，已弃用作判据。）
+  - **四维字形渲染层 = PASS（真实字体的 PNG，控制器肉眼核验）**：worker 新增 `apps\desktop\test\task35_glyph_render_test.dart` —— `FontLoader` 注册与 `AppFonts` **逐字一致**的族名（`Inter` + `Noto Sans SC`）→ 用**真实行 widget** `UnscheduledStrip` 排 5 行（Q1–Q4 + `quadrant==null`）→ `RenderRepaintBoundary.toImage(pixelRatio: 2.0)` 落 PNG。**肉眼核验：▲◆ / ▲◇ / ▽◆ / ▽◇ 四枚字形全部正常渲染、无豆腐块；未分级行 0 枚标记** ⇒ 渲染层 PASS。产物 `apps\desktop\build\task35-t14\task35_glyph_render.png`（43408 B / sha16 `660916AD45582185`）。worker 首轮 `flutter analyze` 报 2 条 import 问题（`dart:typed_data` 冗余 / `core_domain` 未用），改完复跑**逐字 `No issues found!`**；本轮门禁单跑该文件 `GLYPH_RENDER_TEST_EXIT=0 / COUNT=2`。
+  - **真机窗口像素 = 未取到，原因坐实为「工作站锁屏」**：`GetLastInputInfo` 空闲 **70855 s（≈19.7 h）**、`OpenInputDesktop` → `ACCESS_DENIED`、`GetForegroundWindow()` → 0、`qwinsta` console session 1 = Active 但会话内可见窗口枚举为空 ⇒ DWM 从不合成 actlog 窗口。四条取帧通道逐条实测：`GetDC(NULL)`+`BitBlt` ⇒ **纯黑**；`GetDC(hwnd)`+`BitBlt` ⇒ **锁屏画面**；`PrintWindow` flag 0/1/2/3 ⇒ **空白**；`FLUTTERVIEW` 子窗 DC + `PrintWindow` ⇒ **锁屏画面**（Windows 登录用户头像 + Rime `WeaselServer.exe` 报错框）。**均非 app 像素 ⇒ 不登记为「已目视」**。已备一键补取脚本 `reports\task35-t14-live-demo.ps1`（播种 → 重启 → 断言物化 → 抓真窗 FLUTTERVIEW → 裁剪 → 清理），**解锁后一条命令即可闭合**。
+  - **live 库复原**：验证后按 `origin_device_id='task35-t14-test'` 与 `source_id IN (t35-rec-*)` 全量删除 ⇒ `plan_item=1 / recurring_task=0 / recurring_occurrence=0`（与验证前一致）；唯一变化是 `oplog` 由 9 增至 **17** —— 那是 app 在真机验证时为播种数据写入的**真实同步流水**，**未做人工删除**（审计链不可断）。
 - [x] T15 R3 三处同步（`AGENTS.md` R3 + §7 / `README.md` / `handoff.md` §28）+ `docs\B1_验收记录.md`
 
-**门禁期望**：`flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0）；desktop 全量 **+328**（Task 34 基线 +312 ＋ 去页头/四维标记/循环任务新增 16 条）；core_data **+151**（原 +141 ＋ `recurring_test.dart` 10 条）；core_db **+71**（本轮**首次**纳入门禁，schema 1→2 的直接判据）；`VIOLATIONS=0`；G3 `0 FAIL`。
+**门禁期望**：`flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0）；desktop 全量 **+330**（Task 34 基线 +312 ＋ 去页头/四维标记/循环任务新增 16 条 ＋ T14 渲染取证新增 2 条；Task 35 收口时为 +328）；core_data **+151**（原 +141 ＋ `recurring_test.dart` 10 条）；core_db **+71**（本轮**首次**纳入门禁，schema 1→2 的直接判据）；`VIOLATIONS=0`；G3 `0 FAIL`。
+
+**T14 门禁实跑（2026-11-12 19:43–19:50，`reports\task35-t14-gate.txt`）**：**`GATE_VERDICT=PASS`** —— `ANALYZE_LITERAL=1` / `ANALYZE_ISSUE_LINES=0`、desktop **`+330`**、`GLYPH_RENDER_TEST_EXIT=0 / GLYPH_RENDER_TEST_COUNT=2`、PNG 43408 B / sha16 `660916AD45582185`、三包 `dart analyze` 逐字干净、core_db **71**、core_data **151**、`G3_FAIL_LINES=0`、`VIOLATIONS=0` / `PACKAGES_TOUCHED=0` / `BOUNDARY_VERDICT=PASS`、`FLUTTER_LOCK_SEEN=0`。本轮越界判据用**新写的** `reports\task35-t14-forbidden-check.ps1`（白名单补 worker 新增的渲染取证测试文件），旧 `task35-forbidden-check.ps1` 按 R4 原样保留。
 
 **已知问题（如实登记）**
 
@@ -7247,7 +7256,7 @@ B1 的前 18 个 Task 交付的是**功能**，不是**版面**。把 `apps\desk
 
 ② `docs\` 不改 ⇒ 无权威 `schema_v2.sql` 作第二份 DDL 对照，`schema_consistency_test.dart` 改用「v1 的 14 张逐项比对 ＋ 白名单放行两张新表 ＋ 索引集合校验」替代。
 
-③ 四维字形 `▲▽◆◇` 在 widget 测试里跑的是 Ahem 字体，**无法证明真机字体不缺字** ⇒ 必须一次装机目视。
+③ 四维字形 `▲▽◆◇` 在 widget 测试里跑的是 Ahem 字体，**无法证明真机字体不缺字** ⇒ 必须一次装机目视。**（2026-11-12 19:5x 更新：装机已完成，随包字体 TTF cmap 直解证明 `Noto Sans SC` 四个码位全命中 ⇒ 缺字风险已排除；**渲染层 PNG 取证已完成并肉眼核验通过**（`apps\desktop\test\task35_glyph_render_test.dart` 加载真实字体渲染 5 行，▲◆ / ▲◇ / ▽◆ / ▽◇ 四枚字形全部正常、无豆腐块）；**唯独「真机窗口像素」仍缺**，原因是工作站锁屏而非产品缺陷 —— 解锁后跑 `reports\task35-t14-live-demo.ps1` 即可补齐。）**
 
 ---
 

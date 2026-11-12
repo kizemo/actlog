@@ -152,7 +152,7 @@
 │              151 单测，无 UI 依赖                           │
 ├───────────────────────────────────────────────────────────┤
 │  core_db     drift 表定义 / 迁移 / oplog 写入层             │
-│              69 单测，含约束有牙测试与 schema 一致性测试     │
+│              71 单测，含约束有牙测试与 schema 一致性测试     │
 ├───────────────────────────────────────────────────────────┤
 │  core_domain 纯 Dart 领域模型：实体 / 枚举 / 不变量          │
 │              零 IO 依赖，36 单测                            │
@@ -310,7 +310,7 @@ CI（`.github/workflows/ci.yml`）在 push / PR 到 `main` 时以矩阵方式跑
 | 技术选型 | ✅ 已定 | Flutter 3.47.9 / Dart 3.13.7 / drift / Riverpod |
 | 数据模型 | ✅ 已冻结 | [`docs/schema_v1.sql`](docs/schema_v1.sql)（v1，FROZEN @ P0-D2） |
 | `packages/core_domain` | ✅ 完成 | 纯 Dart 领域模型（实体 / 枚举 / 不变量），36 单测全绿 |
-| `packages/core_db` | ✅ 完成 | drift 表定义 / 迁移脚本 / oplog 写入层，69 单测全绿 |
+| `packages/core_db` | ✅ 完成 | drift 表定义 / 迁移脚本 / oplog 写入层，71 单测全绿 |
 | `packages/core_data` | ✅ 完成 | 仓储 / 站会 / 心态 / 优先级视图，151 单测全绿 |
 | `apps/desktop`（Windows 壳） | ✅ P1 已收尾 | 正式 Windows 桌面应用：八文件接线完成；托盘 ↔ 窗口互斥、UTF-8 中文窗口标题、`--selftest` 自检开关、正式图标资源全部落地；release exe 真机冒烟 PASS |
 | 循环任务 | ✅ 已落地 | 每周哪几天 + 几点，自动填入当天计划；右轨独立模块 |
