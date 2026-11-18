@@ -7870,7 +7870,7 @@ $env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
 - [x] 40.5 门禁全绿 + 越界 `VIOLATIONS=0`
 - [x] 40.5 重编译 / 重打包 / 覆盖装机一致
 - [x] 40.5 真机取帧成功并由控制器读图确认
-- [ ] 40.5 commit + push 完成，README 交付
+- [x] 40.5 commit + push 完成，README 交付
 
 ### 40.7 Task 41 预告：深色主题（架构级 token 改造，**本轮不实施，独立排期**）
 
