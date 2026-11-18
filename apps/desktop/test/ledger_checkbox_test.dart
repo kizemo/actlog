@@ -36,18 +36,18 @@ void main() {
     expect(find.text('○'), findsOneWidget);
     expect(find.text('✓'), findsNothing);
     expect(_border(tester).top.width, 1.5);
-    expect(_border(tester).top.color, AppTokens.hairStrong);
-    expect(_fill(tester), AppTokens.paper);
-    expect(_glyphColor(tester, '○'), AppTokens.ink);
+    expect(_border(tester).top.color, ThemeTokens.light.hairStrong);
+    expect(_fill(tester), ThemeTokens.light.paper);
+    expect(_glyphColor(tester, '○'), ThemeTokens.light.ink);
   });
 
   testWidgets('选中：ink 反白 + ✓ 字形', (tester) async {
     await _pump(tester, LedgerCheckbox(value: true, onChanged: (_) {}));
 
     expect(find.text('✓'), findsOneWidget);
-    expect(_fill(tester), AppTokens.ink);
-    expect(_border(tester).top.color, AppTokens.ink);
-    expect(_glyphColor(tester, '✓'), AppTokens.paper);
+    expect(_fill(tester), ThemeTokens.light.ink);
+    expect(_border(tester).top.color, ThemeTokens.light.ink);
+    expect(_glyphColor(tester, '✓'), ThemeTokens.light.paper);
   });
 
   testWidgets('点击切换回调', (tester) async {
@@ -97,7 +97,7 @@ void main() {
       find.byKey(const ValueKey('focus-ring-border')),
     );
     final border = (ring.decoration! as BoxDecoration).border! as Border;
-    expect(border.top.color, AppTokens.ink);
+    expect(border.top.color, ThemeTokens.light.ink);
     expect(border.top.width, 2);
   });
 
@@ -178,7 +178,7 @@ void main() {
   testWidgets('禁用（onChanged 为 null）：灰字、不可点、不可聚焦', (tester) async {
     await _pump(tester, const LedgerCheckbox(value: false));
 
-    expect(_glyphColor(tester, '○'), AppTokens.faint);
+    expect(_glyphColor(tester, '○'), ThemeTokens.light.faint);
     await tester.tap(find.byType(LedgerCheckbox), warnIfMissed: false);
     await tester.pump();
     // 禁用时 Focus 不接受焦点，焦点环节点保持透明。

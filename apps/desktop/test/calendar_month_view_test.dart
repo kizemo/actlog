@@ -113,7 +113,7 @@ void main() {
       find.descendant(of: cell, matching: find.byType(Container)).first,
     );
     final border = (box.decoration! as BoxDecoration).border!;
-    expect(border.top.color, AppTokens.ink);
+    expect(border.top.color, ThemeTokens.light.ink);
     expect(border.top.width, 2);
   });
 
@@ -144,7 +144,7 @@ void main() {
 
     final decoration = _cellBox(tester, '2026-11-05').decoration!;
     final border = (decoration as BoxDecoration).border!.top;
-    expect(border.color, AppTokens.ink, reason: '今天描边用墨色');
+    expect(border.color, ThemeTokens.light.ink, reason: '今天描边用墨色');
     expect(border.width, 2, reason: '今天描边加粗到 2px');
     expect(decoration.color, isNull, reason: '工作日且无完成度时不应有底色');
 
@@ -172,7 +172,7 @@ void main() {
         .border!
         .top;
     expect(otherBorder.width, 1);
-    expect(otherBorder.color, AppTokens.hairStrong);
+    expect(otherBorder.color, ThemeTokens.light.hairStrong);
     expect(_cellNumber(tester, '2026-11-04', '4').style?.fontWeight, isNot(FontWeight.w600));
     expect(find.descendant(of: other, matching: find.text('今')), findsNothing);
   });
@@ -204,12 +204,12 @@ void main() {
 
     final decoration =
         _cellBox(tester, '2026-11-01').decoration! as BoxDecoration;
-    expect(decoration.color, AppTokens.sunken, reason: '周末用下沉底弱化');
+    expect(decoration.color, ThemeTokens.light.sunken, reason: '周末用下沉底弱化');
     expect(decoration.border!.top.width, 1, reason: '周末不加粗（强调只归今天）');
-    expect(decoration.border!.top.color, AppTokens.hairStrong);
+    expect(decoration.border!.top.color, ThemeTokens.light.hairStrong);
     expect(
       _cellNumber(tester, '2026-11-01', '1').style?.color,
-      AppTokens.meta,
+      ThemeTokens.light.meta,
       reason: '周末日号降权到 meta',
     );
 
@@ -227,7 +227,7 @@ void main() {
     expect(weekdayDecoration.color, isNull);
     expect(
       _cellNumber(tester, '2026-11-02', '2').style?.color,
-      AppTokens.ink,
+      ThemeTokens.light.ink,
     );
   });
 
@@ -266,11 +266,11 @@ void main() {
     final decoration =
         _cellBox(tester, '2026-11-07').decoration! as BoxDecoration;
     expect(decoration.border!.top.width, 2, reason: '强调优先：今天仍 2px');
-    expect(decoration.border!.top.color, AppTokens.ink);
-    expect(decoration.color, AppTokens.sunken, reason: '弱化底仍然存在');
+    expect(decoration.border!.top.color, ThemeTokens.light.ink);
+    expect(decoration.color, ThemeTokens.light.sunken, reason: '弱化底仍然存在');
     expect(
       _cellNumber(tester, '2026-11-07', '7').style?.color,
-      AppTokens.ink,
+      ThemeTokens.light.ink,
       reason: '今天日号不得被周末弱化降成 meta',
     );
     expect(

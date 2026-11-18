@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/app_tokens.dart';
+import '../../theme/theme_tokens.dart';
 
 /// 账页横线绘制器（等价原型 `.ledger` 的 CSS 背景）。
 ///
@@ -10,15 +10,21 @@ import '../../theme/app_tokens.dart';
 ///
 /// 用 [CustomPainter] 自绘而不是 `Divider` / `ListView.separated`：
 /// 横线必须铺满**滚动视口**（不随内容高度增长、不参与布局、不接收点击）。
-/// 颜色取 [AppTokens.meta] + 0.055 alpha，等价原型那条极淡暖灰线，
-/// 同时满足「颜色只来自 AppTokens、不写死 hex」的口径。
+/// 颜色由调用方按当前主题注入（浅色取 `meta`），本层再叠 0.055 alpha，
+/// 等价原型那条极淡暖灰线，同时满足「颜色只来自 token、不写死 hex」的口径。
 class LedgerRulePainter extends CustomPainter {
   /// 创建横线绘制器。
-  const LedgerRulePainter();
+  ///
+  /// [color] 是横线基色，由 [LedgerPaper] 从 `context.tokens.meta` 取；
+  /// 深色档换色时绘制器跟着重建，见 [shouldRepaint]。
+  const LedgerRulePainter(this.color);
+
+  /// 横线基色（实际绘制时叠 0.055 alpha）。
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()..color = AppTokens.meta.withValues(alpha: 0.055);
+    final Paint paint = Paint()..color = color.withValues(alpha: 0.055);
     for (double top = LedgerPaper.ruleHeight - 1;
         top < size.height;
         top += LedgerPaper.ruleHeight) {
@@ -27,7 +33,8 @@ class LedgerRulePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant LedgerRulePainter oldDelegate) => false;
+  bool shouldRepaint(covariant LedgerRulePainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// 账页（B 版「墨径 · 账页流」正文卷）。
@@ -106,7 +113,7 @@ class LedgerPaper extends StatelessWidget {
     final Widget? header = pinnedHeader;
     if (header == null) {
       return CustomPaint(
-        painter: const LedgerRulePainter(),
+        painter: LedgerRulePainter(context.tokens.meta),
         child: paperBody(resolved.top),
       );
     }
@@ -134,7 +141,7 @@ class LedgerPaper extends StatelessWidget {
           // 横线底包住滚动区而不是整张纸：否则吸顶头底下也会有一条横线，
           // 随正文滚动时看起来像「头部在动」。
           child: CustomPaint(
-            painter: const LedgerRulePainter(),
+            painter: LedgerRulePainter(context.tokens.meta),
             child: paperBody(0),
           ),
         ),

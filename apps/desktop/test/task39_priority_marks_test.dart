@@ -111,8 +111,8 @@ void main() {
       expect(kMarkNotImportantSpec.resolvedIcon, kMarkNotImportant);
 
       // 区分剩两条通道：填充与颜色。两条都必须成立，缺一条就不可辨。
-      expect(kMarkImportantSpec.color, AppTokens.accent);
-      expect(kMarkNotImportantSpec.color, AppTokens.faint);
+      expect(kMarkImportantSpec.color, ThemeTokens.light.accent);
+      expect(kMarkNotImportantSpec.color, ThemeTokens.light.faint);
       expect(kMarkImportantSpec.key, isNot(kMarkNotImportantSpec.key));
       // `emphasis` 是文本通道的遗留字段，取值保持原样（当前不参与渲染）。
       expect(kMarkImportantSpec.emphasis, FontWeight.w700);
@@ -158,7 +158,7 @@ void main() {
         ),
       );
       expect(icon.icon, Icons.notifications_none);
-      expect(icon.color, AppTokens.faint);
+      expect(icon.color, ThemeTokens.light.faint);
       // Q2 = 重要性轴（星）+ 紧急度轴（空心铃）⇒ 整棵树恰好两枚 `Icon`，
       // 且一个 `Text` 都没有 ⇒ 没有任何 Unicode 时钟/铃字符混进来。
       expect(find.byType(Icon), findsNWidgets(2));

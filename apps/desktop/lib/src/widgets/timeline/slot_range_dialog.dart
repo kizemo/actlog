@@ -96,6 +96,7 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.escape): () =>
@@ -104,13 +105,13 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
         const SingleActivator(LogicalKeyboardKey.numpadEnter): _confirm,
       },
       child: AlertDialog(
-        backgroundColor: AppTokens.card,
+        backgroundColor: t.card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radius),
         ),
         title: Text(
           '${widget.date} · 起止',
-          style: const TextStyle(fontSize: 16, color: AppTokens.ink),
+          style: TextStyle(fontSize: 16, color: t.ink),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -134,7 +135,7 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
             const SizedBox(height: AppTokens.gapCard),
             Text(
               '共 ${_end - _start} 分钟',
-              style: const TextStyle(fontSize: 12.5, color: AppTokens.meta),
+              style: TextStyle(fontSize: 12.5, color: t.meta),
             ),
           ],
         ),
@@ -172,6 +173,7 @@ class _StepperRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -179,7 +181,7 @@ class _StepperRow extends StatelessWidget {
           width: 44,
           child: Text(
             label,
-            style: const TextStyle(fontSize: 13, color: AppTokens.meta),
+            style: TextStyle(fontSize: 13, color: t.meta),
           ),
         ),
         IconButton(
@@ -193,10 +195,10 @@ class _StepperRow extends StatelessWidget {
             formatMinute(value),
             key: fieldKey,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               letterSpacing: 0.4,
-              color: AppTokens.ink,
+              color: t.ink,
             ),
           ),
         ),

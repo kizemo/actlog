@@ -200,7 +200,7 @@ void main() {
 
     expect(FocusManager.instance.primaryFocus, row);
     final Border border = _rowRingBorder(tester, itemId);
-    expect(border.top.color, AppTokens.ink);
+    expect(border.top.color, ThemeTokens.light.ink);
     expect(border.top.width, 2);
 
     await _flushTimers(tester);
@@ -216,7 +216,7 @@ void main() {
     final FocusNode row = _rowNode(tester, itemId);
     row.requestFocus();
     await _pumpFocus(tester);
-    expect(_rowRingBorder(tester, itemId).top.color, AppTokens.ink);
+    expect(_rowRingBorder(tester, itemId).top.color, ThemeTokens.light.ink);
 
     row.unfocus();
     await _pumpFocus(tester);
@@ -252,7 +252,7 @@ void main() {
     final FocusNode row = _rowNode(tester, itemId);
     row.requestFocus();
     await _pumpFocus(tester);
-    expect(_rowRingBorder(tester, itemId).top.color, AppTokens.ink);
+    expect(_rowRingBorder(tester, itemId).top.color, ThemeTokens.light.ink);
 
     // 焦点下沉到勾选框（同一行的子节点）。
     box.requestFocus();
@@ -265,7 +265,7 @@ void main() {
       reason: '行级环必须让位：`hasFocus` 在子孙拿焦点时仍为 true，父子双亮就是没做 D2',
     );
     final Border boxBorder = _checkboxRingBorder(tester);
-    expect(boxBorder.top.color, AppTokens.ink);
+    expect(boxBorder.top.color, ThemeTokens.light.ink);
     expect(boxBorder.top.width, 2);
 
     await _flushTimers(tester);

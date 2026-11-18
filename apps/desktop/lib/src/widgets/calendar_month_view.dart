@@ -111,37 +111,38 @@ class _DayCell extends StatelessWidget {
   ///
   /// 周末先铺静态 `sunken` 底，再按完成度叠 `inkWash`。叠色用
   /// `Color.alphaBlend` 出实色，避免半透明洗底透出纸色把弱化抹平。
-  Color? get _fill {
+  Color? _fill(ThemeTokens t) {
     final day = summary;
     final double ratio = (day == null || day.planTotal == 0)
         ? 0.0
         : day.planDone / day.planTotal;
     if (_isWeekend) {
       if (ratio <= 0) {
-        return AppTokens.sunken;
+        return t.sunken;
       }
       return Color.alphaBlend(
-        AppTokens.inkWash.withValues(alpha: ratio),
-        AppTokens.sunken,
+        t.inkWash.withValues(alpha: ratio),
+        t.sunken,
       );
     }
-    return day == null ? null : AppTokens.inkWash.withValues(alpha: ratio);
+    return day == null ? null : t.inkWash.withValues(alpha: ratio);
   }
 
   /// 日号颜色：今天的墨色不被周末弱化顶掉；补白格恒 `faint`（沿用原口径）。
-  Color get _dayNumberColor {
+  Color _dayNumberColor(ThemeTokens t) {
     if (!cell.inMonth) {
-      return AppTokens.faint;
+      return t.faint;
     }
     if (!_isToday && _isWeekend) {
-      return AppTokens.meta;
+      return t.meta;
     }
-    return AppTokens.ink;
+    return t.ink;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     final day = summary;
 
     Widget content = Container(
@@ -151,10 +152,10 @@ class _DayCell extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTokens.radius),
         border: Border.all(
-          color: _isToday ? AppTokens.ink : AppTokens.hairStrong,
+          color: _isToday ? t.ink : t.hairStrong,
           width: _isToday ? 2 : 1,
         ),
-        color: _fill,
+        color: _fill(t),
       ),
       // `StackFit.expand`：让非定位的 Column 拿到紧约束好保持横向居中；
       // 「今」用 Positioned 贴右上角，不占 Column 的行高（52px 格高塞不下三行）。
@@ -166,7 +167,7 @@ class _DayCell extends StatelessWidget {
               Text(
                 _dayNumber(cell.date),
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: _dayNumberColor,
+                  color: _dayNumberColor(t),
                   fontWeight: _isToday ? FontWeight.w600 : null,
                 ),
               ),
@@ -174,7 +175,7 @@ class _DayCell extends StatelessWidget {
                 Text(
                   day.badge,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppTokens.meta,
+                    color: t.meta,
                   ),
                 ),
             ],
@@ -186,7 +187,7 @@ class _DayCell extends StatelessWidget {
               child: Text(
                 '今',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppTokens.ink,
+                  color: t.ink,
                   fontWeight: FontWeight.w700,
                 ),
               ),

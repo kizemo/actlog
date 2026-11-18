@@ -300,34 +300,34 @@ void main() {
     });
 
     test('四态前景色逐条，且不取赭石（accent / accentWash）', () {
-      expect(foregroundOfSlotKind(SlotKind.plannedOpen), AppTokens.slotPlanInk);
-      expect(foregroundOfSlotKind(SlotKind.done), AppTokens.slotDoneInk);
-      expect(foregroundOfSlotKind(SlotKind.backfill), AppTokens.slotBackfillInk);
-      expect(foregroundOfSlotKind(SlotKind.habit), AppTokens.slotHabitInk);
+      expect(foregroundOfSlotKind(SlotKind.plannedOpen, ThemeTokens.light), ThemeTokens.light.slotPlanInk);
+      expect(foregroundOfSlotKind(SlotKind.done, ThemeTokens.light), ThemeTokens.light.slotDoneInk);
+      expect(foregroundOfSlotKind(SlotKind.backfill, ThemeTokens.light), ThemeTokens.light.slotBackfillInk);
+      expect(foregroundOfSlotKind(SlotKind.habit, ThemeTokens.light), ThemeTokens.light.slotHabitInk);
 
       // 三个「在做事」的态共用主墨色；完成态有意退到 `--meta`，
       // 否则它比未完成态更抢眼，语义就反了。
-      expect(AppTokens.slotPlanInk, AppTokens.ink);
-      expect(AppTokens.slotBackfillInk, AppTokens.ink);
-      expect(AppTokens.slotHabitInk, AppTokens.ink);
-      expect(AppTokens.slotDoneInk, AppTokens.meta);
+      expect(ThemeTokens.light.slotPlanInk, ThemeTokens.light.ink);
+      expect(ThemeTokens.light.slotBackfillInk, ThemeTokens.light.ink);
+      expect(ThemeTokens.light.slotHabitInk, ThemeTokens.light.ink);
+      expect(ThemeTokens.light.slotDoneInk, ThemeTokens.light.meta);
 
       for (final SlotKind kind in allKinds) {
-        final Color ink = foregroundOfSlotKind(kind);
-        expect(ink, isNot(AppTokens.accent), reason: '$kind 用了赭石');
-        expect(ink, isNot(AppTokens.accentWash), reason: '$kind 用了赭石浅洗');
+        final Color ink = foregroundOfSlotKind(kind, ThemeTokens.light);
+        expect(ink, isNot(ThemeTokens.light.accent), reason: '$kind 用了赭石');
+        expect(ink, isNot(ThemeTokens.light.accentWash), reason: '$kind 用了赭石浅洗');
       }
     });
 
     test('四态前景色与四态格底色不是同一个值（前景/底成对，不许混用）', () {
-      const Map<SlotKind, Color> grounds = <SlotKind, Color>{
-        SlotKind.plannedOpen: AppTokens.slotPlan,
-        SlotKind.done: AppTokens.slotDone,
-        SlotKind.backfill: AppTokens.slotBackfill,
-        SlotKind.habit: AppTokens.slotHabit,
+      final Map<SlotKind, Color> grounds = <SlotKind, Color>{
+        SlotKind.plannedOpen: ThemeTokens.light.slotPlan,
+        SlotKind.done: ThemeTokens.light.slotDone,
+        SlotKind.backfill: ThemeTokens.light.slotBackfill,
+        SlotKind.habit: ThemeTokens.light.slotHabit,
       };
       for (final SlotKind kind in allKinds) {
-        expect(foregroundOfSlotKind(kind), isNot(grounds[kind]),
+        expect(foregroundOfSlotKind(kind, ThemeTokens.light), isNot(grounds[kind]),
             reason: '$kind 的前景与格底取了同一个值');
       }
     });

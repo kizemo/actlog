@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/app_tokens.dart';
+import '../../theme/theme_tokens.dart';
 import 'key_bar.dart';
 import 'ledger_paper.dart';
 import 'nav_rail.dart';
@@ -98,7 +98,7 @@ class LedgerShell extends StatelessWidget {
     ];
 
     return Material(
-      color: AppTokens.paper,
+      color: context.tokens.paper,
       child: narrow ? _buildNarrow(context, panels) : _buildWide(context, wide, panels),
     );
   }

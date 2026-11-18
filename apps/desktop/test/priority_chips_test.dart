@@ -96,15 +96,15 @@ void main() {
 
       expect(
         cellFill(tester, style.shortLabel),
-        isSelected ? AppTokens.ink : AppTokens.card,
+        isSelected ? ThemeTokens.light.ink : ThemeTokens.light.card,
       );
       expect(
         cellBorder(tester, style.shortLabel).top.color,
-        isSelected ? AppTokens.ink : AppTokens.hairStrong,
+        isSelected ? ThemeTokens.light.ink : ThemeTokens.light.hairStrong,
       );
       expect(
         cellTitleColor(tester, style.shortLabel),
-        isSelected ? AppTokens.paper : AppTokens.ink,
+        isSelected ? ThemeTokens.light.paper : ThemeTokens.light.ink,
       );
       // 圆角一律 4px（禁止大圆角）。
       expect(cellRadius(tester, style.shortLabel), AppTokens.radius);
@@ -166,7 +166,7 @@ void main() {
     final material = tester.widget<Material>(
       find.ancestor(of: find.text(label), matching: find.byType(Material)).first,
     );
-    expect(material.color, AppTokens.card);
+    expect(material.color, ThemeTokens.light.card);
     expect(material.borderRadius, BorderRadius.circular(AppTokens.radius));
 
     final container = tester.widget<Container>(
@@ -176,14 +176,14 @@ void main() {
     );
     final decoration = container.decoration! as BoxDecoration;
     expect((decoration.borderRadius! as BorderRadius).topLeft.x, AppTokens.radius);
-    expect((decoration.border! as Border).top.color, AppTokens.hairStrong);
+    expect((decoration.border! as Border).top.color, ThemeTokens.light.hairStrong);
 
     final text = tester.widget<Text>(find.text(label));
-    expect(text.style!.color, AppTokens.meta);
+    expect(text.style!.color, ThemeTokens.light.meta);
 
     final iconColors =
         tester.widgetList<Icon>(find.byType(Icon)).map((i) => i.color).toList();
-    expect(iconColors, contains(AppTokens.meta));
+    expect(iconColors, contains(ThemeTokens.light.meta));
     expect(iconColors, isNot(contains(kOldGreen)));
   });
 }

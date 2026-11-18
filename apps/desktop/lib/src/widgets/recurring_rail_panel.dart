@@ -182,10 +182,11 @@ class _RecurringRailPanelState extends ConsumerState<RecurringRailPanel> {
 
   /// 一段灰色说明文字（空态提示、计数行）。
   Widget _hint(String text, {double size = 11.5, Key? key}) {
+    final ThemeTokens tokens = context.tokens;
     return Padding(
       key: key,
       padding: const EdgeInsets.only(bottom: 2),
-      child: Text(text, style: _bodyStyle(size: size, color: AppTokens.faint)),
+      child: Text(text, style: _bodyStyle(tokens, size: size, color: tokens.faint)),
     );
   }
 }
@@ -198,13 +199,15 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         text,
         style: _bodyStyle(
+          tokens,
           size: 10.5,
-          color: AppTokens.meta,
+          color: tokens.meta,
           weight: FontWeight.w600,
         ),
       ),
@@ -229,6 +232,7 @@ class _RuleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final bool active = rule.active == 1;
     // 空掩码在库层被 CHECK 与仓储挡住，这里再兜一次：显示「每日」而不是「未选」。
     final String weekdayText = rule.weekdayMask == WeekdayMask.none
@@ -254,7 +258,7 @@ class _RuleRow extends StatelessWidget {
                   timeText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: _monoStyle(size: 11.5, color: AppTokens.ink2),
+                  style: _monoStyle(tokens, size: 11.5, color: tokens.ink2),
                 ),
               ),
               const SizedBox(width: 4),
@@ -264,7 +268,7 @@ class _RuleRow extends StatelessWidget {
                   '${active ? '启用中' : '已停用'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: _bodyStyle(size: 11, color: AppTokens.faint),
+                  style: _bodyStyle(tokens, size: 11, color: tokens.faint),
                 ),
               ),
             ],
@@ -277,8 +281,9 @@ class _RuleRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: _bodyStyle(
+                    tokens,
                     size: 12.5,
-                    color: active ? AppTokens.ink : AppTokens.meta,
+                    color: active ? tokens.ink : tokens.meta,
                   ),
                 ),
               ),
@@ -318,20 +323,21 @@ class _RuleAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final bool enabled = onTap != null;
     final Color foreground;
     if (!enabled) {
-      foreground = AppTokens.faint;
+      foreground = tokens.faint;
     } else if (danger) {
-      foreground = AppTokens.accentInk;
+      foreground = tokens.accentInk;
     } else {
-      foreground = AppTokens.ink2;
+      foreground = tokens.ink2;
     }
     return Semantics(
       button: true,
       enabled: enabled,
       child: Material(
-        color: AppTokens.card,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
         child: InkWell(
           onTap: onTap,
@@ -341,12 +347,12 @@ class _RuleAction extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTokens.radius),
-              border: Border.all(color: AppTokens.hairStrong, width: 1),
+              border: Border.all(color: tokens.hairStrong, width: 1),
             ),
             alignment: Alignment.center,
             child: Text(
               label,
-              style: _bodyStyle(size: 11, color: foreground),
+              style: _bodyStyle(tokens, size: 11, color: foreground),
             ),
           ),
         ),
@@ -363,17 +369,22 @@ class _RailError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return Text(
       text,
-      style: _bodyStyle(size: 11.5, color: AppTokens.accentInk),
+      style: _bodyStyle(tokens, size: 11.5, color: tokens.accentInk),
     );
   }
 }
 
 /// 正文字体样式（`AppFonts.body` + 兜底族）。
-TextStyle _bodyStyle({
+///
+/// [tokens] 必填：默认色是 `ink`，必须由调用方按当前主题解析后传入
+/// （纯函数拿不到 `BuildContext`，写死浅色常量会在深色档留下浅色字）。
+TextStyle _bodyStyle(
+  ThemeTokens tokens, {
   double size = 12.5,
-  Color color = AppTokens.ink,
+  Color? color,
   FontWeight? weight,
 }) {
   return TextStyle(
@@ -381,18 +392,18 @@ TextStyle _bodyStyle({
     fontFamilyFallback: AppFonts.bodyFallback,
     fontSize: size,
     fontWeight: weight,
-    color: color,
+    color: color ?? tokens.ink,
     height: 1.45,
   );
 }
 
 /// 等宽字体样式（时段、数字用）。
-TextStyle _monoStyle({double size = 12, Color color = AppTokens.ink}) {
+TextStyle _monoStyle(ThemeTokens tokens, {double size = 12, Color? color}) {
   return TextStyle(
     fontFamily: AppFonts.mono,
     fontFamilyFallback: AppFonts.monoFallback,
     fontSize: size,
-    color: color,
+    color: color ?? tokens.ink,
     height: 1.45,
     fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
   );

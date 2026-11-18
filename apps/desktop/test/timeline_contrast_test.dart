@@ -30,29 +30,29 @@ final class _SlotCase {
   final double measured;
 }
 
-const List<_SlotCase> _cases = <_SlotCase>[
+final List<_SlotCase> _cases = <_SlotCase>[
   _SlotCase(
     name: '--slot-plan',
-    background: AppTokens.slotPlan,
-    foreground: AppTokens.ink,
+    background: ThemeTokens.light.slotPlan,
+    foreground: ThemeTokens.light.ink,
     measured: 11.11,
   ),
   _SlotCase(
     name: '--slot-done',
-    background: AppTokens.slotDone,
-    foreground: AppTokens.meta,
+    background: ThemeTokens.light.slotDone,
+    foreground: ThemeTokens.light.meta,
     measured: 6.27,
   ),
   _SlotCase(
     name: '--slot-backfill',
-    background: AppTokens.slotBackfill,
-    foreground: AppTokens.ink,
+    background: ThemeTokens.light.slotBackfill,
+    foreground: ThemeTokens.light.ink,
     measured: 11.07,
   ),
   _SlotCase(
     name: '--slot-habit',
-    background: AppTokens.slotHabit,
-    foreground: AppTokens.ink,
+    background: ThemeTokens.light.slotHabit,
+    foreground: ThemeTokens.light.ink,
     measured: 10.05,
   ),
 ];
@@ -91,19 +91,19 @@ void main() {
   });
 
   test('颜色映射：四个 SlotKind 各自映射到自己的 token，赭石不参与', () {
-    expect(colorOfSlotKind(SlotKind.plannedOpen), AppTokens.slotPlan);
-    expect(colorOfSlotKind(SlotKind.done), AppTokens.slotDone);
-    expect(colorOfSlotKind(SlotKind.backfill), AppTokens.slotBackfill);
-    expect(colorOfSlotKind(SlotKind.habit), AppTokens.slotHabit);
+    expect(colorOfSlotKind(SlotKind.plannedOpen, ThemeTokens.light), ThemeTokens.light.slotPlan);
+    expect(colorOfSlotKind(SlotKind.done, ThemeTokens.light), ThemeTokens.light.slotDone);
+    expect(colorOfSlotKind(SlotKind.backfill, ThemeTokens.light), ThemeTokens.light.slotBackfill);
+    expect(colorOfSlotKind(SlotKind.habit, ThemeTokens.light), ThemeTokens.light.slotHabit);
 
     for (final SlotKind kind in SlotKind.values) {
-      final Color color = colorOfSlotKind(kind);
+      final Color color = colorOfSlotKind(kind, ThemeTokens.light);
       expect(
         color,
-        isNot(AppTokens.accent),
+        isNot(ThemeTokens.light.accent),
         reason: '$kind 不得用赭石（--accent 只属「缺口 / 警示」语义）',
       );
-      expect(color, isNot(AppTokens.accentWash), reason: '$kind 不得用赭石洗底');
+      expect(color, isNot(ThemeTokens.light.accentWash), reason: '$kind 不得用赭石洗底');
     }
   });
 }

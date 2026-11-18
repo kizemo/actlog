@@ -122,19 +122,19 @@ void main() {
     );
 
     // 常态芯片「按时完成」：paper 底 + hair-strong 边 + meta 字。
-    expect(chipFill(tester, '按时完成'), AppTokens.paper);
-    expect(chipBorder(tester, '按时完成').top.color, AppTokens.hairStrong);
-    expect(chipTextColor(tester, '按时完成'), AppTokens.meta);
+    expect(chipFill(tester, '按时完成'), ThemeTokens.light.paper);
+    expect(chipBorder(tester, '按时完成').top.color, ThemeTokens.light.hairStrong);
+    expect(chipTextColor(tester, '按时完成'), ThemeTokens.light.meta);
 
     // 选中态普通芯片「延后完成」：ink-wash 底 + ink 边 + ink 字（洗底，非反白）。
-    expect(chipFill(tester, '延后完成'), AppTokens.inkWash);
-    expect(chipBorder(tester, '延后完成').top.color, AppTokens.ink);
-    expect(chipTextColor(tester, '延后完成'), AppTokens.ink);
+    expect(chipFill(tester, '延后完成'), ThemeTokens.light.inkWash);
+    expect(chipBorder(tester, '延后完成').top.color, ThemeTokens.light.ink);
+    expect(chipTextColor(tester, '延后完成'), ThemeTokens.light.ink);
 
     // 拒绝类芯片「取消」选中：accentWash 底 + accent 边 + accentInk 字。
-    expect(chipFill(tester, '取消'), AppTokens.accentWash);
-    expect(chipBorder(tester, '取消').top.color, AppTokens.accent);
-    expect(chipTextColor(tester, '取消'), AppTokens.accentInk);
+    expect(chipFill(tester, '取消'), ThemeTokens.light.accentWash);
+    expect(chipBorder(tester, '取消').top.color, ThemeTokens.light.accent);
+    expect(chipTextColor(tester, '取消'), ThemeTokens.light.accentInk);
 
     // 圆角一律 4px（禁止大圆角）。
     expect(chipRadius(tester, '按时完成'), AppTokens.radius);

@@ -17,7 +17,7 @@ void main() {
           if (border is! Border) {
             return false;
           }
-          return border.top.color == AppTokens.accent && border.top.width == 2;
+          return border.top.color == ThemeTokens.light.accent && border.top.width == 2;
         })
         .toList();
   }
@@ -53,7 +53,7 @@ void main() {
 
     expect(find.text('还差 2 项'), findsOneWidget);
     final hint = tester.widget<Text>(find.text('还差 2 项'));
-    expect(hint.style!.color, AppTokens.accentInk);
+    expect(hint.style!.color, ThemeTokens.light.accentInk);
 
     final gaps = gapContainers(tester);
     expect(gaps.length, 1);
@@ -77,7 +77,7 @@ void main() {
 
     final accentTexts = tester
         .widgetList<Text>(find.byType(Text))
-        .where((t) => t.style?.color == AppTokens.accentInk)
+        .where((t) => t.style?.color == ThemeTokens.light.accentInk)
         .toList();
     expect(accentTexts, isEmpty);
   });

@@ -244,6 +244,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return _HabitDialog(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -254,8 +255,8 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
             controller: _name,
             autofocus: true,
             enabled: !_submitting,
-            style: _bodyStyle(size: 13, color: AppTokens.ink),
-            decoration: _fieldDecoration('习惯名（必填）'),
+            style: _bodyStyle(size: 13, color: t.ink),
+            decoration: _fieldDecoration('习惯名（必填）', t),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 8),
@@ -263,8 +264,8 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
             key: const ValueKey<String>('habit-dialog-description'),
             controller: _description,
             enabled: !_submitting,
-            style: _bodyStyle(size: 13, color: AppTokens.ink),
-            decoration: _fieldDecoration('说明（可选）'),
+            style: _bodyStyle(size: 13, color: t.ink),
+            decoration: _fieldDecoration('说明（可选）', t),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 12),
@@ -358,6 +359,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
 
   /// 「每隔 N 天 / 每隔 N 周」的步进行。
   Widget _intervalRow() {
+    final t = context.tokens;
     final bool weekly = _kind == _ScheduleKind.everyNWeeks;
     final int min = weekly ? 1 : 2;
     final int max = 7;
@@ -366,7 +368,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
       spacing: 6,
       runSpacing: 4,
       children: <Widget>[
-        Text('每隔', style: _bodyStyle(size: 11.5, color: AppTokens.faint)),
+        Text('每隔', style: _bodyStyle(size: 11.5, color: t.faint)),
         _StepButton(
           key: const ValueKey<String>('habit-dialog-interval-minus'),
           label: '−',
@@ -377,7 +379,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
         Text(
           '$_interval',
           key: const ValueKey<String>('habit-dialog-interval'),
-          style: _bodyStyle(size: 12.5, color: AppTokens.ink),
+          style: _bodyStyle(size: 12.5, color: t.ink),
         ),
         _StepButton(
           key: const ValueKey<String>('habit-dialog-interval-plus'),
@@ -388,7 +390,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
         ),
         Text(
           weekly ? '周' : '天',
-          style: _bodyStyle(size: 11.5, color: AppTokens.faint),
+          style: _bodyStyle(size: 11.5, color: t.faint),
         ),
       ],
     );
@@ -447,6 +449,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
 
   /// 「每日至少完成 N 次」：勾上即写 `type='count'` + `target_count` + 单位「次」。
   Widget _targetCountRow() {
+    final t = context.tokens;
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 6,
@@ -479,7 +482,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
           Text(
             '$_targetCount',
             key: const ValueKey<String>('habit-dialog-target-count'),
-            style: _bodyStyle(size: 12.5, color: AppTokens.ink),
+            style: _bodyStyle(size: 12.5, color: t.ink),
           ),
           _StepButton(
             key: const ValueKey<String>('habit-dialog-target-count-plus'),
@@ -488,7 +491,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
                 ? null
                 : () => setState(() => _targetCount++),
           ),
-          Text('次', style: _bodyStyle(size: 11.5, color: AppTokens.faint)),
+          Text('次', style: _bodyStyle(size: 11.5, color: t.faint)),
         ],
       ],
     );
@@ -509,14 +512,15 @@ class _HabitDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Dialog(
       key: const ValueKey<String>('habit-quick-dialog'),
-      backgroundColor: AppTokens.paper,
+      backgroundColor: t.paper,
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(24),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        side: const BorderSide(color: AppTokens.hair, width: 1),
+        side: BorderSide(color: t.hair, width: 1),
       ),
       child: SizedBox(
         width: 480,
@@ -534,13 +538,13 @@ class _HabitDialog extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   height: 1.2,
-                  color: AppTokens.ink,
+                  color: t.ink,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 '定义排程与目标，间隔型习惯保存后自动进入未来 14 天日计划',
-                style: _bodyStyle(size: 11.5, color: AppTokens.faint),
+                style: _bodyStyle(size: 11.5, color: t.faint),
               ),
               const SizedBox(height: 12),
               Flexible(
@@ -562,7 +566,8 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text, style: _bodyStyle(size: 11, color: AppTokens.faint));
+    final t = context.tokens;
+    return Text(text, style: _bodyStyle(size: 11, color: t.faint));
   }
 }
 
@@ -581,11 +586,12 @@ class _ChoiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final bool enabled = onTap != null;
-    final Color background = selected ? AppTokens.ink : AppTokens.card;
+    final Color background = selected ? t.ink : t.card;
     final Color foreground = selected
-        ? AppTokens.paper
-        : (enabled ? AppTokens.ink2 : AppTokens.faint);
+        ? t.paper
+        : (enabled ? t.ink2 : t.faint);
 
     return Semantics(
       button: true,
@@ -605,7 +611,7 @@ class _ChoiceTile extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTokens.radius),
                 border: Border.all(
-                  color: selected ? AppTokens.ink : AppTokens.hairStrong,
+                  color: selected ? t.ink : t.hairStrong,
                   width: 1,
                 ),
               ),
@@ -631,6 +637,7 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final bool enabled = onPressed != null;
     return Semantics(
       button: true,
@@ -638,7 +645,7 @@ class _StepButton extends StatelessWidget {
       child: MouseRegion(
         cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
         child: Material(
-          color: enabled ? AppTokens.card : AppTokens.sunken,
+          color: enabled ? t.card : t.sunken,
           borderRadius: BorderRadius.circular(AppTokens.radius),
           child: InkWell(
             onTap: onPressed,
@@ -648,13 +655,13 @@ class _StepButton extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTokens.radius),
-                border: Border.all(color: AppTokens.hairStrong, width: 1),
+                border: Border.all(color: t.hairStrong, width: 1),
               ),
               child: Text(
                 label,
                 style: _bodyStyle(
                   size: 12.5,
-                  color: enabled ? AppTokens.ink : AppTokens.faint,
+                  color: enabled ? t.ink : t.faint,
                 ),
               ),
             ),
@@ -673,17 +680,18 @@ class _DialogError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTokens.accentWash,
+        color: t.accentWash,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.accent, width: 1),
+        border: Border.all(color: t.accent, width: 1),
       ),
       child: Text(
         message,
-        style: _bodyStyle(size: 12.5, color: AppTokens.accentInk),
+        style: _bodyStyle(size: 12.5, color: t.accentInk),
       ),
     );
   }
@@ -712,18 +720,19 @@ class _DialogButtonState extends State<_DialogButton> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final enabled = widget.onPressed != null;
     final Color background;
     final Color foreground;
     if (!enabled) {
-      background = AppTokens.sunken;
-      foreground = AppTokens.faint;
+      background = t.sunken;
+      foreground = t.faint;
     } else if (widget.primary) {
-      background = _hovered ? AppTokens.ink2 : AppTokens.ink;
-      foreground = AppTokens.paper;
+      background = _hovered ? t.ink2 : t.ink;
+      foreground = t.paper;
     } else {
-      background = _hovered ? AppTokens.sunken : AppTokens.card;
-      foreground = _hovered ? AppTokens.ink : AppTokens.ink2;
+      background = _hovered ? t.sunken : t.card;
+      foreground = _hovered ? t.ink : t.ink2;
     }
 
     return Semantics(
@@ -749,8 +758,8 @@ class _DialogButtonState extends State<_DialogButton> {
                 borderRadius: BorderRadius.circular(AppTokens.radius),
                 border: Border.all(
                   color: widget.primary && enabled
-                      ? AppTokens.ink
-                      : AppTokens.hairStrong,
+                      ? t.ink
+                      : t.hairStrong,
                   width: 1,
                 ),
               ),
@@ -782,7 +791,7 @@ String _errorMessage(Object error) {
 }
 
 /// 输入框统一外观：4px 圆角 + `hair-strong` 边 + `card` 底。
-InputDecoration _fieldDecoration(String hint) {
+InputDecoration _fieldDecoration(String hint, ThemeTokens tokens) {
   OutlineInputBorder border(Color color, {double width = 1}) {
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -792,19 +801,19 @@ InputDecoration _fieldDecoration(String hint) {
 
   return InputDecoration(
     hintText: hint,
-    hintStyle: _bodyStyle(size: 13, color: AppTokens.faint),
+    hintStyle: _bodyStyle(size: 13, color: tokens.faint),
     isDense: true,
     filled: true,
-    fillColor: AppTokens.card,
+    fillColor: tokens.card,
     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-    border: border(AppTokens.hairStrong),
-    enabledBorder: border(AppTokens.hairStrong),
-    focusedBorder: border(AppTokens.ink, width: 1.5),
+    border: border(tokens.hairStrong),
+    enabledBorder: border(tokens.hairStrong),
+    focusedBorder: border(tokens.ink, width: 1.5),
   );
 }
 
 /// 正文字体样式（`AppFonts.body` + 兜底族）。
-TextStyle _bodyStyle({double size = 12.5, Color color = AppTokens.ink}) {
+TextStyle _bodyStyle({double size = 12.5, required Color color}) {
   return TextStyle(
     fontFamily: AppFonts.body,
     fontFamilyFallback: AppFonts.bodyFallback,

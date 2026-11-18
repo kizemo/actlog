@@ -25,6 +25,7 @@ class HabitsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     final String date = ref.watch(selectedDateProvider);
     final String today = ref.watch(todayProvider);
     final bool future = date.compareTo(today) > 0;
@@ -42,7 +43,7 @@ class HabitsPage extends ConsumerWidget {
           style: theme.textTheme.titleLarge?.copyWith(
             fontFamily: AppFonts.body,
             fontFamilyFallback: AppFonts.bodyFallback,
-            color: AppTokens.ink,
+            color: t.ink,
           ),
         ),
         const SizedBox(height: 4),
@@ -54,7 +55,7 @@ class HabitsPage extends ConsumerWidget {
             fontFamilyFallback: AppFonts.bodyFallback,
             fontSize: 11,
             height: 1.4,
-            color: AppTokens.meta,
+            color: t.meta,
           ),
         ),
         if (future) ...<Widget>[
@@ -67,15 +68,15 @@ class HabitsPage extends ConsumerWidget {
               fontFamilyFallback: AppFonts.bodyFallback,
               fontSize: 12,
               height: 1.5,
-              color: AppTokens.meta,
+              color: t.meta,
             ),
           ),
         ],
         const SizedBox(height: AppTokens.gapSec),
         Container(
           decoration: BoxDecoration(
-            color: AppTokens.paper,
-            border: Border.all(color: AppTokens.hairStrong),
+            color: t.paper,
+            border: Border.all(color: t.hairStrong),
             borderRadius: BorderRadius.circular(10),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -90,7 +91,7 @@ class HabitsPage extends ConsumerWidget {
                 return Text(
                   '还没有习惯',
                   key: const ValueKey<String>('habits-page-empty'),
-                  style: const TextStyle(color: AppTokens.meta),
+                  style: TextStyle(color: t.meta),
                 );
               }
               return checkins.when(
@@ -142,6 +143,7 @@ class _HabitRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
     final repo = ref.read(repositoriesProvider).habit;
     final bool done = checkin?.status == CheckinStatus.done.code;
     final double? targetCount = habit.targetCount;
@@ -183,7 +185,7 @@ class _HabitRow extends ConsumerWidget {
                 fontFamilyFallback: AppFonts.bodyFallback,
                 fontSize: 14,
                 height: 1.5,
-                color: AppTokens.ink,
+                color: t.ink,
                 decoration: done ? TextDecoration.lineThrough : null,
               ),
             ),
@@ -191,12 +193,12 @@ class _HabitRow extends ConsumerWidget {
           if (target != null)
             Text(
               target,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppFonts.mono,
                 fontFamilyFallback: AppFonts.bodyFallback,
                 fontSize: 11,
                 height: 1.4,
-                color: AppTokens.meta,
+                color: t.meta,
               ),
             ),
         ],

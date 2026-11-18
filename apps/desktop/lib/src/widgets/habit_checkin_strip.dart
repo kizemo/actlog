@@ -50,6 +50,7 @@ class HabitCheckinStrip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
     // 两个 provider 都返回 AsyncValue：加载 / 空 / 错误是三种不同状态，
     // 不允许把加载态和错误态都渲染成空态（那是谎报）。
     final habitsAsync = ref.watch(habitsForTodayProvider);
@@ -89,7 +90,7 @@ class HabitCheckinStrip extends ConsumerWidget {
             fontFamily: AppFonts.mono,
             fontFamilyFallback: AppFonts.monoFallback,
             fontWeight: FontWeight.w500,
-            color: AppTokens.ink,
+            color: t.ink,
             // 等宽数字自带步进，再叠 1px 字距只会把 `3/12` 拉散。
             letterSpacing: 0,
           ),
@@ -131,13 +132,14 @@ class HabitCheckinStrip extends ConsumerWidget {
     required List<Widget> head,
     List<Widget> chips = const <Widget>[],
   }) {
+    final t = context.tokens;
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 48),
       padding: const EdgeInsets.fromLTRB(24, 9, 24, 11),
-      decoration: const BoxDecoration(
-        color: AppTokens.dock,
-        border: Border(top: BorderSide(color: AppTokens.hair, width: 1)),
+      decoration: BoxDecoration(
+        color: t.dock,
+        border: Border(top: BorderSide(color: t.hair, width: 1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,10 +166,11 @@ class HabitCheckinStrip extends ConsumerWidget {
   /// `.dock-h` 的文字样式：`--fs-label` + `--faint` + `letter-spacing:.08em`。
   TextStyle _headStyle(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     final base = theme.textTheme.labelSmall ?? const TextStyle();
     final fontSize = base.fontSize ?? 12.5;
     return base.copyWith(
-      color: AppTokens.faint,
+      color: t.faint,
       // `.08em` 换算成像素：Flutter 的 letterSpacing 是绝对像素，不随字号缩放。
       letterSpacing: fontSize * 0.08,
     );
@@ -179,7 +182,7 @@ class HabitCheckinStrip extends ConsumerWidget {
     return Text(
       label,
       style: (theme.textTheme.labelLarge ?? const TextStyle()).copyWith(
-        color: AppTokens.meta,
+        color: context.tokens.meta,
       ),
     );
   }
@@ -211,6 +214,7 @@ class _HabitChipState extends State<_HabitChip> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     final base = theme.textTheme.bodyMedium ?? const TextStyle();
     // `.hchip` 的 `font-size:14px` 取全应用正文基准（舒适档 15），
     // 不写死像素 —— 否则换密度档后芯片与正文脱节。
@@ -224,7 +228,7 @@ class _HabitChipState extends State<_HabitChip> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: Material(
-        color: widget.done ? AppTokens.inkWash : AppTokens.card,
+        color: widget.done ? t.inkWash : t.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
         child: InkWell(
           onTap: widget.onTap,
@@ -236,8 +240,8 @@ class _HabitChipState extends State<_HabitChip> {
               borderRadius: BorderRadius.circular(AppTokens.radius),
               border: Border.all(
                 color: widget.done
-                    ? AppTokens.ink
-                    : (_hovered ? AppTokens.hairStrong : AppTokens.hair),
+                    ? t.ink
+                    : (_hovered ? t.hairStrong : t.hair),
                 width: 1,
               ),
             ),
@@ -254,7 +258,7 @@ class _HabitChipState extends State<_HabitChip> {
                       fontFamilyFallback: AppFonts.monoFallback,
                       fontSize: fontSize,
                       height: 1.2,
-                      color: AppTokens.ink,
+                      color: t.ink,
                     ),
                   ),
                 ),
@@ -264,7 +268,7 @@ class _HabitChipState extends State<_HabitChip> {
                   style: base.copyWith(
                     fontSize: fontSize,
                     height: 1.2,
-                    color: AppTokens.ink,
+                    color: t.ink,
                   ),
                 ),
               ],

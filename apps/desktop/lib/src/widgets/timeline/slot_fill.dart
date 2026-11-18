@@ -35,6 +35,11 @@ Future<SlotFillEdit?> showSlotFillDialog(
   required String title,
   required String initialNote,
 }) {
+  // 颜色在入口处取一次：`builder` 里的 `context` 是弹层自己的上下文，
+  // 与这个 `context` 同属一棵 `Theme`（本应用只有一个 `MaterialApp`），
+  // 所以在入口取 token 与在 builder 里取等价，却不用把整段 `AlertDialog`
+  // 改成块状体。
+  final ThemeTokens t = context.tokens;
   return showDialog<SlotFillEdit>(
     context: context,
     builder: (BuildContext context) => AlertDialog(
@@ -48,7 +53,7 @@ Future<SlotFillEdit?> showSlotFillDialog(
           children: <Widget>[
             Text(
               title,
-              style: const TextStyle(fontSize: 12, color: AppTokens.meta),
+              style: TextStyle(fontSize: 12, color: t.meta),
             ),
             const SizedBox(height: 10),
             OutcomeComposer(

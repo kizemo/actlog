@@ -65,18 +65,19 @@ class ToolRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     if (stacked) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 26),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: <Color>[AppTokens.sunken, AppTokens.paper],
-            stops: <double>[0, 0.34],
+            colors: <Color>[tokens.sunken, tokens.paper],
+            stops: const <double>[0, 0.34],
           ),
-          border: Border(top: BorderSide(color: AppTokens.hair)),
+          border: Border(top: BorderSide(color: tokens.hair)),
         ),
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
@@ -92,14 +93,14 @@ class ToolRail extends StatelessWidget {
     return Container(
       width: width,
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 26),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: <Color>[AppTokens.sunken, AppTokens.paper],
-          stops: <double>[0, 0.34],
+          colors: <Color>[tokens.sunken, tokens.paper],
+          stops: const <double>[0, 0.34],
         ),
-        border: Border(left: BorderSide(color: AppTokens.hair)),
+        border: Border(left: BorderSide(color: tokens.hair)),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -188,6 +189,7 @@ class _RailPanelChromeState extends State<_RailPanelChrome> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final double labelSize =
         Theme.of(context).textTheme.labelSmall?.fontSize ??
         DensityProfile.comfortable.labelSize;
@@ -200,7 +202,7 @@ class _RailPanelChromeState extends State<_RailPanelChrome> {
         height: 1.3,
         letterSpacing: labelSize * 0.1,
         fontWeight: FontWeight.w600,
-        color: AppTokens.faint,
+        color: tokens.faint,
       ),
     );
     final Widget? trailing = widget.panel.trailing;
@@ -225,10 +227,10 @@ class _RailPanelChromeState extends State<_RailPanelChrome> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
         decoration: BoxDecoration(
-          color: AppTokens.card,
+          color: tokens.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
           border: Border.all(
-            color: _hovered ? AppTokens.hair : AppTokens.hairSoft,
+            color: _hovered ? tokens.hair : tokens.hairSoft,
           ),
         ),
         child: Column(
@@ -246,7 +248,7 @@ class _RailPanelChromeState extends State<_RailPanelChrome> {
 
 /// 面板头右上角的加号动作位（`＋`）。
 ///
-/// 视觉纪律：只用 `--ink` 字色与 `--sunken` hover 底，**不用赭石、不用彩色、
+/// 视觉纪律：只用 `ink` 字色与 `sunken` hover 底，**不用赭石、不用彩色、
 /// 不用 emoji 字形**；命中区 22×22（派工书要求 ≥ 20×20）。
 /// `InkWell` 自带焦点节点 ⇒ 可以 `Tab` 聚焦、`Enter` / `Space` 触发。
 ///
@@ -274,6 +276,7 @@ class _RailAddButtonState extends State<RailAddButton> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     // `container: true` ⇒ 自成语义节点，不与子级合并；`excludeSemantics: true`
     // ⇒ 读屏只报无障碍名，不把装饰用的 `＋` 一起念出来；`onTap` 挂在本节点上，
     // 保证排除子级语义后读屏仍能触发。指针与 `Tab` 焦点仍由内部 `InkWell` 负责。
@@ -288,7 +291,7 @@ class _RailAddButtonState extends State<RailAddButton> {
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
         child: Material(
-          color: _hovered ? AppTokens.sunken : Colors.transparent,
+          color: _hovered ? tokens.sunken : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTokens.radius),
           child: InkWell(
             onTap: widget.onPressed,
@@ -304,7 +307,7 @@ class _RailAddButtonState extends State<RailAddButton> {
                     fontFamilyFallback: AppFonts.bodyFallback,
                     fontSize: 13,
                     height: 1,
-                    color: AppTokens.ink,
+                    color: tokens.ink,
                   ),
                 ),
               ),

@@ -37,11 +37,14 @@ import 'slot_state.dart';
 import 'timeline_store.dart';
 
 /// 四态 → 底色。绘制层只做这一处映射，判定顺序在 `slot_state.dart`。
-Color colorOfSlotKind(SlotKind kind) => switch (kind) {
-  SlotKind.habit => AppTokens.slotHabit,
-  SlotKind.backfill => AppTokens.slotBackfill,
-  SlotKind.done => AppTokens.slotDone,
-  SlotKind.plannedOpen => AppTokens.slotPlan,
+///
+/// 颜色由调用方传入（`build` 顶部取一次 `context.tokens`）：`CustomPainter`
+/// 与条目外壳都要用它，而它们都不该各自去碰 `BuildContext`。
+Color colorOfSlotKind(SlotKind kind, ThemeTokens tokens) => switch (kind) {
+  SlotKind.habit => tokens.slotHabit,
+  SlotKind.backfill => tokens.slotBackfill,
+  SlotKind.done => tokens.slotDone,
+  SlotKind.plannedOpen => tokens.slotPlan,
 };
 
 /// 纵轴小时 / 横轴分钟的方格时间轴。
@@ -120,6 +123,9 @@ class _DayGridState extends ConsumerState<DayGrid> {
       return SizedBox(height: win.height);
     }
     final int? nowMinute = widget.date == todayIso ? _nowMinute() : null;
+    // 颜色只在 build 这里取一次，往下按参数传：`CustomPainter` 与条目外壳都不碰
+    // `BuildContext`，一次 build 内的整棵子树拿到的是同一份 token。
+    final ThemeTokens t = context.tokens;
     _rows = items;
     _future = widget.date.compareTo(todayIso) > 0;
     _minimal = widget.minimal;
@@ -138,11 +144,11 @@ class _DayGridState extends ConsumerState<DayGrid> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            _headerStrip(axisWidth, axisGap),
+            _headerStrip(axisWidth, axisGap, t),
             const SizedBox(height: 6),
             // 表头的「表格感」来自一条下沿发丝线，而不是多套一层容器：
             // 线用 `hair`，与格子区边框同阶，不引入新色。
-            Container(height: 1, color: AppTokens.hair),
+            Container(height: 1, color: t.hair),
             const SizedBox(height: 6),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,10 +156,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
                 SizedBox(
                   width: axisWidth,
                   height: win.height,
-                  child: _axis(win),
+                  child: _axis(win, t),
                 ),
                 SizedBox(width: axisGap),
-                Expanded(child: _gridArea(win)),
+                Expanded(child: _gridArea(win, t)),
               ],
             ),
           ],
@@ -173,7 +179,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 是内容列的直接子节点、自己不设横向 padding，页面级左右内边距由外层
   /// `LedgerPaper`（`ledger_paper.dart`）统一给。所以「与今日页主体左对齐」
   /// 就等于从内容列 x=0 起画 —— 在这里再造一个近似 padding 只会把表头推歪。
-  Widget _headerStrip(double axisWidth, double axisGap) {
+  Widget _headerStrip(double axisWidth, double axisGap, ThemeTokens t) {
     final String weekday = weekdayLabel(widget.date);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -190,18 +196,18 @@ class _DayGridState extends ConsumerState<DayGrid> {
               // 底色只用既有 token：`accentWash` 是纸面上唯一的暖色浅底，与四态
               // 格底（slotPlan / slotHabit / slotBackfill / slotDone）明显不同。
               // `slot_state.dart` 的赭石纪律只约束四态**前景色**，不约束表头底。
-              color: AppTokens.accentWash,
+              color: t.accentWash,
               borderRadius: BorderRadius.circular(AppTokens.radius),
-              border: Border.all(color: AppTokens.hair),
+              border: Border.all(color: t.hair),
             ),
             child: Text(
               weekday.isEmpty ? widget.date : '${widget.date} $weekday',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 height: 1.25,
-                color: AppTokens.ink,
+                color: t.ink,
               ),
             ),
           ),
@@ -226,11 +232,11 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 为什么用 `Stack` 而不是 `Column` + `SizedBox` 堆行：`Positioned` 子节点不参与
   /// `RenderFlex` 的溢出判定，测试字体（每字符等宽方块）把 `06:00` 折成多行时
   /// 只会被裁掉，不会把「看不全」变成一条测试错误。
-  Widget _axis(DayWindow win) {
+  Widget _axis(DayWindow win, ThemeTokens t) {
     return Stack(
       key: const ValueKey<String>('day-grid-ruler'),
       children: <Widget>[
-        Positioned.fill(child: CustomPaint(painter: _RulerPainter(win))),
+        Positioned.fill(child: CustomPaint(painter: _RulerPainter(win, t))),
         for (int row = 0; row < win.rows; row++)
           Positioned(
             top: row * kHourRowHeight,
@@ -249,10 +255,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
                 child: Text(
                   formatMinute(win.startMinute + row * 60),
                   key: ValueKey<String>('day-grid-hour-${win.startHour + row}'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     height: 1,
-                    color: AppTokens.faint,
+                    color: t.faint,
                     fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
                   ),
                 ),
@@ -274,7 +280,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
                 key: ValueKey<String>('day-grid-segment-mark-$hour'),
                 width: 8,
                 height: 1,
-                color: AppTokens.hairStrong,
+                color: t.hairStrong,
               ),
             ),
       ],
@@ -283,7 +289,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
 
   /// 三段起点（06:00 / 12:00 / 18:00）的整点小时数。
   ///
-  /// 与格子区三段底色的切分点**同一份真源**（`_kSegmentTints` 的顺序即本表
+  /// 与格子区三段底色的切分点**同一份真源**（[_segmentTintsOf] 的顺序即本表
   /// 的顺序）：改这里就得改那里，否则短横线会落在色带之外，标记与底色互相打脸。
   static const List<int> _kSegmentStartHours = <int>[6, 12, 18];
 
@@ -291,13 +297,16 @@ class _DayGridState extends ConsumerState<DayGrid> {
   ///
   /// 只取既有中性阶（`card` / `paper` / `sunken`），不新造 hex、不引入新色相；
   /// 赭石在方格区仍然禁用。差异刻意轻微：这是「分区提示」，不是三块卡片。
-  static const List<Color> _kSegmentTints = <Color>[
-    AppTokens.gridSectionMorning,
-    AppTokens.gridSectionNoon,
-    AppTokens.gridSectionEvening,
+  ///
+  /// 为什么是函数而不是 `static const`：深色主题下这三段底色必须跟着
+  /// `ThemeTokens` 换，运行期颜色进不了编译期常量表。
+  static List<Color> _segmentTintsOf(ThemeTokens t) => <Color>[
+    t.gridSectionMorning,
+    t.gridSectionNoon,
+    t.gridSectionEvening,
   ];
 
-  Widget _gridArea(DayWindow win) {
+  Widget _gridArea(DayWindow win, ThemeTokens t) {
     return GestureDetector(
       onSecondaryTapDown: (TapDownDetails details) =>
           _onContextMenu(_minuteAt(details.localPosition)),
@@ -317,12 +326,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
                 height: win.height,
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color: AppTokens.card,
+                  color: t.card,
                   borderRadius: BorderRadius.circular(AppTokens.radius),
                   border: Border.all(
-                    color: candidate.isEmpty
-                        ? AppTokens.hair
-                        : AppTokens.hairStrong,
+                    color: candidate.isEmpty ? t.hair : t.hairStrong,
                   ),
                 ),
                 child: Stack(
@@ -336,28 +343,27 @@ class _DayGridState extends ConsumerState<DayGrid> {
                     Positioned.fill(
                       child: Column(
                         key: const ValueKey<String>('day-grid-section-tint'),
-                        children: _sectionTintChildren(win),
+                        children: _sectionTintChildren(win, t),
                       ),
                     ),
                     Positioned.fill(
-                      child: CustomPaint(painter: _SlotPainter(_entries, win)),
+                      child: CustomPaint(
+                        painter: _SlotPainter(_entries, win, t),
+                      ),
                     ),
                     for (final GridEntry entry in _entries)
                       if (entry.startMinute < win.endMinute &&
                           entry.endMinute > win.startMinute)
-                        _entryTile(entry, win),
+                        _entryTile(entry, win, t),
                     if (_entries.isEmpty)
-                      const Positioned(
+                      Positioned(
                         left: 0,
                         right: 0,
                         top: 12,
                         child: Text(
                           '右键任意一格开始排期',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTokens.faint,
-                          ),
+                          style: TextStyle(fontSize: 12, color: t.faint),
                         ),
                       ),
                   ],
@@ -373,9 +379,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 只画与 [win] 可见区间相交的部分，`Expanded.flex` 直接取**分钟数**，
   /// 因此默认窗口 `06–24` 得到 `360 / 360 / 360`（与参数化之前的三等分
   /// 逐像素一致），窗口收窄到 `09–18` 则得到 `180 / 360`，比例天然正确。
-  List<Widget> _sectionTintChildren(DayWindow win) {
+  List<Widget> _sectionTintChildren(DayWindow win, ThemeTokens t) {
     final List<Widget> children = <Widget>[];
-    for (int i = -1; i < _kSegmentTints.length; i++) {
+    final List<Color> tints = _segmentTintsOf(t);
+    for (int i = -1; i < tints.length; i++) {
       final int segStartHour = i < 0 ? 0 : _kSegmentStartHours[i];
       final int segEndHour = i + 1 < _kSegmentStartHours.length
           ? _kSegmentStartHours[i + 1]
@@ -392,14 +399,14 @@ class _DayGridState extends ConsumerState<DayGrid> {
       children.add(
         Expanded(
           flex: to - from,
-          child: ColoredBox(color: i < 0 ? AppTokens.card : _kSegmentTints[i]),
+          child: ColoredBox(color: i < 0 ? t.card : tints[i]),
         ),
       );
     }
     return children;
   }
 
-  Widget _entryTile(GridEntry entry, DayWindow win) {
+  Widget _entryTile(GridEntry entry, DayWindow win, ThemeTokens t) {
     final int visibleStart = entry.startMinute < win.startMinute
         ? win.startMinute
         : entry.startMinute;
@@ -417,11 +424,14 @@ class _DayGridState extends ConsumerState<DayGrid> {
         data: 'plan:${entry.id}',
         feedback: Material(
           color: Colors.transparent,
-          child: SizedBox(width: 180, child: _chipShell(entry, live: false)),
+          child: SizedBox(
+            width: 180,
+            child: _chipShell(entry, t, live: false),
+          ),
         ),
         child: GestureDetector(
           onDoubleTap: () => _editRange(entry),
-          child: _chipShell(entry, live: true),
+          child: _chipShell(entry, t, live: true),
         ),
       ),
     );
@@ -438,8 +448,8 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 代价是 `BoxBorder` 不允许「非均匀颜色 + `borderRadius`」同时出现
   /// （`box_border.dart` 里有明确断言），所以圆角改由外层 `ClipRRect` 提供 ——
   /// 视觉半径仍是 `AppTokens.radius`，断言也不会触发。
-  Widget _chipShell(GridEntry entry, {required bool live}) {
-    final Widget body = _chipBody(entry);
+  Widget _chipShell(GridEntry entry, ThemeTokens t, {required bool live}) {
+    final Widget body = _chipBody(entry, t);
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppTokens.radius),
       child: Container(
@@ -447,12 +457,15 @@ class _DayGridState extends ConsumerState<DayGrid> {
         padding: const EdgeInsets.symmetric(horizontal: 4),
         alignment: Alignment.centerLeft,
         decoration: BoxDecoration(
-          color: colorOfSlotKind(entry.kind),
+          color: colorOfSlotKind(entry.kind, t),
           border: Border(
-            left: BorderSide(color: foregroundOfSlotKind(entry.kind), width: 2),
-            top: BorderSide(color: AppTokens.hair),
-            right: BorderSide(color: AppTokens.hair),
-            bottom: BorderSide(color: AppTokens.hair),
+            left: BorderSide(
+              color: foregroundOfSlotKind(entry.kind, t),
+              width: 2,
+            ),
+            top: BorderSide(color: t.hair),
+            right: BorderSide(color: t.hair),
+            bottom: BorderSide(color: t.hair),
           ),
         ),
         child: ClipRect(
@@ -513,14 +526,14 @@ class _DayGridState extends ConsumerState<DayGrid> {
   ///
   /// 字形与状态词是四态背景色之外的**冗余通道**（形状 + 文字），
   /// `--slot-done` 与 `--slot-plan` 近乎同色时靠它们才分得出来。
-  Widget _chipBody(GridEntry entry) {
+  Widget _chipBody(GridEntry entry, ThemeTokens t) {
     final PlanItemData? row = _rowOf(entry.id);
     final bool done = row?.status == PlanStatus.done.code;
     // 行里存的是码值字符串，渲染层自己解析；无法识别（未来 schema）就当作
     // 未分级 —— 不画标记，也不抛异常。
     final Quadrant? quadrant = Quadrant.fromCode(row?.quadrant);
     final String note = row?.resultNote ?? '';
-    final Color ink = foregroundOfSlotKind(entry.kind);
+    final Color ink = foregroundOfSlotKind(entry.kind, t);
     return Row(
       children: <Widget>[
         // 账页行序（方向 A）：勾选框 → 四维标记 → 标题 → mono 元信息 →
@@ -550,7 +563,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 11,
-              color: AppTokens.ink2,
+              color: t.ink2,
               // 完成态加删除线：第三重通道，不必依赖颜色感知。
               // `decorationColor` 显式钉死该态前景色，避免继承出别的颜色。
               decoration: entry.kind == SlotKind.done
@@ -564,9 +577,9 @@ class _DayGridState extends ConsumerState<DayGrid> {
         // mono 元信息：起始时刻。表格数字宽度固定，条目再长也不抖。
         Text(
           formatMinute(entry.startMinute),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: AppTokens.faint,
+            color: t.faint,
             fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
           ),
         ),
@@ -574,9 +587,9 @@ class _DayGridState extends ConsumerState<DayGrid> {
         // 「分级没渲染出来」在界面上必须可分，所以补一处 meta 说明。
         if (quadrant == null) ...<Widget>[
           const SizedBox(width: 4),
-          const Text(
+          Text(
             '未分级',
-            style: TextStyle(fontSize: 10, color: AppTokens.faint),
+            style: TextStyle(fontSize: 10, color: t.faint),
           ),
         ],
         const SizedBox(width: 5),
@@ -611,7 +624,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
               '进展：$note',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10, color: AppTokens.meta),
+              style: TextStyle(fontSize: 10, color: t.meta),
             ),
           ),
         ],
@@ -620,13 +633,13 @@ class _DayGridState extends ConsumerState<DayGrid> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
             decoration: BoxDecoration(
-              color: AppTokens.paper,
+              color: t.paper,
               borderRadius: BorderRadius.circular(AppTokens.radius),
-              border: Border.all(color: AppTokens.hair),
+              border: Border.all(color: t.hair),
             ),
-            child: const Text(
+            child: Text(
               '习惯回填',
-              style: TextStyle(fontSize: 10, color: AppTokens.meta),
+              style: TextStyle(fontSize: 10, color: t.meta),
             ),
           ),
         ],
@@ -634,11 +647,11 @@ class _DayGridState extends ConsumerState<DayGrid> {
           const SizedBox(width: 6),
           InkWell(
             onTap: () => _delete(entry),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 2),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Text(
                 '删除',
-                style: TextStyle(fontSize: 10, color: AppTokens.meta),
+                style: TextStyle(fontSize: 10, color: t.meta),
               ),
             ),
           ),
@@ -1075,10 +1088,13 @@ class _TitleDialogState extends State<_TitleDialog> {
 
 /// 格子底色 + 网格线。
 class _SlotPainter extends CustomPainter {
-  _SlotPainter(this.entries, this.window);
+  _SlotPainter(this.entries, this.window, this.tokens);
 
   final List<GridEntry> entries;
   final DayWindow window;
+
+  /// 颜色 token：`paint` 拿不到 `BuildContext`，只能由调用方注入。
+  final ThemeTokens tokens;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1093,7 +1109,7 @@ class _SlotPainter extends CustomPainter {
         final int cellEnd = cellStart + kSlotMinutes;
         for (final GridEntry entry in entries) {
           if (entry.startMinute < cellEnd && entry.endMinute > cellStart) {
-            fill.color = colorOfSlotKind(entry.kind);
+            fill.color = colorOfSlotKind(entry.kind, tokens);
             canvas.drawRect(
               Rect.fromLTWH(
                 col * cellWidth,
@@ -1110,7 +1126,7 @@ class _SlotPainter extends CustomPainter {
     }
 
     final Paint line = Paint()
-      ..color = AppTokens.hairSoft
+      ..color = tokens.hairSoft
       ..strokeWidth = 1;
     for (int row = 0; row <= window.rows; row++) {
       final double y = row * rowHeight;
@@ -1124,7 +1140,9 @@ class _SlotPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SlotPainter oldDelegate) =>
-      oldDelegate.entries != entries || oldDelegate.window != window;
+      oldDelegate.entries != entries ||
+      oldDelegate.window != window ||
+      oldDelegate.tokens != tokens;
 }
 
 /// 刻度尺：1px 连续竖轴 + 整点 6px 刻 + 半点 3px 刻。
@@ -1137,9 +1155,12 @@ class _SlotPainter extends CustomPainter {
 /// 半点刻 `+ kHourRowHeight / 2`，与 `_SlotPainter` 的行高完全同源。另起一套
 /// 换算会随视口变化漂移，刻度就指不准格线。
 class _RulerPainter extends CustomPainter {
-  const _RulerPainter(this.window);
+  const _RulerPainter(this.window, this.tokens);
 
   final DayWindow window;
+
+  /// 颜色 token：`paint` 拿不到 `BuildContext`，只能由调用方注入。
+  final ThemeTokens tokens;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1150,13 +1171,13 @@ class _RulerPainter extends CustomPainter {
     final double x = size.width - 0.5;
 
     final Paint spine = Paint()
-      ..color = AppTokens.hair
+      ..color = tokens.hair
       ..strokeWidth = 1;
     canvas.drawLine(Offset(x, 0), Offset(x, size.height), spine);
 
     // 整点：起点 → 终点共 `window.rows + 1` 个，含收尾那一条。
     final Paint hourTick = Paint()
-      ..color = AppTokens.hairStrong
+      ..color = tokens.hairStrong
       ..strokeWidth = 1;
     for (int row = 0; row <= window.rows; row++) {
       final double y = row * kHourRowHeight;
@@ -1169,7 +1190,7 @@ class _RulerPainter extends CustomPainter {
 
     // 半点：每个整点行中点一条短刻，构成「整点 + 半点」双档。
     final Paint halfTick = Paint()
-      ..color = AppTokens.hair
+      ..color = tokens.hair
       ..strokeWidth = 1;
     for (int row = 0; row < window.rows; row++) {
       final double y = row * kHourRowHeight + kHourRowHeight / 2;
@@ -1183,5 +1204,6 @@ class _RulerPainter extends CustomPainter {
 
   /// 只在窗口变化时需要重绘。
   @override
-  bool shouldRepaint(_RulerPainter oldDelegate) => oldDelegate.window != window;
+  bool shouldRepaint(_RulerPainter oldDelegate) =>
+      oldDelegate.window != window || oldDelegate.tokens != tokens;
 }

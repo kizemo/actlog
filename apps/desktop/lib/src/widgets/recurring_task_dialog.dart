@@ -202,6 +202,7 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return _RecurringDialog(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -212,18 +213,18 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
             controller: _title,
             autofocus: true,
             enabled: !_submitting,
-            style: _bodyStyle(size: 13, color: AppTokens.ink),
-            decoration: _fieldDecoration('标题（必填）'),
+            style: _bodyStyle(size: 13, color: t.ink),
+            decoration: _fieldDecoration('标题（必填）', t),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 10),
           Row(
             children: <Widget>[
-              Text('星期', style: _bodyStyle(size: 12, color: AppTokens.meta)),
+              Text('星期', style: _bodyStyle(size: 12, color: t.meta)),
               const SizedBox(width: 8),
               Text(
                 WeekdayMask.label(_mask),
-                style: _bodyStyle(size: 11.5, color: AppTokens.faint),
+                style: _bodyStyle(size: 11.5, color: t.faint),
               ),
             ],
           ),
@@ -249,8 +250,8 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
                   key: const ValueKey<String>('recurring-dialog-time'),
                   controller: _time,
                   enabled: !_submitting,
-                  style: _bodyStyle(size: 13, color: AppTokens.ink),
-                  decoration: _fieldDecoration('开始 HH:mm（06:00 起）'),
+                  style: _bodyStyle(size: 13, color: t.ink),
+                  decoration: _fieldDecoration('开始 HH:mm（06:00 起）', t),
                   // 用户改过时刻 ⇒ 之前的改写提示作废，下一次提交重新判断。
                   onChanged: (_) {
                     if (_notice != null) {
@@ -267,8 +268,8 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
                   controller: _duration,
                   enabled: !_submitting,
                   keyboardType: TextInputType.number,
-                  style: _bodyStyle(size: 13, color: AppTokens.ink),
-                  decoration: _fieldDecoration('时长（分钟）'),
+                  style: _bodyStyle(size: 13, color: t.ink),
+                  decoration: _fieldDecoration('时长（分钟）', t),
                   onSubmitted: (_) => _submit(),
                 ),
               ),
@@ -279,8 +280,8 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
             key: const ValueKey<String>('recurring-dialog-note'),
             controller: _note,
             enabled: !_submitting,
-            style: _bodyStyle(size: 13, color: AppTokens.ink),
-            decoration: _fieldDecoration('备注（可选）'),
+            style: _bodyStyle(size: 13, color: t.ink),
+            decoration: _fieldDecoration('备注（可选）', t),
             onSubmitted: (_) => _submit(),
           ),
           if (_error != null) ...<Widget>[
@@ -332,13 +333,14 @@ class _WeekdayChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final bool enabled = onTap != null;
     return Semantics(
       button: true,
       selected: selected,
       enabled: enabled,
       child: Material(
-        color: selected ? AppTokens.ink : AppTokens.card,
+        color: selected ? t.ink : t.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
         child: InkWell(
           onTap: onTap,
@@ -349,7 +351,7 @@ class _WeekdayChip extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTokens.radius),
               border: Border.all(
-                color: selected ? AppTokens.ink : AppTokens.hairStrong,
+                color: selected ? t.ink : t.hairStrong,
                 width: 1,
               ),
             ),
@@ -359,8 +361,8 @@ class _WeekdayChip extends StatelessWidget {
               style: _bodyStyle(
                 size: 11.5,
                 color: selected
-                    ? AppTokens.paper
-                    : (enabled ? AppTokens.ink2 : AppTokens.faint),
+                    ? t.paper
+                    : (enabled ? t.ink2 : t.faint),
               ),
             ),
           ),
@@ -378,14 +380,15 @@ class _RecurringDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Dialog(
       key: const ValueKey<String>('recurring-task-dialog'),
-      backgroundColor: AppTokens.paper,
+      backgroundColor: t.paper,
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(24),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        side: const BorderSide(color: AppTokens.hair, width: 1),
+        side: BorderSide(color: t.hair, width: 1),
       ),
       child: SizedBox(
         width: 480,
@@ -403,13 +406,13 @@ class _RecurringDialog extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   height: 1.2,
-                  color: AppTokens.ink,
+                  color: t.ink,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 '按星期与开始时刻，自动排进每一天的计划',
-                style: _bodyStyle(size: 11.5, color: AppTokens.faint),
+                style: _bodyStyle(size: 11.5, color: t.faint),
               ),
               const SizedBox(height: 12),
               child,
@@ -429,17 +432,18 @@ class _DialogError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTokens.accentWash,
+        color: t.accentWash,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.accent, width: 1),
+        border: Border.all(color: t.accent, width: 1),
       ),
       child: Text(
         message,
-        style: _bodyStyle(size: 12.5, color: AppTokens.accentInk),
+        style: _bodyStyle(size: 12.5, color: t.accentInk),
       ),
     );
   }
@@ -456,17 +460,18 @@ class _DialogNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTokens.sunken,
+        color: t.sunken,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.hair, width: 1),
+        border: Border.all(color: t.hair, width: 1),
       ),
       child: Text(
         message,
-        style: _bodyStyle(size: 12, color: AppTokens.ink2),
+        style: _bodyStyle(size: 12, color: t.ink2),
       ),
     );
   }
@@ -489,18 +494,19 @@ class _DialogButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final bool enabled = onPressed != null;
     final Color background;
     final Color foreground;
     if (!enabled) {
-      background = AppTokens.sunken;
-      foreground = AppTokens.faint;
+      background = t.sunken;
+      foreground = t.faint;
     } else if (primary) {
-      background = AppTokens.ink;
-      foreground = AppTokens.paper;
+      background = t.ink;
+      foreground = t.paper;
     } else {
-      background = AppTokens.card;
-      foreground = AppTokens.ink2;
+      background = t.card;
+      foreground = t.ink2;
     }
 
     return Semantics(
@@ -522,8 +528,8 @@ class _DialogButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppTokens.radius),
               border: Border.all(
                 color: primary && enabled
-                    ? AppTokens.ink
-                    : AppTokens.hairStrong,
+                    ? t.ink
+                    : t.hairStrong,
                 width: 1,
               ),
             ),
@@ -554,7 +560,7 @@ String _errorMessage(Object error) {
 }
 
 /// 输入框统一外观：4px 圆角 + `hair-strong` 边 + `card` 底。
-InputDecoration _fieldDecoration(String hint) {
+InputDecoration _fieldDecoration(String hint, ThemeTokens tokens) {
   OutlineInputBorder border(Color color, {double width = 1}) {
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -564,19 +570,19 @@ InputDecoration _fieldDecoration(String hint) {
 
   return InputDecoration(
     hintText: hint,
-    hintStyle: _bodyStyle(size: 13, color: AppTokens.faint),
+    hintStyle: _bodyStyle(size: 13, color: tokens.faint),
     isDense: true,
     filled: true,
-    fillColor: AppTokens.card,
+    fillColor: tokens.card,
     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-    border: border(AppTokens.hairStrong),
-    enabledBorder: border(AppTokens.hairStrong),
-    focusedBorder: border(AppTokens.ink, width: 1.5),
+    border: border(tokens.hairStrong),
+    enabledBorder: border(tokens.hairStrong),
+    focusedBorder: border(tokens.ink, width: 1.5),
   );
 }
 
 /// 正文字体样式（`AppFonts.body` + 兜底族）。
-TextStyle _bodyStyle({double size = 12.5, Color color = AppTokens.ink}) {
+TextStyle _bodyStyle({double size = 12.5, required Color color}) {
   return TextStyle(
     fontFamily: AppFonts.body,
     fontFamilyFallback: AppFonts.bodyFallback,

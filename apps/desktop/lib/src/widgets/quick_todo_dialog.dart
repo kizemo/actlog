@@ -135,6 +135,7 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final target = ref.watch(todoPullTargetDateProvider);
     return _LedgerDialog(
       title: '手写一条',
@@ -143,19 +144,19 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text('标题', style: _bodyStyle(size: 11.5, color: AppTokens.faint)),
+          Text('标题', style: _bodyStyle(size: 11.5, color: t.faint)),
           const SizedBox(height: 4),
           TextField(
             controller: _title,
             autofocus: true,
             textInputAction: TextInputAction.next,
-            style: _bodyStyle(size: 13, color: AppTokens.ink),
-            decoration: _fieldDecoration('要做什么？'),
+            style: _bodyStyle(size: 13, color: t.ink),
+            decoration: _fieldDecoration('要做什么？', t),
           ),
           const SizedBox(height: 10),
           Text(
             '预估时间（可选）',
-            style: _bodyStyle(size: 11.5, color: AppTokens.faint),
+            style: _bodyStyle(size: 11.5, color: t.faint),
           ),
           const SizedBox(height: 4),
           Row(
@@ -170,8 +171,8 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
                   ),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
-                  style: _bodyStyle(size: 13, color: AppTokens.ink),
-                  decoration: _fieldDecoration('例如 25'),
+                  style: _bodyStyle(size: 13, color: t.ink),
+                  decoration: _fieldDecoration('例如 25', t),
                 ),
               ),
               const SizedBox(width: 8),
@@ -188,7 +189,7 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
           const SizedBox(height: 10),
           Text(
             '优先级（可选）',
-            style: _bodyStyle(size: 11.5, color: AppTokens.faint),
+            style: _bodyStyle(size: 11.5, color: t.faint),
           ),
           const SizedBox(height: 4),
           PriorityMarkPicker(
@@ -210,7 +211,7 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
               Expanded(
                 child: Text(
                   '同时捞入今天',
-                  style: _bodyStyle(size: 12.5, color: AppTokens.ink2),
+                  style: _bodyStyle(size: 12.5, color: t.ink2),
                 ),
               ),
             ],
@@ -297,6 +298,7 @@ class _PullFromPoolDialogState extends ConsumerState<PullFromPoolDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final pool = ref.watch(todoPoolProvider);
     final target = ref.watch(todoPullTargetDateProvider);
     return _LedgerDialog(
@@ -320,7 +322,7 @@ class _PullFromPoolDialogState extends ConsumerState<PullFromPoolDialog> {
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
                 '待办池是空的',
-                style: _bodyStyle(size: 12.5, color: AppTokens.faint),
+                style: _bodyStyle(size: 12.5, color: t.faint),
               ),
             );
           }
@@ -393,6 +395,7 @@ class _PoolRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final meta = <String>[
       if (todo.priorityAbc != null) todo.priorityAbc!.code,
       if (todo.estMinutes != null) formatEstDuration(todo.estMinutes!),
@@ -400,9 +403,9 @@ class _PoolRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.hairSoft, width: 1),
+        border: Border.all(color: t.hairSoft, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -414,11 +417,11 @@ class _PoolRow extends StatelessWidget {
               children: <Widget>[
                 Text(
                   todo.title,
-                  style: _bodyStyle(size: 12.5, color: AppTokens.ink),
+                  style: _bodyStyle(size: 12.5, color: t.ink),
                 ),
                 if (meta.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 2),
-                  Text(meta, style: _monoStyle()),
+                  Text(meta, style: _monoStyle(color: t.faint)),
                 ],
               ],
             ),
@@ -452,13 +455,14 @@ class _LedgerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Dialog(
-      backgroundColor: AppTokens.paper,
+      backgroundColor: t.paper,
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(24),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        side: const BorderSide(color: AppTokens.hair, width: 1),
+        side: BorderSide(color: t.hair, width: 1),
       ),
       child: SizedBox(
         width: 480,
@@ -476,14 +480,14 @@ class _LedgerDialog extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   height: 1.2,
-                  color: AppTokens.ink,
+                  color: t.ink,
                 ),
               ),
               if (subtitle != null) ...<Widget>[
                 const SizedBox(height: 3),
                 Text(
                   subtitle!,
-                  style: _bodyStyle(size: 11.5, color: AppTokens.faint),
+                  style: _bodyStyle(size: 11.5, color: t.faint),
                 ),
               ],
               const SizedBox(height: 12),
@@ -504,17 +508,18 @@ class _DialogError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTokens.accentWash,
+        color: t.accentWash,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.accent, width: 1),
+        border: Border.all(color: t.accent, width: 1),
       ),
       child: Text(
         message,
-        style: _bodyStyle(size: 12.5, color: AppTokens.accentInk),
+        style: _bodyStyle(size: 12.5, color: t.accentInk),
       ),
     );
   }
@@ -544,18 +549,19 @@ class _DialogButtonState extends State<_DialogButton> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final enabled = widget.onPressed != null;
     final Color background;
     final Color foreground;
     if (!enabled) {
-      background = AppTokens.sunken;
-      foreground = AppTokens.faint;
+      background = t.sunken;
+      foreground = t.faint;
     } else if (widget.primary) {
-      background = _hovered ? AppTokens.ink2 : AppTokens.ink;
-      foreground = AppTokens.paper;
+      background = _hovered ? t.ink2 : t.ink;
+      foreground = t.paper;
     } else {
-      background = _hovered ? AppTokens.sunken : AppTokens.card;
-      foreground = _hovered ? AppTokens.ink : AppTokens.ink2;
+      background = _hovered ? t.sunken : t.card;
+      foreground = _hovered ? t.ink : t.ink2;
     }
 
     return Semantics(
@@ -581,8 +587,8 @@ class _DialogButtonState extends State<_DialogButton> {
                 borderRadius: BorderRadius.circular(AppTokens.radius),
                 border: Border.all(
                   color: widget.primary && enabled
-                      ? AppTokens.ink
-                      : AppTokens.hairStrong,
+                      ? t.ink
+                      : t.hairStrong,
                   width: 1,
                 ),
               ),
@@ -614,7 +620,7 @@ String _errorMessage(Object error) {
 }
 
 /// 输入框统一外观：4px 圆角 + `hair-strong` 边 + `card` 底。
-InputDecoration _fieldDecoration(String hint) {
+InputDecoration _fieldDecoration(String hint, ThemeTokens tokens) {
   OutlineInputBorder border(Color color, {double width = 1}) {
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -624,21 +630,21 @@ InputDecoration _fieldDecoration(String hint) {
 
   return InputDecoration(
     hintText: hint,
-    hintStyle: _bodyStyle(size: 13, color: AppTokens.faint),
+    hintStyle: _bodyStyle(size: 13, color: tokens.faint),
     isDense: true,
     filled: true,
-    fillColor: AppTokens.card,
+    fillColor: tokens.card,
     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-    border: border(AppTokens.hairStrong),
-    enabledBorder: border(AppTokens.hairStrong),
-    focusedBorder: border(AppTokens.ink, width: 1.5),
+    border: border(tokens.hairStrong),
+    enabledBorder: border(tokens.hairStrong),
+    focusedBorder: border(tokens.ink, width: 1.5),
   );
 }
 
 /// 正文字体样式（`AppFonts.body` + 兜底族）。
 TextStyle _bodyStyle({
   double size = 12.5,
-  Color color = AppTokens.ink,
+  required Color color,
 }) {
   return TextStyle(
     fontFamily: AppFonts.body,
@@ -650,7 +656,7 @@ TextStyle _bodyStyle({
 }
 
 /// 数字/元信息字体样式（`AppFonts.mono` + `tabular-nums`）。
-TextStyle _monoStyle({double size = 11, Color color = AppTokens.faint}) {
+TextStyle _monoStyle({double size = 11, required Color color}) {
   return TextStyle(
     fontFamily: AppFonts.mono,
     fontFamilyFallback: AppFonts.monoFallback,

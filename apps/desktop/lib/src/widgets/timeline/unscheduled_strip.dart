@@ -34,6 +34,7 @@ class UnscheduledStrip extends ConsumerWidget {
     if (pending.isEmpty) {
       return const SizedBox.shrink();
     }
+    final ThemeTokens t = context.tokens;
     return Padding(
       key: const ValueKey<String>('unscheduled-strip'),
       padding: const EdgeInsets.only(top: 8),
@@ -47,10 +48,11 @@ class UnscheduledStrip extends ConsumerWidget {
               feedback: Material(
                 color: Colors.transparent,
                 // 拖动中的影子是纯展示：不挂写入回调，免得拖拽时误落库。
-                child: _chip(row, onChanged: null),
+                child: _chip(row, t, onChanged: null),
               ),
               child: _chip(
                 row,
+                t,
                 onChanged: (Quadrant? next) =>
                     _setQuadrant(context, ref, row.id, next),
               ),
@@ -79,16 +81,20 @@ class UnscheduledStrip extends ConsumerWidget {
     }
   }
 
-  Widget _chip(PlanItemData row, {required ValueChanged<Quadrant?>? onChanged}) {
+  Widget _chip(
+    PlanItemData row,
+    ThemeTokens t, {
+    required ValueChanged<Quadrant?>? onChanged,
+  }) {
     // 与 `day_grid.dart` 的格子芯片同一条规矩：行里存码值，渲染层自己解析；
     // 无法识别（未来 schema）当作未分级 —— 不画标记、不占位、不抛异常。
     final Quadrant? quadrant = Quadrant.fromCode(row.quadrant);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTokens.slotPlan,
+        color: t.slotPlan,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.hair),
+        border: Border.all(color: t.hair),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -107,7 +113,7 @@ class UnscheduledStrip extends ConsumerWidget {
               row.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: AppTokens.ink2),
+              style: TextStyle(fontSize: 11, color: t.ink2),
             ),
           ),
           // 未分级与 `day_grid.dart` 同一条规矩：不画标记（不是画空标记）、
@@ -115,9 +121,9 @@ class UnscheduledStrip extends ConsumerWidget {
           // 在界面上不可分。
           if (quadrant == null) ...<Widget>[
             const SizedBox(width: 4),
-            const Text(
+            Text(
               '未分级',
-              style: TextStyle(fontSize: 10, color: AppTokens.faint),
+              style: TextStyle(fontSize: 10, color: t.faint),
             ),
           ],
         ],

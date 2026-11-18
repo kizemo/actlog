@@ -105,11 +105,12 @@ class _DraggableEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     final row = Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: <Widget>[
-          Text('○', style: _monoStyle(size: 11.5, color: AppTokens.faint)),
+          Text('○', style: _monoStyle(size: 11.5, color: t.faint)),
           const SizedBox(width: 6),
           if (entry.quadrant != null) ...<Widget>[
             // 悬停即可读两维取值；待办侧暂为只读（见 `_ReadOnlyEntry` 注释）。
@@ -125,7 +126,7 @@ class _DraggableEntry extends StatelessWidget {
               entry.label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: _bodyStyle(size: 12.5, color: AppTokens.ink2),
+              style: _bodyStyle(size: 12.5, color: t.ink2),
             ),
           ),
         ],
@@ -162,11 +163,12 @@ class _ReadOnlyEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: <Widget>[
-          Text('○', style: _monoStyle(size: 11.5, color: AppTokens.faint)),
+          Text('○', style: _monoStyle(size: 11.5, color: t.faint)),
           const SizedBox(width: 6),
           if (quadrant != null) ...<Widget>[
             // 已排期条目同样只能读：它的数据源是 todo，而 `TodoRepository`
@@ -184,11 +186,11 @@ class _ReadOnlyEntry extends StatelessWidget {
               label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: _bodyStyle(size: 12.5, color: AppTokens.faint),
+              style: _bodyStyle(size: 12.5, color: t.faint),
             ),
           ),
           const SizedBox(width: 6),
-          Text('已排期', style: _monoStyle(size: 10.5, color: AppTokens.faint)),
+          Text('已排期', style: _monoStyle(size: 10.5, color: t.faint)),
         ],
       ),
     );
@@ -203,21 +205,22 @@ class _DragChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     return Material(
       color: Colors.transparent,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 220),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: AppTokens.card,
+          color: t.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
-          border: Border.all(color: AppTokens.hairStrong),
+          border: Border.all(color: t.hairStrong),
         ),
         child: Text(
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: _bodyStyle(size: 12, color: AppTokens.ink),
+          style: _bodyStyle(size: 12, color: t.ink),
         ),
       ),
     );
@@ -233,18 +236,22 @@ class _RailNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     return Text(
       text,
       style: _bodyStyle(
         size: 12,
-        color: danger ? AppTokens.accentInk : AppTokens.faint,
+        color: danger ? t.accentInk : t.faint,
       ),
     );
   }
 }
 
 /// 正文字体样式（`AppFonts.body` + 兜底族）。
-TextStyle _bodyStyle({double size = 12.5, Color color = AppTokens.ink}) {
+///
+/// 颜色必须由调用方从 `context.tokens` 传入：Dart 的默认参数只能是编译期常量，
+/// 而主题色是运行期值（浅色 / 深色两套）。
+TextStyle _bodyStyle({double size = 12.5, required Color color}) {
   return TextStyle(
     fontFamily: AppFonts.body,
     fontFamilyFallback: AppFonts.bodyFallback,
@@ -255,7 +262,7 @@ TextStyle _bodyStyle({double size = 12.5, Color color = AppTokens.ink}) {
 }
 
 /// 数字/键帽字体样式（`AppFonts.mono` + `tabular-nums`）。
-TextStyle _monoStyle({double size = 11.5, Color color = AppTokens.faint}) {
+TextStyle _monoStyle({double size = 11.5, required Color color}) {
   return TextStyle(
     fontFamily: AppFonts.mono,
     fontFamilyFallback: AppFonts.monoFallback,
@@ -266,13 +273,15 @@ TextStyle _monoStyle({double size = 11.5, Color color = AppTokens.faint}) {
 }
 
 /// 右轨块标题（原型 `.rail h3`：12px / 600 / 字距 .13em / `--faint`）。
-const TextStyle _panelTitleStyle = TextStyle(
+/// 为什么是函数而不是 `const TextStyle`：标题色随主题变，运行期颜色进不了
+/// 编译期常量。
+TextStyle _panelTitleStyle(ThemeTokens tokens) => TextStyle(
   fontFamily: AppFonts.body,
   fontFamilyFallback: AppFonts.bodyFallback,
   fontSize: 12,
   fontWeight: FontWeight.w600,
   letterSpacing: 1.5,
-  color: AppTokens.faint,
+  color: tokens.faint,
 );
 
 /// 右轨「优先级分布」块：Q1–Q4 计数 **只读**展示。
@@ -309,21 +318,22 @@ class PriorityDistributionPanel extends ConsumerWidget {
       }
     }
 
+    final ThemeTokens t = context.tokens;
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Container(
         key: const ValueKey<String>('rail-priority-distribution'),
         padding: const EdgeInsets.fromLTRB(11, 11, 11, 10),
         decoration: BoxDecoration(
-          color: AppTokens.card,
+          color: t.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
-          border: Border.all(color: AppTokens.hairSoft),
+          border: Border.all(color: t.hairSoft),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Text('优先级分布', style: _panelTitleStyle),
+            Text('优先级分布', style: _panelTitleStyle(t)),
             const SizedBox(height: 8),
             // 表头：紧急 / 不紧急（原型 `.qgrid` 第 2、3 列）。
             Row(
@@ -332,13 +342,13 @@ class PriorityDistributionPanel extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     '紧急',
-                    style: _bodyStyle(size: 10.5, color: AppTokens.faint),
+                    style: _bodyStyle(size: 10.5, color: t.faint),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     '不紧急',
-                    style: _bodyStyle(size: 10.5, color: AppTokens.faint),
+                    style: _bodyStyle(size: 10.5, color: t.faint),
                   ),
                 ),
               ],
@@ -350,7 +360,7 @@ class PriorityDistributionPanel extends ConsumerWidget {
                   width: _labelWidth,
                   child: Text(
                     '重要',
-                    style: _bodyStyle(size: 10.5, color: AppTokens.faint),
+                    style: _bodyStyle(size: 10.5, color: t.faint),
                   ),
                 ),
                 Expanded(
@@ -374,7 +384,7 @@ class PriorityDistributionPanel extends ConsumerWidget {
                   width: _labelWidth,
                   child: Text(
                     '不重要',
-                    style: _bodyStyle(size: 10.5, color: AppTokens.faint),
+                    style: _bodyStyle(size: 10.5, color: t.faint),
                   ),
                 ),
                 Expanded(
@@ -393,7 +403,7 @@ class PriorityDistributionPanel extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             // 原型 `.rail-foot` 的上沿细线。
-            Container(height: 1, color: AppTokens.hairSoft),
+            Container(height: 1, color: t.hairSoft),
             const SizedBox(height: 7),
             // 用 `Wrap` 而不是 `Row`：右轨宽度随视口收缩，`Wrap` 换行不溢出。
             Wrap(
@@ -401,20 +411,19 @@ class PriorityDistributionPanel extends ConsumerWidget {
               children: <Widget>[
                 Text(
                   '$total 条计划 · 未分级 ',
-                  style: _bodyStyle(size: 12, color: AppTokens.faint),
+                  style: _bodyStyle(size: 12, color: t.faint),
                 ),
                 Text(
                   '$ungraded 条',
                   style: _monoStyle(
                     size: 12,
                     // 赭石只标「缺口」：真有未分级条目才着色，为 0 时与旁文同色。
-                    color:
-                        ungraded > 0 ? AppTokens.accentInk : AppTokens.faint,
+                    color: ungraded > 0 ? t.accentInk : t.faint,
                   ),
                 ),
                 Text(
                   '（不计入四象限）',
-                  style: _bodyStyle(size: 12, color: AppTokens.faint),
+                  style: _bodyStyle(size: 12, color: t.faint),
                 ),
               ],
             ),
@@ -437,16 +446,17 @@ class _QuadrantCell extends StatelessWidget {
     if (count == 0) {
       return const SizedBox.shrink();
     }
+    final ThemeTokens t = context.tokens;
     return Container(
       key: ValueKey<String>('rail-quadrant-${quadrant.name}'),
       margin: const EdgeInsets.only(left: 4),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTokens.paper,
+        color: t.paper,
         borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: AppTokens.hairSoft),
+        border: Border.all(color: t.hairSoft),
       ),
-      child: Text('$count', style: _monoStyle(size: 12, color: AppTokens.ink)),
+      child: Text('$count', style: _monoStyle(size: 12, color: t.ink)),
     );
   }
 }

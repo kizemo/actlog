@@ -150,6 +150,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ThemeTokens tokens = context.tokens;
     final AppPreferences prefs = ref.watch(currentPreferencesProvider);
     final AppLocalizations t = ref.watch(appLocalizationsProvider);
     // 该 provider 是 `FutureProvider`：首帧还没有值时按默认档（四象限）渲染，
@@ -171,13 +172,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             style: theme.textTheme.titleLarge?.copyWith(
               fontFamily: AppFonts.body,
               fontFamilyFallback: AppFonts.bodyFallback,
-              color: AppTokens.ink,
+              color: tokens.ink,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             t.settingsSubtitle,
-            style: _hintStyle,
+            style: _hintStyle(tokens),
           ),
           const SizedBox(height: AppTokens.gapCard),
 
@@ -281,14 +282,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           Text(
             '${t.executablePath}  $exePath',
             key: const ValueKey<String>('settings-executable-path'),
-            style: _monoStyle,
+            style: _monoStyle(tokens),
           ),
           if (_status != null) ...<Widget>[
             const SizedBox(height: 6),
             Text(
               _status!,
               key: const ValueKey<String>('settings-status'),
-              style: _monoStyle.copyWith(color: AppTokens.ink2),
+              style: _monoStyle(tokens).copyWith(color: tokens.ink2),
             ),
           ],
 
@@ -327,7 +328,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           Text(
             t.planWindowHint,
             key: const ValueKey<String>('settings-plan-window-hint'),
-            style: _hintStyle,
+            style: _hintStyle(tokens),
           ),
 
           const SizedBox(height: AppTokens.gapCard),
@@ -408,7 +409,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const SizedBox(height: AppTokens.gapCard),
           Text(
             t.settingsFootnote,
-            style: _hintStyle,
+            style: _hintStyle(tokens),
           ),
         ],
       ),
@@ -416,6 +417,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _sectionTitle(String text) {
+    final ThemeTokens tokens = context.tokens;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTokens.gapSec),
       child: Text(
@@ -426,7 +428,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           fontSize: 13,
           height: 1.4,
           fontWeight: FontWeight.w600,
-          color: AppTokens.ink,
+          color: tokens.ink,
         ),
       ),
     );
@@ -451,6 +453,7 @@ class _SettingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Column(
@@ -464,12 +467,12 @@ class _SettingRow extends StatelessWidget {
               fontFamilyFallback: AppFonts.bodyFallback,
               fontSize: 13,
               height: 1.4,
-              color: AppTokens.ink,
+              color: tokens.ink,
             ),
           ),
           if (hint != null) ...<Widget>[
             const SizedBox(height: 2),
-            Text(hint!, style: _hintStyle),
+            Text(hint!, style: _hintStyle(tokens)),
           ],
           const SizedBox(height: 6),
           control,
@@ -498,6 +501,7 @@ class _ChoiceChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -505,10 +509,10 @@ class _ChoiceChip extends StatelessWidget {
         key: chipKey,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? AppTokens.ink : AppTokens.card,
+          color: selected ? tokens.ink : tokens.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
           border: Border.all(
-            color: selected ? AppTokens.ink : AppTokens.hair,
+            color: selected ? tokens.ink : tokens.hair,
           ),
         ),
         child: Text(
@@ -518,7 +522,7 @@ class _ChoiceChip extends StatelessWidget {
             fontFamilyFallback: AppFonts.bodyFallback,
             fontSize: 12,
             height: 1.2,
-            color: selected ? AppTokens.paper : AppTokens.ink2,
+            color: selected ? tokens.paper : tokens.ink2,
           ),
         ),
       ),
@@ -540,6 +544,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -548,7 +553,7 @@ class _ActionButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTokens.radius),
-          border: Border.all(color: AppTokens.hairStrong),
+          border: Border.all(color: tokens.hairStrong),
         ),
         child: Text(
           label,
@@ -557,7 +562,7 @@ class _ActionButton extends StatelessWidget {
             fontFamilyFallback: AppFonts.bodyFallback,
             fontSize: 12,
             height: 1.2,
-            color: AppTokens.ink,
+            color: tokens.ink,
           ),
         ),
       ),
@@ -586,6 +591,7 @@ class _HourDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return SizedBox(
       width: 96,
       child: DropdownButton<int>(
@@ -597,7 +603,7 @@ class _HourDropdown extends StatelessWidget {
           fontFamily: AppFonts.mono,
           fontFamilyFallback: AppFonts.bodyFallback,
           fontSize: 12,
-          color: AppTokens.ink,
+          color: tokens.ink,
         ),
         onChanged: (int? next) {
           if (next != null) {
@@ -620,19 +626,19 @@ class _HourDropdown extends StatelessWidget {
 }
 
 /// 说明文字的统一样式（11px 等宽 + `meta` 灰，与习惯页副信息同源）。
-TextStyle get _hintStyle => TextStyle(
+TextStyle _hintStyle(ThemeTokens tokens) => TextStyle(
       fontFamily: AppFonts.body,
       fontFamilyFallback: AppFonts.bodyFallback,
       fontSize: 12,
       height: 1.5,
-      color: AppTokens.meta,
+      color: tokens.meta,
     );
 
 /// 机器可读文字的统一样式（路径、执行结果）。
-TextStyle get _monoStyle => TextStyle(
+TextStyle _monoStyle(ThemeTokens tokens) => TextStyle(
       fontFamily: AppFonts.mono,
       fontFamilyFallback: AppFonts.bodyFallback,
       fontSize: 11,
       height: 1.4,
-      color: AppTokens.meta,
+      color: tokens.meta,
     );

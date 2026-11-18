@@ -118,6 +118,7 @@ class _ChipButtonState extends State<_ChipButton> {
     final option = widget.option;
     final checked = widget.checked;
     final theme = Theme.of(context);
+    final t = context.tokens;
     final labelSize = theme.textTheme.labelLarge?.fontSize ?? 12.5;
 
     final Color background;
@@ -126,21 +127,21 @@ class _ChipButtonState extends State<_ChipButton> {
     final FontWeight? weight;
     if (checked && option.deny) {
       // 拒绝类选中：赭石三件套（`.chip.deny[aria-checked="true"]`）。
-      background = AppTokens.accentWash;
-      foreground = AppTokens.accentInk;
-      border = AppTokens.accent;
+      background = t.accentWash;
+      foreground = t.accentInk;
+      border = t.accent;
       weight = null;
     } else if (checked) {
       // 选中：墨色洗底（**不是**反白）。
-      background = AppTokens.inkWash;
-      foreground = AppTokens.ink;
-      border = AppTokens.ink;
+      background = t.inkWash;
+      foreground = t.ink;
+      border = t.ink;
       weight = FontWeight.w500;
     } else {
       // 常态 + hover：hover 只把文字提亮到 ink（边已是 hair-strong，无可再提）。
-      background = AppTokens.paper;
-      foreground = _hovered ? AppTokens.ink : AppTokens.meta;
-      border = AppTokens.hairStrong;
+      background = t.paper;
+      foreground = _hovered ? t.ink : t.meta;
+      border = t.hairStrong;
       weight = null;
     }
 

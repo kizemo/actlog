@@ -29,6 +29,7 @@ class DateBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.tokens;
     final date = ref.watch(selectedDateProvider);
     final today = ref.watch(todayProvider);
     final isPast = date.compareTo(today) < 0;
@@ -43,8 +44,8 @@ class DateBar extends ConsumerWidget {
     // 整组用 `MainAxisAlignment.center` 居中，箭头因此始终贴着日期两侧。
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppTokens.hair, width: 1)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: t.hair, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -138,13 +139,14 @@ class _GhostButtonState extends State<_GhostButton> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Tooltip(
       message: widget.tooltip,
       child: MouseRegion(
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
         child: Material(
-          color: AppTokens.card,
+          color: t.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
           child: InkWell(
             onTap: widget.onPressed,
@@ -156,13 +158,13 @@ class _GhostButtonState extends State<_GhostButton> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTokens.radius),
                 border: Border.all(
-                  color: _hovered ? AppTokens.hairStrong : AppTokens.hair,
+                  color: _hovered ? t.hairStrong : t.hair,
                   width: 1,
                 ),
               ),
               child: Text(
                 widget.label,
-                style: const TextStyle(fontSize: 14, color: AppTokens.ink),
+                style: TextStyle(fontSize: 14, color: t.ink),
               ),
             ),
           ),
@@ -189,6 +191,7 @@ class _TitleButtonState extends State<_TitleButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -197,7 +200,7 @@ class _TitleButtonState extends State<_TitleButton> {
           : SystemMouseCursors.click,
       child: Material(
         color: _hovered && widget.onPressed != null
-            ? AppTokens.inkWash
+            ? t.inkWash
             : Colors.transparent,
         borderRadius: BorderRadius.circular(3),
         child: InkWell(
@@ -214,17 +217,17 @@ class _TitleButtonState extends State<_TitleButton> {
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.19,
-                    color: AppTokens.ink,
+                    color: t.ink,
                   ),
                 ),
                 const SizedBox(width: 5),
-                const Text(
+                Text(
                   '▾',
                   style: TextStyle(
                     fontFamily: AppFonts.mono,
                     fontFamilyFallback: AppFonts.monoFallback,
                     fontSize: 11,
-                    color: AppTokens.faint,
+                    color: t.faint,
                   ),
                 ),
               ],
@@ -244,16 +247,17 @@ class _StateBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: AppTokens.paper,
+        color: t.paper,
         borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: AppTokens.hair, width: 1),
+        border: Border.all(color: t.hair, width: 1),
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 12.5, color: AppTokens.accentInk),
+        style: TextStyle(fontSize: 12.5, color: t.accentInk),
       ),
     );
   }

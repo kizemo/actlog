@@ -334,8 +334,8 @@ void main() {
       ),
     );
 
-    expect(_barsFilledWith(AppTokens.accent), findsNWidgets(4));
-    expect(_barsFilledWith(AppTokens.ink2), findsNothing);
+    expect(_barsFilledWith(ThemeTokens.light.accent), findsNWidgets(4));
+    expect(_barsFilledWith(ThemeTokens.light.ink2), findsNothing);
   });
 
   testWidgets('缺口配色：全完成 ⇒ 四条条用 ink2、无 accent', (tester) async {
@@ -350,8 +350,8 @@ void main() {
       ),
     );
 
-    expect(_barsFilledWith(AppTokens.ink2), findsNWidgets(4));
-    expect(_barsFilledWith(AppTokens.accent), findsNothing);
+    expect(_barsFilledWith(ThemeTokens.light.ink2), findsNWidgets(4));
+    expect(_barsFilledWith(ThemeTokens.light.accent), findsNothing);
     expect(find.text('已写'), findsOneWidget);
     expect(find.text('已记'), findsOneWidget);
   });

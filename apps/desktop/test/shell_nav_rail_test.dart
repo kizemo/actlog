@@ -151,16 +151,16 @@ void main() {
 
     // 禁用项用弱文字色，不用 ink；「习惯」已是可点项，非当前页走 meta。
     final Text disabledLabel = tester.widget<Text>(find.text('项目'));
-    expect(disabledLabel.style?.color, AppTokens.faint);
+    expect(disabledLabel.style?.color, ThemeTokens.light.faint);
     final Text habitsLabel = tester.widget<Text>(find.text('习惯'));
-    expect(habitsLabel.style?.color, AppTokens.meta);
+    expect(habitsLabel.style?.color, ThemeTokens.light.meta);
   });
 
   testWidgets('当前页 = ink 洗底 + ink 字 + 500 字重（不是反白）', (WidgetTester tester) async {
     await _pumpNav(tester, currentId: 'today');
 
     final Finder washed = find.byWidgetPredicate(
-      (Widget widget) => widget is Material && widget.color == AppTokens.inkWash,
+      (Widget widget) => widget is Material && widget.color == ThemeTokens.light.inkWash,
     );
     expect(washed, findsOneWidget, reason: '当前页必须且只能用 inkWash 洗底');
     expect(
@@ -169,12 +169,12 @@ void main() {
     );
 
     final Text current = tester.widget<Text>(find.text('今日'));
-    expect(current.style?.color, AppTokens.ink);
+    expect(current.style?.color, ThemeTokens.light.ink);
     expect(current.style?.fontWeight, FontWeight.w500);
 
     // 非当前页保持 meta 色。
     final Text other = tester.widget<Text>(find.text('日历'));
-    expect(other.style?.color, AppTokens.meta);
+    expect(other.style?.color, ThemeTokens.light.meta);
   });
 
   testWidgets('横排模式：撑满宽度、隐藏底注与品牌副标', (WidgetTester tester) async {

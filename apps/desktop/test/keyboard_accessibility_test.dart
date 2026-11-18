@@ -15,7 +15,7 @@ void main() {
     );
     final ring = tester.widget<FocusRing>(find.byType(FocusRing));
     expect(ring.focusedBorderWidth, 2);
-    expect(AppTokens.accent, isNot(AppTokens.ink));
+    expect(ThemeTokens.light.accent, isNot(ThemeTokens.light.ink));
   });
 
   testWidgets('聚焦后环 = ink 2px，失焦后透明', (tester) async {
@@ -43,7 +43,7 @@ void main() {
 
     node.requestFocus();
     await tester.pumpAndSettle();
-    expect(ringBorder().top.color, AppTokens.ink);
+    expect(ringBorder().top.color, ThemeTokens.light.ink);
     expect(ringBorder().top.width, 2);
 
     node.unfocus();
@@ -156,7 +156,7 @@ void main() {
     }
 
     // 只有当前焦点那一枚亮 ink 2px，其余两枚必须是透明环（未聚焦态）。
-    expect(ringBorderAt(2).top.color, AppTokens.ink);
+    expect(ringBorderAt(2).top.color, ThemeTokens.light.ink);
     expect(ringBorderAt(2).top.width, 2);
     expect(ringBorderAt(0).top.color, Colors.transparent);
     expect(ringBorderAt(1).top.color, Colors.transparent);

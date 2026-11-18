@@ -88,7 +88,12 @@ class PriorityMark {
   /// 该维度取值的中文名（「重要」/「不重要」/「紧急」/「不紧急」）。
   final String label;
 
-  /// 该标记走的主色 token（重要 = `accent`，不重要 = `faint`，两条轴同构）。
+  /// 该标记在**浅色档**的主色（重要 = `accent`，不重要 = `faint`，两条轴同构）。
+  ///
+  /// 五枚 spec 都是 `const` 对象，取值必须能在编译期求得，因此这里存的是
+  /// `LightPalette` 的字面量而不是 `ThemeTokens` 的运行时颜色。渲染时必须经
+  /// [_markColor] 按**角色**换成当前主题的值 —— 深色档直接用它会把浅色赭石
+  /// 贴到深色底上。
   final Color color;
 
   /// 文本字形；走 Material Icon 的标记为 null（当前四枚标记都走图标）。
@@ -126,7 +131,7 @@ const PriorityMark kMarkImportantSpec = PriorityMark(
   outlineIcon: kMarkNotImportant,
   filled: true,
   emphasis: FontWeight.w700,
-  color: AppTokens.accent,
+  color: LightPalette.accent,
 );
 
 /// 「不重要」：**同一颗星的空心版** + 弱化色。
@@ -141,7 +146,7 @@ const PriorityMark kMarkNotImportantSpec = PriorityMark(
   outlineIcon: kMarkNotImportant,
   filled: false,
   emphasis: FontWeight.w400,
-  color: AppTokens.faint,
+  color: LightPalette.faint,
 );
 
 /// 「紧急」：**实心**铃 + accent。
@@ -151,7 +156,7 @@ const PriorityMark kMarkUrgentSpec = PriorityMark(
   icon: kMarkUrgent,
   outlineIcon: kMarkNotUrgent,
   filled: true,
-  color: AppTokens.accent,
+  color: LightPalette.accent,
 );
 
 /// 「不紧急」：**同一枚铃的空心版** + 弱化色（只有 `filled` 取反）。
@@ -161,8 +166,15 @@ const PriorityMark kMarkNotUrgentSpec = PriorityMark(
   icon: kMarkUrgent,
   outlineIcon: kMarkNotUrgent,
   filled: false,
-  color: AppTokens.faint,
+  color: LightPalette.faint,
 );
+
+/// 标记在**当前主题**里实际要用的颜色。
+///
+/// 角色口径只有一条：`filled == true` ⇔ 该维度取「是」（重要 / 紧急）⇔ `accent`；
+/// 空心 ⇔ 取「否」⇔ `faint`。两条轴同构，所以不需要按轴分支。
+Color _markColor(ThemeTokens tokens, PriorityMark mark) =>
+    mark.filled ? tokens.accent : tokens.faint;
 
 /// 取**单个维度**的标记描述 —— 全仓唯一取用入口（选择器 / 气泡都走这里）。
 ///
@@ -219,6 +231,7 @@ class PriorityMarks extends StatelessWidget {
     if (value == null) {
       return const SizedBox.shrink();
     }
+    final ThemeTokens tokens = context.tokens;
     final QuadrantStyle style = QuadrantStyle.of(value);
     final List<PriorityMark> marks = marksOf(value);
     return Semantics(
@@ -227,18 +240,19 @@ class PriorityMarks extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          _markWidget(marks[0]),
+          _markWidget(tokens, marks[0]),
           const SizedBox(width: 1),
-          _markWidget(marks[1]),
+          _markWidget(tokens, marks[1]),
         ],
       ),
     );
   }
 
   /// 一枚标记：Material 图标（按 `filled` 落实心/空心）或文本字形，
-  /// 各自带**值级** Key。
-  Widget _markWidget(PriorityMark mark) {
+  /// 各自带**值级** Key；颜色按角色从 [tokens] 解析（见 [_markColor]）。
+  Widget _markWidget(ThemeTokens tokens, PriorityMark mark) {
     final String? glyph = mark.glyph;
+    final Color color = _markColor(tokens, mark);
     if (glyph != null) {
       return Text(
         glyph,
@@ -251,11 +265,11 @@ class PriorityMarks extends StatelessWidget {
           fontSize: size,
           height: 1.1,
           fontWeight: mark.emphasis,
-          color: mark.color,
+          color: color,
         ),
       );
     }
-    return Icon(mark.resolvedIcon, key: mark.key, size: size, color: mark.color);
+    return Icon(mark.resolvedIcon, key: mark.key, size: size, color: color);
   }
 }
 
@@ -289,11 +303,16 @@ class PriorityMarkPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final Quadrant? current = value;
     final bool important = current?.isImportant ?? false;
     final bool urgent = current?.isUrgent ?? false;
-    final Color accent =
-        current == null ? AppTokens.ink2 : colorFromHex(QuadrantStyle.of(current).colorHex);
+    final Color accent = current == null
+        ? tokens.ink2
+        : colorFromHex(
+            QuadrantStyle.of(current).colorHex,
+            fallback: tokens.meta,
+          );
     return Wrap(
       spacing: 6,
       runSpacing: 6,
@@ -363,12 +382,13 @@ class _MarkChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final Color ink = !enabled
-        ? AppTokens.faint
+        ? tokens.faint
         : selected
             ? accent
-            : AppTokens.ink2;
-    final Color markColor = selected && enabled ? accent : AppTokens.faint;
+            : tokens.ink2;
+    final Color markColor = selected && enabled ? accent : tokens.faint;
     final String? glyph = mark.glyph;
     return Semantics(
       button: true,
@@ -381,14 +401,14 @@ class _MarkChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: selected ? AppTokens.sunken : AppTokens.card,
+            color: selected ? tokens.sunken : tokens.card,
             borderRadius: BorderRadius.circular(AppTokens.radius),
             border: Border.all(
               color: !enabled
-                  ? AppTokens.hair
+                  ? tokens.hair
                   : selected
                       ? accent
-                      : AppTokens.hairStrong,
+                      : tokens.hairStrong,
             ),
           ),
           child: Row(
@@ -436,6 +456,7 @@ class _ClearChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return Semantics(
       button: true,
       label: '清除优先级',
@@ -453,7 +474,7 @@ class _ClearChip extends StatelessWidget {
               fontFamilyFallback: AppFonts.bodyFallback,
               fontSize: 11,
               height: 1.2,
-              color: enabled ? AppTokens.faint : AppTokens.hair,
+              color: enabled ? tokens.faint : tokens.hair,
             ),
           ),
         ),

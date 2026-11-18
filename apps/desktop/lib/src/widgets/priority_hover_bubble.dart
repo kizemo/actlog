@@ -275,18 +275,23 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
 
   /// 气泡本体（抬头 · 两维 · 结论 · 建议 · 快捷键）。
   Widget _bubbleCard(Quadrant value) {
+    final ThemeTokens tokens = context.tokens;
     final QuadrantStyle style = QuadrantStyle.of(value);
     return Container(
       key: const ValueKey<String>('priority-hover-bubble'),
       width: kPriorityBubbleWidth,
       padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
       decoration: BoxDecoration(
-        color: AppTokens.card,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.ink),
-        boxShadow: const <BoxShadow>[
-          // 硬投影 `6px 6px 0 rgba(50,43,35,.09)`（ink #322B23 的 9%），不是柔和阴影。
-          BoxShadow(color: Color(0x17322B23), offset: Offset(6, 6)),
+        border: Border.all(color: tokens.ink),
+        boxShadow: <BoxShadow>[
+          // 硬投影 `6px 6px 0 rgba(50,43,35,.09)`（浅色档 ink 的 9%），不是柔和阴影。
+          // `shadowTint` 无静态别名，必须从 `ThemeTokens` 取 ⇒ 深色档自动跟随。
+          BoxShadow(
+            color: tokens.shadowTint.withValues(alpha: 0.09),
+            offset: const Offset(6, 6),
+          ),
         ],
       ),
       child: Column(
@@ -309,13 +314,14 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
 
   /// 抬头：`Q1` 方框 + 计划名 + `Esc` 键帽。
   Widget _header(Quadrant value) {
+    final ThemeTokens tokens = context.tokens;
     return Row(
       children: <Widget>[
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(2),
-            border: Border.all(color: AppTokens.ink),
+            border: Border.all(color: tokens.ink),
           ),
           child: Text(
             _quadrantCode(value),
@@ -324,7 +330,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
               fontFamilyFallback: AppFonts.monoFallback,
               fontSize: 10.5,
               height: 1.2,
-              color: AppTokens.ink,
+              color: tokens.ink,
               fontFeatures: const <FontFeature>[
                 FontFeature.tabularFigures(),
               ],
@@ -343,7 +349,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
               fontSize: 14,
               height: 1.3,
               fontWeight: FontWeight.w500,
-              color: AppTokens.ink,
+              color: tokens.ink,
             ),
           ),
         ),
@@ -355,6 +361,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
 
   /// 一个维度一行：维度名 + 两枚二选一芯片（当前取值反白）。
   Widget _dimensionRow({required bool isUrgency, required bool current}) {
+    final ThemeTokens tokens = context.tokens;
     final bool enabled = !_readOnly;
     final String onLabel = isUrgency ? '紧急' : '重要';
     final String offLabel = isUrgency ? '不紧急' : '不重要';
@@ -371,7 +378,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
               fontFamilyFallback: AppFonts.monoFallback,
               fontSize: 11,
               height: 1.2,
-              color: AppTokens.meta,
+              color: tokens.meta,
             ),
           ),
         ),
@@ -406,6 +413,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
 
   /// 人话结论 + 行动建议。
   Widget _conclusion(QuadrantStyle style) {
+    final ThemeTokens tokens = context.tokens;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -420,7 +428,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
                 fontFamilyFallback: AppFonts.monoFallback,
                 fontSize: 10.5,
                 height: 1.2,
-                color: AppTokens.faint,
+                color: tokens.faint,
               ),
             ),
             const SizedBox(width: 6),
@@ -432,7 +440,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
                 fontSize: 14,
                 height: 1.3,
                 fontWeight: FontWeight.w500,
-                color: AppTokens.ink,
+                color: tokens.ink,
               ),
             ),
             const SizedBox(width: 6),
@@ -443,7 +451,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
                 fontFamilyFallback: AppFonts.bodyFallback,
                 fontSize: 12.5,
                 height: 1.3,
-                color: AppTokens.meta,
+                color: tokens.meta,
               ),
             ),
           ],
@@ -456,7 +464,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
             fontFamilyFallback: AppFonts.bodyFallback,
             fontSize: 13,
             height: 1.4,
-            color: AppTokens.meta,
+            color: tokens.meta,
           ),
         ),
       ],
@@ -465,6 +473,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
 
   /// 底部快捷键提示。
   Widget _footer() {
+    final ThemeTokens tokens = context.tokens;
     return Row(
       children: <Widget>[
         const _Keycap(text: 'Esc'),
@@ -476,7 +485,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
             fontFamilyFallback: AppFonts.bodyFallback,
             fontSize: 12,
             height: 1.2,
-            color: AppTokens.faint,
+            color: tokens.faint,
           ),
         ),
         const Spacer(),
@@ -487,7 +496,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
             fontFamilyFallback: AppFonts.bodyFallback,
             fontSize: 12,
             height: 1.2,
-            color: AppTokens.faint,
+            color: tokens.faint,
           ),
         ),
       ],
@@ -519,11 +528,16 @@ class _BubbleShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final Widget pointer = Padding(
       padding: const EdgeInsets.only(top: 8),
       child: CustomPaint(
         size: const Size(_kPointerWidth, 12),
-        painter: _PointerPainter(pointsLeft: pointerOnLeft),
+        painter: _PointerPainter(
+          pointsLeft: pointerOnLeft,
+          outline: tokens.ink,
+          fill: tokens.card,
+        ),
       ),
     );
     return Row(
@@ -538,9 +552,19 @@ class _BubbleShell extends StatelessWidget {
 
 /// 指针三角：墨色外描边 + 卡片色内填充（对齐 `.bub::before/::after`）。
 class _PointerPainter extends CustomPainter {
-  const _PointerPainter({required this.pointsLeft});
+  const _PointerPainter({
+    required this.pointsLeft,
+    required this.outline,
+    required this.fill,
+  });
 
   final bool pointsLeft;
+
+  /// 外三角描边色（浅色档 = `ink`）。
+  final Color outline;
+
+  /// 内三角填充色（浅色档 = `card`）。
+  final Color fill;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -571,13 +595,15 @@ class _PointerPainter extends CustomPainter {
         ..lineTo(0, size.height - 1)
         ..close();
     }
-    canvas.drawPath(outer, Paint()..color = AppTokens.ink);
-    canvas.drawPath(inner, Paint()..color = AppTokens.card);
+    canvas.drawPath(outer, Paint()..color = outline);
+    canvas.drawPath(inner, Paint()..color = fill);
   }
 
   @override
   bool shouldRepaint(_PointerPainter oldDelegate) =>
-      oldDelegate.pointsLeft != pointsLeft;
+      oldDelegate.pointsLeft != pointsLeft ||
+      oldDelegate.outline != outline ||
+      oldDelegate.fill != fill;
 }
 
 /// 键帽（`Esc`）：等宽小字 + 细边 + 下沉底。
@@ -588,12 +614,13 @@ class _Keycap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
-        color: AppTokens.keybg,
+        color: tokens.keybg,
         borderRadius: BorderRadius.circular(2),
-        border: Border.all(color: AppTokens.hair),
+        border: Border.all(color: tokens.hair),
       ),
       child: Text(
         text,
@@ -602,7 +629,7 @@ class _Keycap extends StatelessWidget {
           fontFamilyFallback: AppFonts.monoFallback,
           fontSize: 10,
           height: 1.2,
-          color: AppTokens.meta,
+          color: tokens.meta,
         ),
       ),
     );
@@ -653,7 +680,8 @@ class _DimensionChipState extends State<_DimensionChip> {
   /// 在这里由**填充 / 空心**承担，与主通道同一套语义（共用 `resolvedIcon`，
   /// 不许在气泡里另写一套图标）。
   Widget _markBody(bool on) {
-    final Color color = on ? AppTokens.paper : AppTokens.meta;
+    final ThemeTokens tokens = context.tokens;
+    final Color color = on ? tokens.paper : tokens.meta;
     final String? glyph = widget.mark.glyph;
     if (glyph != null) {
       return Text(
@@ -682,14 +710,15 @@ class _DimensionChipState extends State<_DimensionChip> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final bool on = widget.selected;
     final Widget body = Container(
       constraints: const BoxConstraints(minHeight: 26),
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: on ? AppTokens.ink : AppTokens.card,
+        color: on ? tokens.ink : tokens.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: on ? AppTokens.ink : AppTokens.hairStrong),
+        border: Border.all(color: on ? tokens.ink : tokens.hairStrong),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -703,7 +732,7 @@ class _DimensionChipState extends State<_DimensionChip> {
               fontFamilyFallback: AppFonts.bodyFallback,
               fontSize: 12.5,
               height: 1.2,
-              color: on ? AppTokens.paper : AppTokens.ink2,
+              color: on ? tokens.paper : tokens.ink2,
             ),
           ),
         ],

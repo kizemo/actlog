@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_fonts.dart';
-import '../../theme/app_tokens.dart';
 import '../../theme/density_profile.dart';
+import '../../theme/theme_tokens.dart';
 
 /// 一条快捷键提示：一个或多个键帽 + 一句动作说明。
 @immutable
@@ -49,7 +49,7 @@ const List<ShellKeyHint> kShellKeyHints = <ShellKeyHint>[
 /// 键帽（等价原型 `kbd`）。
 ///
 /// 口径：mono 11.5px + 1px 边框 + **下边 2px** + 3px 圆角 + `1px 5px` 内边距，
-/// 底用 [AppTokens.card]、字用 [AppTokens.ink]。
+/// 底用 `card`、字用 `ink`（两色都从当前 `ThemeTokens` 解析）。
 /// 公开出来是因为 `.nav-foot` 也要用同一枚键帽（原型同一套 `kbd` 规则）。
 class KeyCap extends StatelessWidget {
   /// 创建键帽。
@@ -63,27 +63,28 @@ class KeyCap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
-        color: AppTokens.card,
+        color: tokens.card,
         borderRadius: BorderRadius.circular(3),
-        border: const Border(
-          top: BorderSide(color: AppTokens.hair),
-          left: BorderSide(color: AppTokens.hair),
-          right: BorderSide(color: AppTokens.hair),
-          bottom: BorderSide(color: AppTokens.hair, width: 2),
+        border: Border(
+          top: BorderSide(color: tokens.hair),
+          left: BorderSide(color: tokens.hair),
+          right: BorderSide(color: tokens.hair),
+          bottom: BorderSide(color: tokens.hair, width: 2),
         ),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppFonts.mono,
           fontFamilyFallback: AppFonts.monoFallback,
           fontSize: fontSize,
           height: 1.2,
-          color: AppTokens.ink,
-          fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
+          color: tokens.ink,
+          fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
         ),
       ),
     );
@@ -103,15 +104,16 @@ class KeyBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final double labelSize =
         Theme.of(context).textTheme.labelSmall?.fontSize ??
         DensityProfile.comfortable.labelSize;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 7),
-      decoration: const BoxDecoration(
-        color: AppTokens.keybg,
-        border: Border(top: BorderSide(color: AppTokens.hair)),
+      decoration: BoxDecoration(
+        color: tokens.keybg,
+        border: Border(top: BorderSide(color: tokens.hair)),
       ),
       child: Wrap(
         spacing: 14,
@@ -135,6 +137,7 @@ class _KeyHintItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -149,7 +152,7 @@ class _KeyHintItem extends StatelessWidget {
             fontFamilyFallback: AppFonts.bodyFallback,
             fontSize: labelSize,
             height: 1.3,
-            color: AppTokens.meta,
+            color: tokens.meta,
           ),
         ),
       ],
@@ -170,6 +173,7 @@ class KeyHintList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final double labelSize =
         Theme.of(context).textTheme.labelSmall?.fontSize ??
         DensityProfile.comfortable.labelSize;
@@ -195,7 +199,7 @@ class KeyHintList extends StatelessWidget {
                       fontFamilyFallback: AppFonts.bodyFallback,
                       fontSize: labelSize,
                       height: 1.35,
-                      color: AppTokens.meta,
+                      color: tokens.meta,
                     ),
                   ),
                 ),

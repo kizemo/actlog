@@ -264,13 +264,13 @@ Future<void> _pumpFiveRows(WidgetTester tester, GlobalKey? boundaryKey) async {
     debugShowCheckedModeBanner: false,
     theme: AppTheme.light(DensityProfile.comfortable),
     home: Scaffold(
-      backgroundColor: AppTokens.paper,
+      backgroundColor: ThemeTokens.light.paper,
       body: Center(
         child: RepaintBoundary(
           key: boundaryKey,
           child: Container(
             width: 560,
-            color: AppTokens.paper,
+            color: ThemeTokens.light.paper,
             padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -282,7 +282,7 @@ Future<void> _pumpFiveRows(WidgetTester tester, GlobalKey? boundaryKey) async {
                     fontFamily: AppFonts.body,
                     fontFamilyFallback: AppFonts.bodyFallback,
                     fontSize: 12,
-                    color: AppTokens.ink,
+                    color: ThemeTokens.light.ink,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -327,7 +327,7 @@ PlanItemData _rowOf(int index) {
   );
 }
 
-/// 统计 RGBA 图的颜色种类数与「墨迹」像素数（与底色 `AppTokens.paper` 不同的像素）。
+/// 统计 RGBA 图的颜色种类数与「墨迹」像素数（与底色 `ThemeTokens.light.paper` 不同的像素）。
 ({int variety, int ink}) _sample(ByteData rgba, int width, int height) {
   const int bgR = 0xF6;
   const int bgG = 0xF4;

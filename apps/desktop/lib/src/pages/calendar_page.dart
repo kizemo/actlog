@@ -48,6 +48,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   Widget build(BuildContext context) {
     final today = ref.watch(todayProvider);
     final summary = ref.watch(calendarMonthProvider(_month));
+    final t = context.tokens;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -71,7 +72,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
                       height: 1.2,
-                      color: AppTokens.ink,
+                      color: t.ink,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -81,7 +82,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                       fontFamily: AppFonts.mono,
                       fontFamilyFallback: AppFonts.monoFallback,
                       fontSize: 11.5,
-                      color: AppTokens.faint,
+                      color: t.faint,
                       fontFeatures: const <FontFeature>[
                         FontFeature.tabularFigures(),
                       ],
@@ -126,7 +127,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 fontFamily: AppFonts.body,
                 fontFamilyFallback: AppFonts.bodyFallback,
                 fontSize: 12.5,
-                color: AppTokens.accentInk,
+                color: t.accentInk,
               ),
             ),
           ),
@@ -194,6 +195,7 @@ class _MonthButtonState extends State<_MonthButton> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Tooltip(
       message: widget.tooltip,
       child: Semantics(
@@ -204,7 +206,7 @@ class _MonthButtonState extends State<_MonthButton> {
           onEnter: (_) => setState(() => _hovered = true),
           onExit: (_) => setState(() => _hovered = false),
           child: Material(
-            color: _hovered ? AppTokens.sunken : AppTokens.card,
+            color: _hovered ? t.sunken : t.card,
             borderRadius: BorderRadius.circular(AppTokens.radius),
             child: InkWell(
               onTap: widget.onPressed,
@@ -214,7 +216,7 @@ class _MonthButtonState extends State<_MonthButton> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppTokens.radius),
-                  border: Border.all(color: AppTokens.hairStrong, width: 1),
+                  border: Border.all(color: t.hairStrong, width: 1),
                 ),
                 child: Text(
                   widget.glyph,
@@ -223,7 +225,7 @@ class _MonthButtonState extends State<_MonthButton> {
                     fontFamilyFallback: AppFonts.monoFallback,
                     fontSize: 15,
                     height: 1,
-                    color: _hovered ? AppTokens.ink : AppTokens.ink2,
+                    color: _hovered ? t.ink : t.ink2,
                   ),
                 ),
               ),

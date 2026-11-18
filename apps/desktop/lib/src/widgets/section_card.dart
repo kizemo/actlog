@@ -71,6 +71,7 @@ class _SectionCardState extends State<SectionCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     final density = _densityOf(theme);
     final hasSubtitle =
         widget.subtitle != null && widget.subtitle!.isNotEmpty;
@@ -86,10 +87,10 @@ class _SectionCardState extends State<SectionCard> {
           vertical: density.padV,
         ),
         decoration: BoxDecoration(
-          color: AppTokens.card,
+          color: t.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
           border: Border.all(
-            color: _hovered ? AppTokens.hairStrong : AppTokens.hairSoft,
+            color: _hovered ? t.hairStrong : t.hairSoft,
             width: 1,
           ),
         ),
@@ -99,9 +100,9 @@ class _SectionCardState extends State<SectionCard> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(bottom: 8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: AppTokens.hair, width: 1),
+                  bottom: BorderSide(color: t.hair, width: 1),
                 ),
               ),
               child: Row(
@@ -124,7 +125,7 @@ class _SectionCardState extends State<SectionCard> {
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: AppTokens.ink,
+                              color: t.ink,
                             ),
                           ),
                         ),
@@ -136,7 +137,7 @@ class _SectionCardState extends State<SectionCard> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: AppTokens.faint,
+                                color: t.faint,
                               ),
                             ),
                           ),

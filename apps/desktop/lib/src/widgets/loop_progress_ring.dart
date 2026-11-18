@@ -124,14 +124,15 @@ class LoopProgressRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ThemeTokens tokens = context.tokens;
     final labelSize = theme.textTheme.labelLarge?.fontSize ?? 11.5;
     final entries = loopSegmentEntries(stats);
 
     return Container(
       padding: const EdgeInsets.only(top: 2, bottom: 12),
-      decoration: const BoxDecoration(
-        color: AppTokens.paper,
-        border: Border(bottom: BorderSide(color: AppTokens.hair)),
+      decoration: BoxDecoration(
+        color: tokens.paper,
+        border: Border(bottom: BorderSide(color: tokens.hair)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +146,7 @@ class LoopProgressRing extends StatelessWidget {
                 '闭环环 · 四段比例条',
                 style: TextStyle(
                   fontSize: labelSize,
-                  color: AppTokens.faint,
+                  color: tokens.faint,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -155,13 +156,13 @@ class LoopProgressRing extends StatelessWidget {
                   fontFamily: AppFonts.mono,
                   fontFamilyFallback: AppFonts.monoFallback,
                   fontSize: labelSize,
-                  color: AppTokens.meta,
+                  color: tokens.meta,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Container(height: 1, color: AppTokens.hair),
+          Container(height: 1, color: tokens.hair),
           LayoutBuilder(
             builder: (context, constraints) {
               final perRow = constraints.maxWidth >= 760
@@ -172,7 +173,7 @@ class LoopProgressRing extends StatelessWidget {
                 final end = (start + perRow).clamp(0, entries.length);
                 final chunk = entries.sublist(start, end);
                 if (rows.isNotEmpty) {
-                  rows.add(Container(height: 1, color: AppTokens.hair));
+                  rows.add(Container(height: 1, color: tokens.hair));
                 }
                 // 格子可用宽度在此算好并按参数下传：外层 `IntrinsicHeight`
                 // 会向子树要「最大固有高度」，而 `LayoutBuilder` 无法回答固有
@@ -188,7 +189,7 @@ class LoopProgressRing extends StatelessWidget {
                       children: [
                         for (var i = 0; i < chunk.length; i++) ...[
                           if (i > 0)
-                            Container(width: 1, color: AppTokens.hair),
+                            Container(width: 1, color: tokens.hair),
                           Expanded(
                             child: _Segment(
                               entry: chunk[i],
@@ -265,9 +266,10 @@ class LoopHintBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ThemeTokens tokens = context.tokens;
     final labelSize = theme.textTheme.labelLarge?.fontSize ?? 11.5;
-    final accentColor = entry.gap ? AppTokens.accentInk : AppTokens.ink2;
-    final headColor = entry.gap ? AppTokens.accentInk : AppTokens.meta;
+    final accentColor = entry.gap ? tokens.accentInk : tokens.ink2;
+    final headColor = entry.gap ? tokens.accentInk : tokens.meta;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -324,14 +326,14 @@ class LoopHintBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(2.5),
             child: Container(
               height: 5,
-              color: AppTokens.hairSoft,
+              color: tokens.hairSoft,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: FractionallySizedBox(
                   widthFactor: entry.ratio,
                   heightFactor: 1,
                   child: Container(
-                    color: entry.gap ? AppTokens.accent : AppTokens.ink2,
+                    color: entry.gap ? tokens.accent : tokens.ink2,
                   ),
                 ),
               ),
@@ -341,7 +343,7 @@ class LoopHintBar extends StatelessWidget {
             const SizedBox(height: 3),
             _TickRow(
               availableWidth: availableWidth,
-              textStyle: LoopTickAxis.tickStyle,
+              textStyle: LoopTickAxis.tickStyle(tokens),
             ),
           ],
         ],
@@ -379,11 +381,14 @@ class LoopTickAxis extends StatelessWidget {
   static const List<String> ticks = _TickRow.ticks;
 
   /// 刻度字样式（与 [LoopHintBar] 的逐行刻度同一套）。
-  static const TextStyle tickStyle = TextStyle(
+  ///
+  /// 颜色随主题解析 ⇒ 必须是方法而不是 `static const` 字段：深色档的刻度色
+  /// 与浅色档不同，常量无法随主题切换。
+  static TextStyle tickStyle(ThemeTokens tokens) => TextStyle(
     fontFamily: AppFonts.mono,
     fontFamilyFallback: AppFonts.monoFallback,
     fontSize: 9.5,
-    color: AppTokens.faint,
+    color: tokens.faint,
     letterSpacing: 0.2,
   );
 
@@ -391,7 +396,10 @@ class LoopTickAxis extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding,
-      child: _TickRow(availableWidth: availableWidth, textStyle: tickStyle),
+      child: _TickRow(
+        availableWidth: availableWidth,
+        textStyle: tickStyle(context.tokens),
+      ),
     );
   }
 }
@@ -424,9 +432,10 @@ class _SegmentState extends State<_Segment> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final entry = widget.entry;
-    final accentColor = entry.gap ? AppTokens.accentInk : AppTokens.ink;
-    final headColor = entry.gap ? AppTokens.accentInk : AppTokens.meta;
+    final accentColor = entry.gap ? tokens.accentInk : tokens.ink;
+    final headColor = entry.gap ? tokens.accentInk : tokens.meta;
 
     return MouseRegion(
       cursor: widget.onTap == null
@@ -435,7 +444,7 @@ class _SegmentState extends State<_Segment> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: Material(
-        color: _hovered ? AppTokens.sunken : Colors.transparent,
+        color: _hovered ? tokens.sunken : Colors.transparent,
         borderRadius: BorderRadius.circular(AppTokens.radius),
         child: InkWell(
           onTap: widget.onTap,
@@ -487,7 +496,7 @@ class _SegmentState extends State<_Segment> {
                   borderRadius: BorderRadius.circular(2.5),
                   child: Container(
                     height: 5,
-                    color: AppTokens.hairSoft,
+                    color: tokens.hairSoft,
                     child: TweenAnimationBuilder<double>(
                       tween: Tween<double>(begin: 0, end: entry.ratio),
                       duration: const Duration(milliseconds: 500),
@@ -499,9 +508,7 @@ class _SegmentState extends State<_Segment> {
                             widthFactor: value,
                             heightFactor: 1,
                             child: Container(
-                              color: entry.gap
-                                  ? AppTokens.accent
-                                  : AppTokens.ink2,
+                              color: entry.gap ? tokens.accent : tokens.ink2,
                             ),
                           ),
                         );
@@ -516,7 +523,7 @@ class _SegmentState extends State<_Segment> {
                     fontFamily: AppFonts.mono,
                     fontFamilyFallback: AppFonts.monoFallback,
                     fontSize: 10.5,
-                    color: AppTokens.faint,
+                    color: tokens.faint,
                     letterSpacing: 0.2,
                   ),
                 ),

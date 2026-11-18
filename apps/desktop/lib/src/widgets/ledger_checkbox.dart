@@ -71,10 +71,11 @@ class _LedgerCheckboxState extends State<LedgerCheckbox> {
   @override
   Widget build(BuildContext context) {
     final checked = widget.value;
-    final border = checked ? AppTokens.ink : AppTokens.hairStrong;
-    final fill = checked ? AppTokens.ink : AppTokens.paper;
+    final t = context.tokens;
+    final border = checked ? t.ink : t.hairStrong;
+    final fill = checked ? t.ink : t.paper;
     final glyphColor =
-        checked ? AppTokens.paper : (_enabled ? AppTokens.ink : AppTokens.faint);
+        checked ? t.paper : (_enabled ? t.ink : t.faint);
 
     return Semantics(
       checked: checked,

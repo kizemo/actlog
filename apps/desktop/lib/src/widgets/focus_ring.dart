@@ -131,6 +131,7 @@ class _FocusRingState extends State<FocusRing> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Stack(
       children: <Widget>[
         widget.child,
@@ -142,7 +143,7 @@ class _FocusRingState extends State<FocusRing> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTokens.radius),
                 border: Border.all(
-                  color: _focused ? AppTokens.ink : Colors.transparent,
+                  color: _focused ? t.ink : Colors.transparent,
                   width: widget.focusedBorderWidth,
                 ),
               ),

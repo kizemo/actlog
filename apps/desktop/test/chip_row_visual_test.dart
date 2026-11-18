@@ -50,36 +50,36 @@ void main() {
   testWidgets('常态芯片：paper 底 + hair-strong 边 + meta 字 + 26 高', (tester) async {
     await _pump(tester);
 
-    expect(_fill(tester, '按时完成'), AppTokens.paper);
-    expect(_border(tester, '按时完成').top.color, AppTokens.hairStrong);
+    expect(_fill(tester, '按时完成'), ThemeTokens.light.paper);
+    expect(_border(tester, '按时完成').top.color, ThemeTokens.light.hairStrong);
     expect(_border(tester, '按时完成').top.width, 1);
-    expect(_style(tester, '按时完成').color, AppTokens.meta);
+    expect(_style(tester, '按时完成').color, ThemeTokens.light.meta);
     expect(_box(tester, '按时完成').constraints!.minHeight, 26);
   });
 
   testWidgets('选中芯片：ink-wash 洗底 + ink 边 + ink 字 + 500 字重（不反白）', (tester) async {
     await _pump(tester, selected: const <String>{'later'});
 
-    expect(_fill(tester, '延后完成'), AppTokens.inkWash);
-    expect(_border(tester, '延后完成').top.color, AppTokens.ink);
-    expect(_style(tester, '延后完成').color, AppTokens.ink);
+    expect(_fill(tester, '延后完成'), ThemeTokens.light.inkWash);
+    expect(_border(tester, '延后完成').top.color, ThemeTokens.light.ink);
+    expect(_style(tester, '延后完成').color, ThemeTokens.light.ink);
     expect(_style(tester, '延后完成').fontWeight, FontWeight.w500);
     // 反白是 `.btn.pri` / `.chk` / `.cell` 的专利，芯片不许用。
-    expect(_fill(tester, '延后完成'), isNot(AppTokens.ink));
-    expect(_style(tester, '延后完成').color, isNot(AppTokens.paper));
+    expect(_fill(tester, '延后完成'), isNot(ThemeTokens.light.ink));
+    expect(_style(tester, '延后完成').color, isNot(ThemeTokens.light.paper));
   });
 
   testWidgets('拒绝类选中：accent-wash 底 + accent 边 + accent-ink 字', (tester) async {
     await _pump(tester, selected: const <String>{'cancel'});
 
-    expect(_fill(tester, '取消'), AppTokens.accentWash);
-    expect(_border(tester, '取消').top.color, AppTokens.accent);
-    expect(_style(tester, '取消').color, AppTokens.accentInk);
+    expect(_fill(tester, '取消'), ThemeTokens.light.accentWash);
+    expect(_border(tester, '取消').top.color, ThemeTokens.light.accent);
+    expect(_style(tester, '取消').color, ThemeTokens.light.accentInk);
   });
 
   testWidgets('hover 只提亮字色，不改底与边', (tester) async {
     await _pump(tester);
-    expect(_style(tester, '按时完成').color, AppTokens.meta);
+    expect(_style(tester, '按时完成').color, ThemeTokens.light.meta);
 
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer(location: Offset.zero);
@@ -88,9 +88,9 @@ void main() {
     await gesture.moveTo(tester.getCenter(find.text('按时完成')));
     await tester.pumpAndSettle();
 
-    expect(_style(tester, '按时完成').color, AppTokens.ink);
-    expect(_fill(tester, '按时完成'), AppTokens.paper);
-    expect(_border(tester, '按时完成').top.color, AppTokens.hairStrong);
+    expect(_style(tester, '按时完成').color, ThemeTokens.light.ink);
+    expect(_fill(tester, '按时完成'), ThemeTokens.light.paper);
+    expect(_border(tester, '按时完成').top.color, ThemeTokens.light.hairStrong);
   });
 
   testWidgets('圆角一律 4px', (tester) async {

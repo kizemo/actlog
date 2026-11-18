@@ -129,18 +129,19 @@ class _EstUnitChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final bool enabled = onTap != null;
     final Color background;
     final Color foreground;
     if (selected) {
-      background = AppTokens.ink;
-      foreground = AppTokens.paper;
+      background = t.ink;
+      foreground = t.paper;
     } else if (enabled) {
-      background = AppTokens.card;
-      foreground = AppTokens.ink2;
+      background = t.card;
+      foreground = t.ink2;
     } else {
-      background = AppTokens.sunken;
-      foreground = AppTokens.faint;
+      background = t.sunken;
+      foreground = t.faint;
     }
 
     return Semantics(
@@ -162,7 +163,7 @@ class _EstUnitChip extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTokens.radius),
                 border: Border.all(
-                  color: selected ? AppTokens.ink : AppTokens.hairStrong,
+                  color: selected ? t.ink : t.hairStrong,
                   width: 1,
                 ),
               ),

@@ -6,9 +6,12 @@ import '../theme/app_tokens.dart';
 
 /// 把 `QuadrantStyle.colorHex` 解析成 [Color]。
 ///
-/// 兼容 `#RRGGBB` / `RRGGBB` / `AARRGGBB` 三种写法；解析失败回落主题色而不是抛异常
-/// —— 一个配色笔误不该让整个页面白屏。
-Color colorFromHex(String hex, {Color fallback = const Color(0xFF757575)}) {
+/// 兼容 `#RRGGBB` / `RRGGBB` / `AARRGGBB` 三种写法；解析失败回落调用方给的
+/// [fallback]（一个配色笔误不该让整个页面白屏）。
+///
+/// [fallback] 必须由调用方显式传入：兜底色本身也是主题相关的（浅色档为 `meta`），
+/// 写死一个字面色等于在当前 `ThemeTokens` 之外再造一档颜色。
+Color colorFromHex(String hex, {required Color fallback}) {
   var value = hex.trim();
   if (value.startsWith('#')) {
     value = value.substring(1);
@@ -135,13 +138,14 @@ class _QuadrantCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final foreground = selected ? AppTokens.paper : AppTokens.ink;
-    final secondary = selected ? AppTokens.paper : AppTokens.meta;
+    final ThemeTokens tokens = context.tokens;
+    final foreground = selected ? tokens.paper : tokens.ink;
+    final secondary = selected ? tokens.paper : tokens.meta;
     return Semantics(
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? AppTokens.ink : AppTokens.card,
+        color: selected ? tokens.ink : tokens.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -151,7 +155,7 @@ class _QuadrantCell extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTokens.radius),
               border: Border.all(
-                color: selected ? AppTokens.ink : AppTokens.hairStrong,
+                color: selected ? tokens.ink : tokens.hairStrong,
                 width: 1,
               ),
             ),
@@ -165,7 +169,7 @@ class _QuadrantCell extends StatelessWidget {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: selected ? AppTokens.paper : AppTokens.faint,
+                        color: selected ? tokens.paper : tokens.faint,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -297,6 +301,7 @@ class PriorityTagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ThemeTokens tokens = context.tokens;
     final label = PriorityDisplay.labelFor(
       mode,
       quadrant: quadrant,
@@ -304,7 +309,7 @@ class PriorityTagChip extends StatelessWidget {
     );
 
     return Material(
-      color: AppTokens.card,
+      color: tokens.card,
       borderRadius: BorderRadius.circular(AppTokens.radius),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -313,17 +318,17 @@ class PriorityTagChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppTokens.radius),
-            border: Border.all(color: AppTokens.hairStrong, width: 1),
+            border: Border.all(color: tokens.hairStrong, width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.flag_outlined, size: 12, color: AppTokens.meta),
+              Icon(Icons.flag_outlined, size: 12, color: tokens.meta),
               const SizedBox(width: 4),
               Text(
                 label,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppTokens.meta,
+                  color: tokens.meta,
                   fontWeight: FontWeight.w600,
                 ),
               ),

@@ -16,11 +16,15 @@ double tlGapFor(double width) =>
 
 /// 时段节点形状与赭石纪律（`TOKENS.md:300`、`§6:328`、`§7:306-307`）：
 /// 两态都是**圆点**，**只有「有缺口」态用赭石**，非缺口态一律透明底 + 描边。
-BoxDecoration tlNodeDecoration({required bool hasGap}) => BoxDecoration(
+BoxDecoration tlNodeDecoration({
+  required bool hasGap,
+  required ThemeTokens tokens,
+}) =>
+    BoxDecoration(
       shape: BoxShape.circle,
-      color: hasGap ? AppTokens.accent : Colors.transparent,
+      color: hasGap ? tokens.accent : Colors.transparent,
       border: Border.all(
-        color: hasGap ? AppTokens.accent : AppTokens.hairStrong,
+        color: hasGap ? tokens.accent : tokens.hairStrong,
         width: 1.5,
       ),
     );
@@ -30,8 +34,8 @@ String tlNodeLabel({required bool hasGap, String? gapLabel}) =>
     gapLabel ?? (hasGap ? '▸ 有缺口' : '✓ 已闭合');
 
 /// 节点文字颜色：缺口态用赭石**文字**（`accentInk` 保证对比度），其余用次级色。
-Color tlNodeTextColor({required bool hasGap}) =>
-    hasGap ? AppTokens.accentInk : AppTokens.meta;
+Color tlNodeTextColor({required bool hasGap, required ThemeTokens tokens}) =>
+    hasGap ? tokens.accentInk : tokens.meta;
 
 /// 一天时间轴上的一个时段（晨/午/晚）：左栏 = 节点 + 段名，右栏 = 内容。
 class TimelineSection extends StatelessWidget {
@@ -58,6 +62,7 @@ class TimelineSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final double width = MediaQuery.of(context).size.width;
     return Row(
       key: ValueKey<String>('tl-section-$label'),
@@ -71,7 +76,7 @@ class TimelineSection extends StatelessWidget {
                 key: const ValueKey<String>('tl-node'),
                 width: 10,
                 height: 10,
-                decoration: tlNodeDecoration(hasGap: hasGap),
+                decoration: tlNodeDecoration(hasGap: hasGap, tokens: t),
               ),
               const SizedBox(height: 4),
               Text(
@@ -80,7 +85,7 @@ class TimelineSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.3,
-                  color: tlNodeTextColor(hasGap: hasGap),
+                  color: tlNodeTextColor(hasGap: hasGap, tokens: t),
                 ),
               ),
               const SizedBox(height: 6),
@@ -90,7 +95,7 @@ class TimelineSection extends StatelessWidget {
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppTokens.ink,
+                      color: t.ink,
                     ),
               ),
             ],

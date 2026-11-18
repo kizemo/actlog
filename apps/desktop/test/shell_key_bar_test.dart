@@ -11,7 +11,7 @@ Finder _barBox() => find.byWidgetPredicate(
   (Widget widget) =>
       widget is Container &&
       widget.decoration is BoxDecoration &&
-      (widget.decoration! as BoxDecoration).color == AppTokens.keybg,
+      (widget.decoration! as BoxDecoration).color == ThemeTokens.light.keybg,
 );
 
 /// 取出某枚键帽的外框容器（靠「下边 2px」定位）。
@@ -92,7 +92,7 @@ void main() {
     final Container bar = tester.widget<Container>(_barBox());
     final BoxDecoration decoration = bar.decoration! as BoxDecoration;
     final Border border = decoration.border! as Border;
-    expect(border.top.color, AppTokens.hair);
+    expect(border.top.color, ThemeTokens.light.hair);
     expect(border.top.width, 1);
     expect(border.bottom, BorderSide.none);
     // 原型 `.keybar{padding:7px 24px}`。
@@ -106,7 +106,7 @@ void main() {
     expect(text.style?.fontFamily, AppFonts.mono);
     expect(text.style?.fontSize, KeyCap.fontSize);
     expect(text.style?.fontSize, 11.5);
-    expect(text.style?.color, AppTokens.ink);
+    expect(text.style?.color, ThemeTokens.light.ink);
     expect(
       text.style?.fontFeatures,
       contains(const FontFeature.tabularFigures()),
@@ -114,12 +114,12 @@ void main() {
 
     final Container cap = tester.widget<Container>(_capBox('Ctrl+N'));
     final BoxDecoration decoration = cap.decoration! as BoxDecoration;
-    expect(decoration.color, AppTokens.card);
+    expect(decoration.color, ThemeTokens.light.card);
     expect(decoration.borderRadius, BorderRadius.circular(3));
     final Border border = decoration.border! as Border;
     expect(border.bottom.width, 2);
     expect(border.top.width, 1);
-    expect(border.top.color, AppTokens.hair);
+    expect(border.top.color, ThemeTokens.light.hair);
     expect(cap.padding, const EdgeInsets.symmetric(horizontal: 5, vertical: 1));
   });
 

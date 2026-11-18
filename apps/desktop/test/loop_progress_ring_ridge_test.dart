@@ -56,8 +56,8 @@ void main() {
     final decoration = outer.decoration! as BoxDecoration;
     final border = decoration.border! as Border;
 
-    expect(decoration.color, AppTokens.paper);
-    expect(border.bottom.color, AppTokens.hair);
+    expect(decoration.color, ThemeTokens.light.paper);
+    expect(border.bottom.color, ThemeTokens.light.hair);
     expect(border.bottom.width, 1);
     // 不再有整圈卡片边（top 只能是 BorderSide.none）。
     expect(border.top.width, 0);
@@ -85,27 +85,27 @@ void main() {
   testWidgets('无缺口：比例条一律 ink-2，无赭石', (tester) async {
     await _pump(tester, _allDone);
 
-    expect(_byColor(AppTokens.ink2), findsNWidgets(4));
-    expect(_byColor(AppTokens.accent), findsNothing);
+    expect(_byColor(ThemeTokens.light.ink2), findsNWidgets(4));
+    expect(_byColor(ThemeTokens.light.accent), findsNothing);
     expect(find.text('8/8'), findsNWidgets(2));
   });
 
   testWidgets('有缺口：比例条改赭石，缺口段文字走 accent-ink', (tester) async {
     await _pump(tester, _hasGap);
 
-    expect(_byColor(AppTokens.accent), findsNWidgets(4));
-    expect(_byColor(AppTokens.ink2), findsNothing);
+    expect(_byColor(ThemeTokens.light.accent), findsNWidgets(4));
+    expect(_byColor(ThemeTokens.light.ink2), findsNothing);
     expect(find.text('6/8'), findsOneWidget);
     expect(find.text('4/6'), findsOneWidget);
 
     // 缺口段的标签与数值都用赭石文字版。
     expect(
       tester.widget<Text>(find.text('复盘')).style!.color,
-      AppTokens.accentInk,
+      ThemeTokens.light.accentInk,
     );
     expect(
       tester.widget<Text>(find.text('6/8')).style!.color,
-      AppTokens.accentInk,
+      ThemeTokens.light.accentInk,
     );
   });
 

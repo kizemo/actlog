@@ -333,6 +333,7 @@ class _DayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -344,22 +345,22 @@ class _DayCell extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppTokens.radius),
           border: Border.all(
             color: selected
-                ? AppTokens.ink
+                ? t.ink
                 : cell.isToday
-                ? AppTokens.ink
+                ? t.ink
                 : cell.inMonth
-                ? AppTokens.hairStrong
-                : AppTokens.hair,
+                ? t.hairStrong
+                : t.hair,
             width: selected || cell.isToday ? 2 : 1,
           ),
-          color: selected ? AppTokens.inkWash : null,
+          color: selected ? t.inkWash : null,
         ),
         child: Text(
           cell.date.substring(8),
           style: theme.textTheme.labelLarge?.copyWith(
             color: cell.inMonth
-                ? (cell.isWeekend ? AppTokens.accentInk : AppTokens.ink)
-                : AppTokens.faint,
+                ? (cell.isWeekend ? t.accentInk : t.ink)
+                : t.faint,
           ),
         ),
       ),

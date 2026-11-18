@@ -84,6 +84,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations t = ref.watch(appLocalizationsProvider);
+    final ThemeTokens tokens = context.tokens;
     final ReleaseCheckResult? result = _result;
 
     return Material(
@@ -98,13 +99,13 @@ class _AboutPageState extends ConsumerState<AboutPage> {
             style: theme.textTheme.titleLarge?.copyWith(
               fontFamily: AppFonts.body,
               fontFamilyFallback: AppFonts.bodyFallback,
-              color: AppTokens.ink,
+              color: tokens.ink,
             ),
           ),
           const SizedBox(height: AppTokens.gapSec),
           Text(
             t.aboutIntro,
-            style: _paragraphStyle,
+            style: _paragraphStyle(tokens),
           ),
           const SizedBox(height: AppTokens.gapCard),
 
@@ -113,7 +114,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           Text(
             '${t.versionLabel}  $kAppVersionFull',
             key: const ValueKey<String>('about-version'),
-            style: _monoStyle.copyWith(color: AppTokens.ink2),
+            style: _monoStyle(tokens).copyWith(color: tokens.ink2),
           ),
           const SizedBox(height: AppTokens.gapSec),
           Wrap(
@@ -138,14 +139,14 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           Text(
             t.onlineUpgradeDisabled,
             key: const ValueKey<String>('about-online-upgrade-reason'),
-            style: _hintStyle,
+            style: _hintStyle(tokens),
           ),
           if (result != null) ...<Widget>[
             const SizedBox(height: 6),
             Text(
               _resultText(t, result),
               key: const ValueKey<String>('about-check-result'),
-              style: _monoStyle.copyWith(color: AppTokens.ink2),
+              style: _monoStyle(tokens).copyWith(color: tokens.ink2),
             ),
           ],
 
@@ -156,7 +157,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           Text(
             kAppRepositoryUrl,
             key: const ValueKey<String>('about-repo-url'),
-            style: _monoStyle,
+            style: _monoStyle(tokens),
           ),
           const SizedBox(height: AppTokens.gapSec),
           Wrap(
@@ -183,12 +184,12 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           Text(
             kAppDeveloperName,
             key: const ValueKey<String>('about-developer'),
-            style: _paragraphStyle.copyWith(color: AppTokens.ink),
+            style: _paragraphStyle(tokens).copyWith(color: tokens.ink),
           ),
           const SizedBox(height: 4),
           Text(
             t.developerIntro,
-            style: _paragraphStyle,
+            style: _paragraphStyle(tokens),
           ),
           const SizedBox(height: AppTokens.gapSec),
           _LinkButton(
@@ -203,7 +204,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           _sectionTitle(t.sectionOtherSoftware),
           Text(
             t.alphaFileManagerIntro,
-            style: _paragraphStyle,
+            style: _paragraphStyle(tokens),
           ),
           const SizedBox(height: 4),
           _LinkButton(
@@ -214,7 +215,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           const SizedBox(height: AppTokens.gapSec),
           Text(
             t.pageWeaverIntro,
-            style: _paragraphStyle,
+            style: _paragraphStyle(tokens),
           ),
           if (!kPageWeaverVerified) ...<Widget>[
             const SizedBox(height: 2),
@@ -223,7 +224,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
             Text(
               t.unverifiedLink,
               key: const ValueKey<String>('about-pageweaver-unverified'),
-              style: _hintStyle,
+              style: _hintStyle(tokens),
             ),
           ],
           const SizedBox(height: 4),
@@ -238,6 +239,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
   }
 
   Widget _sectionTitle(String text) {
+    final ThemeTokens tokens = context.tokens;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTokens.gapSec),
       child: Text(
@@ -248,7 +250,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           fontSize: 13,
           height: 1.4,
           fontWeight: FontWeight.w600,
-          color: AppTokens.ink,
+          color: tokens.ink,
         ),
       ),
     );
@@ -269,6 +271,7 @@ class _LinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final bool enabled = onTap != null;
     return InkWell(
       onTap: onTap,
@@ -279,7 +282,7 @@ class _LinkButton extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTokens.radius),
           border: Border.all(
-            color: enabled ? AppTokens.hairStrong : AppTokens.hair,
+            color: enabled ? tokens.hairStrong : tokens.hair,
           ),
         ),
         child: Text(
@@ -289,7 +292,7 @@ class _LinkButton extends StatelessWidget {
             fontFamilyFallback: AppFonts.bodyFallback,
             fontSize: 12,
             height: 1.2,
-            color: enabled ? AppTokens.ink : AppTokens.faint,
+            color: enabled ? tokens.ink : tokens.faint,
           ),
         ),
       ),
@@ -298,28 +301,28 @@ class _LinkButton extends StatelessWidget {
 }
 
 /// 正文段落样式。
-TextStyle get _paragraphStyle => TextStyle(
+TextStyle _paragraphStyle(ThemeTokens tokens) => TextStyle(
       fontFamily: AppFonts.body,
       fontFamilyFallback: AppFonts.bodyFallback,
       fontSize: 13,
       height: 1.6,
-      color: AppTokens.ink2,
+      color: tokens.ink2,
     );
 
 /// 说明文字样式。
-TextStyle get _hintStyle => TextStyle(
+TextStyle _hintStyle(ThemeTokens tokens) => TextStyle(
       fontFamily: AppFonts.body,
       fontFamilyFallback: AppFonts.bodyFallback,
       fontSize: 12,
       height: 1.5,
-      color: AppTokens.meta,
+      color: tokens.meta,
     );
 
 /// 机器可读文字样式（URL / 结果）。
-TextStyle get _monoStyle => TextStyle(
+TextStyle _monoStyle(ThemeTokens tokens) => TextStyle(
       fontFamily: AppFonts.mono,
       fontFamilyFallback: AppFonts.bodyFallback,
       fontSize: 11,
       height: 1.4,
-      color: AppTokens.meta,
+      color: tokens.meta,
     );

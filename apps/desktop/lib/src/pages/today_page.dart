@@ -206,6 +206,7 @@ class _GhostActionState extends State<_GhostAction> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final enabled = widget.onPressed != null;
     return Semantics(
       button: true,
@@ -215,7 +216,7 @@ class _GhostActionState extends State<_GhostAction> {
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
         child: Material(
-          color: _hovered && enabled ? AppTokens.sunken : AppTokens.card,
+          color: _hovered && enabled ? t.sunken : t.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
           child: InkWell(
             onTap: widget.onPressed,
@@ -228,16 +229,15 @@ class _GhostActionState extends State<_GhostAction> {
               ),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTokens.radius),
-                border: Border.all(color: AppTokens.hairStrong, width: 1),
+                border: Border.all(color: t.hairStrong, width: 1),
               ),
               alignment: Alignment.center,
               child: Text(
                 widget.label,
                 style: _bodyStyle(
                   size: widget.dense ? 11.5 : 12.5,
-                  color: !enabled
-                      ? AppTokens.faint
-                      : (_hovered ? AppTokens.ink : AppTokens.ink2),
+                  color: !enabled ? t.faint : (_hovered ? t.ink : t.ink2),
+                  tokens: t,
                 ),
               ),
             ),
@@ -360,9 +360,10 @@ class _DateTimeActionState extends State<_DateTimeAction> {
     final String timeLabel = widget.startMinute == null
         ? '时间 · 未排'
         : '时间 · ${formatMinute(widget.startMinute!)}';
+    final t = context.tokens;
     final Color ink = !widget.enabled
-        ? AppTokens.faint
-        : (_hovered ? AppTokens.ink : AppTokens.ink2);
+        ? t.faint
+        : (_hovered ? t.ink : t.ink2);
     return Align(
       alignment: Alignment.centerLeft,
       child: Semantics(
@@ -375,8 +376,7 @@ class _DateTimeActionState extends State<_DateTimeAction> {
           onEnter: (_) => setState(() => _hovered = true),
           onExit: (_) => setState(() => _hovered = false),
           child: Material(
-            color:
-                _hovered && widget.enabled ? AppTokens.sunken : AppTokens.card,
+            color: _hovered && widget.enabled ? t.sunken : t.card,
             borderRadius: BorderRadius.circular(AppTokens.radius),
             child: InkWell(
               onTap: widget.enabled ? _openMenu : null,
@@ -387,7 +387,7 @@ class _DateTimeActionState extends State<_DateTimeAction> {
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppTokens.radius),
-                  border: Border.all(color: AppTokens.hairStrong, width: 1),
+                  border: Border.all(color: t.hairStrong, width: 1),
                 ),
                 // `Wrap` 而不是 `Row`：日期 + 时刻两段在 200% 字号下比按钮的
                 // 可用宽度还长，`Row` 会直接 `RenderFlex overflowed`，
@@ -399,12 +399,12 @@ class _DateTimeActionState extends State<_DateTimeAction> {
                     Text(
                       '日期 · ${widget.date}',
                       key: const ValueKey<String>('add-plan-date-chip'),
-                      style: _bodyStyle(size: 11.5, color: ink),
+                      style: _bodyStyle(size: 11.5, color: ink, tokens: t),
                     ),
                     Text(
                       timeLabel,
                       key: const ValueKey<String>('add-plan-time-chip'),
-                      style: _bodyStyle(size: 11.5, color: ink),
+                      style: _bodyStyle(size: 11.5, color: ink, tokens: t),
                     ),
                   ],
                 ),
@@ -426,6 +426,7 @@ class _FuturePlanHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Padding(
       key: const ValueKey<String>('future-plan-hint'),
       padding: EdgeInsets.zero,
@@ -433,7 +434,7 @@ class _FuturePlanHint extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: Text(
           '未来日只可预排：可以先写计划，到了那天才能打卡与回填。',
-          style: _bodyStyle(size: 12, color: AppTokens.meta),
+          style: _bodyStyle(size: 12, color: t.meta, tokens: t),
         ),
       ),
     );
@@ -484,7 +485,7 @@ class _HandwrittenDivider extends StatelessWidget {
     return Container(
       key: const ValueKey<String>('handwritten-divider'),
       height: 1,
-      color: AppTokens.hair,
+      color: context.tokens.hair,
     );
   }
 }
@@ -618,6 +619,7 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -629,20 +631,20 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
                 controller: _controller,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submit(),
-                style: _bodyStyle(size: 13, color: AppTokens.ink),
+                style: _bodyStyle(size: 13, color: t.ink, tokens: t),
                 decoration: InputDecoration(
                   hintText: '添加计划条目…',
-                  hintStyle: _bodyStyle(size: 13, color: AppTokens.faint),
+                  hintStyle: _bodyStyle(size: 13, color: t.faint, tokens: t),
                   isDense: true,
                   filled: true,
-                  fillColor: AppTokens.card,
+                  fillColor: t.card,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 10,
                   ),
-                  border: _fieldBorder(AppTokens.hairStrong),
-                  enabledBorder: _fieldBorder(AppTokens.hairStrong),
-                  focusedBorder: _fieldBorder(AppTokens.ink, width: 1.5),
+                  border: _fieldBorder(t.hairStrong),
+                  enabledBorder: _fieldBorder(t.hairStrong),
+                  focusedBorder: _fieldBorder(t.ink, width: 1.5),
                 ),
               ),
             ),
@@ -722,13 +724,17 @@ class _FutureLockedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return SectionCard(
       icon: icon,
       title: title,
       subtitle: '未来日只做预排',
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(detail, style: _bodyStyle(size: 12, color: AppTokens.meta)),
+        child: Text(
+          detail,
+          style: _bodyStyle(size: 12, color: t.meta, tokens: t),
+        ),
       ),
     );
   }
@@ -761,9 +767,13 @@ class _NotePane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Text(text, style: _bodyStyle(size: 12.5, color: AppTokens.faint)),
+      child: Text(
+        text,
+        style: _bodyStyle(size: 12.5, color: t.faint, tokens: t),
+      ),
     );
   }
 }
@@ -778,11 +788,12 @@ class _ErrorPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: SelectableText(
         '$error',
-        style: _bodyStyle(size: 12.5, color: AppTokens.accentInk),
+        style: _bodyStyle(size: 12.5, color: t.accentInk, tokens: t),
       ),
     );
   }
@@ -806,6 +817,7 @@ class HabitOverviewPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final habitsAsync = ref.watch(habitsForTodayProvider);
     final checkinsAsync = ref.watch(habitCheckinsProvider);
+    final t = context.tokens;
 
     if (habitsAsync.hasError || checkinsAsync.hasError) {
       return const _RailNote(text: '习惯速览加载失败', danger: true);
@@ -847,8 +859,9 @@ class HabitOverviewPanel extends ConsumerWidget {
                         style: _monoStyle(
                           size: 12,
                           color: doneIds.contains(habit.id)
-                              ? AppTokens.ink
-                              : AppTokens.faint,
+                              ? t.ink
+                              : t.faint,
+                          tokens: t,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -858,8 +871,9 @@ class HabitOverviewPanel extends ConsumerWidget {
                           style: _bodyStyle(
                             size: 12.5,
                             color: doneIds.contains(habit.id)
-                                ? AppTokens.ink
-                                : AppTokens.meta,
+                                ? t.ink
+                                : t.meta,
+                            tokens: t,
                           ),
                         ),
                       ),
@@ -884,21 +898,22 @@ class _HabitDragChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Material(
       color: Colors.transparent,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 220),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: AppTokens.card,
+          color: t.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
-          border: Border.all(color: AppTokens.hairStrong),
+          border: Border.all(color: t.hairStrong),
         ),
         child: Text(
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: _bodyStyle(size: 12, color: AppTokens.ink),
+          style: _bodyStyle(size: 12, color: t.ink, tokens: t),
         ),
       ),
     );
@@ -979,39 +994,51 @@ class _RailNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Text(
       text,
       style: _bodyStyle(
         size: 12.5,
-        color: danger ? AppTokens.accentInk : AppTokens.faint,
+        color: danger ? t.accentInk : t.faint,
+        tokens: t,
       ),
     );
   }
 }
 
 /// 正文字体样式（`AppFonts.body` + 兜底族）。
+///
+/// [tokens] 必填：正文默认色 `ink` 从「静态常量」改为「按当前主题解析」。
+/// 不给默认值 —— 留一个可以回落到浅色的口子，深色档就会重新长出浅色字。
 TextStyle _bodyStyle({
   double size = 12.5,
-  Color color = AppTokens.ink,
+  Color? color,
   TextDecoration? decoration,
+  required ThemeTokens tokens,
 }) {
   return TextStyle(
     fontFamily: AppFonts.body,
     fontFamilyFallback: AppFonts.bodyFallback,
     fontSize: size,
-    color: color,
+    color: color ?? tokens.ink,
     height: 1.45,
     decoration: decoration,
   );
 }
 
 /// 数字/键帽字体样式（`AppFonts.mono` + `tabular-nums`）。
-TextStyle _monoStyle({double size = 11.5, Color color = AppTokens.faint}) {
+///
+/// [tokens] 必填，理由同 [_bodyStyle]。
+TextStyle _monoStyle({
+  double size = 11.5,
+  Color? color,
+  required ThemeTokens tokens,
+}) {
   return TextStyle(
     fontFamily: AppFonts.mono,
     fontFamilyFallback: AppFonts.monoFallback,
     fontSize: size,
-    color: color,
+    color: color ?? tokens.faint,
     fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
   );
 }
@@ -1181,12 +1208,13 @@ class _NoticeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTokens.accentWash,
+        color: t.accentWash,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.accent, width: 1),
+        border: Border.all(color: t.accent, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1195,7 +1223,7 @@ class _NoticeBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: _bodyStyle(size: 12.5, color: AppTokens.accentInk),
+              style: _bodyStyle(size: 12.5, color: t.accentInk, tokens: t),
             ),
           ),
           const SizedBox(width: 8),

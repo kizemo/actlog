@@ -7879,3 +7879,96 @@ $env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
 - **硬约束**：`timeline_contrast_test.dart` 以 **epsilon 0.005** 钉死四态格底色值；`theme_tokens_test.dart` 只测浅色 7 底；`app_theme_test.dart` 8 例**全部只测 `AppTheme.light`、零 dark 断言** ⇒ 深色必须**自带一套对比度断言**（深底文字 ≥4.5:1、描边 ≥3:1），**不许复用浅色数值**。
 - **分期建议**：P0 引入第二组 token（`ThemeTokens(brightness)` 或 `AppTokensDark`）+ 主题装配按亮度分流；P1 逐 widget 把 724 处引用收敛为按语义取 token（优先 279 处核心）；P2 深色对比度测试 + 设置页切换的真机取帧验证。
 - **本轮不做**：混轮必然产出半深半浅的半成品（R5 禁止制造「已交付」假象）。本轮只做**色相去蓝**（`ink`/`ink2`/`inkWash`/`slotPlan`/`slotHabit` 五个值 / 8 处代码），深色档一字不动。
+
+---
+
+## 41. Task 41 · 深色主题（暖墨深褐）· 架构级 token 改造
+
+> **状态**：实施中（2026-11-18 开工）
+> **设计文档**：`docs/superpowers/specs/2026-11-18-深色主题-design.md`（commit `228a5c5`）—— 决策 A–E、47 字段映射、103 项调色板判据
+> **色板口径**：`design-demos/TOKENS.md` §8.5（本轮落；§1–§7 不动）
+> **派工书**：`.superpowers/sdd/2026-11-07-b1-flutter-implementation/task41-*.md`（契约 + W0 / W1–W6 / W7 / W8 / W0-final）
+
+### 41.1 目标与范围
+
+把「**深色档 == 浅色档**」变成一套完整、刻意、可机器验证的深色主题：
+
+1. **架构级 token 改造** —— 颜色从静态 `AppTokens` 迁到解析式 token 包 `ThemeTokens`
+   （`ThemeExtension` 承载，`light` / `dark` 两套）；尺寸 token 留在 `AppTokens`。
+2. **深色调色板** —— 暖墨深褐 28 色（`TOKENS.md` §8.5 落口径，`theme_tokens.dart` 落代码）。
+3. **CI 级硬判据** —— 深色对比度测试 + `g4_contrast.ps1` 扩展 + `task41-forbidden-check.ps1`。
+4. **可分发包 + 真机取帧** —— 重编译 → makensis → 覆盖装机 → 浅色/深色各 ≥1 张真机截图。
+
+**用户已拍板**：调性 = 暖墨深褐；**默认档位保持浅色**。
+
+**实测基线（Task 40 收口权威读数，`reports/task40-gate/summary.txt`）**：
+desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
+
+### 41.2 写集表（互斥，R8）
+
+| Worker | 主题 | 写集 |
+|---|---|---|
+| **W0** | 主题基座 | `apps\desktop\lib\src\theme\theme_tokens.dart`(新)、`app_tokens.dart`、`app_theme.dart`、`apps\desktop\lib\src\app.dart` |
+| **W1** | 时间轴核心 | `widgets\timeline\{day_grid, todo_rail_panel, slot_context_menu, slot_range_dialog, slot_state, unscheduled_strip, slot_fill}.dart`（98 处） |
+| **W2** | 日期 / 今日 / 习惯页 | `pages\{today_page, habits_page}.dart`、`widgets\{date_bar, day_timeline, est_duration_text, date_picker_sheet}.dart`（111 处） |
+| **W3** | 三个对话框 | `widgets\{habit_quick_dialog, quick_todo_dialog, recurring_task_dialog}.dart`（145 处） |
+| **W4** | 页面组 | `pages\{todo_pool_page, settings_page, about_page, calendar_page}.dart`（120 处） |
+| **W5** | 外壳 + 优先级 + 进度环 | `widgets\shell\{nav_rail, tool_rail, key_bar, app_top_bar, ledger_paper, ledger_shell}.dart`、`widgets\{priority_chips, priority_marks, priority_hover_bubble, loop_progress_ring, recurring_rail_panel}.dart`（163 处） |
+| **W6** | 杂项小组件 | `widgets\{habit_checkin_strip, chip_row, calendar_month_view, section_card, ledger_checkbox, section_header, focus_ring, outcome_composer}.dart`（65 处） |
+| **W7** | 测试迁移 + 深色测试 | `apps\desktop\test\**`（23 个既有文件改 + 3 个新建：theme_tokens_dark / dark_color_scheme / dark_theme_widget） |
+| **W8** | 门禁与判据脚本 | `tools\gates\g4_contrast.ps1`、`reports\task41-forbidden-check.ps1`(新)、`reports\task41-gate.ps1`(新) |
+| **W0-final** | 摘除颜色别名 | `apps\desktop\lib\src\theme\app_tokens.dart`（**W0 独占文件的第二次独占**） |
+| 控制器 | 台账 / 计划 / 口径 / 门禁亲跑 / 打包 / 装机 / 取帧 / commit+push | 计划、`docs\B1_验收记录.md`、`progress.md`、`handoff.md`、`reports\task41-*`、`design-demos\TOKENS.md` §8.5 |
+
+> **全仓实测规模**：`AppTokens.*` **739 处 / 42 文件**（颜色 581 / 尺寸 158）；
+> `AppTokens` 成员 36 个 = 27 色 + 9 尺寸；`Color(0x…)` 硬编码 2 处；`Colors.*` 23 处（**全是** `Colors.transparent`）；
+> `packages\` 对主题耦合 **零**；`ThemeExtension` / `context.tokens` 封装 **零**。
+> （§40.7 的旧读数 724 / 41 / 279 / 17 slot / 20 常量**已过时**，以本轮复算值为准。）
+
+### 41.3 波次与依赖
+
+- **Wave 0**（W0 + W8，2 并行）：主题基座 + 判据脚本。**W8 与 W0 无依赖**。
+- **Wave 1**（W1 / W2 / W3 / W4，4 并行）：消费点迁移。**依赖 W0**（`theme_tokens.dart` 必须先在）。
+- **Wave 2**（W5 / W6，2 并行）：消费点迁移后半。**依赖 W0**；与 Wave 1 文件不重叠 ⇒ 也可与 Wave 1 同波（受并发上限 4 约束时分两波）。
+- **Wave 3**（W7，1）：测试迁移 + 深色测试。**依赖 W1–W6**（`colorOfSlotKind` / `foregroundOfSlotKind` 新签名已定）。
+- **Wave 4**（W0-final，1）：删掉 `AppTokens` 的 27 个颜色别名 ⇒ **编译器强制零残留**。**依赖 W1–W7**。
+- **Wave 5**（控制器）：门禁亲跑 → `flutter build windows --release` → `makensis` → 覆盖装机 → 真机取帧 → 台账 → commit+push。
+
+> **子会话并发上限 4** ⇒ Wave 1 / Wave 2 分两批跑（4 + 2）。
+
+### 41.4 完成判据
+
+1. `flutter analyze`（desktop + core_data + core_db + core_domain）**逐字** `No issues found!`
+   —— **逐包**跑；info 级 lint 同样判红（坑 59）。
+2. desktop 全量 `flutter test` **≥ +432**（只升不降）；core_data ≥ 197 / core_db ≥ 71 / core_domain ≥ 62。
+3. `reports\task41-forbidden-check.ps1`：`VIOLATIONS=0` / `STATIC_LIGHT_RESIDUAL=0` / `HARDCODE_COLOR=0` /
+   `COLORS_MATERIAL_USAGE=0` / `DEPRECATED_OPACITY=0` / `PRINT_TOTAL=0` / `FMT_VIOLATIONS=0` /
+   `PACKAGES_OUT_OF_SET=0` / **`PALETTE_CODE_MATCH=1`** / **`DARK_SCHEME_FIELDS=47`** / `BOUNDARY_VERDICT=PASS`。
+4. `reports\task41-dark-palette.ps1` 重跑：`CHECKS=103` / `FAILURES=0` / `DARK_PALETTE_VERDICT=PASS`。
+5. `tools\gates\g4_contrast.ps1` 含 5 个测试文件且全绿。
+6. **重编译 → makensis → 覆盖装机**：`INSTALLED_APPSO_SHA16 == BUILD_APPSO_SHA16` 且 `USERDATA_HASH_SAME=1`。
+7. **真机取帧**：浅色档 + 深色档各 ≥1 张，宽高 ≥400×300，控制器本人读图确认
+   「深色确实是深色、层级可辨、**无半深半浅**」。
+8. `design-demos\TOKENS.md` §8.5 落深色口径；§1–§7 不可动。
+9. commit + push 到 `origin/main`。**发布 GitHub release 仍不擅自执行**（沿用 Task 39/40 口径，需用户单独确认）。
+
+### 41.5 Task 41 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+
+- [x] 41.2 W0 主题基座落地（`ThemeTokens` 28 色 × 2 套 + 深浅分流装配 + analyze 逐字）
+- [x] 41.2 W1 时间轴核心迁移完成（`AppTokens.<颜色>` 残留 0）
+- [x] 41.2 W2 日期 / 今日 / 习惯页迁移完成（残留 0）
+- [x] 41.2 W3 三个对话框迁移完成（残留 0）
+- [x] 41.2 W4 页面组迁移完成（残留 0）
+- [x] 41.2 W5 外壳 + 优先级 + 进度环迁移完成（残留 0）
+- [x] 41.2 W6 杂项小组件迁移完成（残留 0）
+- [x] 41.2 W7 测试迁移完成 + 3 个深色测试文件新增且全绿
+- [x] 41.2 W8 门禁与判据脚本落地（g4 扩展 + forbidden check + 全量 gate）
+- [x] 41.3 W0-final 摘除 `AppTokens` 27 个颜色别名（编译器强制零残留）
+- [x] 41.4 门禁全绿 + 越界 `VIOLATIONS=0`
+- [x] 41.4 `PALETTE_CODE_MATCH=1` + `DARK_SCHEME_FIELDS=47`
+- [x] 41.4 `TOKENS.md` §8.5 落深色口径
+- [x] 41.4 重编译 / 重打包 / 覆盖装机一致
+- [x] 41.4 真机取帧成功（浅色 + 深色各 ≥1 张）并由控制器读图确认
+- [x] 41.4 台账同步（验收记录 / progress / handoff）
+- [x] 41.4 commit + push 完成
+

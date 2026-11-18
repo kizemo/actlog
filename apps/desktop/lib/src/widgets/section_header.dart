@@ -41,6 +41,7 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
     final hasBadge = done != null && total != null;
 
     final content = Row(
@@ -48,14 +49,14 @@ class SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: theme.textTheme.titleLarge?.copyWith(color: AppTokens.ink),
+          style: theme.textTheme.titleLarge?.copyWith(color: t.ink),
         ),
         if (hasBadge) ...[
           const SizedBox(width: 10),
           Text(
             '$done/$total',
             style: theme.textTheme.labelLarge?.copyWith(
-              color: AppTokens.meta,
+              color: t.meta,
               fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
             ),
           ),
@@ -64,7 +65,7 @@ class SectionHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             gapHint!,
-            style: theme.textTheme.labelLarge?.copyWith(color: AppTokens.accentInk),
+            style: theme.textTheme.labelLarge?.copyWith(color: t.accentInk),
           ),
         ],
         if (trailing != null) ...[const Spacer(), trailing!],
@@ -75,15 +76,15 @@ class SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(top: 12),
       child: Container(
         padding: const EdgeInsets.only(bottom: 8),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppTokens.hair, width: 1)),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: t.hair, width: 1)),
         ),
         child: hasGap
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppTokens.radius),
-                  border: Border.all(color: AppTokens.accent, width: 2),
+                  border: Border.all(color: t.accent, width: 2),
                 ),
                 child: content,
               )

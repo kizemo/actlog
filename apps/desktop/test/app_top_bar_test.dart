@@ -72,7 +72,7 @@ void main() {
     final Material bar = tester.widget<Material>(
       find.descendant(of: find.byType(AppTopBar), matching: find.byType(Material)).first,
     );
-    expect(bar.color, AppTokens.paper);
+    expect(bar.color, ThemeTokens.light.paper);
     expect(bar.elevation, 0);
     expect(
       find.descendant(of: find.byType(AppTopBar), matching: find.byType(Divider)),
@@ -372,7 +372,7 @@ void main() {
           )
           .first,
     );
-    expect(surface.color, AppTokens.sunken);
-    expect(surface.color, isNot(AppTokens.accent));
+    expect(surface.color, ThemeTokens.light.sunken);
+    expect(surface.color, isNot(ThemeTokens.light.accent));
   });
 }

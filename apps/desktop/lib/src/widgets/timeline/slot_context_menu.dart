@@ -88,15 +88,16 @@ class SlotContextMenu extends StatelessWidget {
     final List<Todo> available = todos
         .where((Todo t) => !slottedTodoIds.contains(t.id))
         .toList(growable: false);
+    final ThemeTokens t = context.tokens;
 
     return AlertDialog(
-      backgroundColor: AppTokens.card,
+      backgroundColor: t.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTokens.radius),
       ),
       title: Text(
         '${formatMinute(startMinute)} 这一格',
-        style: const TextStyle(fontSize: 16, color: AppTokens.ink),
+        style: TextStyle(fontSize: 16, color: t.ink),
       ),
       content: SizedBox(
         width: 360,
@@ -161,14 +162,15 @@ class _GroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12.5,
           letterSpacing: 0.6,
-          color: AppTokens.meta,
+          color: t.meta,
         ),
       ),
     );
@@ -182,11 +184,12 @@ class _EmptyLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 13, color: AppTokens.faint),
+        style: TextStyle(fontSize: 13, color: t.faint),
       ),
     );
   }
@@ -206,20 +209,21 @@ class _ChoiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens t = context.tokens;
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
         child: Row(
           children: <Widget>[
-            Icon(icon, size: 15, color: AppTokens.ink2),
+            Icon(icon, size: 15, color: t.ink2),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13.5, color: AppTokens.ink),
+                style: TextStyle(fontSize: 13.5, color: t.ink),
               ),
             ),
           ],

@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart' as wm;
 
-import '../../theme/app_tokens.dart';
+import '../../theme/theme_tokens.dart';
 
 /// 顶栏高度（Windows 说明按钮区的标准高度）。
 ///
@@ -117,7 +117,7 @@ class AppTopBar extends StatelessWidget {
     return SizedBox(
       height: kTopBarHeight,
       child: Material(
-        color: AppTokens.paper,
+        color: context.tokens.paper,
         child: Row(
           children: <Widget>[
             const SizedBox(width: 16),
@@ -218,12 +218,13 @@ class _TopBarButtonState extends State<TopBarButton> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final bool hovered = _hovered && widget.onPressed != null;
     return Semantics(
       label: widget.label,
       button: true,
       child: ColoredBox(
-        color: hovered ? AppTokens.sunken : Colors.transparent,
+        color: hovered ? tokens.sunken : Colors.transparent,
         child: InkWell(
           // 窗口按钮不进 Tab 序：它不是页面里的操作项（键条上的承诺只管内容区）。
           canRequestFocus: false,
@@ -240,7 +241,7 @@ class _TopBarButtonState extends State<TopBarButton> {
                 size: const Size.square(16),
                 painter: _GlyphPainter(
                   glyph: widget.glyph,
-                  color: hovered ? AppTokens.ink : AppTokens.meta,
+                  color: hovered ? tokens.ink : tokens.meta,
                 ),
               ),
             ),
@@ -277,6 +278,9 @@ class _BrandMark extends StatelessWidget {
 }
 
 /// 三钮图标的绘制器：全部单色线条，笔画 1.2（16px 画布里最接近 Windows 的细线）。
+///
+/// 颜色由构造器注入（调用方从 `context.tokens` 取 `ink` / `meta`），
+/// [shouldRepaint] 同时比对字形与颜色 ⇒ 主题切换时图标跟着重画。
 class _GlyphPainter extends CustomPainter {
   const _GlyphPainter({required this.glyph, required this.color});
 

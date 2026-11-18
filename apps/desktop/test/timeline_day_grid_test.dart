@@ -484,7 +484,7 @@ void main() {
     expect(titleStyle.decoration, isNotNull);
     expect(titleStyle.decoration!.contains(TextDecoration.lineThrough), isTrue);
     // 删除线颜色显式指定为该态前景色，不随 `color` 继承出别的色。
-    expect(titleStyle.decorationColor, foregroundOfSlotKind(SlotKind.done));
+    expect(titleStyle.decorationColor, foregroundOfSlotKind(SlotKind.done, ThemeTokens.light));
 
     await _flushTimers(tester);
   });
@@ -709,13 +709,13 @@ void main() {
     // 底色判据只读 widget 属性，不碰像素（坑 51）。
     final Container shell = tester.widget<Container>(cell);
     final BoxDecoration decoration = shell.decoration! as BoxDecoration;
-    expect(decoration.color, AppTokens.accentWash, reason: '日期单元格底色必须独立于四态格底');
+    expect(decoration.color, ThemeTokens.light.accentWash, reason: '日期单元格底色必须独立于四态格底');
     // 与四态格底逐值不同，不是「看起来差一点」。
     for (final Color slot in <Color>[
-      AppTokens.slotPlan,
-      AppTokens.slotHabit,
-      AppTokens.slotBackfill,
-      AppTokens.slotDone,
+      ThemeTokens.light.slotPlan,
+      ThemeTokens.light.slotHabit,
+      ThemeTokens.light.slotBackfill,
+      ThemeTokens.light.slotDone,
     ]) {
       expect(decoration.color, isNot(slot), reason: '表头底色撞了四态格底');
     }
@@ -849,7 +849,7 @@ void _expectDualChannel(
   final TextStyle glyphStyle = glyphCandidates.single.text.style!;
   expect(glyphStyle.fontFamily, AppFonts.body);
   expect(glyphStyle.fontFamilyFallback, AppFonts.bodyFallback);
-  expect(glyphStyle.color, foregroundOfSlotKind(kind));
+  expect(glyphStyle.color, foregroundOfSlotKind(kind, ThemeTokens.light));
   expect(glyphStyle.fontSize, 11);
 
   final Finder labelBox = find.descendant(
@@ -858,7 +858,7 @@ void _expectDualChannel(
   );
   expect(labelBox, findsOneWidget, reason: '$kind 缺状态词');
   final TextStyle labelStyle = tester.widget<Text>(labelBox).style!;
-  expect(labelStyle.color, foregroundOfSlotKind(kind));
+  expect(labelStyle.color, foregroundOfSlotKind(kind, ThemeTokens.light));
   expect(labelStyle.fontSize, 10);
 
   // 标题仍在（既有元素不动）。
@@ -877,10 +877,10 @@ void _expectDualChannel(
           as BoxDecoration;
   final Border border = decoration.border! as Border;
   expect(border.left.width, 2);
-  expect(border.left.color, foregroundOfSlotKind(kind));
-  expect(border.top.color, AppTokens.hair);
-  expect(border.right.color, AppTokens.hair);
-  expect(border.bottom.color, AppTokens.hair);
+  expect(border.left.color, foregroundOfSlotKind(kind, ThemeTokens.light));
+  expect(border.top.color, ThemeTokens.light.hair);
+  expect(border.right.color, ThemeTokens.light.hair);
+  expect(border.bottom.color, ThemeTokens.light.hair);
 }
 
 /// 条目里标题 `Text` 的样式（删除线判据）。

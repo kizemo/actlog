@@ -75,6 +75,7 @@ class NavRail extends StatelessWidget {
   }
 
   Widget _buildColumn(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final List<Widget> children = <Widget>[
       _Brand(showSubtitle: true, padded: true),
       const SizedBox(height: 8),
@@ -98,16 +99,16 @@ class NavRail extends StatelessWidget {
     return Container(
       width: width,
       padding: const EdgeInsets.fromLTRB(14, 18, 14, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         // 原型 `linear-gradient(180deg,#F3F1EA 0%,var(--paper) 46%)`；
-        // `#F3F1EA` 不在 AppTokens 里，用最近的下沉色 sunken 作起点，不新增颜色常量。
+        // `#F3F1EA` 不在 token 里，用最近的下沉色 sunken 作起点，不新增颜色常量。
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: <Color>[AppTokens.sunken, AppTokens.paper],
-          stops: <double>[0, 0.46],
+          colors: <Color>[tokens.sunken, tokens.paper],
+          stops: const <double>[0, 0.46],
         ),
-        border: Border(right: BorderSide(color: AppTokens.hair)),
+        border: Border(right: BorderSide(color: tokens.hair)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -117,17 +118,18 @@ class NavRail extends StatelessWidget {
   }
 
   Widget _buildBar(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: <Color>[AppTokens.sunken, AppTokens.paper],
-          stops: <double>[0, 0.46],
+          colors: <Color>[tokens.sunken, tokens.paper],
+          stops: const <double>[0, 0.46],
         ),
-        border: Border(bottom: BorderSide(color: AppTokens.hair)),
+        border: Border(bottom: BorderSide(color: tokens.hair)),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -164,6 +166,7 @@ class _Brand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final double labelSize =
         Theme.of(context).textTheme.labelSmall?.fontSize ??
         DensityProfile.comfortable.labelSize;
@@ -172,15 +175,15 @@ class _Brand extends StatelessWidget {
           ? const EdgeInsets.only(left: 6, right: 6, bottom: 14)
           : EdgeInsets.zero,
       decoration: padded
-          ? const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppTokens.hair)),
+          ? BoxDecoration(
+              border: Border(bottom: BorderSide(color: tokens.hair)),
             )
           : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const Text(
+          Text(
             '知行日志',
             style: TextStyle(
               fontFamily: AppFonts.display,
@@ -189,7 +192,7 @@ class _Brand extends StatelessWidget {
               height: 1.25,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.38,
-              color: AppTokens.ink,
+              color: tokens.ink,
             ),
           ),
           if (showSubtitle) ...<Widget>[
@@ -202,7 +205,7 @@ class _Brand extends StatelessWidget {
                 fontSize: labelSize,
                 height: 1.3,
                 letterSpacing: labelSize * 0.07,
-                color: AppTokens.faint,
+                color: tokens.faint,
               ),
             ),
           ],
@@ -238,6 +241,7 @@ class _NavRowState extends State<_NavRow> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final double labelSize =
         Theme.of(context).textTheme.labelSmall?.fontSize ??
         DensityProfile.comfortable.labelSize;
@@ -252,12 +256,12 @@ class _NavRowState extends State<_NavRow> {
     final bool selected = widget.selected;
 
     final Color background = selected
-        ? AppTokens.inkWash
-        : (_hovered && enabled ? AppTokens.sunken : Colors.transparent);
+        ? tokens.inkWash
+        : (_hovered && enabled ? tokens.sunken : Colors.transparent);
     final Color labelColor = !enabled
-        ? AppTokens.faint
-        : (selected || _hovered ? AppTokens.ink : AppTokens.meta);
-    final Color indexColor = selected ? AppTokens.ink : AppTokens.faint;
+        ? tokens.faint
+        : (selected || _hovered ? tokens.ink : tokens.meta);
+    final Color indexColor = selected ? tokens.ink : tokens.faint;
 
     final Widget content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
@@ -364,6 +368,7 @@ class _NavFoot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
     final double labelSize =
         Theme.of(context).textTheme.labelSmall?.fontSize ??
         DensityProfile.comfortable.labelSize;
@@ -372,7 +377,7 @@ class _NavFoot extends StatelessWidget {
       fontFamilyFallback: AppFonts.bodyFallback,
       fontSize: labelSize,
       height: 1.3,
-      color: AppTokens.faint,
+      color: tokens.faint,
     );
     // 字号被放大到 ≥ 1.5 倍 ⇒ 走「三行堆叠」结构。
     final double scaledLabelSize = MediaQuery.textScalerOf(context).scale(labelSize);
@@ -396,8 +401,8 @@ class _NavFoot extends StatelessWidget {
       // 大字号档下第 2 行「Ctrl + 1」需要整行宽度；底注内容一律左对齐、
       // 右边缘离导航栏内边还差着一截 ⇒ 右侧不留白，把宽度让给第 2 行。
       padding: EdgeInsets.only(top: 10, left: 8, right: largeText ? 0 : 8),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppTokens.hair)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: tokens.hair)),
       ),
       child: Wrap(
         spacing: 4,

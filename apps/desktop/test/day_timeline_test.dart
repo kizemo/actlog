@@ -34,25 +34,25 @@ void main() {
   });
 
   test('节点形状与赭石纪律：圆点，且只有缺口态允许赭石（TOKENS.md:300/328）', () {
-    final closed = tlNodeDecoration(hasGap: false);
-    final gap = tlNodeDecoration(hasGap: true);
+    final closed = tlNodeDecoration(hasGap: false, tokens: ThemeTokens.light);
+    final gap = tlNodeDecoration(hasGap: true, tokens: ThemeTokens.light);
     expect(closed.shape, BoxShape.circle);
     expect(closed.color, Colors.transparent);
-    expect(closed.border!.top.color, AppTokens.hairStrong);
+    expect(closed.border!.top.color, ThemeTokens.light.hairStrong);
     expect(gap.shape, BoxShape.circle);
-    expect(gap.color, AppTokens.accent);
-    expect(gap.border!.top.color, AppTokens.accent);
+    expect(gap.color, ThemeTokens.light.accent);
+    expect(gap.border!.top.color, ThemeTokens.light.accent);
     // 反例：非缺口态的底色与描边都不得是赭石（§7:306-307 禁装饰性赭石色块）
-    expect(closed.color, isNot(AppTokens.accent));
-    expect(closed.border!.top.color, isNot(AppTokens.accent));
+    expect(closed.color, isNot(ThemeTokens.light.accent));
+    expect(closed.border!.top.color, isNot(ThemeTokens.light.accent));
   });
 
   test('节点双通道：文字与形状同时存在（TOKENS.md:254-255）', () {
     expect(tlNodeLabel(hasGap: false, gapLabel: null), '✓ 已闭合');
     expect(tlNodeLabel(hasGap: true, gapLabel: null), '▸ 有缺口');
     expect(tlNodeLabel(hasGap: true, gapLabel: '缺晚间复盘'), '缺晚间复盘');
-    expect(tlNodeTextColor(hasGap: false), AppTokens.meta);
-    expect(tlNodeTextColor(hasGap: true), AppTokens.accentInk);
+    expect(tlNodeTextColor(hasGap: false, tokens: ThemeTokens.light), ThemeTokens.light.meta);
+    expect(tlNodeTextColor(hasGap: true, tokens: ThemeTokens.light), ThemeTokens.light.accentInk);
   });
 
   test('窄断点纯函数：1280 为界（TOKENS.md:238-239）', () {

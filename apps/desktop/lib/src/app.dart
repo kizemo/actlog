@@ -138,7 +138,7 @@ class _AboutRoute extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTokens.paper,
+      backgroundColor: context.tokens.paper,
       body: const SingleChildScrollView(
         padding: EdgeInsets.all(24),
         child: AboutPage(),

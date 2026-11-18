@@ -291,17 +291,21 @@ String stateLabelOfSlotKind(SlotKind kind) {
 /// 四态的条目前景色（字形、状态词、左缘竖条、完成态删除线共用）。
 ///
 /// 与格底 `colorOfSlotKind` 成对；四组对比度见 `TOKENS.md` §8.2。
-/// 「赭石纪律」：这里**不得**返回 `AppTokens.accent` / `accentWash`。
-Color foregroundOfSlotKind(SlotKind kind) {
+/// 「赭石纪律」：这里**不得**返回 `tokens.accent` / `tokens.accentWash`。
+///
+/// 为什么颜色由调用方传入而不是在这里读全局：本层是**纯函数**（见文件头），
+/// 一旦引入 `BuildContext` 就被绑死在 widget 树上。`ThemeTokens` 是值对象，
+/// 传参不破坏纯性，深浅两档也由调用方（`day_grid.dart` 的 `build`）决定。
+Color foregroundOfSlotKind(SlotKind kind, ThemeTokens tokens) {
   switch (kind) {
     case SlotKind.habit:
-      return AppTokens.slotHabitInk;
+      return tokens.slotHabitInk;
     case SlotKind.backfill:
-      return AppTokens.slotBackfillInk;
+      return tokens.slotBackfillInk;
     case SlotKind.done:
-      return AppTokens.slotDoneInk;
+      return tokens.slotDoneInk;
     case SlotKind.plannedOpen:
-      return AppTokens.slotPlanInk;
+      return tokens.slotPlanInk;
   }
 }
 

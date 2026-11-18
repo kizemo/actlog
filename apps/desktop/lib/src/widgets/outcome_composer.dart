@@ -132,6 +132,7 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = context.tokens;
 
     if (!_note.parsed && !_restructured) {
       return Column(
@@ -140,7 +141,7 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
         children: [
           Text(
             _note.rawText,
-            style: theme.textTheme.bodyMedium?.copyWith(color: AppTokens.ink),
+            style: theme.textTheme.bodyMedium?.copyWith(color: t.ink),
           ),
           const SizedBox(height: 8),
           Row(

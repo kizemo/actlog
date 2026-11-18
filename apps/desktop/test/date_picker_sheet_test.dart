@@ -126,7 +126,7 @@ void main() {
       find.descendant(of: todayCell, matching: find.byType(Container)).first,
     );
     final todayBorder = (todayBox.decoration! as BoxDecoration).border!;
-    expect(todayBorder.top.color, AppTokens.ink);
+    expect(todayBorder.top.color, ThemeTokens.light.ink);
     expect(todayBorder.top.width, 2);
 
     final grid = buildMonthGrid(month, today: todayIso, weekStart: 1);
@@ -136,7 +136,7 @@ void main() {
     final weekendText = tester.widget<Text>(
       find.descendant(of: weekendCell, matching: find.byType(Text)).first,
     );
-    expect(weekendText.style!.color, AppTokens.accentInk);
+    expect(weekendText.style!.color, ThemeTokens.light.accentInk);
   });
 
   testWidgets('本周内芯片返回本周最后一天', (tester) async {

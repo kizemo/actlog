@@ -119,12 +119,13 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
   /// 外层用 [Wrap] 而不是 `Row`：元信息一行的总宽会随字号缩放（裁定 B 的 200%）
   /// 变化，`Row` 会直接溢出，`Wrap` 只会换行。
   Widget _buildCreateForm() {
+    final t = context.tokens;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.hairSoft, width: 1),
+        border: Border.all(color: t.hairSoft, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -134,9 +135,9 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
             key: const ValueKey<String>('todo-new-title'),
             controller: _title,
             textInputAction: TextInputAction.done,
-            style: _bodyStyle(size: 13, color: AppTokens.ink),
+            style: _bodyStyle(tokens: t, size: 13, color: t.ink),
             onSubmitted: (_) => _submit(),
-            decoration: _fieldDecoration(hint: '待办标题（必填）'),
+            decoration: _fieldDecoration(tokens: t, hint: '待办标题（必填）'),
           ),
           const SizedBox(height: 8),
           Row(
@@ -150,8 +151,8 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  style: _bodyStyle(size: 13, color: AppTokens.ink),
-                  decoration: _fieldDecoration(hint: '例如 25'),
+                  style: _bodyStyle(tokens: t, size: 13, color: t.ink),
+                  decoration: _fieldDecoration(tokens: t, hint: '例如 25'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -177,8 +178,8 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
                 child: TextField(
                   key: const ValueKey<String>('todo-new-start'),
                   controller: _start,
-                  style: _bodyStyle(size: 13, color: AppTokens.ink),
-                  decoration: _fieldDecoration(hint: '起始 09:15'),
+                  style: _bodyStyle(tokens: t, size: 13, color: t.ink),
+                  decoration: _fieldDecoration(tokens: t, hint: '起始 09:15'),
                 ),
               ),
               SizedBox(
@@ -186,8 +187,8 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
                 child: TextField(
                   key: const ValueKey<String>('todo-new-due'),
                   controller: _due,
-                  style: _bodyStyle(size: 13, color: AppTokens.ink),
-                  decoration: _fieldDecoration(hint: '到期 yyyy-MM-dd'),
+                  style: _bodyStyle(tokens: t, size: 13, color: t.ink),
+                  decoration: _fieldDecoration(tokens: t, hint: '到期 yyyy-MM-dd'),
                 ),
               ),
               ChipRow(
@@ -224,11 +225,12 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
 
   /// 待办表格（表头 + 行）。列宽固定，标题列吃掉剩余宽度。
   Widget _buildTable(List<Todo> rows, Map<String, SlottedTodo> slotted) {
+    final t = context.tokens;
     return Container(
       decoration: BoxDecoration(
-        color: AppTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.hairSoft, width: 1),
+        border: Border.all(color: t.hairSoft, width: 1),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -237,8 +239,8 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
         children: <Widget>[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppTokens.hair)),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: t.hair)),
             ),
             child: Row(
               children: <Widget>[
@@ -269,7 +271,8 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
   }
 
   Widget _headCell(String label) {
-    return Text(label, style: _bodyStyle(size: 11.5, color: AppTokens.meta));
+    final t = context.tokens;
+    return Text(label, style: _bodyStyle(tokens: t, size: 11.5, color: t.meta));
   }
 
   Widget _fixed(double width, Widget child) {
@@ -419,6 +422,7 @@ class _PoolHead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -431,11 +435,11 @@ class _PoolHead extends StatelessWidget {
             fontSize: 24,
             fontWeight: FontWeight.w600,
             height: 1.2,
-            color: AppTokens.ink,
+            color: t.ink,
           ),
         ),
         const SizedBox(height: 2),
-        Text(subtitle, style: _monoStyle(size: 11.5, color: AppTokens.faint)),
+        Text(subtitle, style: _monoStyle(tokens: t, size: 11.5, color: t.faint)),
       ],
     );
   }
@@ -462,12 +466,13 @@ class _TodoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         border: last
             ? null
-            : const Border(bottom: BorderSide(color: AppTokens.hairSoft)),
+            : Border(bottom: BorderSide(color: t.hairSoft)),
       ),
       child: Row(
         children: <Widget>[
@@ -477,14 +482,14 @@ class _TodoRow extends StatelessWidget {
                 Flexible(
                   child: Text(
                     todo.title,
-                    style: _bodyStyle(size: 13, color: AppTokens.ink),
+                    style: _bodyStyle(tokens: t, size: 13, color: t.ink),
                   ),
                 ),
                 if (slottedLabel != null) ...<Widget>[
                   const SizedBox(width: 8),
                   Text(
                     slottedLabel!,
-                    style: _bodyStyle(size: 11, color: AppTokens.meta),
+                    style: _bodyStyle(tokens: t, size: 11, color: t.meta),
                   ),
                 ],
               ],
@@ -492,7 +497,7 @@ class _TodoRow extends StatelessWidget {
           ),
           SizedBox(
             width: _wPriority,
-            child: Text(todo.priorityAbc?.code ?? '—', style: _monoStyle()),
+            child: Text(todo.priorityAbc?.code ?? '—', style: _monoStyle(tokens: t)),
           ),
           SizedBox(
             width: _wEst,
@@ -501,18 +506,18 @@ class _TodoRow extends StatelessWidget {
               todo.estMinutes == null
                   ? '—'
                   : formatEstDuration(todo.estMinutes!),
-              style: _monoStyle(size: 12, color: AppTokens.meta),
+              style: _monoStyle(tokens: t, size: 12, color: t.meta),
             ),
           ),
           SizedBox(
             width: _wQuadrant,
-            child: Text(todo.quadrant?.code ?? '—', style: _monoStyle()),
+            child: Text(todo.quadrant?.code ?? '—', style: _monoStyle(tokens: t)),
           ),
           SizedBox(
             width: _wDue,
             child: Text(
               todo.dueDate ?? '—',
-              style: _monoStyle(size: 11.5, color: AppTokens.meta),
+              style: _monoStyle(tokens: t, size: 11.5, color: t.meta),
             ),
           ),
           SizedBox(
@@ -539,17 +544,18 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
       decoration: BoxDecoration(
-        color: AppTokens.card,
+        color: t.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.hairSoft, width: 1),
+        border: Border.all(color: t.hairSoft, width: 1),
       ),
       child: Text(
         '待办池是空的：先在上面新建一条，再捞到选中日。',
-        style: _bodyStyle(size: 12.5, color: AppTokens.faint),
+        style: _bodyStyle(tokens: t, size: 12.5, color: t.faint),
       ),
     );
   }
@@ -563,15 +569,16 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTokens.accentWash,
+        color: t.accentWash,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: AppTokens.accent, width: 1),
+        border: Border.all(color: t.accent, width: 1),
       ),
-      child: Text(message, style: _bodyStyle(size: 12.5, color: AppTokens.accentInk)),
+      child: Text(message, style: _bodyStyle(tokens: t, size: 12.5, color: t.accentInk)),
     );
   }
 }
@@ -602,18 +609,19 @@ class _PoolButtonState extends State<_PoolButton> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final enabled = widget.onPressed != null;
     final Color background;
     final Color foreground;
     if (!enabled) {
-      background = AppTokens.sunken;
-      foreground = AppTokens.faint;
+      background = t.sunken;
+      foreground = t.faint;
     } else if (widget.primary) {
-      background = _hovered ? AppTokens.ink2 : AppTokens.ink;
-      foreground = AppTokens.paper;
+      background = _hovered ? t.ink2 : t.ink;
+      foreground = t.paper;
     } else {
-      background = _hovered ? AppTokens.sunken : AppTokens.card;
-      foreground = _hovered ? AppTokens.ink : AppTokens.ink2;
+      background = _hovered ? t.sunken : t.card;
+      foreground = _hovered ? t.ink : t.ink2;
     }
 
     return Semantics(
@@ -639,8 +647,8 @@ class _PoolButtonState extends State<_PoolButton> {
                 borderRadius: BorderRadius.circular(AppTokens.radius),
                 border: Border.all(
                   color: widget.primary && enabled
-                      ? AppTokens.ink
-                      : AppTokens.hairStrong,
+                      ? t.ink
+                      : t.hairStrong,
                   width: 1,
                 ),
               ),
@@ -648,6 +656,7 @@ class _PoolButtonState extends State<_PoolButton> {
               child: Text(
                 widget.label,
                 style: _bodyStyle(
+                  tokens: t,
                   size: widget.dense ? 11.5 : 12.5,
                   color: foreground,
                 ),
@@ -661,7 +670,10 @@ class _PoolButtonState extends State<_PoolButton> {
 }
 
 /// 输入框统一外观：4px 圆角 + `hair-strong` 边（可交互边界）+ `card` 底。
-InputDecoration _fieldDecoration({required String hint}) {
+InputDecoration _fieldDecoration({
+  required ThemeTokens tokens,
+  required String hint,
+}) {
   OutlineInputBorder border(Color color, {double width = 1}) {
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppTokens.radius),
@@ -671,35 +683,43 @@ InputDecoration _fieldDecoration({required String hint}) {
 
   return InputDecoration(
     hintText: hint,
-    hintStyle: _bodyStyle(size: 12.5, color: AppTokens.faint),
+    hintStyle: _bodyStyle(tokens: tokens, size: 12.5, color: tokens.faint),
     isDense: true,
     filled: true,
-    fillColor: AppTokens.card,
+    fillColor: tokens.card,
     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-    border: border(AppTokens.hairStrong),
-    enabledBorder: border(AppTokens.hairStrong),
-    focusedBorder: border(AppTokens.ink, width: 1.5),
+    border: border(tokens.hairStrong),
+    enabledBorder: border(tokens.hairStrong),
+    focusedBorder: border(tokens.ink, width: 1.5),
   );
 }
 
 /// 正文字体样式（`AppFonts.body` + 兜底族）。
-TextStyle _bodyStyle({double size = 12.5, Color color = AppTokens.ink}) {
+TextStyle _bodyStyle({
+  required ThemeTokens tokens,
+  double size = 12.5,
+  Color? color,
+}) {
   return TextStyle(
     fontFamily: AppFonts.body,
     fontFamilyFallback: AppFonts.bodyFallback,
     fontSize: size,
-    color: color,
+    color: color ?? tokens.ink,
     height: 1.45,
   );
 }
 
 /// 数字字体样式（`AppFonts.mono` + `tabular-nums`）。
-TextStyle _monoStyle({double size = 11.5, Color color = AppTokens.meta}) {
+TextStyle _monoStyle({
+  required ThemeTokens tokens,
+  double size = 11.5,
+  Color? color,
+}) {
   return TextStyle(
     fontFamily: AppFonts.mono,
     fontFamilyFallback: AppFonts.monoFallback,
     fontSize: size,
-    color: color,
+    color: color ?? tokens.meta,
     fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
   );
 }
