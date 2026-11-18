@@ -8,6 +8,7 @@ import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/chip_row.dart';
 import '../widgets/date_bar.dart';
+import '../widgets/est_duration_text.dart';
 import '../widgets/timeline/slot_state.dart';
 import '../widgets/timeline/timeline_store.dart';
 
@@ -40,6 +41,9 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
   /// 新建表单的优先级 / 象限选择（`Set` 是 [ChipRow] 的接口形态）。
   Set<String> _priority = <String>{};
   Set<String> _quadrant = <String>{};
+
+  /// 新建表单的预估单位（数量 × 单位 ⇒ 分钟；默认「分钟」）。
+  EstUnit _estUnit = EstUnit.minute;
 
   /// 新建请求进行中。
   bool _creating = false;
@@ -135,21 +139,39 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
             decoration: _fieldDecoration(hint: '待办标题（必填）'),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               SizedBox(
                 width: 96,
                 child: TextField(
                   key: const ValueKey<String>('todo-new-est'),
                   controller: _est,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   style: _bodyStyle(size: 13, color: AppTokens.ink),
-                  decoration: _fieldDecoration(hint: '预估分钟'),
+                  decoration: _fieldDecoration(hint: '例如 25'),
                 ),
               ),
+              const SizedBox(width: 8),
+              // 单位选择器与手写面板共用同一个 widget ⇒ 口径只有一份实现。
+              Expanded(
+                child: EstUnitPicker(
+                  keyPrefix: 'todo-pool',
+                  selected: _estUnit,
+                  enabled: !_creating,
+                  onChanged: (EstUnit unit) => setState(() => _estUnit = unit),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
               SizedBox(
                 width: 108,
                 child: TextField(
@@ -262,15 +284,17 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
       return;
     }
 
+    // 数量 × 单位 ⇒ 分钟；留空 ⇒ 不写库（NULL）。口径与手写面板同一份实现。
     final estText = _est.text.trim();
     int? estMinutes;
     if (estText.isNotEmpty) {
-      final parsed = int.tryParse(estText);
-      if (parsed == null || parsed <= 0) {
-        setState(() => _error = '预估分钟要填正整数，或留空');
+      final amount = double.tryParse(estText);
+      if (amount == null || amount <= 0) {
+        setState(() => _error = '预估时间要填正数，或留空');
         return;
       }
-      estMinutes = parsed;
+      // 四舍五入到 0 视为未填（例如 0.001 分钟），存 NULL。
+      estMinutes = estMinutesOf(amount, _estUnit);
     }
 
     final dueText = _due.text.trim();
@@ -326,6 +350,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
       _start.clear();
       _priority = <String>{};
       _quadrant = <String>{};
+      _estUnit = EstUnit.minute;
       ref.invalidate(todoPoolProvider);
       ref.invalidate(slottedTodosProvider);
     } on ArgumentError catch (error) {
@@ -472,7 +497,10 @@ class _TodoRow extends StatelessWidget {
           SizedBox(
             width: _wEst,
             child: Text(
-              todo.estMinutes?.toString() ?? '—',
+              // 库里只存分钟数；显示侧统一走确定性阶梯（90 分钟 / 2 小时 / 1 日…）。
+              todo.estMinutes == null
+                  ? '—'
+                  : formatEstDuration(todo.estMinutes!),
               style: _monoStyle(size: 12, color: AppTokens.meta),
             ),
           ),

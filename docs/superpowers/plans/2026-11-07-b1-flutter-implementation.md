@@ -7236,7 +7236,7 @@ B1 的前 18 个 Task 交付的是**功能**，不是**版面**。把 `apps\desk
 - [x] T11 `README.md` 全文重写（21488 B / 340 行，13 个二级标题，11 个链接目标逐一 `Test-Path=True`）
 - [x] T12 首包装机包 `release\actlog-Setup-1.0.0_20261112-000727.exe` 产出后**判为坏包**（见「已知问题」①），已重建完成（见 T13）
 - [x] T13 重建 release 树（`flutter build windows --release`，44.9 s）后重打包 ⇒ `release\actlog-Setup-1.0.0_20261112-000947.exe`（15818676 B / sha16 `6CDFAA16D8D23130`），抽包 `data\app.so` = `4B756691A48DA94A` 与构建目录逐字相同
-- [ ] T14 真机目视：四维字形 `▲▽◆◇` 不缺字、循环任务「自动填入每天计划」可见
+- [x] T14 真机目视：四维字形 `▲▽◆◇` 不缺字、循环任务「自动填入每天计划」可见
 - **T14 进展（2026-11-12 19:05–19:50，控制器直做 + worker 派工）**：
   - **装机 PASS**：`release\actlog-Setup-1.0.0_20261112-000947.exe` 静默装机 `INSTALLER_PID=95756 EXIT=0`；装机副本 `data\app.so` sha16 `4B756691A48DA94A` **与构建产物逐字相同** ⇒ 新代码确在机（`INSTALLED_APPSO_MATCHES_BUILD=1` / `INSTALLED_APPSO_MATCHES_NEW=1`）。live 库 `D:\Program Files\actlog\userdata\actlog.db` 迁移到 `USER_VERSION=2`，`recurring_task` / `recurring_occurrence` 两表就位（含 `CHECK`、`UNIQUE (task_id, date)`、FK）；`plan_item.quadrant` 的 CHECK 合法值实测为 **`'Q1'|'Q2'|'Q3'|'Q4'`**（写 `'q1'` 会报 `plan_item_quadrant_check (19)`）。
   - **循环任务「自动填入每天的计划」= PASS（数据层实证，真机装的包上）**：播种 2 条 `recurring_task`（`weekday_mask=127` 每日 08:30；`weekday_mask=8` 仅周四 19:00）后重启 app ⇒ `recurring_occurrence` 写入 **2 行**（`t35-rec-1|2026-11-12`、`t35-rec-2|2026-11-12`），并各生成 1 条 `plan_item`（`source_id=t35-rec-1`、`planned_start=1794443400000` = 2026-11-12 08:30、`planned_end` = +30 min）⇒ 「添加后自动填入每天的计划」成立。
@@ -7244,11 +7244,20 @@ B1 的前 18 个 Task 交付的是**功能**，不是**版面**。把 `apps\desk
   - **四维字形渲染层 = PASS（真实字体的 PNG，控制器肉眼核验）**：worker 新增 `apps\desktop\test\task35_glyph_render_test.dart` —— `FontLoader` 注册与 `AppFonts` **逐字一致**的族名（`Inter` + `Noto Sans SC`）→ 用**真实行 widget** `UnscheduledStrip` 排 5 行（Q1–Q4 + `quadrant==null`）→ `RenderRepaintBoundary.toImage(pixelRatio: 2.0)` 落 PNG。**肉眼核验：▲◆ / ▲◇ / ▽◆ / ▽◇ 四枚字形全部正常渲染、无豆腐块；未分级行 0 枚标记** ⇒ 渲染层 PASS。产物 `apps\desktop\build\task35-t14\task35_glyph_render.png`（43408 B / sha16 `660916AD45582185`）。worker 首轮 `flutter analyze` 报 2 条 import 问题（`dart:typed_data` 冗余 / `core_domain` 未用），改完复跑**逐字 `No issues found!`**；本轮门禁单跑该文件 `GLYPH_RENDER_TEST_EXIT=0 / COUNT=2`。
   - **真机窗口像素 = 未取到，原因坐实为「工作站锁屏」**：`GetLastInputInfo` 空闲 **70855 s（≈19.7 h）**、`OpenInputDesktop` → `ACCESS_DENIED`、`GetForegroundWindow()` → 0、`qwinsta` console session 1 = Active 但会话内可见窗口枚举为空 ⇒ DWM 从不合成 actlog 窗口。四条取帧通道逐条实测：`GetDC(NULL)`+`BitBlt` ⇒ **纯黑**；`GetDC(hwnd)`+`BitBlt` ⇒ **锁屏画面**；`PrintWindow` flag 0/1/2/3 ⇒ **空白**；`FLUTTERVIEW` 子窗 DC + `PrintWindow` ⇒ **锁屏画面**（Windows 登录用户头像 + Rime `WeaselServer.exe` 报错框）。**均非 app 像素 ⇒ 不登记为「已目视」**。已备一键补取脚本 `reports\task35-t14-live-demo.ps1`（播种 → 重启 → 断言物化 → 抓真窗 FLUTTERVIEW → 裁剪 → 清理），**解锁后一条命令即可闭合**。
   - **live 库复原**：验证后按 `origin_device_id='task35-t14-test'` 与 `source_id IN (t35-rec-*)` 全量删除 ⇒ `plan_item=1 / recurring_task=0 / recurring_occurrence=0`（与验证前一致）；唯一变化是 `oplog` 由 9 增至 **17** —— 那是 app 在真机验证时为播种数据写入的**真实同步流水**，**未做人工删除**（审计链不可断）。
+- **T14 收口（2026-11-12 21:00–21:40，控制器直做 + worker 派工）**：
+  - **真机窗口像素 = PASS（第 4 轮取帧，跑的是修复后二进制）**：工作站解锁后跑 `reports\task35-t14-live-demo.ps1` ⇒ `IDLE_SECONDS=71`、`WINRECT=2000x1106 DPI=144`（逻辑宽 1333，越过 1280 断点进 wide 布局，右轨才渲染到右侧）、`APP_PROCS=1`、`OCCURRENCE_COUNT=2`。**控制器肉眼核验两张帧**（`reports\task35-t14\live-zoom-planrows.png` 1440×1040 / `live-rail-right.png` 878×1095）：① **四维字形不缺字** —— 07:00 `▲◆` / 07:30 `▲◇` / 08:00 `▽◆` / 09:00 `▽◇` / 09:30（无象限）0 枚标记，四枚字形**字形正常、无豆腐块**；② **循环任务「自动填入每天计划」可见** —— 时间轴上 **08:30 `T35REC daily-0830` 行在位**，右轨「循环任务」模块（位置确在「习惯速览」之下、「闭环提示」之上）显示「08:30-09:00 T35REC daily-0… 每天 / 19:00-19:30 T35REC2 thu-19… 周四 / **共 2 条 · 已自动排入计划**」。⇒ T14 三项判据全部在真机像素上可见。
+  - **取帧过程坐实一个真实产品缺陷（单位契约错配）**：前 3 轮取帧里循环任务**物化了却永远不上时间轴**。根因：`packages\core_data\lib\src\recurring.dart` 物化时写 `start.millisecondsSinceEpoch`（epoch 毫秒），而桌面端契约是**当日分钟数（0–1439）**（`apps\desktop\lib\src\widgets\timeline\slot_state.dart:59` 明文注释；`timeline_store.dart:371/389` 按分钟写；`todo_pool_page.dart:288-289` 用 `alignMinuteDown`；用户真实数据 `planned_start=390 / planned_end=405` = 06:30–06:45）。后果链：`slot_state.dart:255-295` 的 `gridEntriesOf` 把 epoch 两端都夹到 1440 ⇒ `clampedEnd <= clampedStart` ⇒ `continue` ⇒ **整行被丢弃**（真机帧里 08:30 行缺席即为实证；同一帧里用户自有的 06:30 行分钟口径正确落位，互为对照）。`createScheduled` 全仓仅 `recurring.dart` 一个调用点，`apps\desktop` 从不调用 ⇒ 修在 core_data 不波及别处。
+  - **worker 修复**（模型 `custom_provider:provider-aa5659/deepseek-v4.1-flash-1017` / effort `high`；写集 `packages\core_data\lib\src\recurring.dart` + `packages\core_data\lib\src\repositories.dart` + `packages\core_data\test\recurring_test.dart`）：删掉 `dayStart/start/end` 三个本地 `DateTime` 运算与死参数 `parsed`，改为 `plannedStart: task.startMinute`、`plannedEnd = min(task.startMinute + task.durationMinutes, 1440)`（沿用文件内既有三元夹值风格，不引入 `dart:math`）；`repositories.dart` 订正 `createScheduled` 文档注释为「当日分钟数（0–1439）」并点名与 `slot_state.dart` / `timeline_store.dart` 同口径、注明写成时间戳会被网格夹到 1440 后整行丢弃；测试新增 2 条（`start_minute=510/duration=30 ⇒ 510/540`；`start_minute=1410/duration=60 ⇒ 1410/1440`）并**点名改写**旧断言（原 epoch `1794360600000` → 改为 `570/600`）。实测 `dart analyze` 逐字 `No issues found!`；`dart test` 改前 **+151** → 改后 **+153** 全绿（TDD 红灯证据已留）；core_db **+71** / core_domain **+62** 均不变且全绿；`git status` 仅 3 个文件 `M`，未 commit/push。
+  - **重打包 + 覆盖装机**：`reports\task35-rebuild-installer.ps1` 实跑 ⇒ `APPSO_SHA16_BEFORE=4B756691A48DA94A` → `AFTER=769D91F68BA0EC9B`、`APPSO_CHANGED=true`、`BUILD_EXIT=0`、`PACK_EXIT=0`、`RESULT=OK` ⇒ 新唯一可分发包 **`release\actlog-Setup-1.0.0_20261112-213211.exe`**（15816669 B / sha16 `50A27760CB6D613B`）；`reports\task35-t14-reinstall.ps1` 实跑 ⇒ `INSTALLER_PID=87788 EXIT=0`、装机副本 `data\app.so` sha16 `769D91F68BA0EC9B` **与构建产物逐字相同**（`INSTALLED_APPSO_MATCHES_BUILD=1`）、`APP_PROCS=1`、`USER_VERSION=2`、DB 先备份到 `reports\task35-db-backup`。
+  - **修复后复验**：第 4 轮取帧 `OCCURRENCE_COUNT=2`，物化行现为 `T35REC daily-0830 planned_start=510 planned_end=540`（08:30–09:00）与 `T35REC2 thu-1900 planned_start=1140 planned_end=1170`（19:00–19:30）⇒ **分钟口径生效、08:30 行已上时间轴**（同屏可见 07:00 ▲◆ / 07:30 ▲◇ / 08:00 ▽◆ / 09:00 ▽◇ / 09:30 无标记）。`POST_CLEAN plan_item=3 recurring_task=0 recurring_occurrence=0`（用户自有行 3 条：中国 / 英语学习 / 查明日攻略；`oplog` 为 app 真实同步流水，**未人工删**）。
+  - **门禁复跑暴露一条桌面端过期断言**：本轮 `reports\task35-t14-gate.ps1 -ExpectCoreData 153` 首跑 `GATE_VERDICT=FAIL`，**唯一红灯** = `apps\desktop\test\recurring_task_test.dart`「对话框保存：规则落库，并立刻物化当天」仍断言**旧口径** `1794402000000`（epoch 毫秒），实测值 `1260`（21:00 的当日分钟数）⇒ 与同一文件第 195 行 `expect(rules.single.startMinute, 21 * 60)` 自相矛盾，**铁证 epoch 那行才是离群方**（与 worker 已在 core_data 里点名改写的是同一类旧断言，桌面侧那条漏改）。已派 worker 定点改写（写集仅该文件，用例数不变 ⇒ desktop 仍 **+330**）。该轮其余判据全绿：core_data **153** / core_db **71** / 三包 `dart analyze` 逐字干净 / G3 `0 FAIL` / `VIOLATIONS=0` / `PACKAGES_TOUCHED=0` / `BOUNDARY_VERDICT=PASS` / `FLUTTER_LOCK_SEEN=0`；`GLYPH_RENDER_TEST_COUNT=2`、`GLYPH_PNG_BYTES=43408` / `GLYPH_PNG_SHA16=660916AD45582185`。
+  - **门禁本体（`reports\task35-t14-gate.ps1`）连续三次「启动即退」→ 重建为 v2 并跑出 `GATE_VERDICT=PASS`**：21:37 首跑 `FAIL`（唯一红灯 = 桌面端过期断言，已定点修）后，21:4x–21:49 的三次复跑**全部在启动阶段即被终止**（exit code 4294967295 / stdout 0 字节 / stderr 0 字节 / 连 `task35-t14-gate.txt` 都没写出来）。**根因排查六条逐一排除**：① 静态解析 `PARSE_ERRORS=0`；② 启动器健康（同一 launcher 跑冒烟子脚本 `EXIT=0 / CHILD_OK`）；③ 磁盘余量充足（C 103.9 GB / F 107.2 GB）；④ 事件日志 Application 段**无任何崩溃记录**；⑤ 死点在**第一个副作用之前**（`task35-t14-analyze.txt` 未被截断、无新 `build_stale_task35t14_*` 目录）⇒ 不是任何检查项红灯，而是**进程被外力终止**；⑥ 同形态的分步探针 `reports\_probe_gate_steps.ps1` 逐项全绿 ⇒ 判据本身没问题。**处置**：v1 按 R4 归档为 `reports\task35-t14-gate-v1.ps1`；重建同名脚本（= v2）—— 去掉 `param()` 块、把阈值写死为 desktop **330** / core_data **153** / core_db **71**、**每行即时落盘**（新增 `reports\task35-t14-gate-trace.txt` 带时间戳，每个重步骤前打 `HB_n` 心跳）、**检查项 / 阈值 / 输出键名与 v1 逐字一致**；另把「移走 `test_cache\build`」拆成独立前置脚本 `reports\_move_test_cache.ps1`（0 秒完成）。**21:53–21:56 实跑 ⇒ `GATE_VERDICT=PASS`**：`ANALYZE_LITERAL=1 / ANALYZE_ISSUE_LINES=0`、desktop **`+330`**、`GLYPH_RENDER_TEST_EXIT=0 / GLYPH_RENDER_TEST_COUNT=2`、PNG 43408 B / sha16 `660916AD45582185`、三包 `dart analyze` 逐字干净、core_db **71**、core_data **153**、`G3_EXIT=0 / G3_FAIL_LINES=0`、`VIOLATIONS=0 / PACKAGES_TOUCHED=0 / BOUNDARY_VERDICT=PASS`、`FLUTTER_LOCK_SEEN=0`。⇒ **T14 门禁绿，勾选成立**。
+
 - [x] T15 R3 三处同步（`AGENTS.md` R3 + §7 / `README.md` / `handoff.md` §28）+ `docs\B1_验收记录.md`
 
-**门禁期望**：`flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0）；desktop 全量 **+330**（Task 34 基线 +312 ＋ 去页头/四维标记/循环任务新增 16 条 ＋ T14 渲染取证新增 2 条；Task 35 收口时为 +328）；core_data **+151**（原 +141 ＋ `recurring_test.dart` 10 条）；core_db **+71**（本轮**首次**纳入门禁，schema 1→2 的直接判据）；`VIOLATIONS=0`；G3 `0 FAIL`。
+**门禁期望**：`flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0）；desktop 全量 **+330**（Task 34 基线 +312 ＋ 去页头/四维标记/循环任务新增 16 条 ＋ T14 渲染取证新增 2 条；Task 35 收口时为 +328）；core_data **+153**（原 +141 ＋ `recurring_test.dart` 12 条）；core_db **+71**（本轮**首次**纳入门禁，schema 1→2 的直接判据）；`VIOLATIONS=0`；G3 `0 FAIL`。
 
-**T14 门禁实跑（2026-11-12 19:43–19:50，`reports\task35-t14-gate.txt`）**：**`GATE_VERDICT=PASS`** —— `ANALYZE_LITERAL=1` / `ANALYZE_ISSUE_LINES=0`、desktop **`+330`**、`GLYPH_RENDER_TEST_EXIT=0 / GLYPH_RENDER_TEST_COUNT=2`、PNG 43408 B / sha16 `660916AD45582185`、三包 `dart analyze` 逐字干净、core_db **71**、core_data **151**、`G3_FAIL_LINES=0`、`VIOLATIONS=0` / `PACKAGES_TOUCHED=0` / `BOUNDARY_VERDICT=PASS`、`FLUTTER_LOCK_SEEN=0`。本轮越界判据用**新写的** `reports\task35-t14-forbidden-check.ps1`（白名单补 worker 新增的渲染取证测试文件），旧 `task35-forbidden-check.ps1` 按 R4 原样保留。**README 数字订正（两处过期单测数）**：`packages/core_db` 原写 69（实测 **71**）、`packages/core_domain` 原写 36（实测 **62** —— `dart test` 实跑 `+62: All tests passed!`，G2 门禁 `tools\gates\g2_unittest.ps1` 三包全绿），四处已改（架构图 + 完成度表各一处）。
+**T14 门禁实跑（2026-11-12 19:43–19:50 那一轮，core_data **151**；**最终全绿轮 = 21:53–21:56 的 153 轮，见上方「门禁本体 v2」条**，`reports\task35-t14-gate.txt`）**：**`GATE_VERDICT=PASS`** —— `ANALYZE_LITERAL=1` / `ANALYZE_ISSUE_LINES=0`、desktop **`+330`**、`GLYPH_RENDER_TEST_EXIT=0 / GLYPH_RENDER_TEST_COUNT=2`、PNG 43408 B / sha16 `660916AD45582185`、三包 `dart analyze` 逐字干净、core_db **71**、core_data **151**、`G3_FAIL_LINES=0`、`VIOLATIONS=0` / `PACKAGES_TOUCHED=0` / `BOUNDARY_VERDICT=PASS`、`FLUTTER_LOCK_SEEN=0`。本轮越界判据用**新写的** `reports\task35-t14-forbidden-check.ps1`（白名单补 worker 新增的渲染取证测试文件），旧 `task35-forbidden-check.ps1` 按 R4 原样保留。**README 数字订正（两处过期单测数）**：`packages/core_db` 原写 69（实测 **71**）、`packages/core_domain` 原写 36（实测 **62** —— `dart test` 实跑 `+62: All tests passed!`，G2 门禁 `tools\gates\g2_unittest.ps1` 三包全绿），四处已改（架构图 + 完成度表各一处）。
 
 **已知问题（如实登记）**
 
@@ -7256,7 +7265,7 @@ B1 的前 18 个 Task 交付的是**功能**，不是**版面**。把 `apps\desk
 
 ② `docs\` 不改 ⇒ 无权威 `schema_v2.sql` 作第二份 DDL 对照，`schema_consistency_test.dart` 改用「v1 的 14 张逐项比对 ＋ 白名单放行两张新表 ＋ 索引集合校验」替代。
 
-③ 四维字形 `▲▽◆◇` 在 widget 测试里跑的是 Ahem 字体，**无法证明真机字体不缺字** ⇒ 必须一次装机目视。**（2026-11-12 19:5x 更新：装机已完成，随包字体 TTF cmap 直解证明 `Noto Sans SC` 四个码位全命中 ⇒ 缺字风险已排除；**渲染层 PNG 取证已完成并肉眼核验通过**（`apps\desktop\test\task35_glyph_render_test.dart` 加载真实字体渲染 5 行，▲◆ / ▲◇ / ▽◆ / ▽◇ 四枚字形全部正常、无豆腐块）；**唯独「真机窗口像素」仍缺**，原因是工作站锁屏而非产品缺陷 —— 解锁后跑 `reports\task35-t14-live-demo.ps1` 即可补齐。）**
+③ 四维字形 `▲▽◆◇` 在 widget 测试里跑的是 Ahem 字体，**无法证明真机字体不缺字** ⇒ 必须一次装机目视。**（2026-11-12 19:5x 更新：装机已完成，随包字体 TTF cmap 直解证明 `Noto Sans SC` 四个码位全命中 ⇒ 缺字风险已排除；**渲染层 PNG 取证已完成并肉眼核验通过**（`apps\desktop\test\task35_glyph_render_test.dart` 加载真实字体渲染 5 行，▲◆ / ▲◇ / ▽◆ / ▽◇ 四枚字形全部正常、无豆腐块）；**「真机窗口像素」已于 2026-11-12 21:2x 补齐并肉眼核验通过**（`reports\task35-t14\live-zoom-planrows.png` / `live-rail-right.png`：07:00 ▲◆ / 07:30 ▲◇ / 08:00 ▽◆ / 09:00 ▽◇ 四枚字形无豆腐块，08:30 循环任务行已在时间轴上，右轨「共 2 条 · 已自动排入计划」可见）；取帧过程另坐实并修掉一个**单位契约缺陷**（core_data 物化写 epoch 毫秒 ⇒ 被网格夹到 1440 后整行丢弃 ⇒ 循环任务永远不上时间轴），详见上方「T14 收口」段。）**
 
 ---
 
@@ -7320,3 +7329,553 @@ Set-Location F:\soft\00selfmade\practilog\apps\desktop
 2. **Inline Execution**：在本会话按 `superpowers:executing-plans` 批量执行，带检查点自查。
 
 > 非 git 仓库：两种方式都**不要**依赖 commit 作为验证闸门，每个 Task 以「命令跑通 + 磁盘证据文件」收口。
+
+---
+
+## Task 36：优先级四维悬停气泡 + 今日账页再美化（方向 A「悬浮气泡」）
+
+> 状态：**已收口**（2026-11-14 T4 真机目视验收闭合，详见 §36.7 / §36.8）。视觉方向 = 方向 A「悬浮气泡」，选定凭据见
+> `design-demos\direction-approved.md` §5；三版初稿与实拍见
+> `design-demos\task36-{a-roulette,b-benchmark,c-studio}.html` + 同名 `.png`（1440×900，`--channel msedge`）。
+>
+> 用户原话（2026-11-12）：「请调用 /huashu-design 再次对界面进行一次美化。当前，对计划做出的标记，
+> 希望鼠标悬停，可以弹窗显示这个计划所处的紧急、重要维度，且点击可以进行调整。」
+
+### 36.0 目标
+
+1. **需求 A（功能）**：计划条目的四维优先级标记（`▲▽◆◇`）**鼠标悬停**时弹出气泡，显示该计划所处的
+   **紧急 / 重要**两维取值；气泡内**点击即可调整**；调整必须**真实落库**
+   （`planItem.setQuadrant`），重启后保持、字形回写。
+2. **需求 B（美化）**：按方向 A 初稿落地「今日账页」主屏视觉（全天连续刻度尺 + 账页行 + 右轨 + 底部吸底条）。
+   **视觉语言不变**，仍为 **B 墨径·账页流**（`design-demos\TOKENS.md` §1–§7 逐字沿用）。
+
+### 36.1 本轮要接通的那根线（关键缺口）
+
+`packages\core_data\lib\src\repositories.dart:473` 已有 `setQuadrant(String id, Quadrant?)`，
+但 **Task 35 结束时 `apps\desktop` 内零调用点** ⇒ 现状只能在**新建**时选
+（`today_page.dart:394`、`quick_todo_dialog.dart:163` 用 `PriorityMarkPicker`），
+**已有计划无法改优先级**。本轮接通「悬停 → 气泡 → 点击调整 → 落库 → 字形回写」全链路。
+
+### 36.2 写集表（R1：控制器不得改 `apps\`/`packages\`；实现只能由 worker 子会话完成）
+
+**批次 T1 · 功能（优先级悬停气泡 + 落库接通）**
+
+| 文件 | 动作 | 约束 |
+|---|---|---|
+| `apps\desktop\lib\src\widgets\priority_hover_bubble.dart` | 新增 | 气泡 widget；跟随标记定位；不使用全局 `Overlay` 单例 |
+| `apps\desktop\lib\src\widgets\priority_marks.dart` | 改 | `PriorityMarks` 默认行为与 `ValueKey` **逐字不变**；四维字形走独立 `RichText` |
+| `apps\desktop\lib\src\widgets\timeline\day_grid.dart` | 改 | 接 `onChanged` → `_write(() => ref.read(repositoriesProvider).planItem.setQuadrant(id, q))` |
+| `apps\desktop\lib\src\widgets\timeline\todo_rail_panel.dart` | 改 | 同上（两处渲染点：可拖条目 / 已排期只读条目） |
+| `apps\desktop\lib\src\widgets\timeline\unscheduled_strip.dart` | 改 | 同上 |
+| `apps\desktop\test\priority_hover_bubble_test.dart` | 新增 | 悬停出现气泡 / 点击维度写库 / 未分级不留占位 |
+
+**批次 T2 · 视觉（方向 A 今日账页落地）**
+
+| 文件 | 动作 | 约束 |
+|---|---|---|
+| `apps\desktop\lib\src\widgets\timeline\day_grid.dart` | 改 | 全天连续刻度尺 + 账页行；信息落位按 A 初稿 |
+| `apps\desktop\lib\src\widgets\timeline\todo_rail_panel.dart` | 改 | 右轨排版 |
+| `apps\desktop\lib\src\widgets\timeline\unscheduled_strip.dart` | 改 | 未排期带 |
+| `apps\desktop\lib\src\theme\app_tokens.dart` | 改（可） | 只允许**新增** token，不得改既有 token 值 |
+| `apps\desktop\test\task36_ledger_test.dart` | 新增 | 结构/语义断言（**不写像素级断言**） |
+
+> 写集外任何文件被改动 ⇒ `VIOLATIONS > 0` ⇒ 收口判负。
+> `packages\**` 本轮**只读不改**（`setQuadrant` 已存在，无需动 core）。
+
+### 36.3 硬纪律（逐条来自 AGENTS.md / TOKENS.md）
+
+- R1 写集纪律；R2 门禁硬判据；R3 分发禁令；R4 不删文件（一律 `Move-Item` 改名挪走）；R5 证据纪律；
+  R6 计划复选框只控制器写；R7 项目边界（产出不出 `F:\soft\00selfmade\practilog`，一律绝对路径、不 `Set-Location`）；R8 派工契约。
+- 视觉：`design-demos\TOKENS.md` **§1–§7 只许引用不可改**，§8 可改。赭石只表「缺口/警示」，
+  禁当选中色、禁大面积底、禁正文着色。
+- 选中态只两档（`--ink` 反白底 / `--ink` 洗底）。零 emoji 图标、零紫渐变、零玻璃拟态、零圆角卡+左彩边、圆角 ≤4px。
+- 四维字形 `▲▽◆◇` **不在 Inter** ⇒ 必须 `AppFonts.body` + `fontFamilyFallback: AppFonts.bodyFallback`。
+- `find.text` **不匹配** `RichText` ⇒ 字形必须留在独立通道，**不得**把 `▲▽◆◇` 混进标题 `Text`
+  （会打爆既有 `find.text('✓')` / `find.text('○')` 精确计数断言）。
+- `quadrant == null` **不渲染、不留占位**（字形缺席本身是信息）。
+- Dart 源文件：LF、无 BOM、`print(` 计数 0。`.ps1` 脚本：纯 ASCII + CRLF + 无 BOM。
+
+### 36.4 验收判据（收口必须逐条给出证据形态）
+
+| # | 判据 | 证据形态 |
+|---|---|---|
+| 1 | `flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0） | 终端输出原文 |
+| 2 | desktop 全量测试 ≥ 330 + 本轮新增数全绿 | `--reporter compact` 末行 |
+| 3 | core_data ≥153 / core_db ≥71 / core_domain ≥62 | 各包 `dart test` 末行 |
+| 4 | 写集外改动 = 0 | `VIOLATIONS=0` |
+| 5 | 悬停标记出现气泡，且显示紧急 / 重要两维当前取值 | 真机截屏（真机验收，不接受 dev 模式） |
+| 6 | 气泡内点击调整后标记字形立即改变 | 真机截屏 |
+| 7 | 落库真实发生（重启后仍是新象限） | 重启后截屏 + DB 查询输出 |
+| 8 | 唯一可分发 = 新 `release\actlog-Setup-*.exe`（R3） | 安装包 sha16 + 包内 `data\app.so` sha16 |
+
+### 36.5 任务清单（复选框由控制器独占写入，R6）
+
+- [x] T0 写集表与判据登记（本段）
+- [x] T1 功能：悬停气泡 + 点击调整 + 落库接通
+- [x] T2 视觉：方向 A 今日账页落地
+- [x] T3 门禁全绿（analyze / 4 包测试 / VIOLATIONS=0）
+- [x] T4 真机目视验收（悬停 / 点击 / 重启后保持）
+- [x] T5 打包安装器 + R3 口径同步（release 包 sha16 + app.so sha16）
+- [x] T6 handoff 更新 + 遗留如实登记
+
+### 36.6 附录命令（门禁与打包）
+
+```powershell
+$env:PUB_HOSTED_URL='https://pub.flutter-io.cn'
+$env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
+# 跑全量前先挪走测试缓存（独立脚本，勿内联删除）
+& F:\soft\00selfmade\practilog\reports\_move_test_cache.ps1
+& 'F:\soft\flutter\flutter\bin\flutter.bat' analyze
+& 'F:\soft\flutter\flutter\bin\flutter.bat' test --reporter compact
+& 'F:\soft\flutter\flutter\bin\dart.bat' analyze
+& 'F:\soft\flutter\flutter\bin\dart.bat' test
+# 打包：必须先编译，再打包（R3）
+& 'F:\soft\flutter\flutter\bin\flutter.bat' build windows --release
+& F:\soft\00selfmade\practilog\tools\build\make_installer.ps1
+```
+
+### 36.7 收口状态（控制器写，2026-11-13 首写 / 2026-11-14 T4 闭合）
+
+- **T4 真机目视验收 = PASS（2026-11-14 桌面解锁后闭合，判据 5 / 6 / 7 三项全 PASS）**。
+  - 执行链 = `reports\task36\accept-unlocked.ps1`（18379 B / 纯 ASCII / CRLF / 无 BOM / `Parser::ParseInput` 0 错）**第 5 轮一次连续跑完**：`STEP1 LOCK_STATE=UNLOCKED` → `STEP2 CLIENT=1924x1095 SCREEN_ORIGIN=-2,-49` → `STEP3 MARK_CENTER_CLIENT=531,763` → `STEP4/5 DIFF_PIXELS=71040 BUBBLE_SIZE=1341x346 BUBBLE_CARD_PIXELS=321552` → `STEP6 CHIP_TARGET_CLIENT=773,822` → `STEP7 MARKBOX=471,733..551,793 RED_LOCAL_BASE=166 RED_LOCAL_AFTER=0 GREEN_LOCAL_BASE=0 GREEN_LOCAL_AFTER=65` → `STEP8 DB_ROW=t36-q1|Q2` → `STEP9 RESTART_CLIENT=1924x1095` → `STEP10 GREEN_AFTER_RESTART=131 DB_ROW_AFTER_RESTART=t36-q1|Q2`；末行 `JUDGE5_HOVER_BUBBLE=PASS / JUDGE6_CLICK_GLYPH_AND_DB=PASS / JUDGE7_PERSIST_AFTER_RESTART=PASS / VERDICT=PASS`，退出码 0。
+  - **目视证据（控制器本人读图）**：`reports\task36\accept\02-hover.png` 气泡含 header `Q1 | T36Q1 important-urgent | Esc`、紧急行 `◆ 紧急` / `◇ 不紧急`、重要行 `▲ 重要` / `▽ 不重要`、结论行「当前 重要且紧急 立即做」；`03-after-click.png` header 变 `Q2`、「不紧急」转为选中、描述变「重要不紧急」、09:00 行 `▲◆`→`▲◇`（绿）、右轨重要 1→2 / 不紧急 1→2；`04-after-restart.png` 重启后仍为绿色 `▲◇`、右轨维持 2/2。
+  - **残留 16 个红色像素的归因**：来自**用户自有 Q1 行**（`01a1b44b…` 等），**非**夹具残留、**非**产品缺陷。
+  - **验收脚本本轮 4 处修复（只动 `reports\`，未碰 `apps\` / `packages\`）**：① `CloseHandle` 的 `DllImport` 由 `user32.dll` 改为 **`kernel32.dll`**（解锁后首次执行才暴露的真实潜在 bug）；② STEP6 芯片搜索区域由 diff bbox 改为 **mark 锚定窗口** `x∈[markX-150,markX+700] / y∈[markY-200,markY+350]`；③ STEP6 芯片选择增加**形状过滤**（`w 40..160, h 15..60, pix≥120`）以排除气泡 1px 顶边线与文字笔画，`$topIdx<0` 时显式 FAIL；④ STEP7 颜色判据由全网格区域改为**标记局部框** `x∈[markX-60,markX+20] / y∈[markY-30,markY+30]`，阈值 `redAfter<20 且 redBase≥40`、`greenAfter≥greenBase+40`。四处均为**判据口径写错**（不是产品缺陷）⇒ 按推荐方案直接修，不发问卷。
+  - **播种夹具已清理**：播种行 `date` 须改到 `2026-11-14`（否则当天不渲染）；验收后 `DELETE FROM plan_item WHERE origin_device_id='task36-test'` 删掉 4 行；⚠️ `setQuadrant` 会把 `origin_device_id` **重写为设备 id `dev-hnww4ok5hp`** ⇒ 计划原 DELETE 语句漏删 `t36-q1`，已**另按 id 补删** ⇒ `plan_item` 剩 3 行 = 用户原 3 行完好（`01a1b44b-…` / `01a1cfde-329a-…` / `01a1cfde-89d8-…`），`oplog` 51 条未动。
+  - **门禁未重跑**：本轮**未修改任何 `apps\**` / `packages\**` 代码** ⇒ Task 36 既有门禁结论继续有效（`reports\task36-gate.txt`，`GATE_VERDICT=PASS`；analyze 逐字 `No issues found!`；desktop **+340** / core_data **+153** / core_db **+71** / core_domain **+62**；`VIOLATIONS=0` / `PACKAGES_TOUCHED=0`）。
+  - **唯一可分发包不变**：`release\actlog-Setup-1.0.0_20261113-085907.exe`（15827251 B / sha16 `E5D64DDD2DC13C30`；包内 `data\app.so` sha16 `CAB581CBBA848902`）—— 本轮未改代码 ⇒ **无需重打包**。
+  - 物理阻塞 = **会话锁屏**，且已坐实「锁屏期间应用不产出像素」：actlog 进程 CPU 时间 6 s 只涨 0.047 s ⇒ Flutter 的 vsync 在锁屏时停摆；`OpenInputDesktop` 返回 NULL（err=5，管理员亦拒 = 安全桌面特征）/ `GetForegroundWindow=0` / `SetCursorPos` 返回 False ⇒ 合成鼠标输入送不进去；`PrintWindow`（恒 `VARIETY=1`）与 `GetDC+BitBlt`（抓到的是**锁屏**而非应用像素）两条抓帧路线同时失效（无免密解锁 API，未改系统安全策略、未改会话归属）。
+  - 技术绕行路线**全部证伪**：UIA 语义树（FLUTTERVIEW `DESCENDANTS=0`，Flutter semantics 未对外暴露）、跨会话注入（`CreateDesktop` / `OpenDesktop('Winlogon')` / `CreateProcessAsUser` 5 变体 / `schtasks /IT` 全失败）。
+  - 解锁后**一条命令**闭合：`reports\task36\accept-unlocked.ps1`（颜色聚类定位 `▲◆` → 真机悬停 → 帧差分自证气泡 → 点「不紧急」off 芯片 → 红变绿 + `sqlite3` 断言 `t36-q1=Q2` → 重启再验），首步即校验未锁，锁着则 `FAIL STEP=STEP1`，不产出假证据。
+  - 已成立的**静态**真机证据（**不替代 T4**）：`reports\task36\shot-hover.png`（09:09 抓取，1924×1095，**真实应用像素**）上四维字形（09:00 `▲◆` / 10:00 `▲◇` / 13:00 `▽◆`）+ 右轨 2×2 优先级分布与尾注「5 条计划 · 未分级 1 条（不计入四象限）」，已目视确认；06:00 `▽◇` / 06:30 未分级**无字形无占位**见 `reports\task36\zoom-marks-0900.png`。**更正**：`shot-baseline.png` 实为锁屏后的空白帧（`variety=1`），不可作证据（详见交接 §31.4.3）。
+- **T5 已完成**：唯一可分发包 = `release\actlog-Setup-1.0.0_20261113-085907.exe`（15827251 B，sha16 `E5D64DDD2DC13C30`）；包内 `data\app.so` sha16 `CAB581CBBA848902` == 装机 `D:\Program Files\actlog\data\app.so` == 构建树（逐字一致）。
+- **T6 已完成**：交接 §31 + 遗留 11 条如实登记（`.superpowers\sdd\2026-11-07-b1-flutter-implementation\handoff.md` §31）。
+- 复选框状态：**T0–T6 全部 = `[x]`**（T0–T3 / T5 / T6 于 2026-11-13 勾选；**T4 于 2026-11-14 桌面解锁后取到真机像素并闭合**）。
+- 播种测试行**已于 2026-11-14 清理完毕**：先按 `origin_device_id='task36-test'` 删 4 行，再按 `id='t36-q1'` 补删 1 行（`setQuadrant` 会重写该列，见上）；用户原有 3 行完好、`oplog` 51 条未动。
+
+- **等解锁机制已升级为 Windows 计划任务（2026-11-13 14:20）**：等待器不再依赖会话内后台进程（1 小时上限、需每轮手动续挂），改为计划任务 `T36UnlockWatch`（`schtasks /create /it`、以当前登录用户 `Duanyi` 交互式运行、240 min 窗口），动作 = `reports\task36\live-accept3.ps1 -WaitMinutes 240`。**解锁后自动跑 `accept-unlocked.ps1` 全链并留证**，不依赖本会话存活。
+  - 首次创建失败实录：`Last Result = -2147024894 (0x80070002 FILE_NOT_FOUND)` ⇒ 根因是动作里硬编码的 `C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\pwsh.exe` **已不存在**（WindowsApps 版本目录随更新变动）；改用应用执行别名 `C:\Users\Duanyi\AppData\Local\Microsoft\WindowsApps\pwsh.exe` 后任务 `Status: Running`、进程 `SessionId=1`、日志 `WAIT_START wait_minutes=240 started=14:20:37` ⇒ 任务链已实测跑通。
+  - 验收脚本同步加固（3 处，只改 `reports\` 下 .ps1）：① `Local\T36AcceptMutex` 单实例互斥（抢不到即 `exit 3`，防计划任务与人工手动跑并发覆盖同一批 PNG 证据）；② `accept.log` 改为追加式（先写 `=== RUN <时间戳> ===`）⇒ 多轮触发互不覆盖；③ STEP10 由「重启后固定等 2.5 s 抓一帧」改为**最多 45 s 轮询到绿色字形出现**，避免冷启动渲染慢时假红。
+  - 静态校验：`accept-unlocked.ps1` 17324 B、`live-accept3.ps1` 2086 B，均纯 ASCII / 无 BOM / 全 CRLF / `Parser::ParseInput` 0 错；锁屏态阴性自证复跑仍是 `VERDICT=FAIL STEP=STEP1`（退出码 1）⇒ 只失败、不产出假证据。
+  - **（历史留档）截至 2026-11-13 14:35，T4 仍为 `[ ]`**：判据 5/6/7 未取得真机像素证据，不判 PASS、不判回归。⇒ **已于 2026-11-14 桌面解锁后取到真机像素并闭合为 PASS（见本节首条）。**
+
+### 36.8 T4 闭合记录（控制器写，2026-11-14）
+
+- **闭合时间**：2026-11-14 00:48 起（桌面解锁时刻）；验收链一次连续跑通，退出码 0，`VERDICT=PASS`。
+- **解锁前状态**：桌面解锁实测 `OpenInputDesktop` 成功（`LAST_ERR=0`）/ `LogonUI_COUNT=0` / `FOREGROUND_HWND=262388` ⇒ 上一会话遗留的 `T36UnlockWatch` 计划任务与 `live-accept3.ps1` 等待器**均已死且零证据**（`accept3.log` 只有 `WAIT_START wait_minutes=720 started=14:24:51`；`accept\accept.log` 仅 2 次 `LOCK_STATE=LOCKED`；无任何 PNG）⇒ **不重挂等待器**，直接人工执行 `accept-unlocked.ps1` 一次性闭合判据 5/6/7。
+- **证据清单**（`reports\task36\accept\`）：`01-baseline.png` 180341 B / `02-hover.png` 191291 B / `03-after-click.png` 191824 B / `04-after-restart.png` 180073 B / `zoom-bubble.png` 103041 B；`accept.log` 25706 B（追加式）；`db-after-click-pass4.txt` 206 B；`seed-rows.sql` 787 B。另有同判据首轮留档 `02-hover-pass1-judge5.png` / `03-after-click-pass4-judge6.png` / `01-baseline-pass1.png`。
+- **`T36UnlockWatch` 计划任务**：现为 `Ready` / `Next Run Time=N/A` / `Last Result=1` ⇒ **已失效且不可再触发**；按 R4 **保留不删**（只在本台账与 handoff 注明），避免误删。
+- **未做 / 遗留**：本轮**未重跑门禁**（未改任何 `apps\` / `packages\` 代码，沿用 2026-11-13 实测）；播种行已清理完毕；`T36UnlockWatch` 作为失效任务保留；Task 36 其余判据（1–4、8）沿用 2026-11-13 实测结论。
+
+## Task 37（修订版）：遗留订正 + Task 36 收口补（文件尾换行）—— 原「方向 A `.dock` 挂载」方案已撤销
+
+> **立项订正（2026-11-17，控制器）**：本 Task 原立项为「把方向 A `.dock` 习惯打卡条挂回今日页 + 收口补文件尾换行」。
+> **其中功能部分当场撤销**：`.dock` 今日页**不挂载**不是缺口，而是 **B2 需求 3 的刻意移除**。
+>
+> 依据（AGENTS.md §6 文档优先级：用户当轮决定 > 派工书 > 计划正文 > handoff；§7 Task 28 条：**B2 计划与 B1 计划冲突时 B2 优先**）：
+>
+> | 证据 | 内容 |
+> |---|---|
+> | `docs\superpowers\plans\2026-11-12-b2-grid-timeline.md:166` | 「`_dock()`：今日页**不再**挂 `HabitCheckinStrip`（需求 3 去除习惯打卡）⇒ `_dock()` 整体返回 `null` 或移除该分支，`HabitCheckinStrip` 文件保留不删」 |
+> | 同文件 `:223` | T10「`nav_rail.dart` 习惯可用 + `app.dart` `Ctrl+3→habits`、`Ctrl+4→calendar`、**去 dock**」已 `[x]` |
+> | `apps\desktop\test\ledger_dock_test.dart:3-9` | 文件头 B2 声明：打卡条不再是壳层的 `.dock` 独立行；用户指令 8 要求 `app.dart` 去掉 `dock:` 实参，打卡入口整体搬到「习惯」页 |
+> | 同文件 `:124 / :125 / :150 / :155 / :156 / :166 / :187 / :224 / :225` | **9 处断言**「任何页面都**不**挂 `HabitCheckinStrip`」（6 处 `find.byType` + 3 处 `find.text`）⇒ 守卫测试 |
+> | 同文件 `:128-136 / :157-158 / :167-168` | 断言 `KeyBar` 底边贴住视口底边（其下**无**任何 dock 行）⇒ 键条下无空槽 |
+>
+> ⇒ **`.dock` 未挂载 = 刻意状态**，**不是缺口**；把 `HabitCheckinStrip` 挂回今日页会**直接打破既有守卫测试**（worker W1 实测：desktop 全量 `+339 -4`，4 例全红在 `ledger_dock_test.dart`）。
+> 本 Task 遂收缩为：**① 订正遗留台账的错误陈述 ② 收口 Task 36 遗留⑩（两个文件尾缺换行） ③ 复跑全量门禁**。
+
+### 37.0 目标（修订后）
+
+1. **台账订正**：把 handoff §31.5 与 B1 台账中**与实测相反**的遗留条目改正（原 ②③④ + ⑩⑪），并新增「Task 37 立项被推翻」的更正记录（handoff §31.8）。
+2. **收口补（本轮唯一代码改动）**：`day_grid.dart` / `todo_rail_panel.dart` 文件尾各补一个 LF（Task 36 遗留⑩）。
+3. **门禁复跑**：确认回退后 desktop 精确回到 **+340 零回退**，并补齐 `VIOLATIONS=0` / `PACKAGES_TOUCHED=0` / `BOUNDARY_VERDICT=PASS`。
+4. **不新增任何产品功能**。
+
+### 37.1 本轮实际做的那根线
+
+**只有收口补一根线**：`day_grid.dart` / `todo_rail_panel.dart` 文件尾各补一个 LF，其余字节逐字不变。
+
+被撤销的那根线（`.dock` 挂载）：worker W1 已按原派工书实现并自测，但因与 B2 需求 3 冲突**当场回退**（见 37.2）。
+
+### 37.2 写集表（R1：控制器不得改 `apps\`/`packages\`；实现只能由 worker 子会话完成）
+
+**批次 T2 · 收口补（唯一获准的代码改动）**
+
+| 文件 | 动作 | 约束 |
+|---|---|---|
+| `apps\desktop\lib\src\widgets\timeline\day_grid.dart` | 改 | **仅**文件尾补一个 LF（末尾 `}` 之后）；其余字节逐字不变 |
+| `apps\desktop\lib\src\widgets\timeline\todo_rail_panel.dart` | 改 | 同上 |
+
+**已撤销并回退的原 T1 写集**
+
+| 文件 | 处置 | 证据 |
+|---|---|---|
+| `apps\desktop\lib\src\app.dart` | **已回退到 HEAD**（`git diff` 逐字为空） | `git diff -- apps/desktop/lib/src/app.dart` = 0 行；改回后 11263 B / 末 4 字节 `3B-0D-0A-7D` |
+| `apps\desktop\test\task37_dock_test.dart` | **按 R4 改名挪走**，未删除 | `reports\task37-aborted\task37_dock_test.dart`（5427 B） |
+
+> 写集外任何文件被改动 ⇒ `VIOLATIONS > 0` ⇒ 收口判负。
+> `packages\**` 本轮**只读不改**（实测 `PACKAGES_TOUCHED=0`）。
+
+### 37.3 硬纪律（逐条来自 AGENTS.md / TOKENS.md）
+
+- R1 写集纪律；R2 门禁硬判据；R3 分发禁令；R4 不删文件；R5 证据纪律；R6 计划复选框只控制器写；R7 项目边界；R8 派工契约。
+- **不得把 `HabitCheckinStrip` 挂回今日页**（B2 需求 3；`ledger_dock_test.dart` 是该决定的守卫测试）。
+- `LedgerShell` 本体**不在写集** ⇒ 要改就停下来报控制器。
+- Dart 源：LF、无 BOM、`print(` 计数 0、控制字符 = 0；`.ps1`：纯 ASCII + CRLF + 无 BOM。
+
+### 37.4 验收判据（收口必须逐条给出证据形态）
+
+| # | 判据 | 证据形态 | 实测 |
+|---|---|---|---|
+| 1 | `flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0） | 终端输出原文 | `ANALYZE_LITERAL=True / ANALYZE_ISSUE_LINES=0 / ANALYZE_EXIT=0` |
+| 2 | desktop 全量 **精确 +340**（回退后零回退） | `--reporter compact` 末行 | `DESKTOP_EXIT=0 / +340: All tests passed!` |
+| 3 | core_data **+153** / core_db **+71** / core_domain **+62** | 各包 `dart test` 末行 | 153 / 71 / 62 全绿，三包 analyze 均 `True` |
+| 4 | 写集外改动 = 0 | `VIOLATIONS=0` / `PACKAGES_TOUCHED=0` | `reports\task37-forbidden.txt`：`VIOLATIONS=0 / PACKAGES_TOUCHED=0 / BOUNDARY_VERDICT=PASS / FORBIDDEN_EXIT=0` |
+| 5 | 两个文件尾各多一个 LF，其余字节不变 | 字节级记录 | `day_grid.dart TAIL=3B-0A-7D-0A` / `todo_rail_panel.dart TAIL=7D-0A-7D-0A`；两文件 `CRLF=0 / BOM=False / CTRL=0` |
+| 6 | 唯一可分发包不变（R3） | 包 sha16 + 包内 `data\app.so` sha16 | 本轮未改产品逻辑 ⇒ 包不变：`release\actlog-Setup-1.0.0_20261113-085907.exe`（15827251 B / sha16 `E5D64DDD2DC13C30`，包内 `data\app.so` sha16 `CAB581CBBA848902`） |
+| 7 | 台账订正落盘 | handoff §31.5/§31.8 + B1 台账 Task 36 段 | 已落盘（见 37.6） |
+
+### 37.5 任务清单（复选框由控制器独占写入，R6）
+
+- [x] T0 写集表与判据登记（本段，含**原方案撤销**的订正）
+- [x] T1 ~~功能：`.dock` 挂载 + widget test~~ —— **作废**（与 B2 需求 3 冲突）；worker 产物已回退 / 按 R4 改名挪走
+- [x] T2 收口补：两个文件尾补 LF（worker 完成，字节级已验）
+- [x] T3 门禁全绿（analyze 逐字 / desktop **+340** 零回退 / 三包 153·71·62 / `VIOLATIONS=0` / `PACKAGES_TOUCHED=0` / `BOUNDARY_VERDICT=PASS` / G3 53 项 0 失败）
+- [x] T4 重新编译 + 打包 + 覆盖装机 —— **本轮不适用**：未改任何产品逻辑（仅两文件尾补 LF）⇒ 唯一可分发包不变，**不重打包**，R3 口径无内容变更
+- [x] T5 真机目视验收 —— **本轮不适用**：收口补只动文件尾换行，**不改变任何像素**；真机像素证据沿用 Task 36 的 `reports\task36\accept\`
+- [x] T6 handoff / 台账更新（§31.5 订正 + §31.8 新增 + B1 台账 Task 36 段）
+
+### 37.6 附录命令（门禁与打包）
+
+```powershell
+$env:PUB_HOSTED_URL='https://pub.flutter-io.cn'
+$env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
+& F:\soft\00selfmade\practilog\reports\_move_test_cache.ps1
+& 'F:\soft\flutter\flutter\bin\flutter.bat' analyze
+& 'F:\soft\flutter\flutter\bin\flutter.bat' test --reporter compact
+& 'F:\soft\flutter\flutter\bin\dart.bat' analyze
+& 'F:\soft\flutter\flutter\bin\dart.bat' test
+& F:\soft\00selfmade\practilog\reports\task37-gate.ps1
+& F:\soft\00selfmade\practilog\reports\task37-forbidden-check.ps1
+& node F:\soft\00selfmade\practilog\tools\gates\g3_schema_check.mjs
+```
+
+> **打包链（本轮不走）**：改产品代码后必须 `flutter build windows --release` → `tools\build\make_installer.ps1` → 覆盖装机核验 → 同步 R3（AGENTS.md R3 + B1 台账 §5 + 本计划）。本轮未改产品逻辑 ⇒ 不走。
+
+### 37.7 本轮不做（登记，不判 PASS）
+
+- **遗留①（右轨待办气泡只读）** —— `packages\core_data` 全仓 `setQuadrant` 仅 `repositories.dart:473` 一处（`planItem.setQuadrant`）⇒ `TodoRepository` 无 `setQuadrant`。修它必须动 `packages\**` ⇒ 需另起写集，不在本轮范围。
+- **遗留⑧（旧库分叉是否回灌 live 库）** —— 不可逆且需用户拍板，本轮不动。
+- **遗留⑨（本轮改动未 commit / 未 push）** —— 待用户发话（控制器不在实现轮自行推送）。
+- **计划 `7041`（T2 真实显示缩放）** —— 仍挂账，本轮不动。
+- **遗留⑬（新增 · 验证装置缺陷）** —— 存档 `reports\task36-forbidden-check.ps1` **当前无法执行**：第 70 行 `$rel -match '^tools\verify\'` 是非法正则（`Illegal \ at end of pattern`），实跑抛 `OperationStopped` 退出码 1 ⇒ 存档 `reports\task36-gate.txt` 里的 `VIOLATIONS=0 / BOUNDARY_VERDICT=PASS` **当前不可复现**。按 R4 **不改存档文件**，本轮改用专属判据 `reports\task37-forbidden-check.ps1`（同口径 + 更严：追加「`app.dart` 内容级 HEAD 等价」校验）。
+
+---
+
+## Task 38：用户当轮三条指令落地（① 闭环合并右栏 ② 习惯性质定义 ③ 循环任务列表与进计划）
+
+### 38.0 任务来源与拆波
+
+**用户当轮指令（2026-11-13，原文）**：
+
+1. 请把界面中间栏的 闭环环·四段比例条，合并到 右侧栏 闭环提示中，标题使用"闭环提示"，四项内容，结合 四段比例条进行可视优化。
+2. 添加的习惯，除了名称、说明外，增加对习惯性质的定义。比如，习惯在每周哪些天知行、每日至少几次，或设定起始时间，期间每个多久重复一次。如是后者，设定后自动在添加到日计划中。
+3. 当前添加循环任务，确认后，没有出现在循环任务列表中。设定后，除了应该出现在循环任务列表中外，还应该出现在计划当中。
+
+按 R1 写集纪律，控制器**不得**改 `apps\`、`packages\` ⇒ 三条指令拆成**三个并行 worker 波**，控制器只写台账类文件。
+
+| 波 | 对应指令 | 派工书（唯一实现契约） | 写集 |
+|---|---|---|---|
+| W1 | ③ 循环任务 | `.superpowers\sdd\2026-11-07-b1-flutter-implementation\task-38-w1-brief.md` | `recurring_rail_panel.dart` / `recurring_task_dialog.dart` / `providers_recurring.dart` / `packages\core_data\lib\src\recurring.dart` / `apps\desktop\test\recurring_task_test.dart`(+新测试) |
+| W2 | ② 习惯性质 | `...\task-38-w2-brief.md` | `habit_quick_dialog.dart` / `packages\core_data\lib\src\repositories.dart`（仅 Habit 区 + `PlanItemRepository.create` / `createHabitRef`）/ `models.dart` / `packages\core_domain\lib\src\entities.dart`(+新日期工具) / `timeline\day_grid.dart` / 新测试 |
+| W3 | ① 闭环合并 | `...\task-38-w3-brief.md` | `today_page.dart` / `loop_progress_ring.dart` / `app.dart`（仅闭环块）/ 新测试 |
+
+三波写集**互斥**：`app.dart` 只归 W3；`packages\core_data\lib\src\repositories.dart` 只归 W2；`packages\core_data\lib\src\recurring.dart` 只归 W1；`packages\core_domain\**` 只归 W2。
+
+### 38.1 控制器已拍板的关键决定
+
+1. **习惯性质走零 schema 变更路线**（AGENTS.md §6 + `docs\schema_v1.sql:9`「FROZEN @ P0-D2，一旦冻结，改动 = schema v2 + 迁移脚本，不允许原地改」+ `packages\core_db\lib\src\migrations.dart:35` `currentSchemaVersion = 2` 且全文件无 `addColumn`/`alterTable` 先例 + 五处校验装置 `schema_consistency_test.dart` / `tools\gates\g3_schema_check.mjs` / `tools\gates\g3_migration.ps1` / `constraints_test.dart` / `enum_constraint_parity_test.dart`）⇒ **禁止 schema v3**、禁止改 `docs\schema_v1.sql`、禁止改 `packages\core_db\**`。
+2. **排程语义四选一**（用现有 `schedule_type` + `weekly_n` + `weekdays` 三列编码，不新增列）：
+   - 每天 = `schedule_type='daily'` + `weekly_n=NULL`
+   - 每隔 N 天 = `schedule_type='daily'` + `weekly_n=N`（N ∈ 2..7，受 `weekly_n BETWEEN 1 AND 7` CHECK 约束）
+   - 每隔 N 周 = `schedule_type='weekly_n'` + `weekly_n=N` + `weekdays` 至少一天（周基准 = `start_date` 所在周的周一）
+   - 每周指定几天 = `schedule_type='weekdays'` + `weekdays='1,3,5'`（1=周一 … 7=周日，沿用既有逗号串格式）
+3. **兼容红线**：`weekly_n` 有值而 `weekdays` 为空 ⇒ 仍恒命中（每周 N 次、无固定日，现状语义）；`daily` 且 `weekly_n` 为空 ⇒ 仍每天命中；**存量行判定结果零变化**（现网全为 daily + NULL）。
+4. **「起始时间」按「起始日期」实现**（本轮不引入时分字段）；**「每日至少几次」** = `target_count` + `target_unit`（默认「次」）且 `type='count'`（`packages\core_domain\lib\src\entities.dart:663-685` `validated()` 要求 `targetCount > 0`）。
+5. **间隔型自动进日计划的落地形态**：仅「每隔 N 天」「每隔 N 周」触发；新建成功后为**未来 14 天（含今天）**内命中日各建一条 `plan_item`（`source_type='habit'`、`source_id=habit.id`、`is_habit_ref=1`、`planned_start=540` / `planned_end=570`、title = 习惯名）；复用 `packages\core_data\lib\src\repositories.dart:356-375` `createHabitRef`；幂等靠**查询侧**（`plan_item` 无 `(source_id, date)` 唯一约束）；失败**不吞掉习惯本身**（面板 `_DialogError` 提示「习惯已保存，但未能自动加入日计划：…」）。
+6. **循环任务修复方向**：① 右轨「循环任务」面板分「规则」区（列全部未删除规则，**不依赖 occurrence**）+「今日」区；② 默认掩码 = workdays ∪ 创建日星期，保存时若被用户取消则**并入并明示**（禁止静默改写）；③ 面板改 loading / error / data 三态渲染，**不再** `whenOrNull ?? []`；④ 起始时刻限制 06:00–24:00、默认 09:00（堵 `clampToGrid` 丢弃路径）；⑤ `apps\desktop\test\recurring_task_test.dart:138-160` 旧断言**改写**而非删除（R6）。
+7. **闭环合并**：移除中栏 `LoopProgressRing` 装配（`apps\desktop\lib\src\pages\today_page.dart:131-134`）与空实现 `_jumpTo`（`:174-177`）；四段比例条内容并入右轨 `LoopHintPanel`（`today_page.dart:619-660`），标题逐字保持「闭环提示」（`apps\desktop\lib\src\app.dart:291`）；比例**同源** `dayStatsProvider`，分母 0 时比例 0（**不显示 100%**）；`loop_progress_ring.dart` 按 R4 留盘不删。
+
+### 38.2 已定位的根因（源码行号坐实，非转述）
+
+**循环任务「列表与计划都不出现」的四条断点**：
+
+1. `packages\core_data\lib\src\recurring.dart:302-321` `_occurrenceQuery` 用 **INNER JOIN** ⇒ 规则未物化出 `recurring_occurrence` 行时，**列表查询根本查不到规则本身**。
+2. `apps\desktop\lib\src\widgets\recurring_rail_panel.dart:29-33` `whenOrNull ?? []` 把加载态 / 错误态吞成空列表 ⇒ 用户看不到任何提示。
+3. `packages\core_data\lib\src\recurring.dart:212` 物化闸门 + `packages\core_domain\lib\src\recurring_task.dart:72-81` `WeekdayMask.includes` 静默 `continue`；默认掩码 workdays `0x1F`（`recurring_task_dialog.dart:40-41`）在创建日**不是工作日**时当天不命中。
+4. **夹值丢弃路径**（可证漏显示）：`apps\desktop\lib\src\widgets\timeline\slot_state.dart:24/62-71` `clampToGrid` 下界 360（06:00），`:255-295` 中 `clampedEnd <= clampedStart` 即 `continue`；而 `unscheduled_strip.dart:30-33` 只收 `plannedStart` / `plannedEnd` **皆 null** 的行 ⇒ 起点早于 06:00 且 06:00 前结束的条目被**网格与未排期带同时丢弃**。
+
+**习惯侧模型缺口（如实登记，非缺陷但需说明）**：`habit_checkin` 有 `UNIQUE(habit_id, date)`，一天只记一次；「每日 N 次」**无「每次一条」的存储位**（`habit_checkin.value REAL DEFAULT 1` 只可作累计近似）；习惯侧无 `habit_occurrence` per-date 表；`plan_item` 一行 = 一个时段块，无法表达「每日 N 次」。
+
+### 38.3 验收判据（收口必须逐条给出证据形态）
+
+- [x] `flutter analyze` 逐字 `No issues found!`（含 info 计数 0）
+- [x] `apps\desktop` 全量 `flutter test` 基线 **+340** → 本轮实测 **+357**（= 340 + 三波新增 test case 数；W4 只调断言、用例数不变，仍为 +357）
+- [x] `packages\core_data` **+175**（原 +153 + W2 新增 22 例 habit_schedule_test） / `packages\core_db` **+71** / `packages\core_domain` **+62**
+- [x] G3 门禁 53 项 / 0 失败
+- [x] 越界判据 `VIOLATIONS=0` / `PACKAGES_OUT_OF_SET=0` / `BOUNDARY_VERDICT=PASS`（`PACKAGES_TOUCHED` 本轮预期非 0：写集内 `packages\core_data` 3 文件）
+- [x] Dart 源卫生：`print(` 计数 0、控制字符 0、LF 行尾、无 BOM、末尾有换行
+- [x] W1 契约逐条对照通过（列表可见 + 进计划）
+- [x] W2 契约逐条对照通过（习惯性质四项 + 间隔型自动进日计划）
+- [x] W3 契约逐条对照通过（中栏移除 + 右栏合并 + 标题逐字「闭环提示」）
+- [x] W4 契约逐条对照通过（闭环提示刻度去重：4 行共轴，刻度标签 20 → 5；受保护 4 测试与 `app.dart` 零 diff）
+- [x] 改代码后走 `flutter build windows --release` → `tools\build\make_installer.ps1` → 覆盖装机核验 → 同步 R3 分发口径（`make_installer.ps1` 只打包不编译）
+- [x] 收口：计划 Task 38 段 / handoff §32 / `docs\B1_验收记录.md` Task 38 段 / `AGENTS.md` §5§7
+
+### 38.4 并发与证据纪律
+
+- W1 / W2 / W3 **并行**跑 `apps\desktop` 的 `flutter test` 会争 `apps\desktop\build\test_cache` ⇒ **OS Error 183 / "Failed to update"**。约定：W1 只跑 `test\recurring_task_test.dart`，W2 只跑 `test\habit_quick_dialog_test.dart`，W3 **不跑**任何 `flutter test` / `flutter analyze`；缓存类报错**一律不改代码不改断言**，登记「环境冲突 · 未判定」。
+- 跑全量前先 `Move-Item` 改名挪走 `apps\desktop\build\test_cache\build`（不删，R4）。
+- 门禁重定向写在 `.ps1` 内部（`.ps1` 纯 ASCII + CRLF + 无 BOM）。
+- **未取证即不判定**：本轮「真实安装库路径仍未定位」（`apps\desktop\lib\src\app_paths.dart:215-227` 候选全 absent）⇒ 如实登记「未做 + 遗留」，不写「已修复」。
+
+### 38.5 本 Task 明确不做（登记，不判 PASS）
+
+- 遗留①（右轨待办气泡只读需动 `packages\**`）、遗留⑧（旧库分叉是否回灌 live 库；不可逆，需用户拍板）、遗留⑨（未 commit / 未 push）、计划 `7041`（T2 真实显示缩放）、遗留⑬（`reports\task36-forbidden-check.ps1` 因非法正则不可执行；按 R4 不改存档，改用 `reports\task37-forbidden-check.ps1` 同口径判据）。
+- 不做 schema v3、不引入时分字段、不做「每日 N 次」的 per-occurrence 存储位。
+
+---
+
+## Task 39：用户当轮八条指令落地（① 日期条吸顶 ② 待办入池+单位 ③ 习惯重复 ④ 时间框锚标 ⑤ 手写一条日期时间 ⑥ 优先级图标 ⑦ 设置页 ⑧ 关于页）
+
+### 39.0 任务来源与拆波
+
+**用户当轮指令（2026-11-18，原文）**：
+
+1. 界面顶部的 日期模块，不随垂直滚动条滚动，保持在顶部始终显示；
+2. 添加待办，确认后，在待办列表中没有出现；预估时间，时间单位修改为可选 分钟、小时、日、周、月；
+3. 习惯速览中，当前有重复的两条，请检查是否添加逻辑存在问题，添加一次就出现重复两条；
+4. 主界面时间框，去除8:00、12:00、18:00的早、午、晚标记，但可以把三个时间段的块背景色进行调整，设置为有轻微差异；对齐时间和右侧横线，做到垂直居中对齐；
+5. 主模块下面的模块，添加手写一条这个模块，上面有一行"执行日志开发"，不明确是什么用途。而手写一条这个模块，应增加日期、时间选择；
+6. 重要、不重要使用的图标，改为"感叹号"，紧急、不紧急的图标，也希望进行修改，能体现出"时间"这个要素；
+7. 设置页面当前点击无反应。可以增加 主题选择、语言（后续要增加英语语言包）、白天黑夜模式选择、是否开机启动、添加桌面快捷方式按钮、每天计划的起止时间设置。其它设置项你来进行思考、完善；
+8. 增加"关于"页面，页面中包含软件简介、github仓库地址、检查新版本、在线升级按钮、开发者简介、其它软件推荐（Alpha File Manager、 PageWeaver）等等。
+
+按 R1 写集纪律，控制器**不得**改 `apps\`、`packages\` ⇒ 八条指令拆成**四个 worker 波**，控制器只写台账类文件。
+
+| 波 | 对应指令 | 派工书（唯一实现契约） | 写集（互斥） |
+|---|---|---|---|
+| W1 | ① 日期条吸顶 / ④ 时间框锚标与三段底色 / ⑤ 手写一条日期时间 | `...\task-39-w1-brief.md` | 13 行：`shell\ledger_paper.dart` / `shell\ledger_shell.dart` / `app.dart` / `pages\today_page.dart` / `date_bar.dart` / `timeline\day_grid.dart` / `theme\app_tokens.dart` / `design-demos\TOKENS.md` / `test\task36_ledger_test.dart` / `test\today_pinned_date_bar_test.dart`(新) / `test\today_add_plan_item_time_test.dart`(新) / `test\timeline_day_grid_test.dart` / `reports\task39-w1-report.md` |
+| W2 | ② 待办入池 + 预估单位 / ③ 习惯重复 | `...\task-39-w2-brief.md` | 15 行：`packages\core_data\lib\src\repositories.dart` / `packages\core_data\test\task39_todo_pull_plan_test.dart`(新) / `packages\core_data\test\todo_repository_test.dart`（**控制器追写授权**，见下注） / `quick_todo_dialog.dart` / `habit_quick_dialog.dart` / `timeline\todo_rail_panel.dart` / `est_duration_text.dart`(新) / `pages\todo_pool_page.dart` / `pages\habits_page.dart` / `test\task39_todo_pool_test.dart`(新) / `test\task39_habit_dup_test.dart`(新) / `test\task39_est_unit_test.dart`(新) / `test\todo_pool_page_test.dart`（**控制器追写授权**，见下注⑤） / `reports\task39-w2-sandbox.ps1` / `reports\task39-w2-report.md` |
+| W3 | ⑦ 设置页 / ⑧ 关于页 | `...\task-39-w3-brief.md` | 18 行：`pages\settings_page.dart`(新) / `pages\about_page.dart`(新) / `l10n\app_localizations.dart`(新) / `app_version.dart`(新) / `app.dart` / `shell\nav_rail.dart` / `providers.dart` / `timeline\day_grid.dart` / `timeline\slot_state.dart` / `test\task39_settings_page_test.dart`(新) / `test\task39_about_page_test.dart`(新) / `test\task39_about_version_test.dart`(新) / `test\shell_nav_rail_test.dart`（**控制器追写授权**，见下注⑥） / `test\nav_rail_footnote_test.dart`（同上） / `test\nav_shortcut_test.dart`（同上） / `test\shell_key_bar_test.dart`（同上） / `test\shell_key_hints_test.dart`（同上） / `reports\task39-w3-report.md` |
+| W4 | ⑥ 优先级图标 | `...\task-39-w4-brief.md` | 8 行：`priority_marks.dart` / `priority_chips.dart` / `priority_hover_bubble.dart` / `test\priority_marks_test.dart` / `test\task35_glyph_render_test.dart` / `test\priority_hover_bubble_test.dart` / `test\task39_priority_marks_test.dart`(新) / `reports\task39-w4-report.md` |
+| W5 | 首轮门禁 4 条旧契约失败修复 | `...\task-39-w5-brief.md` | 3 行：`test\quick_todo_dialog_test.dart` / `test\today_page_selected_date_test.dart`（**控制器追写授权**，见下注⑦） / `reports\task39-w5-report.md` |
+| W6 | ③ 习惯重复（verifier FINDING 2 真实根因修复） | `...\task-39-w6-brief.md` | 4 行：`widgets\habit_quick_dialog.dart` / `test\task39_habit_dup_test.dart` / `test\habit_quick_dialog_test.dart`（**控制器追写授权**，见下注⑧） / `reports\task39-w6-report.md` |
+
+> **写集表追写留档（本轮控制器追加，R1）**：
+> ① W2 第 14 行 `packages\core_data\test\todo_repository_test.dart` —— 控制器 2026-11-18 追写授权：W2 把 `pullToPlan` 回归用例加在既有仓储测试文件里（属合理落点）；`task-39-w2-brief.md` 已同步该行。
+> ② 路径勘误：`todo_rail_panel.dart` 真实路径 = `apps\desktop\lib\src\widgets\timeline\todo_rail_panel.dart`（**不在** `widgets\` 直下）；`task-39-w2-brief.md`、越界脚本允许清单、本表已同步。
+> ③ `apps\desktop\lib\src\app.dart` 在 HEAD 里本就是 **CRLF**（Task 38 只做 Frozen 检查未做编码检查）⇒ 越界脚本 `$CrlfPreserved` 白名单登记该文件，该文件只查 BOM/CTRL，不按 LF 判。
+> ④ W1 实际只改 10 个文件：`date_bar.dart` 经查无需改、`timeline_day_grid_test.dart` 未追加用例（判据已由 `task36_ledger_test.dart` 用例①覆盖）—— 属写集内未改动，非越界。
+> ⑤ W2 第 15 行 `apps\desktop\test\todo_pool_page_test.dart` —— 控制器 2026-11-18 追写授权：W2 追加轮实测该既有测试文件有 **3 条断言停留在 Task 39 之前的旧契约**（`:112` 期望旧显示 `'30'`、`:136-138` 期望捞取后待办离开池子、`:158` 期望旧错误文案），单文件实测 `00:29 +1 -2: Some tests failed.`、`EXIT=1`。授权按 W2 报告 §8.2 的 **4 处补丁**更新（1 处头注释 + 3 处断言；其中 `:136-138` 由「空态 + listOpen() 为空」改**强**为「仍在池子 + listOpen() 恰 1 条且 id 相同」，符合 R6「不得删用例、不得把既有断言改弱」），**不删用例、不新增文件、不回退任何 Task 39 行为**（三处变更均为控制器指令 2a/单位契约的必然结果）。`reports\task39-forbidden-check.ps1` 允许清单同步放行该文件。
+> ⑥ W3 第 14–18 行 `apps\desktop\test\shell_nav_rail_test.dart` / `nav_rail_footnote_test.dart` / `nav_shortcut_test.dart` / `shell_key_bar_test.dart` / `shell_key_hints_test.dart` —— 控制器 2026-11-18 追写授权：W3 首轮实测「设置项启用」与 5 个既有测试的**旧契约**冲突（`shell_nav_rail_test.dart:116-150` 断言 `find.byType(InkWell)` 只有 4 个且项目/设置为禁用态 / `nav_rail_footnote_test.dart:145` / `nav_shortcut_test.dart:5-6,:147` / `shell_key_bar_test.dart:82,:143` / `shell_key_hints_test.dart:102`），W3 因此未跑 desktop 全量。授权按 `task-39-w3-brief.md` §7 的逐条改法更新（**改断言不删用例、该改强就改强、不回退 Task 39 的设置项启用行为**），并与 W2 第 15 行 `todo_pool_page_test.dart` 的 4 处补丁**合并到同一轮**执行（避免两次并发 `flutter test` 撞 `apps\desktop\build\test_cache\build`）。`reports\task39-forbidden-check.ps1` 允许清单同步放行这 5 个文件。
+> ⑦ W5 第 1–2 行 `apps\desktop\test\quick_todo_dialog_test.dart` / `apps\desktop\test\today_page_selected_date_test.dart` —— 控制器 2026-11-18 追写授权：全量门禁实测 `GATE_VERDICT=FAIL`、**唯一失败项 `DESKTOP_TEST_FAILED`（`+410 -4`）**，4 条失败归到 **2 个根因**，均源于 Task 39 自身变更而非产品回归 —— ① `quick_todo_dialog_test.dart:184` 期望「勾了同时捞入今天 ⇒ 待办离开池子」，是**指令 2a 之前**的旧契约（`pullToPlan` 不再写 `status='done'`，待办本体仍在池子），按 `todo_pool_page_test.dart:136-138` 同源改法**改强**为「仍在池子 + 恰 1 条 + title 相同」，`:188` 的「计划里真的有它」主判据保留不动；② `today_page_selected_date_test.dart:135` 找不到「补录模式」，因**指令 ①** 把 `DateBar` 从 `TodayPage` 移到壳层吸顶槽位（`app.dart:_pinnedHeader()` 注入），而该测试的 `LedgerShell` 未传 `pinnedHeader` ⇒ 树里无 DateBar，按真实接法补 `pinnedHeader: DateBar()`。另 2 条（两文件各 1 条）为上述失败的 DB 级联（`Can't re-open a database after closing it`），修好即消。**不删用例、不改弱断言、不回退产品行为**。`reports\task39-forbidden-check.ps1` 允许清单同步放行这 2 个文件。
+> ⑧ W6 第 3 行 `apps\desktop\test\habit_quick_dialog_test.dart` —— 控制器 2026-11-18 追写授权：独立 verifier 复核（结论 `PASS_WITH_FINDINGS`，FINDING 2）坐实**指令 3「添加一次出两条」的真实根因**在 `widgets\habit_quick_dialog.dart`：`navigator.pop()`（:217）之后 `finally { if (mounted) setState(() => _submitting = false); }`（:226-229）在**退出动画窗口内**把 `_submitting` 复位为 false，而路由尚未 unmount ⇒ `:247`/`:256` 两处 `onSubmitted: (_) => _submit()` 仍可被再次触发 ⇒ **第二次 `habit.create` 再插一行同名习惯**。W6 授权在既有 `habit_quick_dialog_test.dart` 内补**判别性**用例（回车/重复提交 ⇒ 库里恰 1 行），并允许把 `task39_habit_dup_test.dart` 的 A6 从「特征钉（自认不具判别性）」升级为判别性用例。**约束：不删 A5/A6、不改弱断言、不加新依赖、不动 schema、不回退 Task 39 任何行为；判据必须证明「撤掉修复即失败」**（临时回退验证要在报告里贴实测读数）。`reports\task39-forbidden-check.ps1` 允许清单同步放行该文件。
+
+**并发拓扑**：W1 / W2 / W4 **并行**（写集互斥）；**W3 串行在 W1 / W2 之后**（`app.dart` 与 W1 重叠、`providers.dart` 与 W1 重叠、`day_grid.dart` / `slot_state.dart` 与 W1 重叠）。
+
+### 39.1 控制器已拍板的关键决定
+
+1. **指令 4 按代码实际执行**：代码里是 **06:00「晨」/ 12:00「午」/ 18:00「晚」**（`timeline\day_grid.dart:214-219` `_anchorOfRow`），**无 08:00 锚点、无「早」字面量**（全仓检索零命中）⇒ 按代码坐标改，不按用户口述字面搜。保留三条 8px 短横线作三段起点标记，并使其与同行整点时间数字**垂直中心**对齐（当前数字 `Alignment.topRight`+`height:1`、锚标块 `top:+14` ⇒ 中心差约 14px）。三段底色做轻微差异：**新 token 必须先写进 `design-demos\TOKENS.md` §8 再改 `app_tokens.dart`**（`app_tokens.dart:5` 明文要求）。
+2. **指令 5 的「执行日志开发」是用户真实数据，不是代码**：用户库 `D:\Program Files\actlog\userdata\actlog.db` 里 `date=2026-11-18`、起止皆 NULL 的 `plan_item` 行，落在 `unscheduled_strip.dart:30-33` 的未排期芯片区，视觉位置在「+ 手写一条」上方造成误解 ⇒ **代码侧不删不屏蔽**，改为让未排期带与手写一条输入块**视觉分区**。日期选择**必须**复用 `date_picker_sheet.dart` 的 `DatePickerSheet.show`（全站唯一日期组件，明文禁止自造第二套）；时间用 Material 标准 `showTimePicker` → 当日分钟数（0..1439），默认时长 `kSlotMinutes=15`。
+3. **指令 2 的 bug 按 schema 注释修**：`docs\schema_v1.sql:167-168` 明文「添加到今日计划 = 建 plan_item + 拷 title，不复制状态；`todo.completed_at` 只在待办本体完成时写」；实现 `repositories.dart:820-837` `pullToPlan` 却把 todo 置 `done`（根因指针 `:830`）⇒ 与 `listOpen()`（`:686` 只查 `status='open'`）冲突。运行时坐实：`created_at` 与 `completed_at` 相差 **1 毫秒**。**不**改 `listOpen()` 过滤。
+4. **预估时间单位走零 schema 变更路线**：`todo.est_minutes` 本就是 INT 分钟列（`packages\core_db\lib\src\tables.dart:355`，约束 `:400-401`；`plan_item` 同名列 `:277`）⇒ **不加单位列**（加了也无用户可见收益，单位可由分钟数确定性推导）。输入侧 = 单位选择器（分钟 1 / 小时 60 / 日 1440 / 周 10080 / 月 43200）+ 数量 → 换算成分钟存库；显示侧 = 确定性阶梯（`%43200`→月、`%10080`→周、`%1440`→日、`%60`→小时、否则分钟）。
+5. **指令 6 的字形路线**：随包 9 个 ttf 的 cmap 直解 —— `!`(U+0021) 覆盖 **9/9**，全部时钟/沙漏类 Unicode 覆盖 **0/9** ⇒ 感叹号走**文本字形**，紧急/不紧急**必须走 Material Icons**（`uses-material-design: true`，`priority_chips.dart:321` 已用 `Icons.flag_outlined`）。两个重要性标记同为 `'!'` ⇒ 区分由**字重 + token 颜色**承担，且渲染处必须带**可区分的 Key**（否则 `find.text` 同时命中两处）。
+6. **指令 7 / 8 走零新增 pub 依赖**：`SettingsRepository`（`repositories.dart:1351`）已是通用 KV + oplog ⇒ 设置项零 schema 承载；「检查新版本」用 `dart:io` 的 `HttpClient` 查 GitHub Releases API；开仓库页用 `Process.run('cmd', ['/c','start','',url])`；开机启动用 `reg` 写 `HKCU\...\Run`；桌面快捷方式用 `powershell -EncodedCommand` + `WScript.Shell` COM。
+7. **指令 8 的版本源**：`https://github.com/kizemo/actlog`（真源 `AGENTS.md:318`；README 全文无此 URL）public / main，但 **releases = 0、tags = 空、`releases/latest` = 404** ⇒ 「检查新版本 / 在线升级」必须优雅降级为「当前仓库暂无发布版本」，**不得伪造下载链接**；`pubspec.yaml:11` 的 `version: 0.1.0+1` 是版本唯一真源（用常量 + 测试锁，防漂移）。
+8. **不擅自发布 release**：仓库 releases = 0 是事实，发布动作需用户单独确认。
+
+### 39.2 已定位的根因（源码行号坐实，非转述）
+
+| 指令 | 位置 | 事实 |
+|---|---|---|
+| ① | `today_page.dart:118-122` / `shell\ledger_paper.dart:74` | `DateBar` 是 `_TodayBody` 的 `Column` 第一个 child；唯一滚动层是 `ledger_paper.dart:74` 的 `SingleChildScrollView` ⇒ 必然滚走；全仓无吸顶先例 |
+| ② | `quick_todo_dialog.dart:50` / `repositories.dart:830` / `:686` | `_pullIntoToday` 默认 `true` ⇒ `pullToPlan` 置 `done` ⇒ `listOpen()` 查不到 |
+| ③ | **已坐实**（verifier FINDING 2，2026-11-18 独立复核后） | 根因 = `habit_quick_dialog.dart:217` `navigator.pop()` 之后，`:226-229` 的 `finally { if (mounted) setState(() => _submitting = false); }` 在**退出动画窗口内**复位了守卫（此时路由尚未 unmount）⇒ `:247` / `:256` 两处 `onSubmitted: (_) => _submit()` 仍可再次触发 ⇒ 第二次 `habit.create` 再插一行同名习惯 ⇒ 习惯速览出现重复两条。此前「未坐实」时四个候选（重复提交 / 写两次 / JOIN 放大 / 渲染两份）已被源码级反证；**「两处 onSubmitted + finally 无条件复位」这一条当时没能落成可证伪的判别性用例**（W2 的 `_saved` 锁正因此被「净零撤回」）⇒ 转为 **W6 修补轮**（`task-39-w6-brief.md`，硬判据 = 判别性三步：修复后绿 / 撤掉修复必须红 / 恢复后绿） |
+| ④ | `day_grid.dart:214-219` / `:165-208` / `:235-246` | `_anchorOfRow` ⇒ 6→晨/12→午/18→晚；整块仅 `AppTokens.card` 一个底色 |
+| ⑤ | `today_page.dart:296-394` / `unscheduled_strip.dart:30-33` | `_AddPlanItemBar` 只传 `date/title/quadrant`，无日期/时间入口；「执行日志开发」落在未排期芯片区 |
+| ⑥ | `priority_marks.dart:26,29,32,35` / `priority_hover_bubble.dart:379-391` | 四枚字形 = ▲▽◆◇；气泡复用同两枚并显式指定字体族 |
+| ⑦ | `shell\nav_rail.dart:40` / `:303-313` / `app.dart:213-226` | `settings` 项 `enabled: false` 且禁用分支不挂 `InkWell`；`_content()` 无 `'settings'` case；`pages\` 下无 settings/about 文件 ⇒ 「点击无反应」= 既无控件也无页面 |
+| ⑧ | `pubspec.yaml:11` | `version: 0.1.0+1`；无 `http` / `dio` / `url_launcher` / `package_info_plus`；无任何 i18n 机制 |
+
+### 39.3 验收判据（收口必须逐条给出证据形态）
+
+- [x] `flutter analyze` 逐字 `No issues found!`（含 info 计数 0）
+- [x] `apps\desktop` 全量 `flutter test` 基线 **+357** 不得回归
+- [x] `packages\core_data` **+175** / `packages\core_db` **+71** / `packages\core_domain` **+62** 均不得回归
+- [x] G3 门禁 53 项 / 0 失败
+- [x] 越界判据 `VIOLATIONS=0` / `PACKAGES_OUT_OF_SET=0` / `BOUNDARY_VERDICT=PASS`（`reports\task39-forbidden-check.ps1`）
+- [x] Dart 源卫生：`print(` 计数 0、控制字符 0、LF 行尾、无 BOM、末尾有换行
+- [x] W1 契约逐条对照通过（① 吸顶 / ④ 锚标去除+几何对齐+三段底色 / ⑤ 视觉分区+日期时间选择）
+- [x] W2 契约逐条对照通过（② 待办仍在列表 + 单位换算 / ③ 习惯重复根因坐实并修复，或如实登记「未坐实」）
+- [x] W3 契约逐条对照通过（⑦ 设置页可点可存可生效 / ⑧ 关于页全区块 + 检查新版本优雅降级）
+- [x] W4 契约逐条对照通过（⑥ 感叹号 + 时间要素 Icon + 同形可区分 + 既有断言改写不删用例）
+- [x] W6 契约逐条对照通过（③ 习惯重复**真实根因修复**：终态标志 `_done` + 入口守卫 + 异常路径可重试；判别性用例「撤修复即红」三步实测坐实 —— 见 39.7）
+- [x] 收口：计划 Task 39 段（本段）/ handoff §33（含 §33.9 W6 修补轮）/ `docs\B1_验收记录.md` Task 39 段 / `AGENTS.md` §5§7
+
+> **39.3 门禁实测读数（控制器亲跑，`reports\task39-gate\summary.txt`，`GATE_VERDICT=PASS`）**：
+> `MOVE_CACHE_EXIT=0` / `ANALYZE_LITERAL=True` / `ANALYZE_ISSUE_LINES=0` /
+> desktop **`01:28 +414: All tests passed!`**（`DESKTOP_EXIT=0` / `DESKTOP_FAILED=0`，基线 +357 **未回归**，净增 **+57**）/
+> core_data **`+179`**（`+4`）/ core_db **`+71`** / core_domain **`+62`**（三包 analyze 均逐字 `No issues found!`）/
+> G3 `G3_EXIT=0`，`检查项 53，通过 53，失败 0` /
+> 越界 `SCANNED_FILES=16824 / VIOLATIONS=0 / PACKAGES_TOUCHED=3 / PACKAGES_OUT_OF_SET=0 / PRINT_TOTAL=0 / FMT_VIOLATIONS=0 / FROZEN_DIFFS=0 / BOUNDARY_VERDICT=PASS` / `FORBIDDEN_EXIT=0`。
+>
+> **首轮门禁 FAIL 的处置（如实留档）**：首轮 `GATE_VERDICT=FAIL`，唯一失败项 `DESKTOP_TEST_FAILED`（`+410 -4`）。4 条失败归 **2 个根因**，均为 Task 39 自身变更导致的**旧契约过期**（非产品回归）：
+> ① `quick_todo_dialog_test.dart:184` 期望「勾了同时捞入今天 ⇒ 待办离开池子」= **指令 2a 之前**的口径（`pullToPlan` 不再写 `status='done'`）⇒ 改**强**为「仍在池子 + 恰 1 条 + title 相同」；
+> ② `today_page_selected_date_test.dart:135` 找不到「补录模式」= **指令 ①** 把 `DateBar` 移到壳层吸顶槽位后，隔离测试的 `LedgerShell` 未传 `pinnedHeader` ⇒ 按真实接法补 `pinnedHeader: DateBar()`。
+> 另 2 条为上述失败的 DB 级联（`Can't re-open a database after closing it`）。经 **W5 修补轮**（写集 = 2 个既有测试文件 + 1 份报告，见注⑦）修复后复跑全绿 ⇒ 复选框方可打勾。
+
+### 39.4 并发与证据纪律
+
+- W1 / W2 / W4 并行跑 `apps\desktop` 的 `flutter test` 会争 `apps\desktop\build\test_cache` ⇒ 各波**只跑自己写集内的定向用例**，**W3 之外的任何波都不跑全量**；全量门禁由控制器统一跑。
+- 跑全量前先 `Move-Item` 改名挪走 `apps\desktop\build\test_cache\build`（不删，R4）。
+- 缓存类报错（`OS Error 183` / "Failed to update"）**一律不改代码不改断言**，登记「环境冲突 · 未判定」，等待后重试。
+- **居中类判据必须几何断言**（`tester.getRect` / `getCenter`），截图不算证据。
+- **指令 3 禁止盲改**：拿不到正面证据就如实登记「未坐实 + 已排除候选 + 复现方法」，不写「已修复」。
+- **「搜索 X 得到 0 命中」不能证明「X 已消失」**（R5）。
+- 门禁重定向写在 `.ps1` 内部（`.ps1` 纯 ASCII + CRLF + 无 BOM，中文用 `[char]0x....`）。
+
+### 39.5 本 Task 明确不做（登记，不判 PASS）
+
+- **指令 6 的 ICU 时钟字符**（0/9 覆盖 ⇒ 豆腐块）；**全应用既有中文硬编码的本地化**（只搭框架 + 新页面文案，英文语言包后续批次）。
+- **schema v3 / 新增单位列**（零 schema 变更路线，见 39.1-4）；**DayLog 加计划起止列**（走 `SettingsRepository` KV）。
+- **发布 GitHub release**（仓库 releases = 0；发布动作需用户单独确认）。
+- **伪造在线升级下载链接**（无 release ⇒ 按钮禁用并说明原因）。
+- **代码侧删除 / 屏蔽用户数据「执行日志开发」**。
+- 遗留⑨（Task 38 未 commit / 未 push）、计划 `7041`（T2 真实显示缩放）—— 待用户发话。
+
+### 39.6 verifier 复核后新增登记：**真实未交付项**（不属 39.5 的「本轮不做」，**不判 PASS**）
+
+> 独立 verifier（`bg_11b301b9-df2d-4cd9-a178-cdb352eb3bd6`，只读非实现者）VERDICT = `PASS_WITH_FINDINGS`。
+> 下列条目**不得**用「本 Task 明确不做」一笔带过 —— verifier 明确指出：**未登记即等于登记缺失 + 真实缺陷**。
+
+- **深色主题只有开关、没有配色**（verifier **FINDING 1**，真实未交付项，与用户指令 ⑦ 的「白天黑夜模式选择」同类投诉）—— `app_theme.dart:24-53` 把 surface 系 token 全映射成浅色常量，`AppTokens` **无深色 token**；grep `AppTokens.(paper|ink|card|hair|paperDim|sunken)` = **279 处 / 38 个文件** ⇒ 真深色是**架构级 token 改造**。本轮**不做半成品**（半深半浅的表面改动会制造「已交付」假象，违反 R5 证据纪律）⇒ 需**独立一轮排期**。
+- **设置页「主题」与「深浅色」合并为一组 chip**（verifier FINDING 3，次要）—— 可随 W6 或下一轮处理。
+- **越界脚本扫描根只含 `apps\` + `packages\`，不含 `docs\`**（verifier FINDING 4，登记口径类）—— 只登记，不改脚本行为。
+- **版本号口径**（verifier FINDING 5，登记口径类）—— 根 `pubspec.yaml:12` = `0.1.0`（无 `+1`），`apps\desktop\pubspec.yaml:11` = `0.1.0+1`；关于页以 `apps\desktop` 为准。
+
+### 39.7 W6 修补轮实测（指令 ③ 真实根因修复，verifier FINDING 2）
+
+> 派工书 `...\task-39-w6-brief.md`；报告 `reports\task39-w6-report.md`；模型 `custom_provider:provider-aa5659/deepseek-v4.1-flash-1017`，effort `high`；写集 4 行（见 39.0 表 W6 行 + 注⑧）。
+
+- **根因**：`habit_quick_dialog.dart` 在 `navigator.pop()` 之后，`finally` 于**退出动画窗口内**无条件复位 `_submitting` ⇒ `:247` / `:256` 两处 `onSubmitted: (_) => _submit()` 可再次触发 ⇒ 第二次 `habit.create` 再插一行同名习惯（`habit` 表**无名字唯一约束**，`create` 每次用新 `uuidV7()` ⇒ 第二行必然落库）。
+- **修复**：一次性**终态标志** `_done`（只在**成功路径**、于 `pop()` **之前**置位）＋ 入口守卫 `if (_submitting || _done) return;` ＋ `finally` 复位条件改为 `if (!_done && mounted)`（**异常路径仍可重试**，用户改完名字能再提交）。
+- **判别性三步（实测原文，非推断）**：**未修复**单跑 A7 = `00:31 +0 -1`，`Which: has length of <2>`（exit 1）→ 修复后 `00:32 +8: All tests passed!`（exit 0）→ **撤修复**重跑 = `00:30 +7 -1`，`Which: has length of <2>`，**仅 A7 红**（exit 1）→ 恢复 = `00:32 +9: All tests passed!`（exit 0）；`flutter analyze` 逐字 `No issues found! (ran in 12.9s)`、exit 0；改动前基线 `00:37 +7: All tests passed!`。
+- **用例变化**：`task39_habit_dup_test.dart` 7 → 9 例 —— A5 保留 / A6 保留（自述订正为特征钉）/ **A7 重写为判别性用例**（两次触发**对称**直调 `TextField.onSubmitted`）/ **A8 新增「落库失败后不锁死」**；`habit_quick_dialog_test.dart`（5 例）**未改动**；**无删除、无断言放宽**。
+- **机制沉淀（本轮挖出的真机制）**：路由反向过渡期 `_ModalScope` 被 `IgnorePointer(ignoring: true)` 包住（`routes.dart:1220-1222`）⇒ W2 当轮的 `tap(..., warnIfMissed: false)` 是**被静默吞掉的空点击**，`receiveAction` 在 `pop()` 之后是 no-op ⇒ 真实缺陷窗口 = `pop()` 与 `finally` 复位所在的**那个微任务**，到**下一帧** `IgnorePointer` 生效前为止。已登记 `AGENTS.md` §5 **坑 57**。
+
+### 39.8 W6 后收口：门禁归因 + 权威读数 + 重编译重打包覆盖装机（2026-11-18 14:4x，控制器实跑）
+
+- **W6 后第一轮全量门禁 `GATE_VERDICT=FAIL` / `FAIL_COUNT=1` → 归因闭合 = 机器被外部进程占满，不是产品回归**：唯一失败 = `task39-calendar-shelf\calendar-full.txt` 三例「did not complete」（2 分 12 秒挂起）；`calendar_page_test.dart` **不在 Task 39 任何授权写集内**、从未被改动，与 W6 的 habit dialog 无因果关系；同一文件**隔离单跑 `00:30 +3: All tests passed!`（exit 0）**。同轮 **analyze 从 12.9 秒劣化到 33.3 秒、全量从 1:41 劣化到 4:04** ⇒ 环境整体劣化的旁证。
+- **第二轮门禁 `FAIL_COUNT=2` 同源**：`ANALYZE_NOT_LITERAL`（`ANALYZE_EXIT=1` + `ANALYZE_ISSUE_LINES=0` + **`analyze.txt` 0 字节** ⇒ 进程根本没跑起来）+ `db_probe_test.dart` 加载期 `Connection closed before test suite loaded.`（该文件是 **2026-11-07 已入库的只读老探针**：`git ls-files` 命中、`CreationTime 2026/11/7 0:02:14`、内容正常）。两轮均登记「**环境争用 · 未坐实回归**」，**未改任何产品代码、未改任何既有断言、未动 `calendar_page_test.dart` 与 `db_probe_test.dart`**。
+- **负载取证（3 秒窗口瞬时 CPU 占用）**：`Doubao 160% / verysync 158% / HipsDaemon 108% / CompatTelRunner 100% / MiniMax Code 66% / WmiPrvSE 66% / ToDesk 59% / DingTalk 48% / alpha-file-manager 46% / chrome 41%`，`LOAD=65~100%`，内存 63.9G/Free 39.5G ⇒ 占用方**全部在本会话之外**；**未 kill 用户任何进程**（远程桌面与安全软件属不可逆动作）。
+- **权威读数（降并发收敛，`reports\task39-desktop-j4.ps1`）**：`flutter test --reporter compact --concurrency=4` ⇒ **`EXIT=0` / `02:13 +416: All tests passed!`** = **W6 后 Task 39 全部改动零回归**（416 = W6 前 414 + W6 新增 2 例，**W6 两条新用例在全量里亦绿**）；日志 `apps\desktop\build\task39-desktop-j4.log`。**desktop 基线自本行起更新为 `+416`**。`flutter analyze` 单跑 **`ANALYZE_EXIT=0` / 逐字 `No issues found! (ran in 33.3s)`**。
+- **其余门禁项全绿**（同轮实测）：`core_data +179` / `core_db +71` / `core_domain +62` / G3 **53 项 0 失败** / 越界 `VIOLATIONS=0`、`PACKAGES_OUT_OF_SET=0`、`PRINT_TOTAL=0`、`FMT_VIOLATIONS=0`、`FROZEN_DIFFS=0`、`BOUNDARY_VERDICT=PASS`、`FORBIDDEN_EXIT=0`。
+- **W6 后重编译 + 重打包（`reports\task39-rebuild-installer.ps1`）**：`BUILD_EXIT=0`（171.0s）→ 构建产物 `data\app.so` sha16 **`14A95A42A7F6BA8E` → `194DF3F73460A623`**（8,307,592 B，`APPSO_CHANGED=true`，**W6 修复确实进入产物**）→ makensis `EXIT=0`（payload 33 files 45,769,310 B / 排除 4 files 1,311,473 B）→ **新包 `release\actlog-Setup-1.0.0_20261118-134429.exe`（16,115,179 B / sha16 `E8DA81A56F6B5DAD`）**。
+- **覆盖装机 + 运行验证（`reports\task39-install-verify.ps1`，14:46~14:47）**：`DESKTOP_IS_DEFAULT=1` → `INSTALL_EXIT=0` → **装机目录 `app\data\app.so` sha16 = `194DF3F73460A623` = 构建产物（`INSTALLED_APPSO_MATCHES_BUILD=1`）**、`actlog.exe` sha16 `1DCDF975F9578132` 同样一致 → **`USERDATA_HASH_SAME=1`（8 个用户数据文件逐一相同，零丢失）** → 新版本启动 `APP_PROCS=1`、启动日志 `14:47:02` 的 `shell.start` / `window shown` / `tray ready` 三连。**W6 修复已在真机二进制上生效。**
+- **本轮取帧判据不成立（登记为未判定，非缺陷）**：`app-after-printwindow.png` 抓到的 hwnd 是 `GDI+ Window (actlog.exe)`、rect `1x1` ⇒ 窗口句柄选择问题，按「1x1 不得判黑屏」的既有口径**不作任何 UI 判定**；界面证据沿用 12:2x 那一轮真机帧 + 本轮启动日志。**遗留**：新版本（含 W6）的 PrintWindow 真机帧未重取。
+- **旧包作废（R3）**：`..._20261118-122247.exe`（sha16 `F1919BC96171B419`，包内 app.so `14A95A42A7F6BA8E`）是 **W6 修复前**的包，**不含重复守卫**，**不得再作为最新可分发包**；当前唯一可分发 = **`..._20261118-134429.exe`**；`release\` 下其余历史包全部失效、严禁分发。
+
+### 40.0 Task 40：产品改造 13 项 + Task 39 遗留收口（2026-11-18 控制器开题）
+
+- **背景**：Task 39 已收口（门禁 desktop +416 全绿 / analyze 逐字 `No issues found!` / 唯一可分发包 `release\actlog-Setup-1.0.0_20261118-134429.exe` 已覆盖装机验证）。用户当轮提出 **13 项产品改造需求**，并要求处理 Task 39 遗留。
+- **本轮硬约束（沿用 Task 39 口径）**：**零 schema 变更 / 零新依赖**；`docs\schema_v1.sql` FROZEN 不动；14 表结构不变。
+- **派工书（唯一实现契约）**：`.superpowers\sdd\2026-11-07-b1-flutter-implementation\task-40-briefs.md`（通用约束 / 写集总表 / 9 份 worker brief）。
+- **模型与角色（R8）**：`custom_provider:provider-aa5659/deepseek-v4.1-flash-1017` + `effort=high`；写集互斥才并行。
+
+### 40.1 需求 → 实现映射（13 项）
+
+| # | 需求 | 归属 | 关键实现口径 |
+|---|---|---|---|
+| 1 | 计划模块日期入表格单元格 + 区分底色 + 表格与主体左对齐 | B1 | `day_grid.dart` 加表头行，**最左单元格放日期**（独立底色，**不新增 token**）；时间刻度列作为表格最左列；表头 / 刻度 / 条目层左边缘三者一致 |
+| 2 | 手写条日期+时间合并成一个按钮，与重要/紧急同行 | B2 | `_AddPlanItemBar` 日期芯片 + 时间芯片 → **单按钮**（复用 `DatePickerSheet.show` + `showTimePicker`），与 `PriorityMarkPicker` 同行 |
+| 3 | 重要/不重要同图标，紧急/不紧急同图标，仅填充/空心区分 | A3 | 重要性 `Icons.star`/`Icons.star_border`；紧急度 `Icons.notifications`/`Icons.notifications_none`（**先在 SDK `icons.dart` 核实常量存在**）；坑 51 ⇒ 断言用 `find.byIcon`/ValueKey，**不许比字形像素** |
+| 4 | 复盘去「已闭合」「晚·复盘与心态」、内容左对齐；去「今日失守」；去「可控/不可控/下一步可控动作」 | B2 + B3 | 复盘段不再走 `TimelineSection` 左栏包装；`review_section.dart` 删 3 字段（保留 学到了什么/做得好/待改进）；`mood_section.dart` 删「今日失守」**UI 行**（`mood_failed` 自动派生与落库保留）；`hasReview` 只认 good/improve/learning ⇒ 闭环口径天然不受影响 |
+| 5 | 淡蓝背景 + 深蓝文字 → 与主题一致 | A2 | **先改 `design-demos\TOKENS.md` §8 新增小节（插入式，§1 已获批不改）**，再改 `app_tokens.dart`：`ink #2E4057→#322B23` / `ink2 #3D5170→#4A4036` / `inkWash #E7EAEF→#EFE9DE` / `slotPlan #E8ECF1→#EBE5D8` / `slotHabit #DCE4EC→#E2DACB`；`accent` 赭石系不动；同步 `theme_tokens_test.dart` + `timeline_contrast_test.dart`（epsilon 0.005 钉死值，**只许改数值不许放宽阈值**） |
+| 6 | 心态模块按豆包 + 德鲁克 + 柯维优化 | A1 + B3 | 豆包 3+2：日 3 项（履约负责 / 高效高质 / 积极思维）+ 周 2 项（自我效能 / 利他贡献）；映射落到**既有 legacy 列**（履约←mood_3 主 + mood_4/mood_8 佐证；高效高质←mood_1 + mood_2；积极思维←mood_5；自我效能←mood_6；利他贡献←mood_7）⇒ **8 列全用，老数据零丢失**；「明日改进点」写 `next_action` 列（`saveMood` 新增可选参数 `nextAction`；`saveReview` 不再写该列，避免互踩） |
+| 7 | 参考德鲁克 / 柯维分析还能优化哪些模块、可加什么功能 | C1 | `docs\task40\模块优化建议.md`：逐模块「问题→建议→依据→优先级→预估改动面（具体文件）」 |
+| 8 | 右栏「循环任务」重复问题解决；不再展示「今日」列表 | A1 + B4 | 根因（已坐实）：`recurring.dart` `_materializeOne` 查 occurrence **未过滤 `deletedAt.isNull()`** + 删 plan_item **不联动** occurrence ⇒ 右栏仍列已删条目。修法 = 过滤软删 + `PlanItemRepository.softDelete` 联动软删 occurrence + **整段移除「今日」区**（`_buildToday`/`_OccurrenceRow`），只留规则区 + 规则数计数 |
+| 9 | 删除计划 / 习惯 / 循环任务增加确认环节 | A1 + B1 + B4 | 新建共享组件 `widgets\confirm_dialog.dart`（`showDialog<bool>` + `AlertDialog`，形态照 `settings_page.dart:118`）；接入 `day_grid.dart` 计划删除与 `recurring_rail_panel.dart` 归档；习惯 UI 删除入口**全仓核实**（存在则加确认，不存在则如实登记） |
+| 10 | 日历页突出今天 + 区分非工作日 | A2 | `calendar_month_view.dart` 用**已算好但从未使用的** `CalendarCell.isWeekend`；今天 = 2px 边框 + 底色/标签（≥2 信号）+ ValueKey；非工作日可判别弱化；今天=周末叠加不冲突 |
+| 11 | 项目页规划（尤其与计划主页面整合） | C1 | `docs\task40\项目页规划.md`：信息架构 + ≥2 种整合模型 + schema 评估（**本轮不实施**）+ P0/P1/P2 路线；`nav_rail` 的 `projects` 仍 `enabled:false`（不擅自启用未设计好的页面） |
+| 12 | 关于页设计 | C1 | `docs\task40\关于页设计.md`：以 Task 39 已实现的 `pages\about_page.dart` 为基线出规格 + **当前实现与规格差距清单**（本轮不改代码） |
+| 13 | commit + push 到 GitHub + 完善 README | C2 + 控制器 | `README.md` 按 GitHub 优秀项目惯例重写；命令逐字抄 `AGENTS.md`；**只写唯一可分发包** `..._20261118-134429.exe`，其余明确「不可分发」；不许假图/假特性；commit+push 由控制器执行 |
+
+### 40.2 写集表（最终口径，详见派工书 §1）
+
+| Worker | 主题 | 写集 |
+|---|---|---|
+| A1 | 共享确认组件 + 循环数据层 + 心态维度映射 + 落库口径 | `apps\desktop\lib\src\widgets\confirm_dialog.dart`(新)、`packages\core_data\lib\src\recurring.dart`、`packages\core_data\lib\src\repositories.dart`、`packages\core_data\lib\src\mood_dimensions.dart`(新)、`packages\core_data\test\mood_dimensions_test.dart`(新)、`packages\core_data\test\recurring_task_test.dart` |
+| A2 | 主题去蓝 + 日历页 | `design-demos\TOKENS.md`(插入式)、`apps\desktop\lib\src\theme\app_tokens.dart`、`apps\desktop\lib\src\theme\app_theme.dart`、`apps\desktop\lib\src\widgets\calendar_month_view.dart`、`apps\desktop\test\theme_tokens_test.dart`、`apps\desktop\test\timeline_contrast_test.dart`、`apps\desktop\test\calendar_month_view_test.dart` |
+| A3 | 优先级图标 | `apps\desktop\lib\src\widgets\priority_marks.dart`、`priority_chips.dart`、`priority_hover_bubble.dart`、`apps\desktop\test\priority_marks_test.dart`、`task39_priority_marks_test.dart`、`task35_glyph_render_test.dart`、`priority_hover_bubble_test.dart` |
+| B1 | 计划表格化 + 计划删除确认 | `apps\desktop\lib\src\widgets\timeline\day_grid.dart`、`apps\desktop\test\timeline_day_grid_test.dart`(+ 相关) |
+| B2 | 手写条合并按钮 + 复盘重排 | `apps\desktop\lib\src\pages\today_page.dart`、`apps\desktop\lib\src\widgets\review_section.dart`、相关测试 |
+| B3 | 心态模块优化 | `apps\desktop\lib\src\widgets\mood_section.dart`、相关测试 |
+| B4 | 循环任务面板 + 删除确认 | `apps\desktop\lib\src\widgets\recurring_rail_panel.dart`、`recurring_task_dialog.dart`、相关测试 |
+| C1 | 三份文档 | `docs\task40\模块优化建议.md`、`docs\task40\项目页规划.md`、`docs\task40\关于页设计.md`(均新) |
+| C2 | README + 测试遗留 + e2e | `README.md`、`apps\desktop\test\p1_e2e_test.dart`、遗留三条对应测试文件 |
+
+### 40.3 波次与依赖
+
+- **Wave A**（A1/A2/A3，3 并行）：基础设施 —— 共享组件 / 数据层 / token / 图标。
+- **Wave B**（B1/B2/B3/B4，4 并行）：UI 改造 —— 依赖 Wave A 产物（`confirm_dialog.dart`、`mood_dimensions.dart`、`saveMood(nextAction)`、新 token 值）。
+- **Wave C**（C1/C2，2 并行）：文档 + README + 测试遗留 + e2e 修补 —— 依赖 Wave B 的 key 清单。
+- 跨 worker 只读依赖已写进派工书；**重叠写集则串行**。
+
+### 40.4 Task 39 遗留处置（本轮）
+
+| 遗留 | 处置 |
+|---|---|
+| 深色主题（39.6 真实未交付项） | **独立排 Task 41**：需引入第二套 token 组 + 41 文件 **724 处** `AppTokens.*` 引用改造（严格词边界 279 处 / 38 文件），且 `timeline_contrast_test.dart` 以 epsilon 0.005 钉死四态色值 ⇒ 混轮必然半深半浅（R5 禁半成品）。本轮**只做色相去蓝**（5 个值 / 8 处代码），**不碰深色档** |
+| W6 后真机取帧未重取（上轮 rect 1x1） | 本轮代码变更完成 → 重编译 → 覆盖装机 → 再取帧；三重过滤（目标进程 = app.exe、宽高 ≥400×300、回读 PNG 尺寸，1×1 即判 FAIL 并改名留证）；先过默认桌面检查（坑 45/46/47/49） |
+| W6 三条测试遗留（A6 特征钉 / A8 模拟失败 / 端到端 IME 未复验） | 派 C2 处理（先读 `docs\B1_验收记录.md` Task 39 段确认准确所指）；若实为产品缺陷 ⇒ 只读记录 + 点名文件:行，源码由控制器另派 |
+| `reports\task39-gate.ps1` 假红加固 | **已改**：v2（13222 B / CRLF / 无 BOM / 纯 ASCII / `ParseInput` 0 错）—— ① summary 逐行即时落盘 ② `--concurrency=4` + 失败自动降并发重跑一轮取权威 ③ analyze **0 字节 ⇒ 判 `ANALYZE_PROCESS_NOT_STARTED` 并自动单独重跑**，两次皆空才 FAIL ④ G3 失败计数**剔除含 `constraint failed` 的 PASS 行**（修 verifier A11 假阳性）⑤ FAIL / ENV **分桶**，判定 ∈ `PASS`/`ENV_DEGRADED`/`FAIL`（非 PASS 一律 exit 1）⑥ 重步骤前 3 秒 CPU 负载采样（只读，不 kill 用户进程） |
+
+### 40.5 本轮完成判据
+
+- `flutter analyze` 逐字 `No issues found!`（error/warning/info 全 0）。
+- desktop 全量 `flutter test` 全绿（基线 +416，**只升不降**）；core_data / core_db / core_domain 全量 `dart test` 全绿（基线 +179 / +71 / +62）。
+- 越界比对 `VIOLATIONS=0`（Task 40 写集表版本）；`PRINT_TOTAL=0`；`FMT_VIOLATIONS=0`；`FROZEN_DIFFS=0`。
+- 重编译 → makensis → 覆盖装机：`INSTALLED_APPSO_SHA16 == BUILD_APPSO_SHA16` 且 `USERDATA_HASH_SAME=1`。
+- 真机取帧成功（≥400×300）并由控制器本人读图确认需求 1/2/3/4/8/10 的界面证据。
+- commit + push 到 `origin/main`（`https://github.com/kizemo/actlog.git`）；README 重写完成。**发布 GitHub release 仍不擅自执行**（沿用 39.5，需用户单独确认）。
+
+### 40.6 Task 40 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+
+- [x] 40.1 需求 1 计划模块表格化（B1）
+- [x] 40.1 需求 2 手写条日期时间合并按钮（B2）
+- [x] 40.1 需求 3 优先级同图标填充/空心（A3）
+- [x] 40.1 需求 4 复盘重排 + 去今日失守 + 去三字段（B2/B3）
+- [x] 40.1 需求 5 主题色去蓝（TOKENS.md 口径 + token + 测试同步）（A2）
+- [x] 40.1 需求 6 心态模块豆包 3+2 优化（A1/B3）
+- [x] 40.1 需求 7 执行日志模块优化建议文档（C1）
+- [x] 40.1 需求 8 循环任务重复根因修复 + 去「今日」区（A1/B4）
+- [x] 40.1 需求 9 删除确认环节（A1/B1/B4）
+- [x] 40.1 需求 10 日历页今天 + 非工作日（A2）
+- [x] 40.1 需求 11 项目页规划文档（C1）
+- [x] 40.1 需求 12 关于页设计规格文档（C1）
+- [x] 40.1 需求 13 README 重写 + commit + push（C2 + 控制器）
+- [x] 40.4 遗留 4 项处置完成（Task 41 排期 / 取帧 / 三条测试 / gate v2 实跑）
+- [x] 40.5 门禁全绿 + 越界 `VIOLATIONS=0`
+- [x] 40.5 重编译 / 重打包 / 覆盖装机一致
+- [x] 40.5 真机取帧成功并由控制器读图确认
+- [ ] 40.5 commit + push 完成，README 交付
+
+### 40.7 Task 41 预告：深色主题（架构级 token 改造，**本轮不实施，独立排期**）
+
+- **为什么必须独立**：深色档当前 **== 浅色档** —— `app_theme.dart:24-53` 用 `ColorScheme.fromSeed(seedColor: ink, brightness)` 之后把 **17 个 slot 全部覆盖成浅色常量**（`:41 surface=paper`、`:44 surfaceBright=paper`、`:47 surfaceContainerLow=card`、`:50 surfaceContainerHighest=sunken`）；`AppTokens` **只有浅色一套 20 个常量**，全仓无第二组 ⇒ 深色开关「能切、但看起来一模一样」，是 Task 39 的真实未交付项。
+- **改造面（实测，可复现）**：`AppTokens.*` 引用 **724 处 / 41 文件**；严格词边界 `AppTokens\.(paper|ink|card|hair|sunken)\b` = **279 处 / 38 文件**；引用 top：todo_pool_page 49 / habit_quick_dialog 48 / recurring_task_dialog 44 / today_page 41 / quick_todo_dialog 39 / day_grid 35 / app_theme 35 / settings_page 27 / todo_rail_panel 27 / priority_hover_bubble 24 / about_page 22 / loop_progress_ring 21 / recurring_rail_panel 19 / nav_rail 17 / priority_marks 17。硬编码色值反而很少：`apps\desktop\lib` 内 `Color(0x...)` 仅 26 处 / 3 文件（24 处在 `app_tokens.dart` 自身，另 2 处 `priority_chips.dart:11`、`priority_hover_bubble.dart:290`）；`Colors.*` 23 处**全部是 `Colors.transparent`**；`packages\` 下 `Color(0x...)` 0 处 ⇒ **耦合全在 token 间接引用上**。
+- **硬约束**：`timeline_contrast_test.dart` 以 **epsilon 0.005** 钉死四态格底色值；`theme_tokens_test.dart` 只测浅色 7 底；`app_theme_test.dart` 8 例**全部只测 `AppTheme.light`、零 dark 断言** ⇒ 深色必须**自带一套对比度断言**（深底文字 ≥4.5:1、描边 ≥3:1），**不许复用浅色数值**。
+- **分期建议**：P0 引入第二组 token（`ThemeTokens(brightness)` 或 `AppTokensDark`）+ 主题装配按亮度分流；P1 逐 widget 把 724 处引用收敛为按语义取 token（优先 279 处核心）；P2 深色对比度测试 + 设置页切换的真机取帧验证。
+- **本轮不做**：混轮必然产出半深半浅的半成品（R5 禁止制造「已交付」假象）。本轮只做**色相去蓝**（`ink`/`ink2`/`inkWash`/`slotPlan`/`slotHabit` 五个值 / 8 处代码），深色档一字不动。

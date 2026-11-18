@@ -4,7 +4,8 @@
 //
 // 钉子有三颗：
 //   1. 池子能新建（表单 → `TodoRepository.create` → 表里出现，且字段口径正确）；
-//   2. 表里能捞入选中日（`pullToPlan` → 当天 `plan_item` +1，待办转 done 后离开池子）；
+//   2. 表里能捞入选中日（`pullToPlan` → 当天 `plan_item` +1；待办**仍留在池子**，
+//      `pullToPlan` 不碰完成状态 —— 见 Task 39 指令 2a）；
 //   3. 表头严格五列 —— 修订 G 删掉了「领域」列（`todo` 表没有 `domain`）。
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
@@ -109,7 +110,7 @@ void main() {
     // 池子出现这一行，空态消失。
     expect(find.byKey(_kEmpty), findsNothing);
     expect(find.text('把周报写完'), findsOneWidget);
-    expect(find.text('30'), findsOneWidget);
+    expect(find.text('30 分钟'), findsOneWidget);
     expect(find.byKey(_kError), findsNothing);
 
     // 字段口径：优先级 A / 象限 Q2 / 预估 30 分钟都落了库。
@@ -133,9 +134,13 @@ void main() {
     expect(plans.single.priorityAbc, 'A');
     expect(plans.single.estMinutes, 30);
 
-    // 捞完待办转 done，离开池子 ⇒ 回到空态。
-    expect(find.byKey(_kEmpty), findsOneWidget);
-    expect(await tester.runAsync(() => harness.repos.todo.listOpen()), isEmpty);
+    // 捞入计划**不改完成状态** ⇒ 这一行仍留在池子，空态不许回来。
+    expect(find.byKey(_kEmpty), findsNothing);
+    expect(find.text('把周报写完'), findsOneWidget);
+    final stillOpen =
+        (await tester.runAsync(() => harness.repos.todo.listOpen()))!;
+    expect(stillOpen, hasLength(1));
+    expect(stillOpen.single.id, todo.id);
 
     await _flushTimers(tester);
   });
@@ -155,7 +160,7 @@ void main() {
     await tester.enterText(find.byKey(_kEst), 'abc');
     await tester.tap(find.byKey(_kSubmit));
     await _settle(tester);
-    expect(find.text('预估分钟要填正整数，或留空'), findsOneWidget);
+    expect(find.text('预估时间要填正数，或留空'), findsOneWidget);
 
     expect(await tester.runAsync(() => harness.repos.todo.listOpen()), isEmpty);
 

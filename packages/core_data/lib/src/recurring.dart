@@ -71,9 +71,28 @@ final class RecurringTaskRepository {
     return _activeQuery().get();
   }
 
+  /// 订阅**全部未删除**的循环规则（含已停用的，按开始时刻、id 升序）。
+  ///
+  /// 与 [watchActive] 的唯一差别是**不**过滤 `active`：右轨面板的「规则」段
+  /// 列出规则本身，并给出停用/启用开关 —— 若只订阅启用中的行，一停用该行
+  /// 就从列表里消失，开关再也点不回来（也就无法重新启用）。
+  Stream<List<RecurringTaskData>> watchAll() {
+    return _allQuery().watch();
+  }
+
   SimpleSelectStatement<$RecurringTaskTable, RecurringTaskData> _activeQuery() {
     return _db.select(_db.recurringTask)
       ..where((t) => t.deletedAt.isNull() & t.active.equals(1))
+      ..orderBy(<OrderingTerm Function($RecurringTaskTable)>[
+        (t) => OrderingTerm(expression: t.startMinute),
+        (t) => OrderingTerm(expression: t.id),
+      ]);
+  }
+
+  /// 全部未删除规则的查询（口径见 [watchAll]：不带 `active` 过滤）。
+  SimpleSelectStatement<$RecurringTaskTable, RecurringTaskData> _allQuery() {
+    return _db.select(_db.recurringTask)
+      ..where((t) => t.deletedAt.isNull())
       ..orderBy(<OrderingTerm Function($RecurringTaskTable)>[
         (t) => OrderingTerm(expression: t.startMinute),
         (t) => OrderingTerm(expression: t.id),
@@ -213,11 +232,11 @@ final class RecurringTaskRepository {
             continue;
           }
           // 脏数据防御：CHECK 已挡住越界值，这里再挡一次，避免
-          // formatMinuteOfDay / DateTime.add 在运行期抛异常把整天物化搞挂。
+          // formatMinuteOfDay 在运行期抛异常把整天物化搞挂。
           if (task.startMinute < 0 || task.startMinute >= minutesPerDay) {
             continue;
           }
-          final bool materialized = await _materializeOne(task, date, parsed);
+          final bool materialized = await _materializeOne(task, date);
           if (materialized) {
             created += 1;
           }
@@ -232,11 +251,17 @@ final class RecurringTaskRepository {
   /// 顺序刻意是「先查 → 建 plan_item → 写实例行」，三步在同一个事务里：
   /// 任何一步抛异常都会整体回滚，不会留下「实例行在、计划条目不在」的孤儿，
   /// 也不会出现「计划条目在、实例行不在」导致下次重复物化的情况。
-  Future<bool> _materializeOne(
-    RecurringTaskData task,
-    String date,
-    DateTime parsed,
-  ) async {
+  Future<bool> _materializeOne(RecurringTaskData task, String date) async {
+    // 存在性判定**刻意不过滤 `deleted_at`**，墓碑行同样算「已物化」：
+    // `recurring_occurrence` 上的
+    // `CONSTRAINT recurring_occurrence_task_date_unique UNIQUE (task_id, date)`
+    // 是**整表唯一**约束（packages/core_db/lib/src/tables.dart:1117-1119，
+    // 没有 `WHERE deleted_at IS NULL` 偏条件），墓碑行仍占着 (task_id, date)
+    // 这个槽位。若在这里按 `deletedAt.isNull()` 过滤、再走「建行」分支，
+    // 插入必然撞唯一约束并把当天整批物化回滚 —— 表现就是「一天全排不出来」。
+    // 因此：查到的行不论 live 还是墓碑，一律视为已物化。
+    // 「删掉的实例不再复活」由 `PlanItemRepository.softDelete` 联动软删
+    // occurrence 保证，两边配合才不会在右栏出现重复条目。
     final RecurringOccurrenceData? existing = await (_db.select(
       _db.recurringOccurrence,
     )..where((t) => t.taskId.equals(task.id) & t.date.equals(date)))
@@ -245,16 +270,21 @@ final class RecurringTaskRepository {
       return false;
     }
 
-    final DateTime dayStart = DateTime(parsed.year, parsed.month, parsed.day);
-    final DateTime start = dayStart.add(Duration(minutes: task.startMinute));
-    final DateTime end = start.add(Duration(minutes: task.durationMinutes));
+    // 单位契约：`planned_start` / `planned_end` 是**当日分钟数（0–1439）**，
+    // 与桌面端时间轴（apps/desktop/.../timeline/slot_state.dart）同口径。
+    // 早先这里写的是 epoch 毫秒 —— 时间轴会把它夹到 1440 后整行丢弃，
+    // 物化出来的条目永远不上网格。
+    // startMinute 已在上游校验落在 0..1439，durationMinutes >= 1，
+    // 因此夹值后的 plannedEnd 恒 > plannedStart（相等会让行在网格里不可见）。
+    final int rawEnd = task.startMinute + task.durationMinutes;
+    final int plannedEnd = rawEnd > minutesPerDay ? minutesPerDay : rawEnd;
 
     final String planItemId = await _planItem.createScheduled(
       date: date,
       title: task.title,
       detail: task.note,
-      plannedStart: start.millisecondsSinceEpoch,
-      plannedEnd: end.millisecondsSinceEpoch,
+      plannedStart: task.startMinute,
+      plannedEnd: plannedEnd,
       estMinutes: task.durationMinutes,
       sourceId: task.id,
     );

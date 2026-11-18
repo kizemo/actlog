@@ -2,10 +2,11 @@
 // task35 · 四维优先级标记的**渲染层像素证据**
 // =============================================================================
 // 为什么需要这份证据：
-//   `priority_marks.dart` 里的四个字形（▲ ▽ ◆ ◇）**不在 Inter 里**，实际显示
-//   全靠 `fontFamilyFallback` 里的 `Noto Sans SC` 兜底。字体 cmap 层面已经确认
-//   Noto Sans SC 四个码位俱全（reports/task35-glyph-cmap.py），但「cmap 有」
-//   不等于「屏幕上画得出来」—— 排版的族回退链、字形选择都可能单独出错。
+//   标记现在只有一条通道：**Material Icon** —— 重要性轴是一枚星
+//   （实心 / 空心两态），紧急度轴是一枚铃（实心 / 空心两态）。四枚都要求
+//   `MaterialIcons` 字体真的被加载；字体没注册时图标会退化成豆腐块，而
+//   「cmap 有」不等于「屏幕上画得出来」—— 族回退链、图标字体是否注册、
+//   字形选择都可能单独出错。
 //
 //   本机工作站处于锁定态，屏幕 DC 全黑、`PrintWindow` 对 Flutter 窗返回空白，
 //   拿不到真实窗口截图。所以这里用 Flutter 的测试渲染环境：**加载真实字体**
@@ -65,17 +66,70 @@ void main() {
   // 放进 testWidgets 的 fake async 区里等会有挂死风险（golden_toolkit 同款做法）。
   setUpAll(() async {
     await _loadAppFonts();
+    // 图标字体不在 assets 里（`uses-material-design` 由 SDK 注入），
+    // 不显式注册的话 PNG 里的星 / 铃会是豆腐块。
+    await _loadMaterialIcons();
   });
 
-  testWidgets('结构：四个象限各 2 枚字形，未分级 0 枚', (WidgetTester tester) async {
+  testWidgets('结构：四个象限各 2 枚标记，未分级 0 枚', (WidgetTester tester) async {
     await _pumpFiveRows(tester, null);
     expect(find.byType(UnscheduledStrip), findsNWidgets(5));
     // 未分级那一行不画标记 ⇒ 4 个 PriorityMarks，不是 5 个。
     expect(find.byType(PriorityMarks), findsNWidgets(4));
-    expect(find.text(kMarkImportant), findsNWidgets(2)); // Q1 + Q2
-    expect(find.text(kMarkNotImportant), findsNWidgets(2)); // Q3 + Q4
-    expect(find.text(kMarkUrgent), findsNWidgets(2)); // Q1 + Q3
-    expect(find.text(kMarkNotUrgent), findsNWidgets(2)); // Q2 + Q4
+
+    // 两条轴各 2 枚：填充（重要 / 紧急）与空心（不重要 / 不紧急）。
+    expect(find.byKey(kMarkImportantSpec.key), findsNWidgets(2)); // Q1 + Q2
+    expect(find.byKey(kMarkNotImportantSpec.key), findsNWidgets(2)); // Q3 + Q4
+    expect(find.byKey(kMarkUrgentSpec.key), findsNWidgets(2)); // Q1 + Q3
+    expect(find.byKey(kMarkNotUrgentSpec.key), findsNWidgets(2)); // Q2 + Q4
+
+    // 同轴同图标、只差填充：两枚 spec 的 `icon` / `outlineIcon` 必须指向同一对。
+    expect(kMarkImportantSpec.icon, kMarkNotImportantSpec.icon);
+    expect(kMarkUrgentSpec.icon, kMarkNotUrgentSpec.icon);
+    expect(kMarkImportantSpec.filled, isNot(kMarkNotImportantSpec.filled));
+    expect(kMarkUrgentSpec.filled, isNot(kMarkNotUrgentSpec.filled));
+
+    // 逐行核对：四行里重要性轴 + 紧急度轴的图标组合必须与象限一一对应。
+    const List<PriorityMark> importanceByRow = <PriorityMark>[
+      kMarkImportantSpec,
+      kMarkImportantSpec,
+      kMarkNotImportantSpec,
+      kMarkNotImportantSpec,
+    ];
+    const List<PriorityMark> urgencyByRow = <PriorityMark>[
+      kMarkUrgentSpec,
+      kMarkNotUrgentSpec,
+      kMarkUrgentSpec,
+      kMarkNotUrgentSpec,
+    ];
+    for (int i = 0; i < importanceByRow.length; i++) {
+      final Finder row = find.byKey(ValueKey<String>('task35-row-$i'));
+      expect(row, findsOneWidget, reason: '第 $i 行不存在');
+      final Icon importance = tester.widget<Icon>(
+        find.descendant(of: row, matching: find.byKey(importanceByRow[i].key)),
+      );
+      expect(
+        importance.icon,
+        importanceByRow[i].resolvedIcon,
+        reason: '第 $i 行重要性轴图标不对（实心 = 重要，空心 = 不重要）',
+      );
+      final Icon urgency = tester.widget<Icon>(
+        find.descendant(of: row, matching: find.byKey(urgencyByRow[i].key)),
+      );
+      expect(
+        urgency.icon,
+        urgencyByRow[i].resolvedIcon,
+        reason: '第 $i 行紧急度轴图标不对（实心 = 紧急，空心 = 不紧急）',
+      );
+    }
+
+    // 未分级那行一枚标记都不画；全树也没有任何文本字形（`!` 通道已下线）。
+    final Finder ungraded = find.byKey(const ValueKey<String>('task35-row-4'));
+    expect(
+      find.descendant(of: ungraded, matching: find.byType(PriorityMarks)),
+      findsNothing,
+    );
+    expect(find.text('!'), findsNothing);
     expect(find.text('未分级：随手记一条'), findsOneWidget);
   });
 
@@ -133,13 +187,50 @@ void main() {
 /// 注册与 `AppFonts` **逐字一致**的族名，让兜底链在测试环境里也成立。
 ///
 /// 只注册真正参与本图渲染的两族：`body`（Inter）与其首个兜底（Noto Sans SC）。
-/// 四个字形不在 Inter 里 ⇒ 实际画它们的一定是 Noto Sans SC。
+/// 行标题是中文文本，这两族保证 PNG 里的人话可读；标记已全部走图标字体。
 Future<void> _loadAppFonts() async {
   await _registerFont(AppFonts.body, <String>['assets/fonts/Inter-400.ttf']);
   await _registerFont(
     AppFonts.bodyFallback.first,
     <String>['assets/fonts/NotoSansSC-Regular.ttf'],
   );
+}
+
+/// 注册 `MaterialIcons` 族（两条轴的星 / 铃四枚图标靠它画出来）。
+///
+/// 字体文件在 Flutter SDK 的 `bin/cache/artifacts/material_fonts/` 下，
+/// **不写死本机路径**：从 `flutter_tester` 可执行文件的位置逐级上溯探测。
+/// 探测不到就静默跳过 —— 图标的结构断言走 `find.byKey` + `Icon.icon`，
+/// 不依赖字体是否加载（字体只影响 PNG 是否画得出字形）。
+Future<void> _loadMaterialIcons() async {
+  final File? font = _sdkMaterialIconsFile();
+  if (font == null) {
+    return;
+  }
+  final FontLoader loader = FontLoader('MaterialIcons')
+    ..addFont(
+      Future<ByteData>.value(ByteData.sublistView(font.readAsBytesSync())),
+    );
+  await loader.load();
+}
+
+/// 探测 SDK 内的 `materialicons-regular.otf`；找不到返回 null。
+File? _sdkMaterialIconsFile() {
+  Directory dir = File(Platform.resolvedExecutable).parent;
+  for (var i = 0; i < 6; i++) {
+    final File probe = File(
+      '${dir.path}/material_fonts/materialicons-regular.otf',
+    );
+    if (probe.existsSync()) {
+      return probe;
+    }
+    final Directory parent = dir.parent;
+    if (parent.path == dir.path) {
+      break;
+    }
+    dir = parent;
+  }
+  return null;
 }
 
 /// 从 rootBundle 读字体字节并以 [family] 注册。

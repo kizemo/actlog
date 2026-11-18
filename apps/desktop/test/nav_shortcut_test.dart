@@ -2,8 +2,9 @@
 //
 // Task 20（裁定 K7 / K8）+ B2（2026-11-12 T10）守 `Ctrl+1…4` 切页：
 //  - `Ctrl+1` 今日 / `Ctrl+2` 待办池 / `Ctrl+3` 习惯 / `Ctrl+4` 日历（A8）；
-//  - `Ctrl+5/6` **零效果**（不切页、不报错）——项目 / 设置两项在
-//    `kShellNavItems` 里是 `enabled: false`（无落点），宣称到 6 就是假提示（A9）；
+//  - `Ctrl+5/6` **零效果**（不切页、不报错）——Task 39 起「设置」有真实落点、
+//    只有「项目」仍是 `enabled: false`；但键条与快捷键只承诺 `Ctrl+1…4`，
+//    把 5/6 也接了反而是假提示（A9）；
 //  - 在待办池页按 `Ctrl+1` 回到今日页（A10）。
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';

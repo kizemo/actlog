@@ -3,8 +3,9 @@
 // B2 方格时间轴 §3：四种视觉态格底的对比度**实测**闸门。
 //
 // 真源是仓库里的 `lib/src/theme/contrast.dart`（WCAG 2.1 相对亮度 + 比值），
-// 不是设计稿估计值。这里把 `design-demos/TOKENS.md` §8.1 表里的数字连同
-// 「≥ 4.5:1」的硬判据一起钉死：任何一方改色、或有人把实测值改回估计值，都会红。
+// 不是设计稿估计值。这里把 `design-demos/TOKENS.md` §8.4（Task 40 · A2 去蓝修订，
+// 取代 §8.1 的同名 token 色值与实测数字）表里的数字连同「≥ 4.5:1」的硬判据
+// 一起钉死：任何一方改色、或有人把实测值改回估计值，都会红。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/theme/app_tokens.dart';
@@ -25,7 +26,7 @@ final class _SlotCase {
   final Color background;
   final Color foreground;
 
-  /// `design-demos/TOKENS.md` §8.1 里登记的实测值。
+  /// `design-demos/TOKENS.md` §8.4 里登记的实测值。
   final double measured;
 }
 
@@ -34,7 +35,7 @@ const List<_SlotCase> _cases = <_SlotCase>[
     name: '--slot-plan',
     background: AppTokens.slotPlan,
     foreground: AppTokens.ink,
-    measured: 8.91,
+    measured: 11.11,
   ),
   _SlotCase(
     name: '--slot-done',
@@ -46,13 +47,13 @@ const List<_SlotCase> _cases = <_SlotCase>[
     name: '--slot-backfill',
     background: AppTokens.slotBackfill,
     foreground: AppTokens.ink,
-    measured: 8.39,
+    measured: 11.07,
   ),
   _SlotCase(
     name: '--slot-habit',
     background: AppTokens.slotHabit,
     foreground: AppTokens.ink,
-    measured: 8.23,
+    measured: 10.05,
   ),
 ];
 
@@ -60,7 +61,7 @@ void main() {
   // WCAG 2.1 对正文要求 4.5:1；四态格底承载 14px 正文，必须全部达标。
   const double kMinRatio = 4.5;
 
-  test('四态格底对比度全部 ≥ 4.5:1 且等于 TOKENS.md §8.1 实测值', () {
+  test('四态格底对比度全部 ≥ 4.5:1 且等于 TOKENS.md §8.4 实测值', () {
     for (final _SlotCase c in _cases) {
       final double ratio = contrastRatio(c.background, c.foreground);
       expect(
@@ -73,7 +74,7 @@ void main() {
       expect(
         ratio,
         moreOrLessEquals(c.measured, epsilon: 0.005),
-        reason: '${c.name} 实测值已偏离 TOKENS.md §8.1 登记的 ${c.measured}',
+        reason: '${c.name} 实测值已偏离 TOKENS.md §8.4 登记的 ${c.measured}',
       );
     }
   });

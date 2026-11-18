@@ -11,9 +11,10 @@ import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
-import '../widgets/date_bar.dart';
-import '../widgets/day_timeline.dart';
+import '../widgets/date_picker_sheet.dart';
 import '../widgets/timeline/day_grid.dart';
+import '../widgets/timeline/slot_state.dart';
+import '../widgets/timeline/timeline_store.dart';
 import '../widgets/timeline/unscheduled_strip.dart';
 import '../widgets/loop_progress_ring.dart';
 import '../widgets/mood_section.dart';
@@ -28,8 +29,9 @@ import '../widgets/section_card.dart';
 /// 这里只输出「账页正文」这一列。历史提交里本页是 `Scaffold` + `AppBar` 的
 /// 独立页，W3 装配后被降级成内容体，理由见 `docs/B1_验收记录.md` 遗留 #1。
 ///
-/// 自上而下：日期条 → 闭环脊线 → 待办池入口 → 方格时间轴 → 两段账页
-/// （晨定计划 / 晚复盘心态）。
+/// 自上而下：日期条 → 待办池入口 → 方格时间轴 → 两段账页
+/// （晨定计划 / 晚复盘心态）。闭环四段比例条已并入右栏「闭环提示」
+/// （W3 / Task 38），中栏不再有脊线。
 ///
 /// 页头（标题「今日」/ 日期副标 / 完整·极简切换）已删除：这三样在
 /// `LedgerShell` 的导航与日期条里已经有等价表达，重复一遍只是浪费首屏高度。
@@ -118,7 +120,9 @@ class _TodayBody extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        const DateBar(),
+        // 日期条**不在这里**：它是壳的吸顶头（`LedgerShell.pinnedHeader`），
+        // 坐在滚动区之外。原先放在本列第一行 = 坐在滚动区里，往下一翻方格
+        // 时间轴就跟着滚走，用户失去「现在看的是哪一天」这个锚点。
         if (notice != null) ...<Widget>[
           const SizedBox(height: 8),
           _NoticeBanner(
@@ -128,52 +132,49 @@ class _TodayBody extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: AppTokens.gapCard),
-        LoopProgressRing(
-          stats: ref.watch(dayStatsProvider),
-          onJump: (segment) => _jumpTo(segment),
-        ),
-        const SizedBox(height: AppTokens.gapCard),
         const _PoolEntryBar(),
         const SizedBox(height: AppTokens.gapCard),
         DayGrid(date: date, minimal: minimal),
         const SizedBox(height: AppTokens.gapCard),
         const UnscheduledStrip(),
-        const SizedBox(height: AppTokens.gapCard),
+        // 未排期带与「手写一条」是两个语义区：上面是「库里已有、但没排时刻」
+        // 的事实，下面是「新写一条」的写入面。原先只隔 12px，读起来像同一团。
+        // 这里只补**视觉**分区（段间距 + 1px 装饰线），
+        // **不删任何行、不做任何过滤**：用户库里真实的未排期条目
+        // （例如「执行日志开发」）照样一条不少地留在上面。
+        const SizedBox(height: AppTokens.gapSec),
+        const _HandwrittenDivider(),
+        const SizedBox(height: 12),
         _AddPlanItemBar(date: date),
         if (future) ...<Widget>[
           const SizedBox(height: AppTokens.gapCard),
           const _FuturePlanHint(),
         ],
         const SizedBox(height: AppTokens.gapSec),
-        DayTimeline(
-          sections: <TimelineSection>[
-            TimelineSection(
-              label: '晚 · 复盘与心态',
-              child: future
-                  ? const _FutureLockedSection(
-                      icon: Icons.nights_stay,
-                      title: '复盘与心态在当天开放',
-                      detail: '未来日只做预排：到了那天再写复盘与心态。',
-                    )
-                  : const Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ReviewSection(),
-                        SizedBox(height: AppTokens.gapCard),
-                        MoodSection(),
-                      ],
-                    ),
-            ),
-          ],
-        ),
+        // 复盘 + 心态不再走 `DayTimeline` / `TimelineSection` 的左栏包装
+        // （Task 40 需求 4）：左栏那套「节点 + ✓ 已闭合」是**时间轴段**的心智，
+        // 而复盘不是一天的某一格，它是一天结束时的另一块正文。包在段里就多出
+        // 一条 52+10px 的悬挂缩进，与上方方格、待办池、手写条全都不对齐。
+        // 这里直接铺成普通区块：与其它模块同一条左基线，且页面上不再出现
+        // 「晚 · 复盘与心态」「已闭合」这两处只属于时间轴骨架的文案。
+        if (future)
+          const _FutureLockedSection(
+            icon: Icons.nights_stay,
+            title: '复盘与心态在当天开放',
+            detail: '未来日只做预排：到了那天再写复盘与心态。',
+          )
+        else
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ReviewSection(),
+              SizedBox(height: AppTokens.gapCard),
+              MoodSection(),
+            ],
+          ),
       ],
     );
-  }
-
-  /// 跳到闭环脊线的某一段。TODO(Task 17)：用 `Scrollable.ensureVisible` 滚到对应段。
-  void _jumpTo(DayStatsSegment segment) {
-    // Task 15 建立三段骨架后补齐滚动实现；本任务只提供调用点。
   }
 }
 
@@ -247,6 +248,175 @@ class _GhostActionState extends State<_GhostAction> {
   }
 }
 
+/// 合并按钮里可选的三件事：改日期 / 改时刻 / 清除时刻。
+///
+/// 用枚举而不是字符串：`showMenu` 的返回值是值对象，写错一个字母不会变成
+/// 「菜单点了没反应」，而是编译期就红。
+enum _DateTimeActionKind {
+  /// 走全站唯一日期组件 [DatePickerSheet]。
+  pickDate,
+
+  /// 走 Material `showTimePicker`。
+  pickTime,
+
+  /// 把开始时刻退回未排（`planned_start` 落 null）。
+  clearTime,
+}
+
+/// 「日期 · X   时间 · Y」二合一按钮（Task 40 需求 2）。
+///
+/// 三条硬约束：
+/// 1. **一个按钮**：整块只有一个 `InkWell`，不存在「点左边改日期、点右边改时刻」
+///    这种要靠用户自己摸的隐式分区；
+/// 2. **两条链路原样复用**：菜单选「改日期」直接调 [onPickDate]（内部是
+///    `DatePickerSheet`），选「改时刻」直接调 [onPickTime]（内部是
+///    `showTimePicker`）——本按钮不新增任何取值组件；
+/// 3. **旧锚点不消失**：日期 / 时刻两段文本各自保留原 key
+///    （`add-plan-date-chip` / `add-plan-time-chip`），「清除时刻」菜单项保留
+///    `add-plan-time-clear`。合成一个按钮不该顺手让既有断言失明。
+///
+/// 为什么改成弹出菜单而不是连弹两个对话框：连弹会强制用户每次都过两道弹层，
+/// 只想改时刻也得先确认一遍日期。菜单把「改哪一半」交还用户，默认不打扰。
+class _DateTimeAction extends StatefulWidget {
+  const _DateTimeAction({
+    super.key,
+    required this.date,
+    required this.startMinute,
+    required this.enabled,
+    required this.onPickDate,
+    required this.onPickTime,
+    required this.onClearTime,
+  });
+
+  /// 本条会落到的日期（用户改过就是改后的那天，没改就是页面所选日）。
+  final String date;
+
+  /// 开始时刻（当日分钟数）；null = 未排，落库时 `planned_start` 为 null。
+  final int? startMinute;
+
+  /// 为 false 时整体只读（提交中）。
+  final bool enabled;
+
+  final VoidCallback onPickDate;
+  final VoidCallback onPickTime;
+  final VoidCallback onClearTime;
+
+  @override
+  State<_DateTimeAction> createState() => _DateTimeActionState();
+}
+
+class _DateTimeActionState extends State<_DateTimeAction> {
+  bool _hovered = false;
+
+  Future<void> _openMenu() async {
+    final RenderBox box = context.findRenderObject()! as RenderBox;
+    final Rect rect = Rect.fromPoints(
+      box.localToGlobal(Offset.zero),
+      box.localToGlobal(box.size.bottomRight(Offset.zero)),
+    );
+    final _DateTimeActionKind? picked = await showMenu<_DateTimeActionKind>(
+      context: context,
+      // 菜单贴着按钮左上角展开：位置来自按钮自己的矩形，不写死坐标。
+      position: RelativeRect.fromRect(
+        rect,
+        Offset.zero & MediaQuery.sizeOf(context),
+      ),
+      items: <PopupMenuEntry<_DateTimeActionKind>>[
+        const PopupMenuItem<_DateTimeActionKind>(
+          value: _DateTimeActionKind.pickDate,
+          child: Text('改日期'),
+        ),
+        const PopupMenuItem<_DateTimeActionKind>(
+          value: _DateTimeActionKind.pickTime,
+          child: Text('改时刻'),
+        ),
+        // 「清除时刻」只在真的排了时刻时出现：没排的时刻没有可清的东西，
+        // 常驻一项空动作等于给用户一个点了没反应的按钮。
+        if (widget.startMinute != null)
+          const PopupMenuItem<_DateTimeActionKind>(
+            value: _DateTimeActionKind.clearTime,
+            child: Text(
+              '清除时刻',
+              key: ValueKey<String>('add-plan-time-clear'),
+            ),
+          ),
+      ],
+    );
+    if (!mounted || picked == null) {
+      return;
+    }
+    switch (picked) {
+      case _DateTimeActionKind.pickDate:
+        widget.onPickDate();
+      case _DateTimeActionKind.pickTime:
+        widget.onPickTime();
+      case _DateTimeActionKind.clearTime:
+        widget.onClearTime();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String timeLabel = widget.startMinute == null
+        ? '时间 · 未排'
+        : '时间 · ${formatMinute(widget.startMinute!)}';
+    final Color ink = !widget.enabled
+        ? AppTokens.faint
+        : (_hovered ? AppTokens.ink : AppTokens.ink2);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Semantics(
+        button: true,
+        enabled: widget.enabled,
+        label: '日期 ${widget.date}，$timeLabel，点击修改日期或时刻',
+        child: MouseRegion(
+          cursor:
+              widget.enabled ? SystemMouseCursors.click : MouseCursor.defer,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: Material(
+            color:
+                _hovered && widget.enabled ? AppTokens.sunken : AppTokens.card,
+            borderRadius: BorderRadius.circular(AppTokens.radius),
+            child: InkWell(
+              onTap: widget.enabled ? _openMenu : null,
+              borderRadius: BorderRadius.circular(AppTokens.radius),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 22),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppTokens.radius),
+                  border: Border.all(color: AppTokens.hairStrong, width: 1),
+                ),
+                // `Wrap` 而不是 `Row`：日期 + 时刻两段在 200% 字号下比按钮的
+                // 可用宽度还长，`Row` 会直接 `RenderFlex overflowed`，
+                // 而折成两行只是变高，不丢字、不报错。
+                child: Wrap(
+                  spacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      '日期 · ${widget.date}',
+                      key: const ValueKey<String>('add-plan-date-chip'),
+                      style: _bodyStyle(size: 11.5, color: ink),
+                    ),
+                    Text(
+                      timeLabel,
+                      key: const ValueKey<String>('add-plan-time-chip'),
+                      style: _bodyStyle(size: 11.5, color: ink),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 未来日的「只可预排」提示。
 ///
 /// 键名 `future-plan-hint` 是既有验收锚点（`ledger_dock_test.dart:227`）：
@@ -301,6 +471,24 @@ class _PoolEntryBar extends StatelessWidget {
   }
 }
 
+/// 「未排期带」与「手写一条」之间的分区线。
+///
+/// 两块内容语义不同 —— 上面是库里已有、只是没落时刻的事实，下面是新写的入口。
+/// 这里只做**视觉**分离：一条 1px `hair` 装饰线。
+/// `hair` 只承载纯装饰线（`TOKENS.md` §1.6），不承载任何可交互边界。
+class _HandwrittenDivider extends StatelessWidget {
+  const _HandwrittenDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey<String>('handwritten-divider'),
+      height: 1,
+      color: AppTokens.hair,
+    );
+  }
+}
+
 /// 新增条目输入行。
 class _AddPlanItemBar extends ConsumerStatefulWidget {
   const _AddPlanItemBar({required this.date});
@@ -320,6 +508,18 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
   /// 提交成功后清空：优先级是**每条目**的属性，不该被下一条默默继承。
   Quadrant? _quadrant;
 
+  /// 本条新条目的日期；`null` = 跟随当前所选日。
+  ///
+  /// 允许改日期是为了「今天顺手记下明天的事」这种真实用法：条目落到哪天是
+  /// 用户选的，不是页面替它决定的。提交后清空回 `null`（不继承）。
+  String? _date;
+
+  /// 本条新条目的开始时刻（当日分钟数，0..1439）；`null` = 不落时刻。
+  ///
+  /// `null` 的语义很重要：条目会落进下方「未排期带」，而不是被随手塞进某一格。
+  /// 结束时刻不由用户填，恒为 `_startMinute + kSlotMinutes`（方格 15 分钟一档）。
+  int? _startMinute;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -333,20 +533,87 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
     }
     setState(() => _submitting = true);
     try {
-      await ref.read(repositoriesProvider).planItem.create(
-            date: widget.date,
+      final String id = await ref.read(repositoriesProvider).planItem.create(
+            date: _date ?? widget.date,
             title: title,
             quadrant: _quadrant,
           );
+      // 时刻分两步落库，原因必须写清：
+      // `PlanItemRepository.create()` **没有** `plannedStart` / `plannedEnd`
+      // 形参（只有 `createHabitRef` 与 `createScheduled` 才有），而
+      // `createScheduled` 把 `quadrant` 硬编码成 null —— 用它会静默丢掉刚选的
+      // 优先级。本轮又禁止改 `packages/**`，所以走既有公开写入口
+      // `TimelineStore.reschedule()`：与拖拽排期**同一条**路径、同一套账本规矩，
+      // 同步侧看到的仍是一条正常记录，不是裸 SQL 写进去的孤儿行。
+      final int? start = _startMinute;
+      if (start != null) {
+        final int raw = start + kSlotMinutes;
+        // 夹到 1440：保证 `end > start`，不会撞上仓储层的
+        // `plannedEnd < plannedStart` 校验。
+        final int end = raw <= 1440 ? raw : 1440;
+        await TimelineStore(ref.read(repositoriesProvider)).reschedule(
+          planItemId: id,
+          startMinute: start,
+          endMinute: end,
+        );
+      }
       _controller.clear();
       if (mounted) {
-        setState(() => _quadrant = null);
+        setState(() {
+          _quadrant = null;
+          _date = null;
+          _startMinute = null;
+        });
       }
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
       }
     }
+  }
+
+  /// 选日期：走全站唯一日期组件 [DatePickerSheet]，不自造日历。
+  Future<void> _pickDate() async {
+    final String? picked = await DatePickerSheet.show(
+      context,
+      initial: _date ?? widget.date,
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    setState(() => _date = picked);
+  }
+
+  /// 选开始时刻：Material `showTimePicker`，换算成当日分钟数（0..1439）。
+  ///
+  /// 不自己画时间选择器 —— 这是一个纯取值动作，系统组件已经把键盘、无障碍、
+  /// 24/12 小时制都处理好了。这里只负责把 `TimeOfDay` 换成与时间轴同源的分钟数。
+  Future<void> _pickTime() async {
+    final int initial = _startMinute ?? 9 * 60;
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: initial ~/ 60, minute: initial % 60),
+      helpText: '选择开始时刻',
+      builder: (BuildContext context, Widget? child) => MediaQuery(
+        // 固定 24 小时制：分钟口径与刻度尺（06:00–24:00）同源，不出现 AM/PM。
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    final int minutes = picked.hour * 60 + picked.minute;
+    if (minutes < kGridStartHour * 60) {
+      // 方格时间轴从 06:00 起。更早的时刻排不进任何一格 —— 静默接受等于
+      // 「写进去了但界面上看不见」。这里明说一句，并且**不**写时间，
+      // 条目照旧落进未排期带（数据不丢，用户可再排）。
+      ref.read(_todayNoticeProvider.notifier).state =
+          '方格时间轴从 ${formatMinute(kGridStartHour * 60)} 开始：'
+          '更早的时刻排不进格子，这条会落在下方未排期带。';
+      return;
+    }
+    setState(() => _startMinute = minutes);
   }
 
   @override
@@ -387,15 +654,37 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
           ],
         ),
         const SizedBox(height: 6),
-        // 优先级芯片贴在输入行**下方**而不是右侧：右侧放不下四枚芯片，
-        // 200% 文字缩放下会先把输入框挤成一条缝。
-        Align(
-          alignment: Alignment.centerLeft,
-          child: PriorityMarkPicker(
-            value: _quadrant,
-            enabled: !_submitting,
-            onChanged: (next) => setState(() => _quadrant = next),
-          ),
+        // 日期 + 时刻是**一个**按钮，且与重要/紧急芯片**同一行**（Task 40 需求 2）。
+        //
+        // 原先拆成两枚并排芯片，用户要在两枚之间认「哪一枚改的是日期」，窄屏和
+        // 200% 字号下还会先把这一行挤成两条。合并后一行读下来是三个判断：
+        // 这条写在哪天几点（左侧一个按钮）、有多重要多紧急（右侧四枚芯片）。
+        //
+        // 两个 `Flexible` 而不是固定宽度：`PriorityMarkPicker` 内部是 `Wrap`，
+        // 空间不够时自己折行，不会把 Row 挤爆（200% 缩放用例守着这条）。
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Flexible(
+              child: _DateTimeAction(
+                key: const ValueKey<String>('add-plan-datetime-button'),
+                date: _date ?? widget.date,
+                startMinute: _startMinute,
+                enabled: !_submitting,
+                onPickDate: _pickDate,
+                onPickTime: _pickTime,
+                onClearTime: () => setState(() => _startMinute = null),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: PriorityMarkPicker(
+                value: _quadrant,
+                enabled: !_submitting,
+                onChanged: (next) => setState(() => _quadrant = next),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -616,79 +905,67 @@ class _HabitDragChip extends StatelessWidget {
   }
 }
 
-/// 右轨「闭环提示」：把闭环脊线的四个缺口摊成文字。
+/// 右轨「闭环提示」：四个缺口各配一条比例条。
 ///
-/// 四行全部来自 [dayStatsProvider]（唯一口径），缺口状态用 `accentInk`；
-/// 这里不自己算比例，也不算「分母为 0 = 100%」。
+/// 四行全部来自 [dayStatsProvider]（唯一口径）。比例 / 缺口判定 / 状态标记
+/// 一律取自 `loopSegmentEntries`（与中栏脊线**同一份**算法），本面板只把
+/// 标签与数值换成右栏口径 —— 不自己算 `done / total`，也不把分母为 0
+/// 当成 100%。
+///
+/// 刻度（`0 / 25 / 50 / 75 / 100`）只在面板底部画一次（[LoopTickAxis]）：
+/// 四行各带一条会得到 4 条逐字重复的坐标轴。
 class LoopHintPanel extends ConsumerWidget {
   /// 创建闭环提示面板。
   const LoopHintPanel({super.key});
 
+  /// 四行各自的定位键（顺序即展示顺序）。
+  static const List<ValueKey<String>> rowKeys = <ValueKey<String>>[
+    ValueKey<String>('loop-hint-plan'),
+    ValueKey<String>('loop-hint-backfill'),
+    ValueKey<String>('loop-hint-review'),
+    ValueKey<String>('loop-hint-mood'),
+  ];
+
+  /// 四行共用的那条刻度轴的定位键。
+  static const ValueKey<String> axisKey = ValueKey<String>('loop-hint-tick-axis');
+
+  /// 右栏标签（沿用合并前文案，不改措辞）。
+  static const List<String> _labels = <String>[
+    '计划缺口',
+    '回填缺口',
+    '复盘',
+    '心态',
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(dayStatsProvider);
+    final DayStats stats = ref.watch(dayStatsProvider);
+    final entries = loopSegmentEntries(stats);
     final rate = stats.backfillRate;
+    final values = <String>[
+      '${stats.planPending}',
+      rate == null ? '—' : '${stats.planDone - stats.backfilled}',
+      stats.reviewDone ? '已写' : '未写',
+      stats.moodDone ? '已记' : '未记',
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _RailRow(
-          label: '计划缺口',
-          value: '${stats.planPending}',
-          danger: stats.planPending > 0,
-        ),
-        _RailRow(
-          label: '回填缺口',
-          value: rate == null
-              ? '—'
-              : '${stats.planDone - stats.backfilled}',
-          danger: stats.planDone > stats.backfilled,
-        ),
-        _RailRow(
-          label: '复盘',
-          value: stats.reviewDone ? '已写' : '未写',
-          danger: !stats.reviewDone,
-        ),
-        _RailRow(
-          label: '心态',
-          value: stats.moodDone ? '已记' : '未记',
-          danger: !stats.moodDone,
-        ),
+        // 四行只留「状态标记 + 标签 + 数值 + 比例条」：刻度收到底部那一条共用轴。
+        // 每行各带一条 `0/25/50/75/100` 会得到 4 条逐字重复的坐标轴（20 个刻度
+        // 标签），属视觉冗余。
+        for (var i = 0; i < entries.length; i++)
+          LoopHintBar(
+            key: rowKeys[i],
+            entry: entries[i],
+            label: _labels[i],
+            value: values[i],
+            showTicks: false,
+          ),
+        // 整块面板共用的一条刻度轴：只渲染一次，仍覆盖 0—100 全量程。
+        const LoopTickAxis(key: axisKey),
       ],
-    );
-  }
-}
-
-/// 右轨一行：左标签 + 右数值（数值 mono + 等宽数字）。
-class _RailRow extends StatelessWidget {
-  const _RailRow({
-    required this.label,
-    required this.value,
-    this.danger = false,
-  });
-
-  final String label;
-  final String value;
-  final bool danger;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Text(label, style: _bodyStyle(size: 12.5, color: AppTokens.meta)),
-          ),
-          Text(
-            value,
-            style: _monoStyle(
-              size: 12,
-              color: danger ? AppTokens.accentInk : AppTokens.ink2,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

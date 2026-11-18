@@ -136,14 +136,14 @@ void main() {
 
     test('setMode 只改 mode 一列', () async {
       final row = await newDayLog();
-      await repos.dayLog.saveReview(
-        row.id,
-        const ReviewDraft(good: '守时', nextAction: '先做 A 类'),
-      );
+      await repos.dayLog.saveReview(row.id, const ReviewDraft(good: '守时'));
       await repos.dayLog.setMode(row.id, dayModeMinimal);
       final after = (await repos.dayLog.findByDate(_today))!;
+      expect(after.mode, dayModeMinimal);
       expect(after.good, '守时');
-      expect(after.nextAction, '先做 A 类');
+      // 反向断言：`next_action` 已归心态侧（`saveMood(nextAction:)`），
+      // `saveReview` 不得再碰这一列 —— 否则复盘一次就把「明日改进点」清空。
+      expect(after.nextAction, '');
     });
   });
 
@@ -155,19 +155,19 @@ void main() {
       final row = await newDayLog();
       await repos.dayLog.saveReview(
         row.id,
-        const ReviewDraft(nextAction: '明天先打三个电话'),
+        const ReviewDraft(improve: '明天先打三个电话'),
       );
 
       final after = (await repos.dayLog.findByDate(_today))!;
-      expect(after.nextAction, '明天先打三个电话');
+      expect(after.improve, '明天先打三个电话');
       expect(after.learning, '');
       expect(after.good, '');
-      expect(after.improve, '');
       expect(after.controllable, '');
       expect(after.uncontrollable, '');
+      expect(after.nextAction, '', reason: 'next_action 归心态侧，复盘不得写');
     });
 
-    test('六段一起写，逐段读回一致', () async {
+    test('五段一起写逐段读回一致，next_action 不归复盘写', () async {
       final row = await newDayLog();
       await repos.dayLog.saveReview(
         row.id,
@@ -177,7 +177,6 @@ void main() {
           improve: 'I',
           controllable: 'C',
           uncontrollable: 'U',
-          nextAction: 'N',
         ),
       );
 
@@ -189,10 +188,10 @@ void main() {
           after.improve,
           after.controllable,
           after.uncontrollable,
-          after.nextAction,
         ],
-        <String>['L', 'G', 'I', 'C', 'U', 'N'],
+        <String>['L', 'G', 'I', 'C', 'U'],
       );
+      expect(after.nextAction, '');
     });
   });
 
@@ -200,6 +199,30 @@ void main() {
   // P1-8 心态 8 维 + 失守标记
   // ===========================================================================
   group('DayLogRepository · P1-8 心态与失守标记', () {
+    test('saveMood(nextAction:) 写 next_action；不传时原值不动', () async {
+      final row = await newDayLog();
+      await repos.dayLog.saveMood(
+        row.id,
+        const MoodSummary(
+          scores: <MoodDimension, int>{},
+          failed: false,
+          note: '',
+        ),
+        nextAction: '先做 A 类',
+      );
+      expect((await repos.dayLog.findByDate(_today))!.nextAction, '先做 A 类');
+
+      // 不传 `nextAction` ⇒ 用 `Value.absent()`，列原值不被清空。
+      await repos.dayLog.saveMood(
+        row.id,
+        const MoodSummary(
+          scores: <MoodDimension, int>{MoodDimension.diligent: 7},
+          failed: false,
+          note: '',
+        ),
+      );
+      expect((await repos.dayLog.findByDate(_today))!.nextAction, '先做 A 类');
+    });
     test('任一维度为 0 ⇒ 即使传 false 也落失守', () async {
       final row = await newDayLog();
       await repos.dayLog.saveMood(

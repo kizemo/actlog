@@ -163,8 +163,7 @@ Future<void> _dragRailToGrid(
   required String railKey,
   required int minute,
 }) async {
-  final Offset from =
-      tester.getCenter(find.byKey(ValueKey<String>(railKey)));
+  final Offset from = tester.getCenter(find.byKey(ValueKey<String>(railKey)));
   final Offset to = _gridPointFor(tester, minute);
   final TestGesture gesture = await tester.startGesture(from);
   await tester.pump();
@@ -193,26 +192,45 @@ Future<PlanItemData> _onlyPlan(
   _Harness harness,
   String date,
 ) async {
-  final List<PlanItemData> plans =
-      (await tester.runAsync(() => harness.repos.planItem.listByDate(date)))!;
+  final List<PlanItemData> plans = (await tester.runAsync(
+    () => harness.repos.planItem.listByDate(date),
+  ))!;
   expect(plans, hasLength(1));
   return plans.single;
 }
 
+/// 走真仓储落一条「已排期」计划（待办 + 计划行一起建），不碰任何界面。
+///
+/// 删除确认用例要的是一条**必然带「删除」按钮**的条目：`_future == false`
+/// 才渲染删除入口，所以只能选中日当天 / 过去日，不能拿未来日凑。
+Future<void> _seedPlan(
+  _Harness harness, {
+  required String date,
+  required String title,
+  required int startMinute,
+}) async {
+  await TimelineStore(harness.repos).createTodoWithSlot(
+    date: date,
+    title: title,
+    startMinute: startMinute,
+    endMinute: startMinute + 15,
+  );
+}
+
 void main() {
-  testWidgets('右键菜单三级齐备，且已排期的待办不再出现在子菜单里',
-      (tester) async {
+  testWidgets('右键菜单三级齐备，且已排期的待办不再出现在子菜单里', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _today);
 
     // 一条已排期（不该再出现）、一条未排期（该出现）。
     // `createTodoWithSlot` 返回的是**待办** id，计划行是它顺手建的那条。
-    final String slottedId = await TimelineStore(harness.repos).createTodoWithSlot(
-      date: _today,
-      title: '已排期',
-      startMinute: 9 * 60,
-      endMinute: 9 * 60 + 15,
-    );
+    final String slottedId = await TimelineStore(harness.repos)
+        .createTodoWithSlot(
+          date: _today,
+          title: '已排期',
+          startMinute: 9 * 60,
+          endMinute: 9 * 60 + 15,
+        );
     final String freeId = await harness.repos.todo.create(title: '未排期');
     final String habitId = await harness.repos.habit.create(
       name: '晨间拉伸',
@@ -228,13 +246,19 @@ void main() {
 
     expect(find.byKey(_kMenuManual), findsOneWidget);
     expect(find.byKey(_kMenuCancel), findsOneWidget);
-    expect(find.byKey(ValueKey<String>('slot-menu-todo-$freeId')),
-        findsOneWidget);
-    expect(find.byKey(ValueKey<String>('slot-menu-habit-$habitId')),
-        findsOneWidget);
+    expect(
+      find.byKey(ValueKey<String>('slot-menu-todo-$freeId')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(ValueKey<String>('slot-menu-habit-$habitId')),
+      findsOneWidget,
+    );
     // 已排期的那条被菜单内部按 `slottedTodoIds` 二次过滤掉。
-    expect(find.byKey(ValueKey<String>('slot-menu-todo-$slottedId')),
-        findsNothing);
+    expect(
+      find.byKey(ValueKey<String>('slot-menu-todo-$slottedId')),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(_kMenuCancel));
     await _settle(tester);
@@ -321,15 +345,16 @@ void main() {
     await tester.tap(find.byKey(_kRangeCancel));
     await _settle(tester);
 
-    expect(await tester.runAsync(() => harness.repos.planItem.listByDate(_today)),
-        isEmpty);
+    expect(
+      await tester.runAsync(() => harness.repos.planItem.listByDate(_today)),
+      isEmpty,
+    );
     expect(find.byKey(_kRangeStart), findsNothing);
 
     await _flushTimers(tester);
   });
 
-  testWidgets('习惯拖入确认后用弹窗里的结束时间（不是写死的 30 分钟）',
-      (tester) async {
+  testWidgets('习惯拖入确认后用弹窗里的结束时间（不是写死的 30 分钟）', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _today);
     final String habitId = await harness.repos.habit.create(
@@ -366,8 +391,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('待办入格到过去时段同样默认打勾（createFromTodo 复用同一判据）',
-      (tester) async {
+  testWidgets('待办入格到过去时段同样默认打勾（createFromTodo 复用同一判据）', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _past);
     await harness.repos.todo.create(title: '补记的待办');
@@ -396,8 +420,7 @@ void main() {
   // 该前景色」，映射互换（例如 done 与 backfill 张冠李戴）只会让其中一条红，
   // 定位成本最低。数据全部用 `todayIso` / `nowMinute` 显式注入，不读真实时钟。
 
-  testWidgets('plannedOpen 态：○ + 「计划」，无删除线，左缘竖条 2px 主墨色',
-      (tester) async {
+  testWidgets('plannedOpen 态：○ + 「计划」，无删除线，左缘竖条 2px 主墨色', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _future);
     final String id = (await tester.runAsync(
@@ -428,8 +451,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('done 态：✓ + 「完成」，标题删除线，左缘竖条用完成态前景色',
-      (tester) async {
+  testWidgets('done 态：✓ + 「完成」，标题删除线，左缘竖条用完成态前景色', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _future);
     final String id = (await tester.runAsync(
@@ -506,9 +528,9 @@ void main() {
       scheduleType: 'daily',
       startDate: '2026-11-01',
     );
-    final HabitData habit =
-        (await tester.runAsync(() => harness.repos.habit.listActive()))!
-            .firstWhere((HabitData h) => h.id == habitId);
+    final HabitData habit = (await tester.runAsync(
+      () => harness.repos.habit.listActive(),
+    ))!.firstWhere((HabitData h) => h.id == habitId);
     final String id = (await tester.runAsync(
       () => TimelineStore(harness.repos).createFromHabit(
         date: _past,
@@ -630,9 +652,9 @@ void main() {
       scheduleType: 'daily',
       startDate: '2026-11-01',
     );
-    final HabitData habit =
-        (await tester.runAsync(() => past.repos.habit.listActive()))!
-            .firstWhere((HabitData h) => h.id == habitId);
+    final HabitData habit = (await tester.runAsync(
+      () => past.repos.habit.listActive(),
+    ))!.firstWhere((HabitData h) => h.id == habitId);
     final String habitEntryId = (await tester.runAsync(
       () => TimelineStore(past.repos).createFromHabit(
         date: _past,
@@ -670,6 +692,127 @@ void main() {
 
     await _flushTimers(tester);
   });
+
+  // --- Task 40 · B1：计划区表格化表头 + 删除确认 ---------------------------
+
+  testWidgets('表头最左单元格是日期 · 有独立底色 · 左缘与刻度列/内容列同线', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _today);
+    await harness.mount(tester, _today);
+    await _settle(tester);
+
+    final Finder cell = find.byKey(
+      const ValueKey<String>('day-grid-header-date'),
+    );
+    expect(cell, findsOneWidget, reason: '表头没有日期单元格');
+
+    // 底色判据只读 widget 属性，不碰像素（坑 51）。
+    final Container shell = tester.widget<Container>(cell);
+    final BoxDecoration decoration = shell.decoration! as BoxDecoration;
+    expect(decoration.color, AppTokens.accentWash, reason: '日期单元格底色必须独立于四态格底');
+    // 与四态格底逐值不同，不是「看起来差一点」。
+    for (final Color slot in <Color>[
+      AppTokens.slotPlan,
+      AppTokens.slotHabit,
+      AppTokens.slotBackfill,
+      AppTokens.slotDone,
+    ]) {
+      expect(decoration.color, isNot(slot), reason: '表头底色撞了四态格底');
+    }
+
+    // 日期真的画在这个单元格里（不是别处也有一个同名 Text）。
+    expect(
+      find.descendant(of: cell, matching: find.textContaining(_today)),
+      findsOneWidget,
+      reason: '日期单元格里没有日期文本',
+    );
+
+    // 左缘对齐：表头日期单元 · 刻度列 · section 内容列（x=0）三者同一条线。
+    final Finder ruler = find.byKey(const ValueKey<String>('day-grid-ruler'));
+    final double headerLeft = tester.getTopLeft(cell).dx;
+    expect(headerLeft, closeTo(0, 0.01), reason: '表头被额外边距推离了内容列左缘');
+    expect(
+      headerLeft,
+      closeTo(tester.getTopLeft(ruler).dx, 0.01),
+      reason: '表头左缘与刻度列左缘不一致',
+    );
+    expect(
+      tester.getTopLeft(find.byType(DayGrid)).dx,
+      closeTo(headerLeft, 0.01),
+      reason: '表头左缘与 DayGrid（section）左缘不一致',
+    );
+
+    // 日期单元格不得挤歪刻度列：窄档（1400 − 240 = 1160 < 1280）仍是 52。
+    expect(
+      tester.getSize(ruler).width,
+      closeTo(AppTokens.tlWidthNarrow, 0.01),
+      reason: '刻度列被表头挤歪了',
+    );
+
+    await _flushTimers(tester);
+  });
+
+  testWidgets('点「删除」先弹确认；取消 ⇒ 条目仍在、库里没软删', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _today);
+    await _seedPlan(harness, date: _today, title: '别删我', startMinute: 9 * 60);
+    await harness.mount(tester, _today);
+    await _settle(tester);
+
+    final PlanItemData plan = await _onlyPlan(tester, harness, _today);
+    final Finder entry = find.byKey(
+      ValueKey<String>('day-grid-entry-${plan.id}'),
+    );
+    expect(entry, findsOneWidget);
+
+    // 首次点击只能落在条目里那个「删除」上：弹窗一开，同文案会有两个。
+    await tester.tap(find.descendant(of: entry, matching: find.text('删除')));
+    await _settle(tester);
+
+    final Finder cancel = find.byKey(
+      const ValueKey<String>('confirm-dialog-cancel'),
+    );
+    expect(cancel, findsOneWidget, reason: '删除没有确认环节（需求 9）');
+
+    await tester.tap(cancel);
+    await _settle(tester);
+
+    expect(cancel, findsNothing);
+    expect(entry, findsOneWidget, reason: '取消后条目不该消失');
+    expect(tester.takeException(), isNull, reason: '取消删除不该产生异常');
+    // 库层同一条事实：仍然只有那一行，没有被软删。
+    await _onlyPlan(tester, harness, _today);
+
+    await _flushTimers(tester);
+  });
+
+  testWidgets('确认删除 ⇒ 条目消失、库里查不到', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _today);
+    await _seedPlan(harness, date: _today, title: '删掉我', startMinute: 9 * 60);
+    await harness.mount(tester, _today);
+    await _settle(tester);
+
+    final PlanItemData plan = await _onlyPlan(tester, harness, _today);
+    final Finder entry = find.byKey(
+      ValueKey<String>('day-grid-entry-${plan.id}'),
+    );
+
+    await tester.tap(find.descendant(of: entry, matching: find.text('删除')));
+    await _settle(tester);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('confirm-dialog-confirm')),
+    );
+    await _settle(tester);
+
+    expect(entry, findsNothing, reason: '确认后条目仍在');
+    final List<PlanItemData> left = (await tester.runAsync(
+      () => harness.repos.planItem.listByDate(_today),
+    ))!;
+    expect(left, isEmpty, reason: '确认后没有软删');
+
+    await _flushTimers(tester);
+  });
 }
 
 /// 一条网格条目的四通道联合判据：字形 · 状态词 · 左缘竖条 · （调用方另判删除线）。
@@ -684,7 +827,9 @@ void _expectDualChannel(
   required String glyph,
   required String label,
 }) {
-  final Finder entry = find.byKey(ValueKey<String>('day-grid-entry-$planItemId'));
+  final Finder entry = find.byKey(
+    ValueKey<String>('day-grid-entry-$planItemId'),
+  );
 
   // 字形按「同一字符 + 显式正文字族」定位：条目里每个 `Text` 都会 build 出
   // 一个 `RichText`，`LedgerCheckbox` 勾选时自己也画一个 `✓`（13px JetBrains
@@ -694,9 +839,11 @@ void _expectDualChannel(
       .widgetList<RichText>(
         find.descendant(of: entry, matching: find.byType(RichText)),
       )
-      .where((RichText rich) =>
-          rich.text.toPlainText() == glyph &&
-          rich.text.style?.fontFamily == AppFonts.body)
+      .where(
+        (RichText rich) =>
+            rich.text.toPlainText() == glyph &&
+            rich.text.style?.fontFamily == AppFonts.body,
+      )
       .toList();
   expect(glyphCandidates, hasLength(1), reason: '$kind 缺字形');
   final TextStyle glyphStyle = glyphCandidates.single.text.style!;
@@ -705,21 +852,29 @@ void _expectDualChannel(
   expect(glyphStyle.color, foregroundOfSlotKind(kind));
   expect(glyphStyle.fontSize, 11);
 
-  final Finder labelBox = find.descendant(of: entry, matching: find.text(label));
+  final Finder labelBox = find.descendant(
+    of: entry,
+    matching: find.text(label),
+  );
   expect(labelBox, findsOneWidget, reason: '$kind 缺状态词');
   final TextStyle labelStyle = tester.widget<Text>(labelBox).style!;
   expect(labelStyle.color, foregroundOfSlotKind(kind));
   expect(labelStyle.fontSize, 10);
 
   // 标题仍在（既有元素不动）。
-  expect(find.descendant(of: entry, matching: find.text(title)), findsOneWidget);
+  expect(
+    find.descendant(of: entry, matching: find.text(title)),
+    findsOneWidget,
+  );
 
   // 左缘 2px 竖条：宽度 2，颜色 = 该态前景色；其余三边保持既有细边 `hair`。
-  final BoxDecoration decoration = tester
-      .widget<Container>(
-        find.byKey(ValueKey<String>('day-grid-entry-$planItemId')),
-      )
-      .decoration! as BoxDecoration;
+  final BoxDecoration decoration =
+      tester
+              .widget<Container>(
+                find.byKey(ValueKey<String>('day-grid-entry-$planItemId')),
+              )
+              .decoration!
+          as BoxDecoration;
   final Border border = decoration.border! as Border;
   expect(border.left.width, 2);
   expect(border.left.color, foregroundOfSlotKind(kind));
@@ -779,8 +934,9 @@ void _expectMinTile(
   required String planItemId,
   required double netTileHeight,
 }) {
-  final Finder entry =
-      find.byKey(ValueKey<String>('day-grid-entry-$planItemId'));
+  final Finder entry = find.byKey(
+    ValueKey<String>('day-grid-entry-$planItemId'),
+  );
   expect(
     tester.getSize(entry).height,
     netTileHeight,
@@ -809,9 +965,11 @@ String _renderedGlyph(WidgetTester tester, String planItemId) {
           matching: find.byType(RichText),
         ),
       )
-      .where((RichText rich) =>
-          rich.text.style?.fontFamily == AppFonts.body &&
-          rich.text.toPlainText().runes.length == 1)
+      .where(
+        (RichText rich) =>
+            rich.text.style?.fontFamily == AppFonts.body &&
+            rich.text.toPlainText().runes.length == 1,
+      )
       .toList();
   expect(hits, hasLength(1), reason: '条目 $planItemId 里的字形不唯一');
   return hits.single.text.toPlainText();

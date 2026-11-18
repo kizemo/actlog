@@ -115,15 +115,49 @@ void main() {
     expect(item.estMinutes, 30);
     expect(item.isHabitRef, 0);
 
-    final DateTime dayStart = DateTime(2026, 11, 11);
-    expect(
-      item.plannedStart,
-      dayStart.add(const Duration(minutes: 570)).millisecondsSinceEpoch,
+    // 单位契约：`planned_start` / `planned_end` 是**当日分钟数（0–1439）**，
+    // 与桌面端时间轴（slot_state.dart / timeline_store.dart）同口径。
+    // 早先这里断言的是 epoch 毫秒，那是错的口径 —— 毫秒值会被网格两端
+    // 都夹成 1440 而被丢弃，物化出来的行永远不上时间轴。
+    expect(item.plannedStart, 570);
+    expect(item.plannedEnd, 600);
+  });
+
+  test('物化的时段是当日分钟数（0–1439），不是 epoch 毫秒', () async {
+    await repos.recurring.create(
+      title: '早读',
+      weekdayMask: WeekdayMask.bitOf(_wednesday),
+      startMinute: 510, // 08:30
+      durationMinutes: 30,
     );
-    expect(
-      item.plannedEnd,
-      dayStart.add(const Duration(minutes: 600)).millisecondsSinceEpoch,
+
+    expect(await repos.recurring.materializeDate(_date), 1);
+
+    final item = (await repos.planItem.listByDate(_date)).single;
+    expect(item.plannedStart, 510);
+    expect(item.plannedEnd, 540);
+    // 反向断言：守住「别再写成时间戳」。
+    expect(item.plannedStart, lessThan(minutesPerDay));
+    expect(item.plannedEnd, lessThanOrEqualTo(minutesPerDay));
+  });
+
+  test('跨零点的时长把 planned_end 夹到 1440（当日 24:00）', () async {
+    await repos.recurring.create(
+      title: '深夜收尾',
+      weekdayMask: WeekdayMask.bitOf(_wednesday),
+      startMinute: 1410, // 23:30
+      durationMinutes: 60, // 1410 + 60 = 1470 > 1440
     );
+
+    expect(await repos.recurring.materializeDate(_date), 1);
+
+    final item = (await repos.planItem.listByDate(_date)).single;
+    final int? start = item.plannedStart;
+    final int? end = item.plannedEnd;
+    expect(start, 1410);
+    expect(end, minutesPerDay);
+    // 相等会让行在网格里不可见（gridEntriesOf 里 clampedEnd <= clampedStart 即丢弃）。
+    expect(start, lessThan(end!));
   });
 
   test('同一天重复物化是幂等的（返回 0，不产生第二条）', () async {

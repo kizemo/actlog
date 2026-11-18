@@ -27,7 +27,7 @@ class ShellNavItem {
 
 /// 原型固定的 6 项主导航。
 ///
-/// 「今日 / 待办池 / 习惯 / 日历」四项有真实落点；项目与设置本轮没有页面，
+/// 「今日 / 待办池 / 习惯 / 日历 / 设置」五项有真实落点；项目本轮没有页面，
 /// 一律禁用而不是做成假按钮（点击无落点等于骗用户）。
 const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   ShellNavItem(id: 'today', label: '今日'),
@@ -36,8 +36,7 @@ const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   // [未覆盖] 原因：计划 Task 19 未实现该页面
   ShellNavItem(id: 'projects', label: '项目', enabled: false),
   ShellNavItem(id: 'calendar', label: '日历'),
-  // [未覆盖] 原因：计划 Task 19 未实现该页面
-  ShellNavItem(id: 'settings', label: '设置', enabled: false),
+  ShellNavItem(id: 'settings', label: '设置'),
 ];
 
 /// 左主导航（等价原型 `nav.nav`）。

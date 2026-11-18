@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'desktop_shell.dart';
+import 'pages/about_page.dart';
 import 'pages/calendar_page.dart';
 import 'pages/habits_page.dart';
+import 'pages/settings_page.dart';
 import 'pages/today_page.dart';
 import 'pages/todo_pool_page.dart';
+import 'providers.dart';
 import 'theme/app_theme.dart';
-import 'theme/density_profile.dart';
+import 'theme/app_tokens.dart';
+
+import 'widgets/date_bar.dart';
 import 'widgets/habit_quick_dialog.dart';
 import 'widgets/quick_todo_dialog.dart';
 import 'widgets/recurring_rail_panel.dart';
@@ -52,7 +58,11 @@ double resolveTextScaleFromEnvironment(Map<String, String> environment) =>
 /// 应用根组件。
 class ActLogApp extends StatefulWidget {
   /// 创建应用根组件。
-  const ActLogApp({super.key, this.textScale = 1.0});
+  const ActLogApp({super.key, this.textScale = 1.0, this.home});
+
+  /// 可选根页面（测试缝）。`null` ⇒ 真壳 [ShellHost]；测试进程里起不来
+  /// `window_manager`，因此允许直接注入一个页面断言应用级行为。
+  final Widget? home;
 
   /// 全局字号缩放（1.0 = 原型基准 100%）。
   final double textScale;
@@ -69,12 +79,36 @@ class _ActLogAppState extends State<ActLogApp> {
 
   @override
   Widget build(BuildContext context) {
+    // 没有 `ProviderScope` 祖先时（部分既有测试直接 pump `ActLogApp`），
+    // 不能 `ref.watch`，否则整棵测试树崩在 `ProviderScope` 查找上。
+    // 此时按出厂默认偏好渲染：接线照旧成立，只是读不到用户设置。
+    ProviderContainer? container;
+    try {
+      container = ProviderScope.containerOf(context, listen: false);
+    } on Object {
+      container = null;
+    }
+    if (container == null) {
+      return _buildApp(AppPreferences.defaults);
+    }
+    return Consumer(
+      builder: (BuildContext context, WidgetRef ref, Widget? child) =>
+          _buildApp(ref.watch(currentPreferencesProvider)),
+    );
+  }
+
+  /// 用一份具体偏好构建 `MaterialApp`（根组件唯一的主题 / 路由出口）。
+  ///
+  /// 不设 `MaterialApp.locale`：本波零新增依赖、没有 `flutter_localizations`，
+  /// 把 `locale` 设成 `zh` 会让 Material 内建文案找不到本地化实现。语言切换
+  /// 只作用于我们自己的 `AppLocalizations` 文案（设置页 / 关于页）。
+  Widget _buildApp(AppPreferences prefs) {
     return MaterialApp(
       title: '知行日志',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(DensityProfile.comfortable),
-      darkTheme: AppTheme.dark(DensityProfile.comfortable),
-      themeMode: ThemeMode.light,
+      theme: AppTheme.light(prefs.density),
+      darkTheme: AppTheme.dark(prefs.density),
+      themeMode: prefs.themeMode,
       // 裁定 B：字号缩放只施加在这一层，页面代码一律不感知。
       builder: (BuildContext context, Widget? child) {
         final media = MediaQuery.maybeOf(context) ?? const MediaQueryData();
@@ -83,11 +117,32 @@ class _ActLogAppState extends State<ActLogApp> {
           child: child ?? const SizedBox.shrink(),
         );
       },
-      home: const ShellHost(),
+      home: widget.home ?? const ShellHost(),
       routes: <String, WidgetBuilder>{
         '/todo': (_) => const ShellHost(initialNavId: 'inbox'),
         '/calendar': (_) => const ShellHost(initialNavId: 'calendar'),
+        '/settings': (_) => const ShellHost(initialNavId: 'settings'),
+        '/about': (_) => const _AboutRoute(),
       },
+    );
+  }
+}
+
+/// 关于页的宿主：壳外的独立路由。
+///
+/// 关于页是**内容体**（不带 `Scaffold`，与四个既有页面同一纪律），深链
+/// `/about` 需要一个给得出滚动视口、且带 `Material` 祖先的宿主。
+class _AboutRoute extends StatelessWidget {
+  const _AboutRoute();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTokens.paper,
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.all(24),
+        child: AboutPage(),
+      ),
     );
   }
 }
@@ -97,10 +152,12 @@ class _ActLogAppState extends State<ActLogApp> {
 /// 自绘顶栏 [AppTopBar] 挂在本组件里、`LedgerShell` **之上**（不是塞进壳内部），
 /// 窗口动作全部转给 `desktop_shell.dart` 的模块级函数，壳本身完全不感知窗口。
 ///
-/// 四个页面（今日 / 待办池 / 习惯 / 日历）都是**内容体**，不带 `Scaffold`；
-/// 导航点击只切本组件的 `_nav` 状态，不做路由 push —— 否则每点一次就叠一层壳。
-/// `/todo` 与 `/calendar` 保留为**深链入口**：它们各自创建一个带初始导航项的
-/// 宿主，供测试与外部深链使用。
+/// 五个页面（今日 / 待办池 / 习惯 / 日历 / 设置）都是**内容体**，不带
+/// `Scaffold`；导航点击只切本组件的 `_nav` 状态，不做路由 push —— 否则每点
+/// 一次就叠一层壳。
+/// `/todo`、`/calendar`、`/settings`、`/about` 保留为**深链入口**：前三个各自
+/// 创建一个带初始导航项的宿主，`/about` 走壳外的 `_AboutRoute`（关于页没有
+/// 导航项，只在设置页与深链里可达）。
 class ShellHost extends StatefulWidget {
   /// 创建壳宿主。
   const ShellHost({super.key, this.initialNavId = kTodayNavId});
@@ -171,6 +228,7 @@ class _ShellHostState extends State<ShellHost> {
                   currentNavId: _nav,
                   onNavSelected: _onNavSelected,
                   railPanels: _railPanels(context),
+                  pinnedHeader: _pinnedHeader(),
                   content: _content(),
                 ),
               ),
@@ -210,6 +268,18 @@ class _ShellHostState extends State<ShellHost> {
     return todayRailPanels(context);
   }
 
+  /// 吸顶头：只有今日页有日期条，其余页返回 `null`（不占位、不留空白）。
+  ///
+  /// 日期条原先长在 `TodayPage` 正文**里面**，等于坐在滚动区里 —— 往下翻方格
+  /// 时间轴时它会跟着滚走，用户就失去了「现在看的是哪一天」这个锚点。
+  /// 挂在壳的纸面头部后，它成为滚动区之外的列兄弟，结构性不可能滚走。
+  Widget? _pinnedHeader() {
+    if (_nav != ShellHost.kTodayNavId) {
+      return null;
+    }
+    return const DateBar();
+  }
+
   Widget _content() {
     return switch (_nav) {
       'inbox' => const TodoPoolPage(),
@@ -218,9 +288,10 @@ class _ShellHostState extends State<ShellHost> {
       'calendar' => CalendarPage(
         onDayPicked: () => setState(() => _nav = ShellHost.kTodayNavId),
       ),
-      // 项目 / 设置：[未覆盖] 原因：本轮未实现这两个页面。
-      // 这两项在 `kShellNavItems` 里 `enabled: false`，用户点不到，
-      // 也不会走到这个分支；此处保留今日页作为唯一合法兜底。
+      'settings' => const SettingsPage(),
+      // 项目：[未覆盖] 原因：本轮未实现该项目页面。该项在 `kShellNavItems`
+      // 里 `enabled: false`，用户点不到，也不会走到这个分支；此处保留今日页
+      // 作为唯一合法兜底。
       _ => const TodayPage(),
     };
   }
@@ -229,18 +300,18 @@ class _ShellHostState extends State<ShellHost> {
     if (id == _nav) {
       return;
     }
-    // 只有今日 / 待办池 / 习惯 / 日历有真实落点。项目 / 设置两项在
-    // `kShellNavItems` 里已 `enabled: false`（无 InkWell、不可 Tab），
-    // 因此不会进入本回调 —— 这里不为它们造任何假落点。
+    // 今日 / 待办池 / 习惯 / 日历 / 设置五项有真实落点；只有「项目」在
+    // `kShellNavItems` 里仍是 `enabled: false`（无 InkWell、不可 Tab），
+    // 因此永远不会进入本回调 —— 这里不为它造假落点。
     setState(() => _nav = id);
   }
 }
 
 /// 「切页」意图（`Ctrl+1…4`，键条最后一条）。
 ///
-/// 只认四个有落点的导航项：今日 / 待办池 / 习惯 / 日历。项目 / 设置两项
-/// 在 `kShellNavItems` 里是 `enabled: false`（无落点）⇒ 不实现
-/// `Ctrl+5/6`，也不把它们写进键条（留没实现的提示就是假提示）。
+/// 只认四个有落点的导航项：今日 / 待办池 / 习惯 / 日历。设置页虽有落点，
+/// 但键条与快捷键只承诺这四条 ⇒ 不实现 `Ctrl+5`（留没实现的提示就是假提示）；
+/// 「项目」在 `kShellNavItems` 里更是 `enabled: false`（无落点）。
 class _NavIntent extends Intent {
   const _NavIntent(this.navId);
 

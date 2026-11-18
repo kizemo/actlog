@@ -3,6 +3,7 @@
 // 覆盖的验收点：
 //   P1-3 条目与日志日双向一致
 //   P1-6 整行回填可只存进展，也可以顺手标完成（含删除习惯回填行）
+//   P1-7 IME 组合输入：拼音未上屏不落库，上屏后回车才落库（Task 40 补）
 //
 // B2（2026-11-12）删掉两条用例，理由见交付说明：
 //   P1-1「极简隐藏字段不丢数据」—— 唯二宿主（`PriorityTagChip` 与条目细节
@@ -207,7 +208,33 @@ void main() {
     expect(_inPlanBlock('习惯回填'), findsOneWidget);
 
     // 点行尾的删除按钮（W3 起是壳内文字动作，不再带 Tooltip）。
-    await tester.tap(_inPlanBlock('删除'));
+    //
+    // 必须按结构定位：整页 `find.text('删除')` 还会命中规则区的「删除」
+    // （`recurring_rail_panel.dart`），直接 tap 会撞成多匹配。
+    final Finder rowDelete = find.descendant(
+      of: find.byKey(const ValueKey<String>('day-grid')),
+      matching: find.text('删除'),
+    );
+    expect(rowDelete, findsOneWidget, reason: '方格行尾应当恰好有一个「删除」');
+    await tester.tap(rowDelete);
+    await _settle(tester);
+
+    // 需求 9：删除走二次确认 —— 弹窗期间数据一行都不许动。
+    expect(find.text('删除计划项'), findsOneWidget, reason: '必须先弹确认框');
+    expect(
+      _inPlanBlock('晨跑'),
+      findsOneWidget,
+      reason: '只弹确认框、还没点确认时，回填行必须还在',
+    );
+    expect(
+      await harness.repos.planItem.listByDate(_date),
+      hasLength(1),
+      reason: '只弹确认框时不得软删任何行',
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('confirm-dialog-confirm')),
+    );
     await _settle(tester);
 
     // 回填行没了。
@@ -223,6 +250,75 @@ void main() {
     expect(checkin, isNotNull, reason: '删除回填行不得删掉习惯打卡记录');
     expect(checkin!.status, CheckinStatus.done.code);
 
+    await _flushTimers(tester);
+  });
+
+  // P1-7 走真正的 IME 通道（不是 `enterText` 一步到位的赋值）。
+  //
+  // Task 39 遗留的「端到端 IME 未复验」就是这条：中文输入法下用户先敲拼音，
+  // 拼音串在 `composing` 区间里、还没上屏；上屏之后才按回车。这三步在
+  // `TextEditingValue` 层面是三次独立的事件，`enterText` 只模拟了最后一次的
+  // 结果，掩盖了「组合态被误判为提交」这类缺陷。
+  //
+  // 钉三件事：① 组合态不落库；② 上屏但不回车也不落库；③ 回车（`done`）
+  // 才落库，且落的就是上屏后的正文。
+  testWidgets('P1-7 IME 组合输入：拼音未上屏不落库，上屏后回车才落库', (tester) async {
+    final harness = _Harness.create();
+    addTearDown(harness.db.close);
+
+    await _boot(tester, harness);
+    expect(find.byKey(const ValueKey<String>('unscheduled-strip')), findsNothing);
+
+    // 建立真实输入连接（`enterText` 之外唯一能拿到 `testTextInput` 的方式）。
+    await tester.showKeyboard(_addField());
+    await tester.pump();
+
+    // 1) 拼音串在组合区间里 —— 界面显示的是 `zhengli`，一个字都没上屏。
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'zhengli',
+        selection: TextSelection.collapsed(offset: 7),
+        composing: TextRange(start: 0, end: 7),
+      ),
+    );
+    await tester.pump();
+    expect(
+      find.text('zhengli'),
+      findsOneWidget,
+      reason: '组合态的拼音必须落在输入框里（否则这条用例没测到 IME）',
+    );
+    expect(
+      await harness.repos.planItem.listByDate(_date),
+      isEmpty,
+      reason: '拼音还在组合区间、没有上屏时不得落库',
+    );
+
+    // 2) 上屏（`composing` 清空）—— 输入框里有正文，但用户还没回车。
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '整理阳台',
+        selection: TextSelection.collapsed(offset: 4),
+        composing: TextRange.empty,
+      ),
+    );
+    await tester.pump();
+    expect(
+      await harness.repos.planItem.listByDate(_date),
+      isEmpty,
+      reason: '上屏本身不是提交动作，不得落库',
+    );
+    expect(find.byKey(const ValueKey<String>('unscheduled-strip')), findsNothing);
+
+    // 3) 回车（IME 的 `done`）才是提交。
+    tester.testTextInput.receiveAction(TextInputAction.done);
+    await _settle(tester);
+
+    expect(find.byKey(const ValueKey<String>('unscheduled-strip')), findsOneWidget);
+    expect(_inPlanBlock('整理阳台'), findsOneWidget);
+
+    final item = await harness.onlyItem();
+    expect(item.title, '整理阳台', reason: '落库的必须是上屏后的正文，不是拼音串');
+    expect(item.date, _date);
     await _flushTimers(tester);
   });
 }

@@ -4,9 +4,9 @@
 // =============================================================================
 // 覆盖 Task 19 / W4「待办捞取入口」的数据层契约：
 //   1. listOpen 只取 open 且未删除的待办，按 created_at 升序；
-//   2. pullToPlan 建 plan_item（source_type='todo' + 引用 + 快照）并把 todo 置 done；
+//   2. pullToPlan 只建 plan_item（source_type='todo' + 引用 + 快照），**不改 todo 状态**；
 //   3. 不存在 / 已删除 / 非 open 的待办按既有约定抛 StateError，且不留下写入；
-//   4. 两次写入都经过 OplogWriter（plan_item 一条 upsert + todo 一条 upsert）。
+//   4. 只有 plan_item 一条 upsert 走 OplogWriter（捞取不动 todo 行）。
 //
 // 待办行由测试**直接插入**（fixture），不走 oplog —— 这样 oplog 断言里只会
 // 出现 pullToPlan 自己写的记录，计数才有判别力。
@@ -209,17 +209,26 @@ void main() {
       expect(item.isHabitRef, 0);
     });
 
-    test('把 todo 置为 done 并写 completed_at，rev 递增', () async {
+    // Task 39 W2 修正：`pullToPlan` 不再改 todo 的完成状态。
+    // 权威口径 `docs/schema_v1.sql:167-168`——「添加到今日计划 = 在 plan_item 建行
+    // + 拷 title 快照，**不复制状态**；todo.completed_at 只在待办本体完成时写」。
+    // 旧断言（done + completed_at 非空 + rev 5 + 池子清空）钉的正是被修掉的缺陷
+    // （「添加待办后待办列表看不到」的根因），故按新口径改写而不是删除。
+    test('捞进计划不改 todo 状态：仍 open、completed_at 为空、rev 不动', () async {
       final todoId = await seedTodo(id: 't-close', title: '关掉我', rev: 4);
 
       await repos.todo.pullToPlan(todoId, _today);
 
       final row = await todoRow(todoId);
-      expect(row.status, TodoStatus.done.code);
-      expect(row.completedAt, isNotNull);
+      expect(row.status, TodoStatus.open.code);
+      expect(row.completedAt, isNull);
       expect(row.deletedAt, isNull, reason: '捞进计划不是删除，不得写墓碑');
-      expect(row.rev, 5);
-      expect(await repos.todo.listOpen(), isEmpty, reason: '捞走后池子里不再出现');
+      expect(row.rev, 4, reason: '不写 todo 行 ⇒ rev 不递增');
+      expect(
+        (await repos.todo.listOpen()).map((t) => t.id),
+        contains(todoId),
+        reason: '捞进计划后待办仍在池子里（这正是被修的缺陷）',
+      );
     });
 
     test('计划日取调用方传入的日期，不取 due_date', () async {
@@ -324,7 +333,8 @@ void main() {
   // oplog 接线
   // ===========================================================================
   group('TodoRepository · oplog 接线', () {
-    test('一次捞取写两条 upsert：plan_item + todo', () async {
+    // Task 39 W2 修正：捞取只写 plan_item 一条，不再顺带写 todo。
+    test('一次捞取只写一条 upsert：plan_item（不再写 todo）', () async {
       final todoId = await seedTodo(id: 't-oplog', title: '有账可查');
       final planItemId = await repos.todo.pullToPlan(todoId, _today);
 
@@ -338,24 +348,17 @@ void main() {
       expect(
         await scalar(
           "SELECT COUNT(*) FROM oplog WHERE entity_table = 'todo' "
-          "AND entity_id = '$todoId' AND op = 'upsert'",
+          "AND entity_id = '$todoId'",
         ),
-        1,
-      );
-      expect(
-        await scalar(
-          "SELECT COUNT(*) FROM oplog WHERE entity_table = 'todo' "
-          "AND entity_id = '$todoId' AND payload LIKE '%completed_at%'",
-        ),
-        1,
-        reason: 'todo 那条 oplog 的 payload 必须包含 completed_at 字段 diff',
+        0,
+        reason: '捞进计划不改 todo 行 ⇒ 不产生 todo 的 oplog',
       );
       expect(
         await scalar(
           "SELECT COUNT(*) FROM oplog WHERE device_id = '$_device'",
         ),
-        2,
-        reason: 'fixture 直接插库不落 oplog，这里恰好只有捞取写的两条',
+        1,
+        reason: 'fixture 直接插库不落 oplog，这里恰好只有 plan_item 那一条',
       );
     });
 

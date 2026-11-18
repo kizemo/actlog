@@ -30,6 +30,7 @@ class LedgerShell extends StatelessWidget {
     this.secondaryRailPanels = const <ShellRailPanel>[],
     this.keyHints = kShellKeyHints,
     this.dock,
+    this.pinnedHeader,
     super.key,
   });
 
@@ -75,6 +76,12 @@ class LedgerShell extends StatelessWidget {
   /// 为 `null` 时整行不渲染（不占位、不留空白），例如待办池与日历页。
   final Widget? dock;
 
+  /// 吸顶头（今日页放 `DateBar`）：透传给 [LedgerPaper]，落在滚动区之外。
+  ///
+  /// 骨架不知道头部内容是什么，只负责「它不属于滚动区」这一条结构事实；
+  /// 为 `null` 时纸面结构与未引入本参数之前逐字一致（不加包裹层）。
+  final Widget? pinnedHeader;
+
   @override
   Widget build(BuildContext context) {
     final double viewportWidth = MediaQuery.sizeOf(context).width;
@@ -112,6 +119,7 @@ class LedgerShell extends StatelessWidget {
             key: const Key('shell-ledger-paper'),
             maxWidth: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 22),
+            pinnedHeader: pinnedHeader,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -137,6 +145,7 @@ class LedgerShell extends StatelessWidget {
         child: LedgerPaper(
           key: const Key('shell-ledger-paper'),
           maxWidth: wide ? LedgerPaper.wideMaxWidth : LedgerPaper.standardMaxWidth,
+          pinnedHeader: pinnedHeader,
           child: content,
         ),
       ),

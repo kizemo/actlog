@@ -1,14 +1,31 @@
 // =============================================================================
 // 四维度优先级标记 · 字形 + 选择器
 // =============================================================================
-// 为什么用四种字形而不是四种颜色：
-//   颜色是单一通道 —— 红/绿/橙/灰在弱视、灰度打印、极端配色下会塌成一团。
-//   这里每个维度一个**形状**（实心/空心 × 三角/菱形），颜色只是第二重冗余。
+// 为什么不再用四个三角 / 菱形（Task 39 · 指令 6）：
+//   旧的 `▲ ▽ ◆ ◇` 只有 NotoSansSC 一族覆盖（cmap 1/9），兜底链一断就是豆腐块；
+//   而且四个形状要靠「实心/空心 × 三角/菱形」两个维度去记，用户记不住哪枚是
+//   「紧急」。
 //
-// 维度 ↔ 字形（与 `Quadrant` 的两个布尔同构，不新增枚举）：
-//   重要 = ▲   不重要 = ▽   紧急 = ◆   不紧急 = ◇
-//   ⇒ Q1 重要且紧急 = ▲◆ / Q2 重要不紧急 = ▲◇
-//     Q3 不重要紧急 = ▽◆ / Q4 都不 = ▽◇
+// 现在的分工（Task 40 · 需求 3：**同图标 + 填充 / 空心**）：
+//   两条轴各只用**一枚**图标，正负值只靠**填充 / 空心**区分 ——
+//     重要性轴 → 星：重要 = `Icons.star`（实心）/ 不重要 = `Icons.star_border`（空心）；
+//     紧急度轴 → 铃：紧急 = `Icons.notifications`（实心）/
+//                     不紧急 = `Icons.notifications_none`（空心）。
+//   四枚都是 `MaterialIcons.ttf` 随包字形（见 `uses-material-design`），
+//   不依赖文本字体链；同轴同形回答「这是哪条轴」，填充与否回答「取哪个值」。
+//
+// 维度 ↔ 标记（与 `Quadrant` 的两个布尔同构，不新增象限枚举）：
+//   重要 = star(实心) / accent        不重要 = star_border(空心) / faint
+//   紧急 = notifications(实心) / accent
+//   不紧急 = notifications_none(空心) / faint
+//   ⇒ Q1 = star + notifications          Q2 = star + notifications_none
+//     Q3 = star_border + notifications   Q4 = star_border + notifications_none
+//
+// **身份仍由 `Key` 承担**：同一轴的两态同形（只差填充），所以「象限 → 标记」的
+// 表达是 `PriorityMark` 描述对象（key / label / 实心与空心图标 / `filled` / 颜色），
+// 唯一取用入口是 `markOf` / `marksOf`。渲染处带**值级** `Key`
+// （`priority-mark-important` / `-not-important` / `-urgent` / `-not-urgent`），
+// 测试按 key 定位，不用 `find.text` / `find.byIcon` 这种会与另一态撞车的形状计数。
 //
 // 未分级（`quadrant == null`）不画标记，也不留占位空隙 —— 空白本身是信息：
 // 用户看一眼就知道这条还没想过分级，与「想了但结论是 Q4」明确区分。
@@ -22,17 +39,150 @@ import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
 import 'priority_chips.dart' show colorFromHex;
 
-/// 「重要」维度字形（实心三角）。
-const String kMarkImportant = '▲';
+/// 重要性轴的两枚图标：**同一枚星**的实心 / 空心两态。
+///
+/// 实心 = 重要，空心 = 不重要。两态共享同一轮廓，用户只需读「填没填」。
+const IconData kMarkImportant = Icons.star;
 
-/// 「不重要」维度字形（空心三角）。
-const String kMarkNotImportant = '▽';
+/// 空心星 = 不重要（`Icons.star` 的描边版，轮廓一致）。
+const IconData kMarkNotImportant = Icons.star_border;
 
-/// 「紧急」维度字形（实心菱形）。
-const String kMarkUrgent = '◆';
+/// 紧急度轴的两枚图标：**同一枚铃**的实心 / 空心两态。
+///
+/// 实心 = 紧急，空心 = 不紧急。
+const IconData kMarkUrgent = Icons.notifications;
 
-/// 「不紧急」维度字形（空心菱形）。
-const String kMarkNotUrgent = '◇';
+/// 空心铃 = 不紧急（`Icons.notifications` 的描边版，轮廓一致）。
+const IconData kMarkNotUrgent = Icons.notifications_none;
+
+/// 优先级的两根独立维度轴。
+enum PriorityAxis { importance, urgency }
+
+/// 一条优先级标记的**可区分描述**（象限 → 标记的唯一身份来源）。
+///
+/// 为什么需要这个类型：同一轴的两枚标记是**同一枚图标的两种填充**，
+/// 光看 IconData 分不开「重要」与「不重要」；把 key / 颜色 / 实心与空心图标 /
+/// `filled` 一起装进来，渲染处与测试才有一个可以用来精确定位的对象。
+@immutable
+class PriorityMark {
+  /// 创建一枚标记描述。
+  ///
+  /// [filled] 默认 `true` ⇒ 只给 [icon] 的老调用点渲染实心，呈现与改造前一致。
+  const PriorityMark({
+    required this.key,
+    required this.label,
+    required this.color,
+    this.glyph,
+    this.icon,
+    this.outlineIcon,
+    this.filled = true,
+    this.emphasis = FontWeight.w400,
+  }) : assert(
+          glyph != null || icon != null,
+          '标记必须至少有一个字形或一个图标',
+        );
+
+  /// 渲染处的值级 Key（`priority-mark-important` 等）—— 测试定位用。
+  final Key key;
+
+  /// 该维度取值的中文名（「重要」/「不重要」/「紧急」/「不紧急」）。
+  final String label;
+
+  /// 该标记走的主色 token（重要 = `accent`，不重要 = `faint`，两条轴同构）。
+  final Color color;
+
+  /// 文本字形；走 Material Icon 的标记为 null（当前四枚标记都走图标）。
+  final String? glyph;
+
+  /// 该轴图标的**实心**变体；走文本的标记为 null。
+  ///
+  /// 同一轴的两枚 spec 共用这一枚 —— 与 [outlineIcon] 组成一对，
+  /// 由 [filled] 决定渲染哪一个。
+  final IconData? icon;
+
+  /// 该轴图标的**空心**变体；没有描边版时留 null（此时 [resolvedIcon] 回落实心）。
+  final IconData? outlineIcon;
+
+  /// 取实心（`true`）还是空心（`false`）变体 —— 同轴两态的**唯一**差异。
+  final bool filled;
+
+  /// 文本字重（只对 [glyph] 有效，当前无 spec 使用；保留以维持描述对象完整）。
+  final FontWeight emphasis;
+
+  /// 实际要画进界面的图标：`filled` 取 [icon]，否则取 [outlineIcon]。
+  ///
+  /// 没有空心变体时回落到 [icon] ⇒ 只传一个图标的老调用点渲染结果不变。
+  IconData? get resolvedIcon => filled ? icon : (outlineIcon ?? icon);
+
+  /// 是否走 Material Icon 通道。
+  bool get isIcon => icon != null;
+}
+
+/// 「重要」：**实心**星 + accent。
+const PriorityMark kMarkImportantSpec = PriorityMark(
+  key: ValueKey<String>('priority-mark-important'),
+  label: '重要',
+  icon: kMarkImportant,
+  outlineIcon: kMarkNotImportant,
+  filled: true,
+  emphasis: FontWeight.w700,
+  color: AppTokens.accent,
+);
+
+/// 「不重要」：**同一颗星的空心版** + 弱化色。
+///
+/// `icon` 与 `kMarkImportantSpec` 相同（都是实心 `star` —— 那是该轴的图标本体），
+/// 差别只在 [PriorityMark.filled] = false ⇒ 渲染 `star_border`。这不是笔误：
+/// 同轴共用一对图标正是「同图标 + 填充/空心」的实现方式。
+const PriorityMark kMarkNotImportantSpec = PriorityMark(
+  key: ValueKey<String>('priority-mark-not-important'),
+  label: '不重要',
+  icon: kMarkImportant,
+  outlineIcon: kMarkNotImportant,
+  filled: false,
+  emphasis: FontWeight.w400,
+  color: AppTokens.faint,
+);
+
+/// 「紧急」：**实心**铃 + accent。
+const PriorityMark kMarkUrgentSpec = PriorityMark(
+  key: ValueKey<String>('priority-mark-urgent'),
+  label: '紧急',
+  icon: kMarkUrgent,
+  outlineIcon: kMarkNotUrgent,
+  filled: true,
+  color: AppTokens.accent,
+);
+
+/// 「不紧急」：**同一枚铃的空心版** + 弱化色（只有 `filled` 取反）。
+const PriorityMark kMarkNotUrgentSpec = PriorityMark(
+  key: ValueKey<String>('priority-mark-not-urgent'),
+  label: '不紧急',
+  icon: kMarkUrgent,
+  outlineIcon: kMarkNotUrgent,
+  filled: false,
+  color: AppTokens.faint,
+);
+
+/// 取**单个维度**的标记描述 —— 全仓唯一取用入口（选择器 / 气泡都走这里）。
+///
+/// [positive] 为该维度是否取「是」（重要 / 紧急）。
+PriorityMark markOf({required PriorityAxis axis, required bool positive}) {
+  switch (axis) {
+    case PriorityAxis.importance:
+      return positive ? kMarkImportantSpec : kMarkNotImportantSpec;
+    case PriorityAxis.urgency:
+      return positive ? kMarkUrgentSpec : kMarkNotUrgentSpec;
+  }
+}
+
+/// 取一个象限的两枚标记：`[重要性轴, 紧急度轴]`（顺序与渲染顺序一致）。
+List<PriorityMark> marksOf(Quadrant quadrant) {
+  return <PriorityMark>[
+    markOf(axis: PriorityAxis.importance, positive: quadrant.isImportant),
+    markOf(axis: PriorityAxis.urgency, positive: quadrant.isUrgent),
+  ];
+}
 
 /// 由两个布尔拼出象限：`true/true` = Q1，`true/false` = Q2，
 /// `false/true` = Q3，`false/false` = Q4。
@@ -46,13 +196,13 @@ Quadrant quadrantOf({required bool important, required bool urgent}) {
   return urgent ? Quadrant.q3 : Quadrant.q4;
 }
 
-/// 名称前的优先级标记（0～2 枚字形）。
+/// 名称前的优先级标记（0～2 枚）。
 ///
 /// 只做**只读渲染**：点击与修改由 `PriorityMarkPicker` 或既有
 /// `QuadrantPickerDialog` 承担，标记本身不抢焦点、不进 Tab 序列。
 ///
 /// 语义合成一句中文（如「重要且紧急」），读屏用户听到的是结论而不是
-/// 「黑色向上三角 黑色菱形」这种字形噪声。
+/// 「实心星 实心铃」这种图形噪声。
 class PriorityMarks extends StatelessWidget {
   /// 创建标记组；[quadrant] 为 null 时渲染成零尺寸占位（不占空隙）。
   const PriorityMarks({required this.quadrant, this.size = 10, super.key});
@@ -60,7 +210,7 @@ class PriorityMarks extends StatelessWidget {
   /// 要渲染的象限；null = 未分级。
   final Quadrant? quadrant;
 
-  /// 字形字号（默认 10 —— 与行内其它元信息同级，不抢标题）。
+  /// 标记尺寸（默认 10 —— 与行内其它元信息同级，不抢标题）。
   final double size;
 
   @override
@@ -70,35 +220,42 @@ class PriorityMarks extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final QuadrantStyle style = QuadrantStyle.of(value);
-    final TextStyle glyphStyle = TextStyle(
-      // 四个字形都不在 Inter 里，必须显式声明族 —— 继承 `DefaultTextStyle`
-      // 会渲染成豆腐块（与 `day_grid.dart` 的字形通道同一处理）。
-      fontFamily: AppFonts.body,
-      fontFamilyFallback: AppFonts.bodyFallback,
-      fontSize: size,
-      height: 1.1,
-      color: colorFromHex(style.colorHex),
-    );
+    final List<PriorityMark> marks = marksOf(value);
     return Semantics(
       label: style.label,
       excludeSemantics: true,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text(
-            value.isImportant ? kMarkImportant : kMarkNotImportant,
-            style: glyphStyle,
-            key: const ValueKey<String>('priority-mark-importance'),
-          ),
+          _markWidget(marks[0]),
           const SizedBox(width: 1),
-          Text(
-            value.isUrgent ? kMarkUrgent : kMarkNotUrgent,
-            style: glyphStyle,
-            key: const ValueKey<String>('priority-mark-urgency'),
-          ),
+          _markWidget(marks[1]),
         ],
       ),
     );
+  }
+
+  /// 一枚标记：Material 图标（按 `filled` 落实心/空心）或文本字形，
+  /// 各自带**值级** Key。
+  Widget _markWidget(PriorityMark mark) {
+    final String? glyph = mark.glyph;
+    if (glyph != null) {
+      return Text(
+        glyph,
+        key: mark.key,
+        style: TextStyle(
+          // 文本通道目前没有 spec 使用，保留是为了 `PriorityMark` 仍能描述
+          // 纯字形标记；族声明与行内其它元信息保持一致。
+          fontFamily: AppFonts.body,
+          fontFamilyFallback: AppFonts.bodyFallback,
+          fontSize: size,
+          height: 1.1,
+          fontWeight: mark.emphasis,
+          color: mark.color,
+        ),
+      );
+    }
+    return Icon(mark.resolvedIcon, key: mark.key, size: size, color: mark.color);
   }
 }
 
@@ -145,7 +302,7 @@ class PriorityMarkPicker extends StatelessWidget {
         _MarkChip(
           key: const ValueKey<String>('priority-mark-picker-important'),
           label: '重要',
-          glyph: kMarkImportant,
+          mark: kMarkImportantSpec,
           selected: current != null && important,
           accent: accent,
           enabled: enabled,
@@ -154,7 +311,7 @@ class PriorityMarkPicker extends StatelessWidget {
         _MarkChip(
           key: const ValueKey<String>('priority-mark-picker-not-important'),
           label: '不重要',
-          glyph: kMarkNotImportant,
+          mark: kMarkNotImportantSpec,
           selected: current != null && !important,
           accent: accent,
           enabled: enabled,
@@ -163,7 +320,7 @@ class PriorityMarkPicker extends StatelessWidget {
         _MarkChip(
           key: const ValueKey<String>('priority-mark-picker-urgent'),
           label: '紧急',
-          glyph: kMarkUrgent,
+          mark: kMarkUrgentSpec,
           selected: current != null && urgent,
           accent: accent,
           enabled: enabled,
@@ -172,7 +329,7 @@ class PriorityMarkPicker extends StatelessWidget {
         _MarkChip(
           key: const ValueKey<String>('priority-mark-picker-not-urgent'),
           label: '不紧急',
-          glyph: kMarkNotUrgent,
+          mark: kMarkNotUrgentSpec,
           selected: current != null && !urgent,
           accent: accent,
           enabled: enabled,
@@ -185,11 +342,11 @@ class PriorityMarkPicker extends StatelessWidget {
   }
 }
 
-/// 一枚芯片：字形 + 中文标签，选中时换底色与边框。
+/// 一枚芯片：字形 / 图标 + 中文标签，选中时换底色与边框。
 class _MarkChip extends StatelessWidget {
   const _MarkChip({
     required this.label,
-    required this.glyph,
+    required this.mark,
     required this.selected,
     required this.accent,
     required this.enabled,
@@ -198,7 +355,7 @@ class _MarkChip extends StatelessWidget {
   });
 
   final String label;
-  final String glyph;
+  final PriorityMark mark;
   final bool selected;
   final Color accent;
   final bool enabled;
@@ -211,6 +368,8 @@ class _MarkChip extends StatelessWidget {
         : selected
             ? accent
             : AppTokens.ink2;
+    final Color markColor = selected && enabled ? accent : AppTokens.faint;
+    final String? glyph = mark.glyph;
     return Semantics(
       button: true,
       selected: selected,
@@ -235,16 +394,20 @@ class _MarkChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(
-                glyph,
-                style: TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontFamilyFallback: AppFonts.bodyFallback,
-                  fontSize: 10,
-                  height: 1.1,
-                  color: selected && enabled ? accent : AppTokens.faint,
-                ),
-              ),
+              if (glyph != null)
+                Text(
+                  glyph,
+                  style: TextStyle(
+                    fontFamily: AppFonts.body,
+                    fontFamilyFallback: AppFonts.bodyFallback,
+                    fontSize: 10,
+                    height: 1.1,
+                    fontWeight: mark.emphasis,
+                    color: markColor,
+                  ),
+                )
+              else
+                Icon(mark.resolvedIcon, size: 12, color: markColor),
               const SizedBox(width: 3),
               Text(
                 label,

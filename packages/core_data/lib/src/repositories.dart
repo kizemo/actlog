@@ -17,6 +17,10 @@
 // 表类只在 `_db.todo` / `$TodoTable` / `TodoData` / `TodoCompanion` 这些位置出现。
 import 'package:core_db/core_db.dart' hide Todo, nowMillis;
 import 'package:core_domain/core_domain.dart';
+// `Habit` 这个名字在 core_db（表类 `tables.dart`）与 core_domain（实体
+// `entities.dart`）里都存在，裸用会歧义；这里加前缀，只为复用
+// `Habit.parseWeekdays` 的星期解析口径，避免在 core_data 里再抄一份。
+import 'package:core_domain/core_domain.dart' as domain;
 import 'package:drift/drift.dart';
 
 import 'mood.dart';
@@ -151,7 +155,12 @@ final class DayLogRepository {
     );
   }
 
-  /// 写入复盘五段 + 学习收获。
+  /// 写入复盘五段（学习 / 做得好 / 待改进 / 可控 / 不可控）。
+  ///
+  /// **刻意不写 `next_action` 列**：复盘侧的「下一步可控动作」字段已删除，
+  /// 该列现在归心态侧所有（见 [saveMood] 的可选参数 `nextAction`）。
+  /// 若这里继续写，`ReviewDraft.nextAction` 的默认空串会把心态页已填的
+  /// 「明日改进点」清空 —— 这正是需求 4/6 要修掉的缺陷。
   Future<void> saveReview(String id, ReviewDraft draft) {
     return _patch(
       id,
@@ -161,7 +170,6 @@ final class DayLogRepository {
         'improve': draft.improve,
         'controllable': draft.controllable,
         'uncontrollable': draft.uncontrollable,
-        'next_action': draft.nextAction,
       },
       build: (deviceId, ts, rev) => DayLogCompanion(
         learning: Value(draft.learning),
@@ -169,7 +177,6 @@ final class DayLogRepository {
         improve: Value(draft.improve),
         controllable: Value(draft.controllable),
         uncontrollable: Value(draft.uncontrollable),
-        nextAction: Value(draft.nextAction),
         updatedAt: Value(ts),
         originDeviceId: Value(deviceId),
         rev: Value(rev),
@@ -177,11 +184,19 @@ final class DayLogRepository {
     );
   }
 
-  /// 写入心态 8 维 + 失守标记 + 情绪备注。
+  /// 写入心态 8 维 + 失守标记 + 情绪备注 +（可选）「明日改进点」。
   ///
   /// 失守标记经 [MoodRules.resolveFailed] 归一：任一维度为 0 时**强制为真**，
   /// 即使 [MoodSummary.failed] 传 false 也落 true。
-  Future<void> saveMood(String id, MoodSummary summary) {
+  ///
+  /// [nextAction] 是**可选**命名参数：传 `null` 时 `next_action` 列保持原值不动
+  /// （用 `Value.absent()`，不是 `Value(null)`），因此老调用点不会把心态侧
+  /// 已填的「明日改进点」清空。
+  Future<void> saveMood(
+    String id,
+    MoodSummary summary, {
+    String? nextAction,
+  }) {
     final columns = MoodRules.toColumns(summary.scores);
     final failed = MoodRules.resolveFailed(
       scores: summary.scores,
@@ -191,6 +206,7 @@ final class DayLogRepository {
       ...columns,
       'mood_failed': failed ? 1 : 0,
       'mood_note': summary.note,
+      'next_action': ?nextAction,
     };
 
     return _patch(
@@ -207,6 +223,9 @@ final class DayLogRepository {
         mood8: Value(columns[MoodDimension.noExcuses.column]),
         moodFailed: Value(failed ? 1 : 0),
         moodNote: Value(summary.note),
+        nextAction: nextAction == null
+            ? const Value<String>.absent()
+            : Value<String>(nextAction),
         updatedAt: Value(ts),
         originDeviceId: Value(deviceId),
         rev: Value(rev),
@@ -353,11 +372,36 @@ final class PlanItemRepository {
   ///
   /// 回填行是**独立的 plan_item 行**，与 habit_checkin 没有外键关系 ——
   /// 因此删除它不会影响任何习惯记录。
+  ///
+  /// [plannedStart] / [plannedEnd] 是**可选**的当日分钟数（0–1440），默认
+  /// `null` 表示「不落时刻」—— 旧调用点的写入结果完全不变。间隔型习惯新建后
+  /// 自动进计划时传 540 / 570（09:00–09:30），与时间轴的分钟口径一致。
   Future<String> createHabitRef({
     required String date,
     required String habitId,
     required String title,
+    int? plannedStart,
+    int? plannedEnd,
   }) {
+    if (plannedStart != null || plannedEnd != null) {
+      if (plannedStart == null || plannedEnd == null) {
+        throw ArgumentError('plannedStart 与 plannedEnd 必须成对给出');
+      }
+      if (plannedStart < 0 || plannedStart > 1439) {
+        throw ArgumentError.value(
+          plannedStart,
+          'plannedStart',
+          '开始时刻必须是 0..1439 的当日分钟数',
+        );
+      }
+      if (plannedEnd <= plannedStart || plannedEnd > 1440) {
+        throw ArgumentError.value(
+          plannedEnd,
+          'plannedEnd',
+          '结束时刻必须大于开始时刻且不超过 1440',
+        );
+      }
+    }
     return _insert(
       id: uuidV7(),
       date: date,
@@ -371,13 +415,21 @@ final class PlanItemRepository {
       sourceId: habitId,
       sourceTodoId: null,
       isHabitRef: 1,
+      plannedStart: plannedStart,
+      plannedEnd: plannedEnd,
     );
   }
 
   /// 由循环任务物化出的**带时段**计划条目。
   ///
-  /// 与 [create] 的唯一差别是同时写入 `planned_start` / `planned_end`
-  /// （毫秒时间戳，供时间轴定位）。`source_type` 仍取既有值域里的 `manual`
+  /// 与 [create] 的唯一差别是同时写入 `planned_start` / `planned_end`。
+  ///
+  /// **单位契约**：两个字段都是**当日分钟数（0–1439）**，不是 epoch 毫秒 ——
+  /// 与桌面端时间轴（`apps/desktop/lib/src/widgets/timeline/slot_state.dart`
+  /// 的 `minuteOfDay`、`timeline_store.dart` 的写入口径）完全一致。
+  /// 写成时间戳会让行被网格夹到 1440 后整条丢弃，永远不上时间轴。
+  ///
+  /// `source_type` 仍取既有值域里的 `manual`
   /// —— 该列的 CHECK 在 v1 已冻结，加第六个取值须重建整表；权威的
   /// 「这条是哪条循环规则生成的」关系记在 `recurring_occurrence.plan_item_id`。
   Future<String> createScheduled({
@@ -567,7 +619,12 @@ final class PlanItemRepository {
     );
   }
 
-  /// 软删除（写墓碑）。**不会触碰 habit_checkin。**
+  /// 软删除（写墓碑）。
+  ///
+  /// 由循环任务物化出来的行会**联动软删**它的 `recurring_occurrence`：
+  /// 否则右栏「今日」仍按 occurrence 列条目、网格里却已经没有这一行，
+  /// 看起来就像同一条任务被排了两遍（需求 8 的「重复」根因之一）。
+  /// 计划条目的删除**不会触碰 habit_checkin**。
   Future<void> softDelete(String id) async {
     final deviceId = await _oplog.resolveDeviceId();
     final ts = nowMillis();
@@ -589,8 +646,44 @@ final class PlanItemRepository {
             rev: Value(row.rev + 1),
           ),
         );
+        await _softDeleteOccurrencesOf(id, deviceId: deviceId, ts: ts);
       },
     );
+  }
+
+  /// 联动软删指向 [planItemId] 的循环任务实例（与调用方同一事务、同一时间戳）。
+  ///
+  /// 已经是墓碑的行跳过，避免重复落删除 oplog。
+  Future<void> _softDeleteOccurrencesOf(
+    String planItemId, {
+    required String deviceId,
+    required int ts,
+  }) async {
+    final List<RecurringOccurrenceData> rows =
+        await (_db.select(_db.recurringOccurrence)..where(
+              (t) => t.planItemId.equals(planItemId) & t.deletedAt.isNull(),
+            ))
+            .get();
+    for (final RecurringOccurrenceData occurrence in rows) {
+      await _oplog.writeWithOplog<void>(
+        table: TableNames.recurringOccurrence,
+        id: occurrence.id,
+        isDelete: true,
+        deletedAt: ts,
+        write: () async {
+          await (_db.update(_db.recurringOccurrence)
+                ..where((t) => t.id.equals(occurrence.id)))
+              .write(
+            RecurringOccurrenceCompanion(
+              deletedAt: Value(ts),
+              updatedAt: Value(ts),
+              originDeviceId: Value(deviceId),
+              rev: Value(occurrence.rev + 1),
+            ),
+          );
+        },
+      );
+    }
   }
 
   Future<PlanItemData?> _rowOf(String id) {
@@ -728,7 +821,11 @@ final class TodoRepository {
   /// - 快照：`title` / `detail` / `est_minutes` / `quadrant` / `priority_abc`；
   /// - 其余按 `PlanItem` 默认：`domain=''`、`status='pending'`、`is_habit_ref=0`。
   ///
-  /// 随后把该待办置为 `done` 并写 `completed_at`（同一个事务）。
+  /// **不碰待办本体的完成状态**：`docs/schema_v1.sql` 的 todo 表注释定死了
+  /// 「「添加到今日计划」= 在 plan_item 建行 + 写 source_todo_id + 拷 title 快照，
+  /// **不复制状态**」，`todo.completed_at` 只在待办本体被勾完成时写。
+  /// 早先这里顺带把 todo 置 `done`，导致待办池（`listOpen()` 只查 `status='open'`）
+  /// 捞进计划后整条消失。
   ///
   /// 错误约定与 `PlanItemRepository` 一致（`StateError`）：待办不存在、已软删、
   /// 或状态不是 `open` 时抛出，且**不留下任何写入**。
@@ -743,6 +840,12 @@ final class TodoRepository {
     }
     if (row.status != TodoStatus.open.code) {
       throw StateError('todo $todoId 状态是 ${row.status}，只有 open 才能捞进计划');
+    }
+    // 幂等守卫：状态不再被改成 `done`（见下），「只能捞一次」就不能再靠状态位
+    // 兜底，必须直接查同一天是否已有这条 todo 的计划行 —— 否则连点两下
+    // 「加入今日计划」会在同一天建出两行。
+    if (await _hasTodoPlanItem(row.id, date)) {
+      throw StateError('todo $todoId 已经捞进 $date 的计划');
     }
 
     final planItemId = uuidV7();
@@ -779,28 +882,24 @@ final class TodoRepository {
           ),
         ),
       );
-
-      await _oplog.writeWithOplog<void>(
-        table: 'todo',
-        id: row.id,
-        changedFields: <String, Object?>{
-          'status': TodoStatus.done.code,
-          'completed_at': ts,
-        },
-        write: () =>
-            (_db.update(_db.todo)..where((t) => t.id.equals(row.id))).write(
-          TodoCompanion(
-            status: Value(TodoStatus.done.code),
-            completedAt: Value(ts),
-            updatedAt: Value(ts),
-            originDeviceId: Value(deviceId),
-            rev: Value(row.rev + 1),
-          ),
-        ),
-      );
     });
 
     return planItemId;
+  }
+
+  /// 某天的计划里是否已经有这条待办（`pullToPlan` 的幂等查询）。
+  Future<bool> _hasTodoPlanItem(String todoId, String date) async {
+    final rows = await (_db.select(_db.planItem)
+          ..where(
+            (t) =>
+                t.date.equals(date) &
+                t.sourceType.equals(PlanSourceType.todo.code) &
+                t.sourceTodoId.equals(todoId) &
+                t.deletedAt.isNull(),
+          )
+          ..limit(1))
+        .get();
+    return rows.isNotEmpty;
   }
 
   /// 读一行待办（**包含墓碑**，用于区分「不存在」与「已删除」）。
@@ -881,28 +980,208 @@ final class HabitRepository {
         .get();
   }
 
+  /// 自动进计划的默认窗口长度（含起始日）：未来 14 天。
+  static const int autoPlanHorizonDays = 14;
+
+  /// 自动进计划的默认开始时刻：09:00 的当日分钟数。
+  static const int autoPlanStartMinute = 540;
+
+  /// 自动进计划的默认结束时刻：09:30 的当日分钟数。
+  static const int autoPlanEndMinute = 570;
+
   /// 判断习惯是否在 [date] 有排程。
   ///
-  /// - `daily`：每天；
-  /// - `weekdays`：`weekdays` 列存 '1,3,5'（1=周一 … 7=周日）；
-  /// - `weekly_n`：每周 N 次，没有固定日，因此每天都会出现，由用户自己挑日子。
+  /// `weekdays` 列存 '1,3,5'（1=周一 … 7=周日，与 `DateTime.weekday` 同口径）。
+  /// 四个分支的判定口径：
+  ///
+  /// - `weekdays`：只按星期匹配，忽略 `weekly_n`；
+  /// - `weekly_n` + `weekdays` 为空：**存量**语义「每周 N 次、没有固定日」，
+  ///   每天都命中，由用户自己挑日子（行为与扩展前完全一致）；
+  /// - `weekly_n` + `weekdays` 非空：每隔 `weekly_n` 周的这些星期命中，
+  ///   周基准是 `start_date` 所在周的**周一**；`weekly_n` 为空或为 1 时等价于每周；
+  /// - `daily`（或缺省）：`weekly_n` 为空或为 1 时每天命中（存量语义），
+  ///   `weekly_n = N ≥ 2` 时以 `start_date` 为第 0 天，天数差能被 N 整除即命中。
+  ///
+  /// 日期非法时返回 false（沿用「解析层不崩溃」的约定）。
   static bool isScheduledFor(HabitData habit, String date) {
+    final DateTime? parsed = parseIsoDate(date);
+    if (parsed == null) {
+      return false;
+    }
     switch (habit.scheduleType) {
       case 'weekdays':
-        final parsed = parseIsoDate(date);
-        if (parsed == null) {
+        return domain.Habit.parseWeekdays(habit.weekdays).contains(
+          parsed.weekday,
+        );
+      case 'weekly_n':
+        final Set<int> days = domain.Habit.parseWeekdays(habit.weekdays);
+        if (days.isEmpty) {
+          // 存量：每周 N 次没有固定日 ⇒ 每天出现。
+          return true;
+        }
+        if (!days.contains(parsed.weekday)) {
           return false;
         }
-        return habit.weekdays
-            .split(',')
-            .map((s) => int.tryParse(s.trim()))
-            .any((n) => n == parsed.weekday);
-      case 'weekly_n':
-        return true;
+        return _everyNWeeksMatch(habit, parsed);
       case 'daily':
       default:
-        return true;
+        return _everyNDaysMatch(habit, parsed);
     }
+  }
+
+  /// 是否为「按间隔重复」的排程（新建后应当自动进入日计划）。
+  ///
+  /// - 每隔 N 天：`schedule_type='daily'` 且 `weekly_n = N ≥ 2`；
+  /// - 每隔 N 周：`schedule_type='weekly_n'` 且 `weekly_n` 非空、`weekdays` 非空。
+  ///
+  /// 「每天」与「每周指定几天」不含间隔，不触发自动排计划 —— 它们本来就
+  /// 每天/每周固定出现，交给习惯速览即可。
+  static bool isIntervalSchedule(HabitData habit) {
+    final int? every = habit.weeklyN;
+    if (every == null || every < 1) {
+      return false;
+    }
+    switch (habit.scheduleType) {
+      case 'weekly_n':
+        return domain.Habit.parseWeekdays(habit.weekdays).isNotEmpty;
+      case 'daily':
+      default:
+        return every >= 2;
+    }
+  }
+
+  /// 为**间隔型**习惯补齐 [fromDate] 起 [days] 天内每个命中日的计划条目。
+  ///
+  /// 幂等：`plan_item` 没有 `(source_id, date)` 唯一约束，所以生成前先按
+  /// `date` + `source_type='habit'` + `source_id` + `deleted_at IS NULL` 查一遍，
+  /// 已存在就跳过 —— 重复调用只返回空列表，不会写出重复条目。
+  ///
+  /// 非间隔型排程（见 [isIntervalSchedule]）、已归档习惯、起始日之前的日期
+  /// 都不会生成任何行。返回本次**新写入**的 plan_item id（按日期升序）。
+  Future<List<String>> materializeUpcoming({
+    required String habitId,
+    required String fromDate,
+    int days = autoPlanHorizonDays,
+    int plannedStart = autoPlanStartMinute,
+    int plannedEnd = autoPlanEndMinute,
+  }) async {
+    _requireCalendarDate(fromDate, 'fromDate');
+    if (days <= 0) {
+      return const <String>[];
+    }
+    final HabitData? habit = await (_db.select(_db.habit)
+          ..where((t) => t.id.equals(habitId) & t.deletedAt.isNull()))
+        .getSingleOrNull();
+    if (habit == null) {
+      throw StateError('习惯不存在或已删除：$habitId');
+    }
+    if (habit.archived != 0 || !isIntervalSchedule(habit)) {
+      return const <String>[];
+    }
+    final PlanItemRepository planItems = PlanItemRepository(_db, _oplog);
+    final List<String> created = <String>[];
+    for (var offset = 0; offset < days; offset++) {
+      final String date = shiftIsoDate(fromDate, offset);
+      if (habit.startDate.compareTo(date) > 0) {
+        continue;
+      }
+      if (!isScheduledFor(habit, date)) {
+        continue;
+      }
+      if (await _hasHabitPlanItem(habitId, date)) {
+        continue;
+      }
+      created.add(
+        await planItems.createHabitRef(
+          date: date,
+          habitId: habitId,
+          title: habit.name,
+          plannedStart: plannedStart,
+          plannedEnd: plannedEnd,
+        ),
+      );
+    }
+    return List<String>.unmodifiable(created);
+  }
+
+  /// 两个日历日相差的整数天数（[to] − [from]，[to] 在后为正）。
+  ///
+  /// 任一日期非法时返回 null。按 UTC 日差计算，规避夏令时让本地 `DateTime`
+  /// 相差 23/25 小时、`inDays` 少算一天的坑。
+  static int? daysBetween(String from, String to) {
+    final DateTime? start = parseIsoDate(from);
+    final DateTime? end = parseIsoDate(to);
+    if (start == null || end == null) {
+      return null;
+    }
+    return DateTime.utc(end.year, end.month, end.day)
+        .difference(DateTime.utc(start.year, start.month, start.day))
+        .inDays;
+  }
+
+  /// [date] 所在周的周一（周一为一周之始，与 `DateTime.weekday` 的 1..7 一致）。
+  ///
+  /// 日期非法时原样返回（解析层不崩溃）。
+  static String mondayOf(String date) {
+    final DateTime? parsed = parseIsoDate(date);
+    if (parsed == null) {
+      return date;
+    }
+    return isoDate(
+      DateTime(parsed.year, parsed.month, parsed.day - (parsed.weekday - 1)),
+    );
+  }
+
+  /// 两个日历日相差的整周数（以各自所在周的周一为基准，向下取整）。
+  ///
+  /// 任一日期非法时返回 null。「每隔 N 周」的周基准就是 [mondayOf]。
+  static int? weeksBetween(String from, String to) {
+    final int? days = daysBetween(mondayOf(from), mondayOf(to));
+    if (days == null) {
+      return null;
+    }
+    return (days / 7).floor();
+  }
+
+  /// 某天是否已经存在该习惯生成的计划条目（幂等查询）。
+  Future<bool> _hasHabitPlanItem(String habitId, String date) async {
+    final rows = await (_db.select(_db.planItem)
+          ..where(
+            (t) =>
+                t.date.equals(date) &
+                t.sourceType.equals('habit') &
+                t.sourceId.equals(habitId) &
+                t.deletedAt.isNull(),
+          )
+          ..limit(1))
+        .get();
+    return rows.isNotEmpty;
+  }
+
+  /// 「每隔 N 天」判定：以 `start_date` 为第 0 天，天数差能被 N 整除即命中。
+  static bool _everyNDaysMatch(HabitData habit, DateTime date) {
+    final int? every = habit.weeklyN;
+    if (every == null || every <= 1) {
+      return true;
+    }
+    final int? gap = daysBetween(habit.startDate, isoDate(date));
+    if (gap == null || gap < 0) {
+      return false;
+    }
+    return gap % every == 0;
+  }
+
+  /// 「每隔 N 周」判定：以 `start_date` 所在周的周一为第 0 周。
+  static bool _everyNWeeksMatch(HabitData habit, DateTime date) {
+    final int? every = habit.weeklyN;
+    if (every == null || every <= 1) {
+      return true;
+    }
+    final int? weeks = weeksBetween(habit.startDate, isoDate(date));
+    if (weeks == null || weeks < 0) {
+      return false;
+    }
+    return weeks % every == 0;
   }
 
   /// 订阅某天的全部打卡记录。

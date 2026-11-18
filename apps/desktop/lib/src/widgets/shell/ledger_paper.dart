@@ -43,6 +43,7 @@ class LedgerPaper extends StatelessWidget {
     required this.child,
     this.maxWidth = standardMaxWidth,
     this.padding = const EdgeInsets.fromLTRB(26, 20, 26, 30),
+    this.pinnedHeader,
     super.key,
   });
 
@@ -67,12 +68,31 @@ class LedgerPaper extends StatelessWidget {
   /// 内边距；标准 `20/26/30`，窄视口 `16/16/22`（原型 `@media max-width:1279px`）。
   final EdgeInsetsGeometry padding;
 
+  /// 吸顶头：放在滚动区**之外**、正文之上，纵向滚动时不动。
+  ///
+  /// `null`（默认）时整棵子树与引入本参数之前**逐字一致** —— 不加包裹层、
+  /// 不改内边距，既有版式断言（`shell-paper-body` 的 `maxWidth`）不受影响。
+  ///
+  /// 非 `null` 时结构变成 `Column[ 头部行, Expanded(横线底 + 滚动区) ]`：
+  /// 横线底只铺**滚动区**，头部行本身不画账页横线（它是页签，不是纸面）。
+  /// 头部行与正文共用同一套左右内边距 + 同一 `maxWidth`，所以吸顶头与
+  /// 正文列左右对齐，不会一宽一窄。
+  final Widget? pinnedHeader;
+
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: const LedgerRulePainter(),
-      child: SingleChildScrollView(
-        padding: padding,
+    final EdgeInsets resolved = padding.resolve(Directionality.of(context));
+
+    // 正文滚动区：`bodyKey` 必须留在滚动区内的 `ConstrainedBox` 上
+    // （`shell_ledger_shell_test.dart` 用它读 `maxWidth` 断言 770 / 860）。
+    Widget paperBody(double topInset) {
+      return SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          resolved.left,
+          topInset,
+          resolved.right,
+          resolved.bottom,
+        ),
         child: Center(
           child: ConstrainedBox(
             key: bodyKey,
@@ -80,7 +100,45 @@ class LedgerPaper extends StatelessWidget {
             child: SizedBox(width: double.infinity, child: child),
           ),
         ),
-      ),
+      );
+    }
+
+    final Widget? header = pinnedHeader;
+    if (header == null) {
+      return CustomPaint(
+        painter: const LedgerRulePainter(),
+        child: paperBody(resolved.top),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Padding(
+          // 上边距取纸张内边距的上沿：吸顶头和正文第一行离纸边的距离一致。
+          // 下沿留 0 —— 头部自带的 1px 底边就是它和正文的分界。
+          padding: EdgeInsets.fromLTRB(
+            resolved.left,
+            resolved.top,
+            resolved.right,
+            0,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: SizedBox(width: double.infinity, child: header),
+            ),
+          ),
+        ),
+        Expanded(
+          // 横线底包住滚动区而不是整张纸：否则吸顶头底下也会有一条横线，
+          // 随正文滚动时看起来像「头部在动」。
+          child: CustomPaint(
+            painter: const LedgerRulePainter(),
+            child: paperBody(0),
+          ),
+        ),
+      ],
     );
   }
 }

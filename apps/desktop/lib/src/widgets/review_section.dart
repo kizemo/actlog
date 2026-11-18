@@ -17,11 +17,14 @@ class _ReviewField {
   final IconData icon;
 }
 
-/// 复盘区块（P1-7）：做得好 / 待改进 / 可控 / 不可控 / 下一步可控动作（+ 学到了什么）。
+/// 复盘区块（P1-7）：学到了什么 / 做得好 / 待改进。
 ///
-/// 六块**各自可独立留白** —— 任何一个输入框空着都不影响其余段落落库，
+/// 三段**各自可独立留白** —— 任何一个输入框空着都不影响其余段落落库，
 /// 因为 `saveReview` 写的是整份 `ReviewDraft`，空串就是空串。违反这条的只有
 /// 「某段为空就整条不保存」的实现，这里刻意不这么写。
+///
+/// Task 40 需求 4 删掉了「可控的事 / 不可控的事 / 下一步可控动作」三项输入框：
+/// 复盘只回答「学到了什么、哪里做得好、哪里要改」，不再要求用户当场做归因。
 class ReviewSection extends ConsumerStatefulWidget {
   /// 创建复盘区块。
   const ReviewSection({super.key});
@@ -35,10 +38,19 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
     _ReviewField('学到了什么', '今天最大的一个认知收获', Icons.lightbulb_outline),
     _ReviewField('做得好', '值得保留的做法', Icons.thumb_up_outlined),
     _ReviewField('待改进', '下次换个做法的地方', Icons.build_outlined),
-    _ReviewField('可控的事', '自己能决定的部分', Icons.gps_fixed),
-    _ReviewField('不可控的事', '接受它、别内耗', Icons.cloud_outlined),
-    _ReviewField('下一步可控动作', '明天立刻能做的第一件事', Icons.arrow_forward),
   ];
+
+  /// 已删掉输入框的两列，**原值读进来、原样传回去**。
+  ///
+  /// 为什么不能直接传空串：`saveReview` 仍然写 `controllable` /
+  /// `uncontrollable` 两列（`packages/core_data/lib/src/repositories.dart:164`）。
+  /// 界面不再编辑它们，但老库里已经填过的内容必须原封不动 —— 否则用户只是
+  /// 在「学到了什么」里改一个字，就会把这两段历史静默清空。删 UI 不等于删数据。
+  ///
+  /// `next_action` 不在本区块持有：`saveReview` 刻意不写它，该列归心态侧
+  /// `saveMood` 的可选参数所有（见 `repositories.dart:187`）。
+  String _controllable = '';
+  String _uncontrollable = '';
 
   late final List<TextEditingController> _controllers = [
     for (final _ in _fields) TextEditingController(),
@@ -73,9 +85,8 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
     learning: _controllers[0].text,
     good: _controllers[1].text,
     improve: _controllers[2].text,
-    controllable: _controllers[3].text,
-    uncontrollable: _controllers[4].text,
-    nextAction: _controllers[5].text,
+    controllable: _controllable,
+    uncontrollable: _uncontrollable,
   );
 
   Future<void> _persist(String logId) async {
@@ -96,13 +107,13 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
 
   void _seed(DayLogData log) {
     _seededLogId = log.id;
+    // 这两列没有输入框了，但落库时仍要原样带回（见字段注释）。
+    _controllable = log.controllable;
+    _uncontrollable = log.uncontrollable;
     final values = [
       log.learning,
       log.good,
       log.improve,
-      log.controllable,
-      log.uncontrollable,
-      log.nextAction,
     ];
     for (var index = 0; index < _controllers.length; index++) {
       _controllers[index].text = values[index];

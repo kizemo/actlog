@@ -79,8 +79,8 @@ void main() {
     expect(find.text('Space'), findsOneWidget);
     expect(find.text('Enter'), findsOneWidget);
     expect(find.text('排入 / 移出今日'), findsNothing);
-    // A11：只宣称到 `Ctrl+1…3` —— 习惯 / 项目 / 设置三项无落点，
-    // 键条渲染出 `Ctrl+1…6` 就是假提示。
+    // A11：只宣称到 `Ctrl+1…3` —— 习惯 / 项目两项无落点（设置页 Task 39 起有
+    // 落点，但键条未扩位），键条渲染出 `Ctrl+1…6` 就是假提示。
     expect(find.text('Ctrl+1…6'), findsNothing);
     expect(find.text('Ctrl+1…3'), findsOneWidget);
   });

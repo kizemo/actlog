@@ -1,3 +1,6 @@
+// `core_data` 与 `core_domain` 都导出 `weekdayLabel`：前者收日期字符串，
+// 后者收星期序号。本文件用的是**星期序号**那一版，故把前者隐藏掉。
+import 'package:core_data/core_data.dart' hide weekdayLabel;
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +9,14 @@ import '../providers.dart';
 import '../providers_recurring.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
+
+/// 时间轴纵轴的下界（06:00）。
+///
+/// 方格时间轴的口径是 06:00–24:00（`docs/superpowers/plans/2026-11-12-b2-grid-timeline.md`），
+/// 早于 06:00 的条目即使物化成功也会被网格夹掉、看不见。网格负责在 W2 的
+/// `packages/core_data/lib/src/repositories.dart` 里，本文件不得改它，
+/// 因此把限制落在对话框侧：输入先夹到边界，并告知用户实际落位时刻。
+const int _timelineFirstMinute = 6 * 60;
 
 /// 打开「添加循环任务」面板（右轨「循环任务」右上角那枚 `＋`）。
 ///
@@ -19,9 +30,14 @@ Future<void> showRecurringTaskDialog(BuildContext context) {
 
 /// 「添加循环任务」面板：一条按星期重复、带起始时刻的规则。
 ///
-/// 字段：`标题`（必填）、`星期`（多选，默认工作日）、`开始`（`HH:mm`，默认
-/// 09:00）、`时长`（分钟，默认 30）、`备注`（可选）。
+/// 字段：`标题`（必填）、`星期`（多选，默认「工作日 ∪ 创建日所在星期」）、
+/// `开始`（`HH:mm`，默认 09:00，不早于 06:00）、`时长`（分钟，默认 30）、
+/// `备注`（可选）。
 /// 保存后**立刻物化当天**，所以今天的计划里会马上出现这一条。
+///
+/// 需要纠正用户输入时（掩码不含创建日所在星期、时刻早于 06:00）走
+/// **先提示 + 二次确认**：第一次点保存只把纠正结果落到界面并显示提示，按钮
+/// 变成「确认保存」，再点一次才写库 —— 不静默改写用户的选择。
 class RecurringTaskDialog extends ConsumerStatefulWidget {
   /// 创建「添加循环任务」面板。
   const RecurringTaskDialog({super.key});
@@ -37,7 +53,7 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
   final TextEditingController _duration = TextEditingController(text: '30');
   final TextEditingController _note = TextEditingController();
 
-  /// 星期掩码；bit0 = 周一 … bit6 = 周日。默认工作日（`0x1F`）。
+  /// 星期掩码；bit0 = 周一 … bit6 = 周日。默认值见 [initState]。
   int _mask = WeekdayMask.workdays;
 
   /// 提交中禁用按钮，防止连点写出两条规则。
@@ -45,6 +61,22 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
 
   /// 面板内错误原文（不写库、不关面板）。
   String? _error;
+
+  /// 需要用户**再点一次**确认的改写提示（null = 无需确认）。
+  ///
+  /// 只在两种纠正场景出现：掩码不含创建日所在星期、开始时刻早于 06:00。
+  String? _notice;
+
+  @override
+  void initState() {
+    super.initState();
+    // 默认掩码 = 工作日 ∪ {创建日所在星期}：让「今天就出现在计划里」是
+    // 默认结果，而不是保存完才发现当天什么都没发生。
+    final DateTime? createdOn = parseIsoDate(ref.read(selectedDateProvider));
+    if (createdOn != null) {
+      _mask = WeekdayMask.workdays | WeekdayMask.bitOf(createdOn.weekday);
+    }
+  }
 
   @override
   void dispose() {
@@ -62,6 +94,8 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
     setState(() {
       _mask ^= WeekdayMask.bitOf(isoWeekday);
       _error = null;
+      // 用户改了选择 ⇒ 之前的改写提示作废，下一次提交重新判断。
+      _notice = null;
     });
   }
 
@@ -78,8 +112,8 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
       setState(() => _error = '至少要选一个星期');
       return;
     }
-    final int? startMinute = parseMinuteOfDay(_time.text);
-    if (startMinute == null) {
+    final int? parsedStart = parseMinuteOfDay(_time.text);
+    if (parsedStart == null) {
       setState(() => _error = '开始时刻要写成 HH:mm（例如 09:00）');
       return;
     }
@@ -89,24 +123,66 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
       return;
     }
 
+    final String date = ref.read(selectedDateProvider);
+    final DateTime? createdOn = parseIsoDate(date);
+    if (createdOn == null) {
+      setState(() => _error = '选中日不是合法日历日：$date');
+      return;
+    }
+
+    // 纠正 1 —— 掩码不含创建日所在星期：并入。物化闸门是
+    // `WeekdayMask.includes(...)`，不命中就静默 `continue`，用户看到的就是
+    // 「设了也不进计划」。
+    final List<String> notices = <String>[];
+    var mask = _mask;
+    if (!WeekdayMask.includes(mask, createdOn.weekday)) {
+      mask |= WeekdayMask.bitOf(createdOn.weekday);
+      notices.add(
+        '已把 ${weekdayLabel(createdOn.weekday)} 并入重复日，'
+        '以便今天就出现在计划里',
+      );
+    }
+    // 纠正 2 —— 时刻早于 06:00：网格只画 06:00–24:00，夹到下界。
+    var startMinute = parsedStart;
+    if (startMinute < _timelineFirstMinute) {
+      startMinute = _timelineFirstMinute;
+      notices.add(
+        '开始时刻早于 ${formatMinuteOfDay(_timelineFirstMinute)}，'
+        '已改到 ${formatMinuteOfDay(startMinute)}（时间轴只显示 06:00 之后）',
+      );
+    }
+
+    if (notices.isNotEmpty && _notice == null) {
+      // 先提示、不写库：把纠正结果落到界面，等用户再点一次「确认保存」。
+      setState(() {
+        _mask = mask;
+        _time.text = formatMinuteOfDay(startMinute);
+        _notice = notices.join('\n');
+        _error = null;
+      });
+      return;
+    }
+
     setState(() {
       _submitting = true;
       _error = null;
+      _notice = null;
     });
     // await 之后 `context` 不能再直接用于导航；`ref.read` 也只在 await 前读一次。
     final NavigatorState navigator = Navigator.of(context);
-    final String date = ref.read(selectedDateProvider);
     try {
       final repos = ref.read(repositoriesProvider);
       await repos.recurring.create(
         title: title,
-        weekdayMask: _mask,
+        weekdayMask: mask,
         startMinute: startMinute,
         durationMinutes: duration,
         note: _note.text.trim(),
       );
-      // 立刻物化「当前选中日」：规则命中今天就马上出现在计划里（幂等）。
+      // 立刻物化「当前选中日」：上面已保证掩码含创建日 ⇒ 今天必出条目（幂等）。
       await repos.recurring.materializeDate(date);
+      // 规则段的 provider 必须失效，否则新规则不会出现在列表里。
+      ref.invalidate(recurringRulesProvider);
       ref.invalidate(recurringMaterializeProvider);
       if (!mounted) {
         return;
@@ -174,7 +250,13 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
                   controller: _time,
                   enabled: !_submitting,
                   style: _bodyStyle(size: 13, color: AppTokens.ink),
-                  decoration: _fieldDecoration('开始 HH:mm'),
+                  decoration: _fieldDecoration('开始 HH:mm（06:00 起）'),
+                  // 用户改过时刻 ⇒ 之前的改写提示作废，下一次提交重新判断。
+                  onChanged: (_) {
+                    if (_notice != null) {
+                      setState(() => _notice = null);
+                    }
+                  },
                   onSubmitted: (_) => _submit(),
                 ),
               ),
@@ -205,6 +287,10 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
             const SizedBox(height: 10),
             _DialogError(message: _error!),
           ],
+          if (_notice != null) ...<Widget>[
+            const SizedBox(height: 10),
+            _DialogNotice(key: const ValueKey<String>('recurring-dialog-notice'), message: _notice!),
+          ],
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -218,7 +304,7 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
               const SizedBox(width: 8),
               _DialogButton(
                 key: const ValueKey<String>('recurring-dialog-save'),
-                label: '保存',
+                label: _notice == null ? '保存' : '确认保存',
                 dense: true,
                 primary: true,
                 onPressed: _submitting ? null : _submit,
@@ -354,6 +440,33 @@ class _DialogError extends StatelessWidget {
       child: Text(
         message,
         style: _bodyStyle(size: 12.5, color: AppTokens.accentInk),
+      ),
+    );
+  }
+}
+
+/// 面板内「已为你纠正」的提示（`sunken` 底 + `hair` 边 + `ink2` 字）。
+///
+/// 与 [_DialogError] 分开：这是**说明**，不是失败 —— 纠正结果先显示出来，
+/// 用户再点一次「确认保存」才写库。
+class _DialogNotice extends StatelessWidget {
+  const _DialogNotice({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTokens.sunken,
+        borderRadius: BorderRadius.circular(AppTokens.radius),
+        border: Border.all(color: AppTokens.hair, width: 1),
+      ),
+      child: Text(
+        message,
+        style: _bodyStyle(size: 12, color: AppTokens.ink2),
       ),
     );
   }

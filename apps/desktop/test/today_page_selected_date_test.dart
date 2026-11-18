@@ -19,6 +19,7 @@ import 'package:actlog/src/app.dart';
 import 'package:actlog/src/pages/calendar_page.dart';
 import 'package:actlog/src/pages/today_page.dart';
 import 'package:actlog/src/providers.dart';
+import 'package:actlog/src/widgets/date_bar.dart';
 import 'package:actlog/src/widgets/habit_checkin_strip.dart';
 import 'package:actlog/src/widgets/ledger_checkbox.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
@@ -58,6 +59,11 @@ final class _Harness {
         container: container,
         child: const MaterialApp(
           home: LedgerShell(
+            // Task 39 指令 ①：日期条从 `TodayPage` 正文搬到壳的吸顶槽位，真实产品
+            // 路径由 `app.dart:_pinnedHeader()` 注入 `const DateBar()`。装置必须跟上
+            // 同一接法 —— 不传 `pinnedHeader` 时树里根本没有 `DateBar`，
+            // 「补录模式」徽标（全库只渲在 `date_bar.dart`）自然找不到。
+            pinnedHeader: DateBar(),
             content: TodayPage(),
             currentNavId: 'today',
             // 打卡条已从壳层整体移除（打卡入口搬到习惯页）⇒ 这里不再传 `dock`，

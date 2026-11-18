@@ -41,6 +41,96 @@ const double kHourRowHeight = 44;
 /// 网格总高度（不含表头）。
 const double kGridHeight = kGridRows * kHourRowHeight;
 
+/// 每天计划窗口：纵轴可见区间的起止**整点小时**。
+///
+/// 为什么以整点为界而不是 15 分钟：网格的纵向单位就是「一小时一行」
+/// （[kHourRowHeight]）。起点若落在 06:15，整点数字与刻度线就整体错开
+/// 15 分钟 —— 用户读到的 `07:00` 实际压在 06:45 那格上，比不参数化更糟。
+/// 设置页因此只给整点档（见 `settings_page.dart`）。
+///
+/// 默认 `6..24` 令 [rows] = 18、[height] = 792，与 [kGridRows] /
+/// [kGridHeight] **逐值相同** —— 参数化不允许改变现状一个像素（B8）。
+///
+/// 本类的常量 [kGridStartHour] 等**保持原义不动**：它们是「默认窗口」的
+/// 真源，`_minuteAt` 那些纯函数与 `timeline_slot_state_test.dart` 的断言
+/// 都还压在它们身上，改成变量会把一批既有测试变成假绿。
+class DayWindow {
+  /// 创建窗口（非法入参请走 [DayWindow.fromHours]，那里会夹取）。
+  const DayWindow({required this.startHour, required this.endHour})
+      : assert(startHour >= 0 && startHour < 24),
+        assert(endHour > 0 && endHour <= 24),
+        assert(endHour > startHour);
+
+  /// 从任意整点取窗口：越界夹取；`end <= start` 时保底给 1 小时。
+  factory DayWindow.fromHours(int startHour, int endHour) {
+    final int start = startHour.clamp(0, 23);
+    final int end = endHour <= start
+        ? (start + 1).clamp(1, 24)
+        : endHour.clamp(1, 24);
+    return DayWindow(startHour: start, endHour: end);
+  }
+
+  /// 默认窗口 `06:00–24:00`（与参数化之前的硬编码完全一致）。
+  static const DayWindow defaults = DayWindow(
+    startHour: kGridStartHour,
+    endHour: kGridEndHour,
+  );
+
+  /// 起点小时（含）。
+  final int startHour;
+
+  /// 终点小时（不含）。
+  final int endHour;
+
+  /// 起点分钟数。
+  int get startMinute => startHour * 60;
+
+  /// 终点分钟数（`24:00` ⇒ 1440）。
+  int get endMinute => endHour * 60;
+
+  /// 行数（每小时一行）。
+  int get rows => endHour - startHour;
+
+  /// 网格总高度。
+  double get height => rows * kHourRowHeight;
+
+  /// 窗口内的整点小时数（含起点，不含终点）。
+  Iterable<int> get hours sync* {
+    for (int hour = startHour; hour < endHour; hour++) {
+      yield hour;
+    }
+  }
+
+  /// 把分钟夹进 `[startMinute, endMinute - kSlotMinutes]`。
+  int clampMinute(int minute) =>
+      minute.clamp(startMinute, endMinute - kSlotMinutes);
+
+  /// 该分钟是否落在窗口内（左闭右开）。
+  bool contains(int minute) => minute >= startMinute && minute < endMinute;
+
+  /// 分钟 → 行号（夹取到 `0..rows-1`）。
+  int rowOf(int minute) => ((minute - startMinute) ~/ 60).clamp(0, rows - 1);
+
+  /// 分钟 → 顶部像素偏移。
+  double yOf(int minute) => (minute - startMinute) / 60 * kHourRowHeight;
+
+  /// 顶部像素偏移 → 分钟（不做夹取，调用方自行 [clampMinute]）。
+  int minuteAt(double y) => startMinute + (y / kHourRowHeight * 60).round();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DayWindow &&
+          other.startHour == startHour &&
+          other.endHour == endHour;
+
+  @override
+  int get hashCode => Object.hash(startHour, endHour);
+
+  @override
+  String toString() => 'DayWindow($startHour..$endHour)';
+}
+
 /// 四态。**枚举顺序即判定优先级**，`slotKindOf` 按这个顺序短路。
 enum SlotKind {
   /// 习惯入格。

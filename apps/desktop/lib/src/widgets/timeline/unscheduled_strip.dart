@@ -16,7 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers.dart';
 import '../../theme/app_tokens.dart';
-import '../priority_marks.dart';
+import '../priority_hover_bubble.dart';
 
 /// 「未排期」带：只列还没有起止时间的条目，可拖进格子排期。
 class UnscheduledStrip extends ConsumerWidget {
@@ -46,16 +46,40 @@ class UnscheduledStrip extends ConsumerWidget {
               data: 'plan:${row.id}',
               feedback: Material(
                 color: Colors.transparent,
-                child: _chip(row),
+                // 拖动中的影子是纯展示：不挂写入回调，免得拖拽时误落库。
+                child: _chip(row, onChanged: null),
               ),
-              child: _chip(row),
+              child: _chip(
+                row,
+                onChanged: (Quadrant? next) =>
+                    _setQuadrant(context, ref, row.id, next),
+              ),
             ),
         ],
       ),
     );
   }
 
-  Widget _chip(PlanItemData row) {
+  /// 改某条未排期条目的四象限（`null` = 取消分级）。
+  ///
+  /// 走 `PlanItemRepository.setQuadrant`，与方格条目同一个写入口；
+  /// `planItemsProvider` 是流，写完自动回流 ⇒ 字形与气泡结论一起更新。
+  Future<void> _setQuadrant(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+    Quadrant? quadrant,
+  ) async {
+    // 跨 await 用 `context` 会被 lint 拦，先把 messenger 取出来。
+    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      await ref.read(repositoriesProvider).planItem.setQuadrant(id, quadrant);
+    } on Object catch (error) {
+      messenger?.showSnackBar(SnackBar(content: Text('写入失败：$error')));
+    }
+  }
+
+  Widget _chip(PlanItemData row, {required ValueChanged<Quadrant?>? onChanged}) {
     // 与 `day_grid.dart` 的格子芯片同一条规矩：行里存码值，渲染层自己解析；
     // 无法识别（未来 schema）当作未分级 —— 不画标记、不占位、不抛异常。
     final Quadrant? quadrant = Quadrant.fromCode(row.quadrant);
@@ -70,7 +94,12 @@ class UnscheduledStrip extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (quadrant != null) ...<Widget>[
-            PriorityMarks(quadrant: quadrant),
+            PriorityHoverBubble(
+              quadrant: quadrant,
+              title: row.title,
+              onChanged: onChanged,
+              ownerKey: 'strip-${row.id}',
+            ),
             const SizedBox(width: 4),
           ],
           Flexible(
@@ -81,6 +110,16 @@ class UnscheduledStrip extends ConsumerWidget {
               style: const TextStyle(fontSize: 11, color: AppTokens.ink2),
             ),
           ),
+          // 未分级与 `day_grid.dart` 同一条规矩：不画标记（不是画空标记）、
+          // 不留占位，只补一处 meta 说明 —— 否则「没分级」和「分级没渲染出来」
+          // 在界面上不可分。
+          if (quadrant == null) ...<Widget>[
+            const SizedBox(width: 4),
+            const Text(
+              '未分级',
+              style: TextStyle(fontSize: 10, color: AppTokens.faint),
+            ),
+          ],
         ],
       ),
     );

@@ -21,6 +21,90 @@ enum DayStatsSegment {
   mood,
 }
 
+/// 闭环四段里的一段（脊线与右栏「闭环提示」共用的一份数据）。
+///
+/// 比例口径只有 [loopSegmentEntries] 一处（内部走 `_ratio`）：任何界面
+/// **不得**自己再算 `done / total`，也**不得**把分母为 0 当成 100%。
+class LoopSegmentEntry {
+  /// 创建一段。
+  const LoopSegmentEntry({
+    required this.segment,
+    required this.label,
+    required this.mark,
+    required this.value,
+    required this.ratio,
+    required this.gap,
+  });
+
+  /// 对应段。
+  final DayStatsSegment segment;
+
+  /// 段名（脊线口径：`计划` / `回填` / `复盘` / `心态`）。
+  final String label;
+
+  /// 状态标记（`○` / `✓` / `▸` / `●`）。
+  final String mark;
+
+  /// 数值文案（脊线口径：`6/8` / `4/6` / `✓` / `▸`；分母为 0 是 `—`）。
+  final String value;
+
+  /// 0…1 的比例；分母为 0 时为 0（比例条为空）。
+  final double ratio;
+
+  /// 该段是否有缺口（决定比例条与文字的配色）。
+  final bool gap;
+}
+
+/// 原型 `p(a,b)`：分母为 0 时算 0，不算 100%。
+double _ratio(int done, int total) {
+  if (total <= 0) {
+    return 0;
+  }
+  return (done / total).clamp(0.0, 1.0);
+}
+
+/// [DayStats] → 四段（顺序即绘制顺序）。
+///
+/// 这是全项目唯一的四段比例口径：[LoopProgressRing]（中栏脊线）与
+/// [LoopHintBar]（右栏闭环提示）都从这里取，避免出现第二份 `done / total`。
+List<LoopSegmentEntry> loopSegmentEntries(DayStats stats) {
+  final double? rate = stats.backfillRate;
+  return <LoopSegmentEntry>[
+    LoopSegmentEntry(
+      segment: DayStatsSegment.plan,
+      label: '计划',
+      mark: stats.planPending > 0 ? '○' : '✓',
+      value: '${stats.planDone}/${stats.planTotal}',
+      ratio: _ratio(stats.planDone, stats.planTotal),
+      gap: stats.planPending > 0,
+    ),
+    LoopSegmentEntry(
+      segment: DayStatsSegment.backfill,
+      label: '回填',
+      mark: stats.planDone > stats.backfilled ? '▸' : '●',
+      value: rate == null ? '—' : '${stats.backfilled}/${stats.planDone}',
+      ratio: _ratio(stats.backfilled, stats.planDone),
+      gap: stats.planDone > stats.backfilled,
+    ),
+    LoopSegmentEntry(
+      segment: DayStatsSegment.review,
+      label: '复盘',
+      mark: stats.reviewDone ? '✓' : '▸',
+      value: stats.reviewDone ? '✓' : '▸',
+      ratio: stats.reviewDone ? 1 : 0,
+      gap: !stats.reviewDone,
+    ),
+    LoopSegmentEntry(
+      segment: DayStatsSegment.mood,
+      label: '心态',
+      mark: stats.moodDone ? '✓' : '▸',
+      value: stats.moodDone ? '✓' : '▸',
+      ratio: stats.moodDone ? 1 : 0,
+      gap: !stats.moodDone,
+    ),
+  ];
+}
+
 /// 顶部闭环脊线。
 ///
 /// 原型对应 `.ridge` / `.seg` / `.bar` / `.ticks`：贯穿全宽的一条，
@@ -37,54 +121,11 @@ class LoopProgressRing extends StatelessWidget {
   /// 点击某段时的回调（跳到对应段）。
   final void Function(DayStatsSegment segment)? onJump;
 
-  /// 原型 `p(a,b)`：分母为 0 时算 0，不算 100%。
-  static double _ratio(int done, int total) {
-    if (total <= 0) {
-      return 0;
-    }
-    return (done / total).clamp(0.0, 1.0);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labelSize = theme.textTheme.labelLarge?.fontSize ?? 11.5;
-    final rate = stats.backfillRate;
-
-    final entries = <_Entry>[
-      _Entry(
-        segment: DayStatsSegment.plan,
-        label: '计划',
-        mark: stats.planPending > 0 ? '○' : '✓',
-        value: '${stats.planDone}/${stats.planTotal}',
-        ratio: _ratio(stats.planDone, stats.planTotal),
-        gap: stats.planPending > 0,
-      ),
-      _Entry(
-        segment: DayStatsSegment.backfill,
-        label: '回填',
-        mark: stats.planDone > stats.backfilled ? '▸' : '●',
-        value: rate == null ? '—' : '${stats.backfilled}/${stats.planDone}',
-        ratio: _ratio(stats.backfilled, stats.planDone),
-        gap: stats.planDone > stats.backfilled,
-      ),
-      _Entry(
-        segment: DayStatsSegment.review,
-        label: '复盘',
-        mark: stats.reviewDone ? '✓' : '▸',
-        value: stats.reviewDone ? '✓' : '▸',
-        ratio: stats.reviewDone ? 1 : 0,
-        gap: !stats.reviewDone,
-      ),
-      _Entry(
-        segment: DayStatsSegment.mood,
-        label: '心态',
-        mark: stats.moodDone ? '✓' : '▸',
-        value: stats.moodDone ? '✓' : '▸',
-        ratio: stats.moodDone ? 1 : 0,
-        gap: !stats.moodDone,
-      ),
-    ];
+    final entries = loopSegmentEntries(stats);
 
     return Container(
       padding: const EdgeInsets.only(top: 2, bottom: 12),
@@ -179,6 +220,182 @@ class LoopProgressRing extends StatelessWidget {
   }
 }
 
+/// 右栏「闭环提示」里的一行：状态标记 + 标签 + 数值 + 5px 比例条 + 刻度。
+///
+/// 与 [LoopProgressRing] 共用 [loopSegmentEntries]：比例与缺口判定**不在本类
+/// 重算**，本类只决定「用哪段文案、画在哪」。
+///
+/// 紧凑形态（右栏窄栏，远小于 760px）单列竖排、不叠卡片边（右轨面板容器
+/// 已有内距），也不做脊线那种按宽度 4/2/1 列排布的栅格（R-6）。
+///
+/// 刻度行的可用宽度由 [availableWidth] 传入而不是本类用 `LayoutBuilder`
+/// 自己量：右轨在 `< 1280` 的折叠模式下被 `IntrinsicHeight` 包着，
+/// `LayoutBuilder` 不支持固有尺寸（运行时断言失败）。
+class LoopHintBar extends StatelessWidget {
+  /// 创建右栏一行。
+  const LoopHintBar({
+    super.key,
+    required this.entry,
+    this.label,
+    this.value,
+    this.availableWidth = double.infinity,
+    this.showTicks = true,
+  });
+
+  /// 该段的比例 / 缺口 / 状态标记（来自 [loopSegmentEntries]）。
+  final LoopSegmentEntry entry;
+
+  /// 覆写标签（右栏口径如「计划缺口」）；缺省用段名。
+  final String? label;
+
+  /// 覆写数值（右栏口径如「2」）；缺省用脊线口径（如 `6/8`）。
+  final String? value;
+
+  /// 刻度行可用的逻辑宽度（`Infinity` 表示宽度无界，按自然宽度铺开）。
+  final double availableWidth;
+
+  /// 是否在本行下方画 `0 / 25 / 50 / 75 / 100` 刻度行（默认画）。
+  ///
+  /// 右栏「闭环提示」把四行并成一列后，四行各画一条坐标轴会得到 4 条
+  /// 完全重复的刻度（20 个刻度标签）⇒ 该面板改为 `showTicks: false`，
+  /// 由 [LoopTickAxis] 在整块面板底部**只画一条**。默认 `true` ⇒ 既有
+  /// 调用点的行为逐字不变。
+  final bool showTicks;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelSize = theme.textTheme.labelLarge?.fontSize ?? 11.5;
+    final accentColor = entry.gap ? AppTokens.accentInk : AppTokens.ink2;
+    final headColor = entry.gap ? AppTokens.accentInk : AppTokens.meta;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Text(
+                entry.mark,
+                style: TextStyle(
+                  fontFamily: AppFonts.mono,
+                  fontFamilyFallback: AppFonts.monoFallback,
+                  fontSize: 12,
+                  color: accentColor,
+                ),
+              ),
+              const SizedBox(width: 6),
+              // 窄栏里标签先截断也不挤出横向边界（R-6）；数值永远完整。
+              Expanded(
+                child: Text(
+                  label ?? entry.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: labelSize,
+                    color: headColor,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                value ?? entry.value,
+                style: TextStyle(
+                  fontFamily: AppFonts.mono,
+                  fontFamilyFallback: AppFonts.monoFallback,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: accentColor,
+                  fontFeatures: const <FontFeature>[
+                    FontFeature.tabularFigures(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // 静态填充（不走 500ms 补间）：右栏是读数面板，比例要能一眼读定；
+          // 也让测试能直接读 `FractionallySizedBox.widthFactor` 判比例，
+          // 不必靠像素猜。
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2.5),
+            child: Container(
+              height: 5,
+              color: AppTokens.hairSoft,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: entry.ratio,
+                  heightFactor: 1,
+                  child: Container(
+                    color: entry.gap ? AppTokens.accent : AppTokens.ink2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (showTicks) ...<Widget>[
+            const SizedBox(height: 3),
+            _TickRow(
+              availableWidth: availableWidth,
+              textStyle: LoopTickAxis.tickStyle,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 整块面板共用的一条 `0 / 25 / 50 / 75 / 100` 坐标轴。
+///
+/// 「闭环提示」四行各有自己的 5px 比例条，但刻度只画一次：四行各画一条会得到
+/// 4 条逐字重复的坐标轴（20 个刻度标签），视觉偏重且没有信息增量。调用方用
+/// `LoopHintBar(showTicks: false)` 关掉逐行刻度，再在本面板底部放这一条。
+///
+/// 刻度口径与 [LoopHintBar] 的逐行刻度**完全相同**（复用同一个 [_TickRow]：
+/// 同一套文案、同一套「放不下就整行等比缩小、不换行、不截断」策略），也
+/// **不自己用 `LayoutBuilder`** 量宽度（右轨折叠模式外层是 `IntrinsicHeight`，
+/// `LayoutBuilder` 不支持固有尺寸 ⇒ 运行时断言失败）—— 可用宽度由
+/// [availableWidth] 传入，与 [LoopHintBar] 同一口径。
+class LoopTickAxis extends StatelessWidget {
+  /// 创建一条共用坐标轴。
+  const LoopTickAxis({
+    super.key,
+    this.availableWidth = double.infinity,
+    this.padding = const EdgeInsets.only(top: 1, bottom: 2),
+  });
+
+  /// 可用的逻辑宽度（`Infinity` 表示宽度无界，按自然宽度铺开）。
+  final double availableWidth;
+
+  /// 轴自身的内距（默认上方 1px 与最后一行比例条分档、下方 2px 收口）。
+  final EdgeInsetsGeometry padding;
+
+  /// 刻度文案（顺序即绘制顺序）。
+  static const List<String> ticks = _TickRow.ticks;
+
+  /// 刻度字样式（与 [LoopHintBar] 的逐行刻度同一套）。
+  static const TextStyle tickStyle = TextStyle(
+    fontFamily: AppFonts.mono,
+    fontFamilyFallback: AppFonts.monoFallback,
+    fontSize: 9.5,
+    color: AppTokens.faint,
+    letterSpacing: 0.2,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: padding,
+      child: _TickRow(availableWidth: availableWidth, textStyle: tickStyle),
+    );
+  }
+}
+
 /// 单段：状态标记 + 标签 + 数值 + 5px 比例条 + 刻度。
 class _Segment extends StatefulWidget {
   const _Segment({
@@ -189,7 +406,7 @@ class _Segment extends StatefulWidget {
     required this.onTap,
   });
 
-  final _Entry entry;
+  final LoopSegmentEntry entry;
   final double labelSize;
   final double leftPadding;
 
@@ -390,22 +607,4 @@ class _TickRow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Entry {
-  const _Entry({
-    required this.segment,
-    required this.label,
-    required this.mark,
-    required this.value,
-    required this.ratio,
-    required this.gap,
-  });
-
-  final DayStatsSegment segment;
-  final String label;
-  final String mark;
-  final String value;
-  final double ratio;
-  final bool gap;
 }

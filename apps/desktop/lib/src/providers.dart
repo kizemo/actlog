@@ -1,9 +1,17 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
 import 'package:core_domain/core_domain.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import 'app_version.dart';
+import 'l10n/app_localizations.dart';
+import 'theme/density_profile.dart';
+import 'widgets/timeline/slot_state.dart';
 import 'widgets/timeline/timeline_store.dart';
 
 /// 数据库实例；由 `main()` 用真实文件 override。
@@ -216,3 +224,513 @@ final calendarMonthProvider =
     days: byDate.values.toList(growable: false),
   );
 });
+
+// =============================================================================
+// Task 39 · W3 —— 偏好 KV / 系统集成 / 版本检查
+// =============================================================================
+// 为什么不给 `SettingsRepository` 加 getter：「单一写者」—— 本波
+// `packages\core_data` 由 W2 独占，且零 schema 变更。这里直接调用既有的
+// `get` / `set`，键名集中在下面这组常量里，冲突一目了然。
+// =============================================================================
+
+/// 设置键：主题模式（`system` / `light` / `dark`）。
+const String settingsKeyThemeMode = 'theme_mode';
+
+/// 设置键：界面语言（`zh` / `en`）。
+const String settingsKeyLocale = 'locale';
+
+/// 设置键：开机启动（`1` / `0`）。
+const String settingsKeyLaunchOnBoot = 'launch_on_boot';
+
+/// 设置键：每天计划起点小时（`0`..`23` 的十进制整数）。
+const String settingsKeyDailyStartHour = 'daily_start_hour';
+
+/// 设置键：每天计划终点小时（`1`..`24`）。
+const String settingsKeyDailyEndHour = 'daily_end_hour';
+
+/// 设置键：界面密度（`compact` / `comfortable` / `roomy`）。
+const String settingsKeyDensity = 'density';
+
+/// 「恢复默认」要写回的键（不含 `priority_display_mode`：那项另有既有样板）。
+const List<String> kAllPreferenceKeys = <String>[
+  settingsKeyThemeMode,
+  settingsKeyLocale,
+  settingsKeyLaunchOnBoot,
+  settingsKeyDailyStartHour,
+  settingsKeyDailyEndHour,
+  settingsKeyDensity,
+];
+
+/// 偏好快照。
+///
+/// 为什么是「一次读全部键」而不是每个设置一个 provider：设置页一次要显示
+/// 六七项，逐项异步读会让页面分批跳变；一次读齐只跳一次。
+@immutable
+class AppPreferences {
+  /// 创建偏好快照。
+  const AppPreferences({
+    required this.themeMode,
+    required this.language,
+    required this.launchOnBoot,
+    required this.dailyStartHour,
+    required this.dailyEndHour,
+    required this.density,
+  });
+
+  /// 默认值 = 参数化之前应用的实际行为。
+  ///
+  /// 主题默认**浅色**而不是「跟随系统」：改默认值会让既有界面的观感在用户
+  /// 什么都没做的情况下变化。跟随系统是可选档，不是新默认。
+  static const AppPreferences defaults = AppPreferences(
+    themeMode: ThemeMode.light,
+    language: AppLanguage.zh,
+    launchOnBoot: false,
+    dailyStartHour: kGridStartHour,
+    dailyEndHour: kGridEndHour,
+    density: DensityProfile.comfortable,
+  );
+
+  /// 主题模式。
+  final ThemeMode themeMode;
+
+  /// 界面语言。
+  final AppLanguage language;
+
+  /// 是否开机启动（注册表实际状态由设置页在进入时读取，不以此为准）。
+  final bool launchOnBoot;
+
+  /// 每天计划起点小时。
+  final int dailyStartHour;
+
+  /// 每天计划终点小时。
+  final int dailyEndHour;
+
+  /// 界面密度。
+  final DensityProfile density;
+
+  /// 每天计划窗口（网格裁剪用）。
+  DayWindow get dayWindow => DayWindow.fromHours(dailyStartHour, dailyEndHour);
+
+  /// 文案表。
+  AppLocalizations get l10n => AppLocalizations.forLanguage(language);
+
+  /// 复制一份并覆盖若干字段。
+  AppPreferences copyWith({
+    ThemeMode? themeMode,
+    AppLanguage? language,
+    bool? launchOnBoot,
+    int? dailyStartHour,
+    int? dailyEndHour,
+    DensityProfile? density,
+  }) {
+    return AppPreferences(
+      themeMode: themeMode ?? this.themeMode,
+      language: language ?? this.language,
+      launchOnBoot: launchOnBoot ?? this.launchOnBoot,
+      dailyStartHour: dailyStartHour ?? this.dailyStartHour,
+      dailyEndHour: dailyEndHour ?? this.dailyEndHour,
+      density: density ?? this.density,
+    );
+  }
+
+  /// 主题模式的持久化码值。
+  static String encodeThemeMode(ThemeMode mode) => switch (mode) {
+        ThemeMode.system => 'system',
+        ThemeMode.light => 'light',
+        ThemeMode.dark => 'dark',
+      };
+
+  /// 解析主题模式；无法识别一律回落浅色（与默认一致）。
+  static ThemeMode parseThemeMode(String? code) => switch (code) {
+        'system' => ThemeMode.system,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.light,
+      };
+
+  /// 解析布尔 KV（`1` / `true` 为真）。
+  static bool parseBool(String? code) => code == '1' || code == 'true';
+
+  /// 解析密度；无法识别回落舒适档。
+  static DensityProfile parseDensity(String? code) {
+    for (final DensityProfile profile in DensityProfile.values) {
+      if (profile.name == code) {
+        return profile;
+      }
+    }
+    return DensityProfile.comfortable;
+  }
+
+  /// 解析小时；无法识别回落 [fallback]，并夹进 `[low, high]`。
+  static int parseHour(String? code, {required int fallback, required int low, required int high}) {
+    final int? parsed = int.tryParse((code ?? '').trim());
+    return (parsed ?? fallback).clamp(low, high);
+  }
+}
+
+/// 读取全部偏好（任何异常 ⇒ 默认值，绝不把设置页炸掉）。
+final appPreferencesProvider = FutureProvider<AppPreferences>((ref) async {
+  final SettingsRepository settings = ref.watch(repositoriesProvider).settings;
+  final String? theme = await settings.get(settingsKeyThemeMode);
+  final String? locale = await settings.get(settingsKeyLocale);
+  final String? boot = await settings.get(settingsKeyLaunchOnBoot);
+  final String? start = await settings.get(settingsKeyDailyStartHour);
+  final String? end = await settings.get(settingsKeyDailyEndHour);
+  final String? density = await settings.get(settingsKeyDensity);
+
+  final int startHour = AppPreferences.parseHour(
+    start,
+    fallback: kGridStartHour,
+    low: 0,
+    high: 23,
+  );
+  final int endHour = AppPreferences.parseHour(
+    end,
+    fallback: kGridEndHour,
+    low: 1,
+    high: 24,
+  );
+  return AppPreferences(
+    themeMode: AppPreferences.parseThemeMode(theme),
+    language: AppLanguage.fromCode(locale),
+    launchOnBoot: AppPreferences.parseBool(boot),
+    dailyStartHour: startHour,
+    dailyEndHour: endHour > startHour ? endHour : (startHour + 1).clamp(1, 24),
+    density: AppPreferences.parseDensity(density),
+  );
+});
+
+/// 同步读取的偏好（未加载完 / 读失败 ⇒ 默认值）。
+///
+/// 主题与文案必须在**第一帧**就有值，所以这里给一个不会抛的同步视图。
+final currentPreferencesProvider = Provider<AppPreferences>(
+  (ref) => ref.watch(appPreferencesProvider).asData?.value ??
+      AppPreferences.defaults,
+);
+
+/// 文案表（设置页 / 关于页）。
+final appLocalizationsProvider = Provider<AppLocalizations>(
+  (ref) => ref.watch(currentPreferencesProvider).l10n,
+);
+
+/// 方格时间轴窗口。
+final dayWindowProvider = Provider<DayWindow>(
+  (ref) => ref.watch(currentPreferencesProvider).dayWindow,
+);
+
+/// 偏好写入口：写一个键 → 让读侧失效重取。
+final preferencesStoreProvider = Provider<PreferencesStore>(
+  (ref) => PreferencesStore(ref),
+);
+
+/// 偏好写入口。
+class PreferencesStore {
+  /// 创建写入口。
+  PreferencesStore(this._ref);
+
+  final Ref _ref;
+
+  SettingsRepository get _settings => _ref.read(repositoriesProvider).settings;
+
+  /// 写一个键并刷新读侧。
+  Future<void> write(String key, String value) async {
+    await _settings.set(key, value);
+    _ref.invalidate(appPreferencesProvider);
+  }
+
+  /// 主题。
+  Future<void> setThemeMode(ThemeMode mode) =>
+      write(settingsKeyThemeMode, AppPreferences.encodeThemeMode(mode));
+
+  /// 语言。
+  Future<void> setLanguage(AppLanguage language) =>
+      write(settingsKeyLocale, language.code);
+
+  /// 开机启动偏好（注册表由 [SystemIntegration] 负责）。
+  Future<void> setLaunchOnBoot(bool enabled) =>
+      write(settingsKeyLaunchOnBoot, enabled ? '1' : '0');
+
+  /// 每天计划起止（非法组合自动纠正成 `start < end`）。
+  Future<void> setDailyWindow(int startHour, int endHour) async {
+    final DayWindow window = DayWindow.fromHours(startHour, endHour);
+    await write(settingsKeyDailyStartHour, '${window.startHour}');
+    await write(settingsKeyDailyEndHour, '${window.endHour}');
+  }
+
+  /// 界面密度。
+  Future<void> setDensity(DensityProfile density) =>
+      write(settingsKeyDensity, density.name);
+
+  /// 恢复默认：把全部偏好键写回默认值（没有 delete 方法，只能写回）。
+  Future<void> resetToDefaults() async {
+    await setThemeMode(AppPreferences.defaults.themeMode);
+    await setLanguage(AppPreferences.defaults.language);
+    await setLaunchOnBoot(AppPreferences.defaults.launchOnBoot);
+    await setDailyWindow(
+      AppPreferences.defaults.dailyStartHour,
+      AppPreferences.defaults.dailyEndHour,
+    );
+    await setDensity(AppPreferences.defaults.density);
+    await _settings.setPriorityDisplayMode(PriorityDisplayMode.quadrant);
+    _ref.invalidate(appPreferencesProvider);
+    _ref.invalidate(priorityDisplayModeProvider);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 系统集成（开机启动 / 桌面快捷方式 / 打开链接）
+// -----------------------------------------------------------------------------
+
+/// 系统集成的可注入抽象。
+///
+/// 为什么必须有这一层：真写注册表 / 真建 `.lnk` 会污染跑测试的那台机器。
+/// 单元测试注入假实现只断言「调用序列」，真实落盘验证走
+/// `reports\task39-w3-autorun-check.ps1` 手工跑一次并还原。
+abstract class SystemIntegration {
+  /// 当前可执行文件绝对路径。
+  String executablePath();
+
+  /// 写/删注册表 `HKCU\...\Run\ActLog`；返回是否成功。
+  Future<bool> setLaunchOnBoot(bool enabled);
+
+  /// 读注册表里 `ActLog` 的当前值；不存在返回 null。
+  Future<String?> readLaunchOnBoot();
+
+  /// 在桌面创建 `actlog.lnk`；返回是否成功。
+  Future<bool> createDesktopShortcut();
+
+  /// 用系统默认程序打开链接。
+  Future<bool> openUrl(String url);
+}
+
+/// Windows 实现（零依赖：`reg` / `powershell` / `rundll32`）。
+class WindowsSystemIntegration implements SystemIntegration {
+  /// 创建实现。
+  const WindowsSystemIntegration();
+
+  /// 注册表 Run 键路径。
+  static const String runKey =
+      r'HKCU\Software\Microsoft\Windows\CurrentVersion\Run';
+
+  /// 注册表值名。
+  static const String runValueName = 'ActLog';
+
+  @override
+  String executablePath() => Platform.resolvedExecutable;
+
+  @override
+  Future<bool> setLaunchOnBoot(bool enabled) async {
+    final List<String> args = enabled
+        ? <String>[
+            'ADD',
+            runKey,
+            '/v',
+            runValueName,
+            '/t',
+            'REG_SZ',
+            '/d',
+            '"${Platform.resolvedExecutable}"',
+            '/f',
+          ]
+        : <String>['DELETE', runKey, '/v', runValueName, '/f'];
+    try {
+      final ProcessResult result = await Process.run('reg', args);
+      return result.exitCode == 0;
+    } on Object {
+      return false;
+    }
+  }
+
+  @override
+  Future<String?> readLaunchOnBoot() async {
+    try {
+      final ProcessResult result = await Process.run(
+        'reg',
+        <String>['QUERY', runKey, '/v', runValueName],
+      );
+      if (result.exitCode != 0) {
+        return null;
+      }
+      final String out = '${result.stdout}';
+      final RegExpMatch? match =
+          RegExp('$runValueName\\s+REG_SZ\\s+(.+)').firstMatch(out);
+      return match?.group(1)?.trim();
+    } on Object {
+      return null;
+    }
+  }
+
+  @override
+  Future<bool> createDesktopShortcut() async {
+    final String exe = Platform.resolvedExecutable.replaceAll("'", "''");
+    // 纯 ASCII 脚本体：`-EncodedCommand` 用 UTF-16LE base64，绕开引号与
+    // 中文路径的双重转义地狱。
+    final String script = <String>[
+      r"$ErrorActionPreference = 'Stop'",
+      "\$exe = '$exe'",
+      r"$desktop = [Environment]::GetFolderPath('Desktop')",
+      r"if ([string]::IsNullOrWhiteSpace($desktop)) { throw 'desktop not found' }",
+      r"$lnk = Join-Path $desktop 'actlog.lnk'",
+      r'$shell = New-Object -ComObject WScript.Shell',
+      r'$shortcut = $shell.CreateShortcut($lnk)',
+      r'$shortcut.TargetPath = $exe',
+      r'$shortcut.WorkingDirectory = Split-Path $exe',
+      r'$shortcut.Save()',
+    ].join("\r\n");
+    try {
+      final ProcessResult result = await Process.run('powershell', <String>[
+        '-NoProfile',
+        '-NonInteractive',
+        '-EncodedCommand',
+        _utf16LeBase64(script),
+      ]);
+      return result.exitCode == 0;
+    } on Object {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> openUrl(String url) async {
+    try {
+      // `rundll32 url.dll,FileProtocolHandler` 不起控制台，比 `cmd /c start`
+      // 少一次黑窗闪烁（brief §3 允许两种，实测选后者）。
+      final ProcessResult result =
+          await Process.run('rundll32', <String>['url.dll,FileProtocolHandler', url]);
+      return result.exitCode == 0;
+    } on Object {
+      return false;
+    }
+  }
+
+  /// UTF-16LE（无 BOM）base64 —— PowerShell `-EncodedCommand` 的入参格式。
+  static String _utf16LeBase64(String value) {
+    final List<int> bytes = <int>[];
+    for (final int unit in value.codeUnits) {
+      bytes.add(unit & 0xFF);
+      bytes.add((unit >> 8) & 0xFF);
+    }
+    return base64.encode(bytes);
+  }
+}
+
+/// 系统集成入口（测试注入假实现）。
+final systemIntegrationProvider = Provider<SystemIntegration>(
+  (ref) => const WindowsSystemIntegration(),
+);
+
+// -----------------------------------------------------------------------------
+// 版本检查（零依赖：dart:io HttpClient）
+// -----------------------------------------------------------------------------
+
+/// GitHub 最新发布 API。
+final Uri kLatestReleaseUrl = Uri.parse(
+  'https://api.github.com/repos/kizemo/actlog/releases/latest',
+);
+
+/// 检查结果状态。
+enum ReleaseCheckStatus {
+  /// 已是最新（或与最新同版本）。
+  upToDate,
+
+  /// 有更新。
+  newer,
+
+  /// 仓库暂无发布版本（HTTP 404）。
+  noRelease,
+
+  /// 网络失败 / 超时 / 响应不可解析。
+  networkError,
+}
+
+/// 检查结果。
+@immutable
+class ReleaseCheckResult {
+  /// 创建结果。
+  const ReleaseCheckResult(this.status, {this.latestTag});
+
+  /// 状态。
+  final ReleaseCheckStatus status;
+
+  /// 远端 `tag_name`（可能为 null）。
+  final String? latestTag;
+
+  /// 远端版本号字符串（去 `v` 前缀）。
+  String? get latestVersion {
+    final String? tag = latestTag;
+    if (tag == null) {
+      return null;
+    }
+    return tag.trim().replaceFirst(RegExp('^[vV]'), '');
+  }
+}
+
+/// 版本检查抽象（测试可注入）。
+abstract class ReleaseChecker {
+  /// 执行检查；实现必须**自行**吞掉所有网络异常。
+  Future<ReleaseCheckResult> check();
+}
+
+/// 走 GitHub Releases API 的实现。
+class GitHubReleaseChecker implements ReleaseChecker {
+  /// 创建实现。
+  GitHubReleaseChecker({
+    Uri? endpoint,
+    this.timeout = const Duration(seconds: 10),
+    this.currentVersion = kAppVersion,
+  }) : endpoint = endpoint ?? kLatestReleaseUrl;
+
+  /// 目标地址（测试注入本地 HttpServer）。
+  final Uri endpoint;
+
+  /// 单步超时。
+  final Duration timeout;
+
+  /// 当前版本。
+  final String currentVersion;
+
+  @override
+  Future<ReleaseCheckResult> check() async {
+    final HttpClient client = HttpClient()..connectionTimeout = timeout;
+    try {
+      final HttpClientRequest request =
+          await client.getUrl(endpoint).timeout(timeout);
+      request.headers
+        ..set(HttpHeaders.userAgentHeader, 'actlog/$currentVersion')
+        ..set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
+      final HttpClientResponse response =
+          await request.close().timeout(timeout);
+      if (response.statusCode == HttpStatus.notFound) {
+        return const ReleaseCheckResult(ReleaseCheckStatus.noRelease);
+      }
+      if (response.statusCode != HttpStatus.ok) {
+        return const ReleaseCheckResult(ReleaseCheckStatus.networkError);
+      }
+      final String body =
+          await response.transform(utf8.decoder).join().timeout(timeout);
+      final Object? decoded = jsonDecode(body);
+      if (decoded is! Map<String, dynamic>) {
+        return const ReleaseCheckResult(ReleaseCheckStatus.noRelease);
+      }
+      final Object? tag = decoded['tag_name'];
+      if (tag is! String || tag.trim().isEmpty) {
+        return const ReleaseCheckResult(ReleaseCheckStatus.noRelease);
+      }
+      return ReleaseCheckResult(
+        compareVersions(tag, currentVersion) > 0
+            ? ReleaseCheckStatus.newer
+            : ReleaseCheckStatus.upToDate,
+        latestTag: tag,
+      );
+    } on Object {
+      // 超时、DNS 失败、TLS 失败、JSON 截断 —— 一律降级，不冒泡到 UI。
+      return const ReleaseCheckResult(ReleaseCheckStatus.networkError);
+    } finally {
+      client.close(force: true);
+    }
+  }
+}
+
+/// 版本检查入口。
+final releaseCheckerProvider = Provider<ReleaseChecker>(
+  (ref) => GitHubReleaseChecker(),
+);

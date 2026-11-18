@@ -180,8 +180,18 @@ void main() {
     expect(find.byType(QuickTodoDialog), findsNothing);
     expect(find.text('把周报写完'), findsAtLeastNWidgets(1));
 
+    // Task 39 指令 2a：`pullToPlan` 按 `docs\schema_v1.sql:167-168`「建 plan_item +
+    // 拷 title、**不复制状态**」修掉了「捞入后待办从池子消失」的 bug ⇒ 捞入今日后
+    // 待办本体**仍在**池子（`status` 仍是 `open`）。旧断言「不该还留在待办池」停在
+    // 修复前的错误契约上，这里改**强**为「仍在池子 + 恰 1 条 + title 不变」：
+    // 既守住「没有凭空多建」，也守住「本体没被顺手改成完成」。
     final open = await tester.runAsync(() => harness.repos.todo.listOpen());
-    expect(open, isEmpty, reason: '勾了「同时捞入今天」就不该还留在待办池');
+    expect(
+      open,
+      hasLength(1),
+      reason: '捞入今日后待办本体仍在池子（指令 2a：pullToPlan 不碰完成状态）',
+    );
+    expect(open!.single.title, '把周报写完');
     final items = await tester.runAsync(
       () => harness.repos.planItem.listByDate(_today),
     );

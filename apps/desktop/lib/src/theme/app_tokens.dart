@@ -22,17 +22,22 @@ class AppTokens {
   /// 键帽底。
   static const Color keybg = Color(0xFFF1EFE8);
 
-  /// 「当前/选中」浅洗底（墨色系）。
-  static const Color inkWash = Color(0xFFE7EAEF);
+  /// 「当前/选中」浅洗底（墨色系，`TOKENS.md` §8.4 去蓝后为米赭洗底）。
+  static const Color inkWash = Color(0xFFEFE9DE);
 
   /// 「警示/缺口」浅洗底（赭石系）。
   static const Color accentWash = Color(0xFFF3E8DC);
 
   /// 主墨色：正文、标题、勾选框、当前页。
-  static const Color ink = Color(0xFF2E4057);
+  ///
+  /// 暖墨黑（`TOKENS.md` §8.4）：原 `#2E4057` 铁胆蓝黑已废 —— 用户反馈
+  /// 「深蓝文字」与米纸基调冲突。对 `paper` 12.69:1 / `card` 13.36:1。
+  static const Color ink = Color(0xFF322B23);
 
   /// 强次级（备注、行动项芯片）。
-  static const Color ink2 = Color(0xFF3D5170);
+  ///
+  /// 暖中墨（`TOKENS.md` §8.4）：原 `#3D5170` 已废。对 `paper` 9.19:1 / `card` 9.68:1。
+  static const Color ink2 = Color(0xFF4A4036);
 
   /// 次级文字（徽标、优先级、时间刻度）。
   static const Color meta = Color(0xFF5F584B);
@@ -83,7 +88,9 @@ class AppTokens {
   // `widgets/timeline/slot_state.dart`（habit → backfill → done → plannedOpen）。
 
   /// 四态 · 已排未做（`status` 非 done 且不在「现在」之前）。
-  static const Color slotPlan = Color(0xFFE8ECF1);
+  ///
+  /// `TOKENS.md` §8.4：原 `#E8ECF1` 带蓝已废；对 `ink` 11.11:1。
+  static const Color slotPlan = Color(0xFFEBE5D8);
 
   /// 四态 · 计划已完成（`status='done'` 且非回填）。
   static const Color slotDone = Color(0xFFF1F2F0);
@@ -92,7 +99,9 @@ class AppTokens {
   static const Color slotBackfill = Color(0xFFEDE4D6);
 
   /// 四态 · 习惯入格（`source_type='habit'` + `is_habit_ref=1`）。
-  static const Color slotHabit = Color(0xFFDCE4EC);
+  ///
+  /// `TOKENS.md` §8.4：原 `#DCE4EC` 带蓝已废；对 `ink` 10.05:1。
+  static const Color slotHabit = Color(0xFFE2DACB);
 
   // --- 方格时间轴四态前景（`TOKENS.md` §8.2「四态形状 + 文字双通道」） ---
   // 只承载**条目内的可读信息**：字形、状态词、左缘 2px 竖条、完成态删除线。
@@ -103,14 +112,42 @@ class AppTokens {
   // 若前景仍用 `--ink`，完成态会比未完成态更抢眼 —— 语义就反了。
 
   /// 四态前景 · 已排未做（= `--ink`）。
-  static const Color slotPlanInk = Color(0xFF2E4057);
+  ///
+  /// 直接引用 [ink] 而非抄字面量：`TOKENS.md` §8.4 改 `--ink` 时这三个别名
+  /// 必须同步，写成别名可避免「格底去蓝、格内文字仍蓝」的半截改动。
+  static const Color slotPlanInk = ink;
 
   /// 四态前景 · 计划已完成（= `--meta`）。
   static const Color slotDoneInk = Color(0xFF5F584B);
 
   /// 四态前景 · 回填（= `--ink`）。
-  static const Color slotBackfillInk = Color(0xFF2E4057);
+  static const Color slotBackfillInk = ink;
 
   /// 四态前景 · 习惯打卡（= `--ink`）。
-  static const Color slotHabitInk = Color(0xFF2E4057);
+  static const Color slotHabitInk = ink;
+
+  // --- 方格时间轴 · 刻度尺（`task36-a-roulette.html` `.ax-hour` / `.ax-half`） ---
+  // 只做刻度长度，颜色一律复用 `hair` / `hairStrong`：刻度是装饰线，
+  // 不承载信息，也不进语义树。**只增不改**，既有 token 一个不动。
+
+  /// 刻度尺 · 整点刻度长度（原型 `.ax-hour{width:6px}`）。
+  static const double axisTickHour = 6;
+
+  /// 刻度尺 · 半点刻度长度（原型 `.ax-half{width:3px}`）。
+  static const double axisTickHalf = 3;
+
+  // --- 方格时间轴 · 三段底色（`TOKENS.md` §8.3，Task 39 · W1） ---
+  // 06:00–12:00 / 12:00–18:00 / 18:00–24:00 各一层极淡底，让人一眼分出
+  // 「上午 / 下午 / 晚上」。**只取既有中性阶，不新造 hex、不引入新色相**：
+  // 赭石（`accent` / `accentWash`）在方格区仍然禁用。
+  // 三值两两不等、相邻亮度差 2.5–2.7 级 —— 刻意轻微，不做成三块卡片。
+
+  /// 三段底色 · 06:00–12:00（= `--card`，与格区容器同色，靠下两段显形）。
+  static const Color gridSectionMorning = card;
+
+  /// 三段底色 · 12:00–18:00（= `--paper`）。
+  static const Color gridSectionNoon = paper;
+
+  /// 三段底色 · 18:00–24:00（= `--sunken`）。
+  static const Color gridSectionEvening = sunken;
 }

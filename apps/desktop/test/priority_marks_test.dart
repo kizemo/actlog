@@ -3,14 +3,15 @@
 // 四维度优先级（重要 / 不重要 × 紧急 / 不紧急）· 代码级回归。
 //
 // 盯五件事：
-//   1. 字形映射：Q1 ▲◆ / Q2 ▲◇ / Q3 ▽◆ / Q4 ▽◇，未分级零尺寸不占空隙；
+//   1. 标记映射：两条轴各一枚图标，用**填充 / 空心**区分正负（重要 = 实心星，
+//      不重要 = 空心星；紧急 = 实心铃，不紧急 = 空心铃）；未分级零尺寸不占空隙；
 //   2. 选择器：点任一芯片只改该维度、另一维度保持（未分级时按「否」起步），
 //      已分级才出现「清除」，清除回 null；
 //   3. 今日页手写条：选「重要 + 紧急」→ 落库 `q1`，提交后选择器清空
 //      （不允许下一条静默继承上一条的优先级）；
 //   4. 清除后落库 null（与「未分级」是同一个事实，不是 Q4）；
-//   5. 方格时间轴：标记渲染在名称**之前**，四个象限各两枚字形互不相同，
-//      极简模式（`minimal: true`）仍保留标记。
+//   5. 方格时间轴：标记渲染在名称**之前**，四个象限各两枚标记按值级 key
+//      互不相同，极简模式（`minimal: true`）仍保留标记。
 //
 // 全部走内存真库 + 真仓储（除前三个纯控件用例外），不 mock 数据层：
 // 「选的重要、落库变成 Q3」这种漂移只有真实读写才能抓住。
@@ -34,8 +35,9 @@ import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 
 const String _today = '2026-11-09';
 
-const ValueKey<String> _kImportance = ValueKey<String>('priority-mark-importance');
-const ValueKey<String> _kUrgency = ValueKey<String>('priority-mark-urgency');
+// 值级 key 一律从 `PriorityMark` 自己身上取（`kMarkImportantSpec.key` 等）。
+// 轴级 key（`priority-mark-importance` / `-urgency`）已随「象限 → 标记」升格
+// 一并删除：重要性轴的两枚标记同形，轴级 key 再也分不开「重要」与「不重要」。
 const ValueKey<String> _kPickImportant =
     ValueKey<String>('priority-mark-picker-important');
 const ValueKey<String> _kPickNotImportant =
@@ -164,9 +166,45 @@ Future<void> _sendCtrl(WidgetTester tester, LogicalKeyboardKey key) async {
   await _settle(tester);
 }
 
-/// 单枚标记的字形（未找到会直接抛，比静默 null 好定位）。
-String _glyphOf(WidgetTester tester, Finder finder) {
-  return tester.widget<Text>(finder).data!;
+/// 断言 [scope] 里出现**恰好一枚** [expected] 标记，并核对图标与颜色。
+///
+/// 定位一律走值级 key（`expected.key`）：同一轴的两枚标记是**同一枚图标的
+/// 填充 / 空心两态**，按 `find.byIcon` 之外的形状计数必然撞车；只有 key 才能
+/// 分开「重要」与「不重要」。
+void _expectMark(WidgetTester tester, Finder scope, PriorityMark expected) {
+  final Finder hit = find.descendant(
+    of: scope,
+    matching: find.byKey(expected.key),
+  );
+  expect(hit, findsOneWidget, reason: '${expected.label} 标记没出现');
+  final IconData? icon = expected.resolvedIcon;
+  if (icon != null) {
+    final Icon widget = tester.widget<Icon>(hit);
+    expect(
+      widget.icon,
+      icon,
+      reason: '${expected.label} 的图标不对（`filled` 应选实心 / 空心）',
+    );
+    expect(
+      widget.color,
+      expected.color,
+      reason: '${expected.label} 的颜色 token 不对',
+    );
+    return;
+  }
+  final String glyph = expected.glyph!;
+  final Text text = tester.widget<Text>(hit);
+  expect(text.data, glyph, reason: '${expected.label} 的字形不对');
+  expect(
+    text.style?.fontWeight,
+    expected.emphasis,
+    reason: '${expected.label} 的字重不对',
+  );
+  expect(
+    text.style?.color,
+    expected.color,
+    reason: '${expected.label} 的颜色 token 不对',
+  );
 }
 
 /// 可回写的选择器宿主：把 `onChanged` 的结果同时记进日志与状态。
@@ -208,16 +246,18 @@ class _PickerHostState extends State<_PickerHost> {
 }
 
 void main() {
-  group('PriorityMarks 字形', () {
+  group('PriorityMarks 标记', () {
     testWidgets('四个象限各渲染两枚、互不相同，且与维度布尔同构', (WidgetTester tester) async {
-      const Map<Quadrant, (String, String)> expected = <Quadrant, (String, String)>{
-        Quadrant.q1: (kMarkImportant, kMarkUrgent),
-        Quadrant.q2: (kMarkImportant, kMarkNotUrgent),
-        Quadrant.q3: (kMarkNotImportant, kMarkUrgent),
-        Quadrant.q4: (kMarkNotImportant, kMarkNotUrgent),
+      const Map<Quadrant, (PriorityMark, PriorityMark)> expected =
+          <Quadrant, (PriorityMark, PriorityMark)>{
+        Quadrant.q1: (kMarkImportantSpec, kMarkUrgentSpec),
+        Quadrant.q2: (kMarkImportantSpec, kMarkNotUrgentSpec),
+        Quadrant.q3: (kMarkNotImportantSpec, kMarkUrgentSpec),
+        Quadrant.q4: (kMarkNotImportantSpec, kMarkNotUrgentSpec),
       };
 
-      for (final MapEntry<Quadrant, (String, String)> entry in expected.entries) {
+      for (final MapEntry<Quadrant, (PriorityMark, PriorityMark)> entry
+          in expected.entries) {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -225,23 +265,27 @@ void main() {
             ),
           ),
         );
-        expect(
-          _glyphOf(tester, find.byKey(_kImportance)),
-          entry.value.$1,
-          reason: '${entry.key.code} 的重要性维度字形不对',
-        );
-        expect(
-          _glyphOf(tester, find.byKey(_kUrgency)),
-          entry.value.$2,
-          reason: '${entry.key.code} 的紧急性维度字形不对',
-        );
+        final Finder scope = find.byType(PriorityMarks);
+        // 两枚都能被**各自的** key 定位到 ⇒ 身份没塌；字形/图标/字重/色一并核。
+        _expectMark(tester, scope, entry.value.$1);
+        _expectMark(tester, scope, entry.value.$2);
       }
 
-      // 四组两两不同：任何一种「两枚字形塌成一样」的实现都会被这条兜住。
-      expect(expected.values.toSet(), hasLength(4));
+      // 四组「(重要性 key, 紧急度 key)」两两不同：任何一种「两枚标记塌成
+      // 一样」的实现都会被这条兜住（重要性轴同形，只能靠 key 分辨）。
+      expect(
+        expected.values
+            .map(
+              ((PriorityMark, PriorityMark) pair) =>
+                  '${pair.$1.key}/${pair.$2.key}',
+            )
+            .toSet(),
+        hasLength(4),
+        reason: '四个象限的标记组合必须两两不同',
+      );
     });
 
-    testWidgets('未分级：不渲染任何字形、也不占空隙', (WidgetTester tester) async {
+    testWidgets('未分级：不渲染任何标记、也不占空隙', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(body: Center(child: PriorityMarks(quadrant: null))),
@@ -249,6 +293,11 @@ void main() {
       );
 
       expect(find.byType(Text), findsNothing);
+      expect(
+        find.byType(Icon),
+        findsNothing,
+        reason: '紧急度轴走 Material Icon，未分级同样一枚都不许画',
+      );
       expect(tester.getSize(find.byType(PriorityMarks)), Size.zero);
     });
   });
@@ -379,23 +428,23 @@ void main() {
   });
 
   group('方格时间轴', () {
-    testWidgets('四个象限各两枚字形，且标记排在名称之前', (WidgetTester tester) async {
+    testWidgets('四个象限各两枚标记，且标记排在名称之前', (WidgetTester tester) async {
       _useTallSurface(tester);
       final harness = _Harness.create();
       final TimelineStore store = TimelineStore(harness.repos);
 
-      const Map<String, (Quadrant, String, String)> cases =
-          <String, (Quadrant, String, String)>{
-        '条目甲': (Quadrant.q1, kMarkImportant, kMarkUrgent),
-        '条目乙': (Quadrant.q2, kMarkImportant, kMarkNotUrgent),
-        '条目丙': (Quadrant.q3, kMarkNotImportant, kMarkUrgent),
-        '条目丁': (Quadrant.q4, kMarkNotImportant, kMarkNotUrgent),
+      const Map<String, (Quadrant, PriorityMark, PriorityMark)> cases =
+          <String, (Quadrant, PriorityMark, PriorityMark)>{
+        '条目甲': (Quadrant.q1, kMarkImportantSpec, kMarkUrgentSpec),
+        '条目乙': (Quadrant.q2, kMarkImportantSpec, kMarkNotUrgentSpec),
+        '条目丙': (Quadrant.q3, kMarkNotImportantSpec, kMarkUrgentSpec),
+        '条目丁': (Quadrant.q4, kMarkNotImportantSpec, kMarkNotUrgentSpec),
       };
 
       await tester.runAsync(() async {
         var start = 9 * 60;
-        for (final MapEntry<String, (Quadrant, String, String)> entry
-            in cases.entries) {
+        for (final MapEntry<String, (Quadrant, PriorityMark, PriorityMark)>
+            entry in cases.entries) {
           await store.createTodoWithSlot(
             date: _today,
             title: entry.key,
@@ -414,21 +463,20 @@ void main() {
       );
       expect(rows, hasLength(4));
 
-      for (final MapEntry<String, (Quadrant, String, String)> entry
+      for (final MapEntry<String, (Quadrant, PriorityMark, PriorityMark)> entry
           in cases.entries) {
         final String id =
             rows!.firstWhere((PlanItemData row) => row.title == entry.key).id;
         final Finder tile = find.byKey(ValueKey<String>('day-grid-entry-$id'));
         expect(tile, findsOneWidget, reason: '${entry.key} 没排进格子');
 
-        final Finder importance =
-            find.descendant(of: tile, matching: find.byKey(_kImportance));
-        final Finder urgency =
-            find.descendant(of: tile, matching: find.byKey(_kUrgency));
-        expect(_glyphOf(tester, importance), entry.value.$2,
-            reason: '${entry.key} 的重要性字形不对');
-        expect(_glyphOf(tester, urgency), entry.value.$3,
-            reason: '${entry.key} 的紧急性字形不对');
+        // 两枚各按自己的值级 key 定位（重要性轴同形，按字符找必然撞）。
+        _expectMark(tester, tile, entry.value.$2);
+        _expectMark(tester, tile, entry.value.$3);
+        final Finder importance = find.descendant(
+          of: tile,
+          matching: find.byKey(entry.value.$2.key),
+        );
 
         if (entry.key == '条目甲') {
           final Finder name = find.descendant(
@@ -483,14 +531,14 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(ValueKey<String>('day-grid-entry-$gradedId')),
-          matching: find.byKey(_kImportance),
+          matching: find.byKey(kMarkImportantSpec.key),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
           of: find.byKey(ValueKey<String>('day-grid-entry-$plainId')),
-          matching: find.byKey(_kImportance),
+          matching: find.byKey(kMarkImportantSpec.key),
         ),
         findsNothing,
         reason: '未分级（null）不画标记',
@@ -502,7 +550,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(ValueKey<String>('day-grid-entry-$gradedId')),
-          matching: find.byKey(_kImportance),
+          matching: find.byKey(kMarkImportantSpec.key),
         ),
         findsOneWidget,
         reason: '极简模式仍要显示优先级标记',
@@ -550,16 +598,11 @@ void main() {
       expect(gradedRow, findsOneWidget);
       final Finder importance = find.descendant(
         of: gradedRow,
-        matching: find.byKey(_kImportance),
+        matching: find.byKey(kMarkImportantSpec.key),
       );
-      expect(_glyphOf(tester, importance), kMarkImportant);
-      expect(
-        _glyphOf(
-          tester,
-          find.descendant(of: gradedRow, matching: find.byKey(_kUrgency)),
-        ),
-        kMarkUrgent,
-      );
+      // q1 = 重要（实心星 + accent）+ 紧急（实心铃 + accent）。
+      _expectMark(tester, gradedRow, kMarkImportantSpec);
+      _expectMark(tester, gradedRow, kMarkUrgentSpec);
       // 与 `day_grid.dart` 一致：标记在名称之前，不是之后。
       expect(
         tester.getTopLeft(importance).dx,
@@ -604,9 +647,21 @@ void main() {
 
       expect(find.byType(QuickTodoDialog), findsNothing);
 
-      // 「同时捞入今天」默认勾选 ⇒ 待办被置 done、离开待办池。
+      // 「同时捞入今天」默认勾选 ⇒ 建了一行 plan_item，但**待办本体不动**
+      // （`docs/schema_v1.sql`：捞进今日计划「不复制状态」，`pullToPlan` 也不再
+      // 把 todo 置 done）。所以这里反过来断言两件事：池子里还有这一条，
+      // 且它自己带着 q1 象限 —— 比旧断言的「池子空了」更贴近现行语义。
       final open = await tester.runAsync(() => harness.repos.todo.listOpen());
-      expect(open, isEmpty, reason: '捞入后待办不该还留在池子里');
+      expect(
+        open,
+        hasLength(1),
+        reason: '捞进计划不该把待办本体从池子里弄走',
+      );
+      expect(
+        open!.single.quadrant,
+        Quadrant.q1,
+        reason: '面板选的重要 + 紧急 必须先落到待办本体上',
+      );
 
       // 计划行是待办的**快照**（`pullToPlan` 把待办的象限一并抄过来），
       // 所以这一条 q1 同时证明了「面板的选择进了待办」与「快照没把象限丢掉」。

@@ -20,6 +20,16 @@ final activeRecurringTasksProvider =
   return ref.watch(repositoriesProvider).recurring.watchActive();
 });
 
+/// 全部未删除的循环**规则**（含已停用，按开始时刻升序）。
+///
+/// 右轨面板的「规则」段订阅它。不能复用 [activeRecurringTasksProvider]：
+/// 那个口径带 `active = 1`，规则一停用就从列表里消失，于是「启用」这个动作
+/// 在界面上再也点不到。
+final recurringRulesProvider =
+    StreamProvider<List<RecurringTaskData>>((ref) {
+  return ref.watch(repositoriesProvider).recurring.watchAll();
+});
+
 /// 物化触发器：保证选中日里该跑的循环任务已经落成 `plan_item`。
 ///
 /// **幂等**（应用层先查后写 + 库层 `UNIQUE(task_id, date)` 兜底），

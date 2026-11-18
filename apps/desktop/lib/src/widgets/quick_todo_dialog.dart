@@ -6,6 +6,7 @@ import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
+import 'est_duration_text.dart';
 import 'priority_marks.dart';
 
 /// 打开「手写一条」面板（键条第一条 `Ctrl+N` 的真身）。
@@ -52,6 +53,12 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
   /// 提交中禁用按钮，防止连点写出两条。
   bool _submitting = false;
 
+  /// 写库已成功：退出动画期间的重复触发一律无效（同 `habit_quick_dialog`）。
+  bool _saved = false;
+
+  /// 预估时间的输入单位；落库永远是分钟（[estMinutesOf] 换算）。
+  EstUnit _unit = EstUnit.minute;
+
   /// 面板内错误原文（不写库、不关面板）。
   String? _error;
 
@@ -63,7 +70,7 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
   }
 
   Future<void> _submit() async {
-    if (_submitting) {
+    if (_submitting || _saved) {
       return;
     }
     final title = _title.text.trim();
@@ -71,15 +78,17 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
       setState(() => _error = '标题不能为空');
       return;
     }
+    // 数量 × 单位 ⇒ 分钟；留空 ⇒ 不写库（NULL）。
     final estText = _est.text.trim();
     int? estMinutes;
     if (estText.isNotEmpty) {
-      final parsed = int.tryParse(estText);
-      if (parsed == null || parsed <= 0) {
-        setState(() => _error = '预估分钟要填正整数');
+      final amount = double.tryParse(estText);
+      if (amount == null || amount <= 0) {
+        setState(() => _error = '预估时间要填正数，或留空');
         return;
       }
-      estMinutes = parsed;
+      // 四舍五入到 0 视为未填（例如 0.001 分钟），存 NULL。
+      estMinutes = estMinutesOf(amount, _unit);
     }
 
     setState(() {
@@ -108,6 +117,7 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
       if (!mounted) {
         return;
       }
+      _saved = true;
       navigator.pop();
     } catch (error) {
       if (!mounted) {
@@ -115,7 +125,9 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
       }
       setState(() => _error = _errorMessage(error));
     } finally {
-      if (mounted) {
+      // 成功后不复位：退出动画期间 widget 仍 mounted、按钮仍可点，
+      // 放开 `_submitting` 会让双击的第二击再写一条待办。
+      if (mounted && !_saved) {
         setState(() => _submitting = false);
       }
     }
@@ -142,17 +154,36 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
           ),
           const SizedBox(height: 10),
           Text(
-            '预估分钟（可选）',
+            '预估时间（可选）',
             style: _bodyStyle(size: 11.5, color: AppTokens.faint),
           ),
           const SizedBox(height: 4),
-          TextField(
-            controller: _est,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _submit(),
-            style: _bodyStyle(size: 13, color: AppTokens.ink),
-            decoration: _fieldDecoration('例如 25'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              SizedBox(
+                width: 104,
+                child: TextField(
+                  controller: _est,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
+                  style: _bodyStyle(size: 13, color: AppTokens.ink),
+                  decoration: _fieldDecoration('例如 25'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: EstUnitPicker(
+                  keyPrefix: 'quick-todo',
+                  selected: _unit,
+                  enabled: !_submitting && !_saved,
+                  onChanged: (EstUnit unit) => setState(() => _unit = unit),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Text(
@@ -364,7 +395,7 @@ class _PoolRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final meta = <String>[
       if (todo.priorityAbc != null) todo.priorityAbc!.code,
-      if (todo.estMinutes != null) '${todo.estMinutes} 分钟',
+      if (todo.estMinutes != null) formatEstDuration(todo.estMinutes!),
     ].join(' · ');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

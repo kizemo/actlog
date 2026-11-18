@@ -13,6 +13,7 @@ library;
 
 export 'src/models.dart';
 export 'src/mood.dart';
+export 'src/mood_dimensions.dart';
 export 'src/priority.dart';
 export 'src/repositories.dart';
 export 'src/recurring.dart';

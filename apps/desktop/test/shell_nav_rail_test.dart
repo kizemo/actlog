@@ -113,12 +113,14 @@ void main() {
     expect(find.text('页面切换'), findsOneWidget);
   });
 
-  testWidgets('只有今日 / 待办池 / 习惯 / 日历可点，项目与设置是禁用态', (WidgetTester tester) async {
+  testWidgets('只有「项目」是禁用态：今日 / 待办池 / 习惯 / 日历 / 设置五项都可点',
+      (WidgetTester tester) async {
     final List<String> tapped = <String>[];
     await _pumpNav(tester, onSelected: tapped.add);
 
-    // 4 个可点项各自一个 InkWell；禁用项不渲染任何点击控件。
-    expect(find.byType(InkWell), findsNWidgets(4));
+    // Task 39 指令 7 起「设置」启用 ⇒ 5 个可点项各一个 InkWell；
+    // 禁用项不渲染任何点击控件。
+    expect(find.byType(InkWell), findsNWidgets(5));
 
     await tester.tap(find.text('待办池'));
     await tester.pump();
@@ -132,14 +134,19 @@ void main() {
     await tester.pump();
     expect(tapped, <String>['inbox', 'habits', 'calendar']);
 
-    for (final String disabled in <String>['项目', '设置']) {
+    // 设置页现在有真实落点（Task 39 指令 7）。
+    await tester.tap(find.text('设置'));
+    await tester.pump();
+    expect(tapped, <String>['inbox', 'habits', 'calendar', 'settings']);
+
+    for (final String disabled in <String>['项目']) {
       await tester.tap(find.text(disabled));
       await tester.pump();
     }
     expect(
       tapped,
-      <String>['inbox', 'habits', 'calendar'],
-      reason: '禁用项不得触发选中',
+      <String>['inbox', 'habits', 'calendar', 'settings'],
+      reason: '唯一仍禁用的「项目」不得触发选中',
     );
 
     // 禁用项用弱文字色，不用 ink；「习惯」已是可点项，非当前页走 meta。

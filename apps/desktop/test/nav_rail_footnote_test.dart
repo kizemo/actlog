@@ -142,7 +142,7 @@ void main() {
     expect(
       find.widgetWithText(KeyCap, '6'),
       findsNothing,
-      reason: '导航只剩项目 / 设置两项禁用、无落点 ⇒ 底注不得宣称「… 6」',
+      reason: '设置页虽有落点，但底注与快捷键只承诺 Ctrl+1…4 ⇒ 不得宣称「… 6」',
     );
 
     // 文案顺序：页面切换 → Ctrl → + → 1 → … → 4。

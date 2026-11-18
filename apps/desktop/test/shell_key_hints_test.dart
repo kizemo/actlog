@@ -99,7 +99,7 @@ void main() {
         expect(
           key.contains('Ctrl+1…6'),
           isFalse,
-          reason: '习惯 / 项目 / 设置三项无落点，只能宣称到 3',
+          reason: '习惯 / 项目两项无落点（设置页有落点但键条只到 3），不能宣称到 6',
         );
       }
       expect(hint.label.contains('排入'), isFalse);
