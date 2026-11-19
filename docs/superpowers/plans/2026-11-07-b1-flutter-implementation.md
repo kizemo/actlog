@@ -7972,3 +7972,36 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 41.4 台账同步（验收记录 / progress / handoff）
 - [x] 41.4 commit + push 完成
 
+
+## 42. Task 42 · Task 41 证据链补口（门禁未证明项 4 条 → 真规则）（2026-11-19）
+
+### 42.1 背景
+`reports\task41-gate.ps1` 的 `GATE_VERDICT=PASS` **不含** handoff §36 列出的 4 条证据。本轮把它们从「文档转述」升级为**门禁里的真断言**：新脚本落在 `reports\task42-*.ps1`，**Task 41 的任何证据文件零改动**（`reports\task41-gate\`、`reports\task41-forbidden-trace.txt` 全部保持原样）。
+
+| §36 项 | 缺口 | Task 42 落地方式 | 门禁键 |
+|---|---|---|---|
+| #5 | 豁免前缀内写集**无白名单**（中高） | 改用 **git 内容/历史**判据（不再用 mtime 窗口）：基线提交 `b488548` ⇒ `git diff --name-only b488548..HEAD` 的每个文件必须落在显式白名单内 —— `apps/desktop/lib/**` = **43 个硬编码文件**（计划 §41.2 写集表 + 实测 diff 逐条对账；计划表本身非穷举，43 个中的 27 个仅由计划隐含，故以实测列表为准）；`apps/desktop/test/**` = 计划 §41.2 明文通配；其余只允许控制器写集（`AGENTS.md` / `docs/*` / `tools/gates/g4_contrast.ps1`）。并断言**工作树干净** | `G6_OUT_OF_SET=0` / `G6_WORKTREE_DIRTY=0` |
+| #6 | 契约「不许新增 `cardTheme`/`dialogTheme`/`chipTheme`」**零规则覆盖**（中） | 全量扫 `apps/desktop/lib/**/*.dart`（64 个文件），**先剥注释**（整行 + 行尾、引号感知）再计数 ⇒ 解释「为何不设」的注释不算违规，藏在注释里的真用法也算违规 | `G7_COMPONENT_THEME_HITS=0` |
+| #7 | 三个 theme 文件**未冻结** + mtime 回拨可绕过（低） | 改用 **git blob 哈希**冻结 `theme_tokens.dart` / `app_theme.dart` / `app_tokens.dart` == 提交 `586fbab` 的 blob（`c3366d21…` / `bebe041b…` / `2439f6fc…`）⇒ 抗 mtime 回拨 | `G8_FROZEN_MISMATCH=0` |
+| #8 | `LIGHT_EQUIVALENT` **不在 16 键断言表**（低） | 并入门禁 **G9** 阶段：跑浅色等价判据并断言 `LIGHT_EQUIVALENT=1` | `G9_LIGHT_EQUIVALENT=1` |
+
+### 42.2 写集表（互斥，R8）
+控制器可写：`AGENTS.md`（§5 坑 64 + §7 快照）、`docs/superpowers/plans/2026-11-07-b1-flutter-implementation.md`（本段 + §42.4 复选框）、`docs/B1_验收记录.md`（第 5 节新增 2 行）、`.superpowers/sdd/2026-11-07-b1-flutter-implementation/handoff.md`（§37）、`.superpowers/sdd/2026-11-07-b1-flutter-implementation/progress.md`（流水）、`reports/task42-*`（脚本与证据，`.gitignore` 覆盖 ⇒ 本地台账，不入库）。
+**`apps/**` 与 `packages/**` 本轮零改动**（R1）⇒ 不重编译、不重打包、不重装机；**R3 真源行不变**（唯一可分发包仍是 `release\actlog-Setup-1.0.0_20261119-000839.exe`）。
+
+### 42.3 完成判据
+1. `reports\task42-gate.ps1` 实跑 `GATE_VERDICT=PASS`（`FAIL_COUNT=0` / `ENV_COUNT=0`），且 G6–G9 四组新键全中；
+2. **Task 41 唯一遗留闭合**：从**最终可分发包**复取深色真机帧成功，控制器读图坐实；
+3. 五份台账同步 + commit + push。
+
+### 42.4 Task 42 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+- [x] 42.1 最终包复取深色真机帧成功（`VERDICT=PASS_DARK`）+ 控制器读图坐实
+- [x] 42.1 采集无副作用核对（真实库 `theme_mode=light` / 5 张表行数 / 库文件 mtime 均未变）
+- [x] 42.1 G6 写集白名单（git 内容判据）落地并进断言表
+- [x] 42.1 G7 组件主题禁令（剥注释后计数）落地并进断言表
+- [x] 42.1 G8 theme 三文件 blob 冻结落地并进断言表
+- [x] 42.1 G9 `LIGHT_EQUIVALENT=1` 并进门禁断言表
+- [x] 42.1 G9 判据基线自毁缺陷已修（基线钉死 `b488548`）
+- [x] 42.3 `reports\task42-gate.ps1` 实跑 `GATE_VERDICT=PASS`
+- [x] 42.3 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS.md）
+- [x] 42.3 commit + push 完成
