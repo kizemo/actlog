@@ -7038,7 +7038,7 @@ B1 的前 18 个 Task 交付的是**功能**，不是**版面**。把 `apps\desk
 - [x] **Step 6: 真机取证（控制器）**
   - [x] `flutter build windows --release` → `tools\build\make_installer.ps1` 打包 exe
   - [x] 包内核对：`app.so` 指纹、**四族字体 + 四份 OFL 确实在包内**、隐私排除零命中
-  - [ ] T2 真实显示缩放：**先坐实 `LogPixels` 改动生效**（记 `GetDpiForWindow` 前后值），再取 125% / 100% 两档帧；**测完恢复 144 并复测**
+  - [x] T2 真实显示缩放：**先坐实 `LogPixels` 改动生效**（记 `GetDpiForWindow` 前后值），再取 125% / 100% 两档帧；**测完恢复 144 并复测**
   - [x] T3 键条按键注入端到端：`Space` / `Enter` / `Ctrl+1` / `Ctrl+2` / `Ctrl+3` 逐条取证，`Ctrl+4/5/6` 零效果
   - [x] 字体渲染帧：确认界面真用上了 Fraunces / Inter / JetBrains Mono / Noto Sans SC（而非静默回退系统字体）
 
@@ -8034,3 +8034,28 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 43.3 `reports\task43-gate.ps1` 实跑 `GATE_VERDICT=PASS`
 - [x] 43.3 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS.md）
 - [x] 43.3 commit + push 完成
+
+## 44. Task 44 · 闭合计划 `:7041`（T2 真实 Windows 显示缩放 125% / 100%）—— 已闭合（2026-11-19）
+
+### 44.1 背景与结论
+前棒结论「**会话内不可改缩放、必须用户注销重登**」**已被本轮实测推翻**：Windows 写显示缩放档位用的是**未公开的 device-info 接口**（`DISPLAYCONFIG_DEVICE_INFO_GET_DPI_SCALE = -3` / `SET_DPI_SCALE = -4`），会话内即可定档 ⇒ **不需要用户再注销重登**。三档真机帧已在会话内取齐并逐档读图通过 ⇒ `:7041` 等长打勾（**字节数不变 459832、sha16 `19EE0DA1AD6B64D7`、逐行比对仅第 7041 行改动**，R6）。
+
+### 44.2 写集表（互斥，R8）
+控制器可写：`AGENTS.md`（§5 坑 71–74 + 就地标注坑 68 被推翻 + §7 快照）、本计划（`:7041` + 本段 + §44.4 复选框）、`docs\B1_验收记录.md`、`.superpowers\sdd\2026-11-07-b1-flutter-implementation\handoff.md`（§39.8）、`.superpowers\sdd\2026-11-07-b1-flutter-implementation/progress.md`、`reports\task44-*`（`.gitignore` 覆盖 ⇒ 本地台账，不入库）。
+**`apps/**` 与 `packages/**` 本轮零改动**（R1）⇒ 不重编译、不重打包、不重装机；**R3 真源行不变**（唯一可分发包仍是 `release\actlog-Setup-1.0.0_20261119-000839.exe`）。
+
+### 44.3 完成判据
+1. 三档真机帧取齐（100% / 96dpi、125% / 120dpi、恢复 150% / 144dpi），每档 `GetDpiForWindow` 与 `implied_scale` 一致、`WINDOW_RECT_PHYS` 按 1.0 / 1.25 / 1.5 缩放、`OCR_OVERLAP_PAIRS=0`、`OCR_EDGE_TOUCH_LINES=0`；
+2. **控制器逐档读图**：不重叠 / 不裁切 / 无黄纹 全绿；
+3. 计划 `:7041` 等长打勾（字节数不变 + sha16 当场重测）；
+4. 台账同步 + 收尾（注册表恢复、计划任务删除）+ commit + push。
+
+### 44.4 Task 44 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+- [x] 44.1 会话内 device-info API 路线打通（推翻坑 68 的「会话内无杠杆」结论）
+- [x] 44.1 rel→DPI 映射实测（-2→96 / -1→120 / 0→144 / +1→168，`SET_rc` 全 0）
+- [x] 44.3 三档真机帧取齐（100% / 125% / 恢复 150%），几何判据全绿
+- [x] 44.3 控制器逐档读图（不重叠 / 不裁切 / 无黄纹）
+- [x] 44.3 计划 `:7041` 等长打勾（字节数不变 + sha16 当场重测）
+- [x] 44.3 台账同步（AGENTS §5 §7 / B1 / handoff / progress / batch-log）
+- [x] 44.3 收尾（注册表恢复 150%、计划任务 `T44ScaleCapture` 删除）
+- [x] 44.3 commit + push 完成
