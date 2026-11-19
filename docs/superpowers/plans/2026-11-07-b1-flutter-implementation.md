@@ -8005,3 +8005,32 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 42.3 `reports\task42-gate.ps1` 实跑 `GATE_VERDICT=PASS`
 - [x] 42.3 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS.md）
 - [x] 42.3 commit + push 完成
+
+## 43. Task 43 · 需求 9 真机确认弹窗取证 + G10 门禁补口（2026-11-19）
+
+### 43.1 背景
+`AGENTS.md` §7 快照显示 Task 42 已收口、计划只剩 `7041`（需用户注销重登，会话内不可达成）；handoff §37.5 明列仍挂账项（计划 `7041` / §36 #1·#2·#3 / Task 39.6 三项 / B1 #12）。⇒ 本轮只做**不依赖用户决定、可完全机械验证**的两件事：
+
+| # | 缺口 | Task 43 落地方式 | 门禁键 / 证据 |
+|---|---|---|---|
+| A | **需求 9（删除计划/习惯/循环任务增加确认环节）缺运行时视觉证据** —— 实现（`apps\desktop\lib\src\widgets\confirm_dialog.dart:18-51` + `day_grid.dart:741-754` + `recurring_rail_panel.dart:94-116`）与 4 处既有测试都在，但仓库内**无任何真机确认弹窗帧**（`reports\task40-shots\` 9 张全为今日页/日历页） | 沙箱隔离真机探针：`--data-dir=<沙箱>` 起装机件，sqlite backup API 复制真实库，**真实库全程只读**，跑前/跑后逐行快照比对；点「删除」→ 取弹窗帧 → 点「取消」验零软删 → 再点「删除」→ 点「确认」验真软删 | `reports\task43-delete-probe-*.txt`（`VERDICT=PASS`）+ `reports\task43-shots\*.png` |
+| B | **handoff §36 #2「`.withOpacity(` 计数 0」只是文档转述**，不在门禁断言表里 | 新增门禁键 **G10**：逐行扫 `apps\desktop\lib` + `apps\desktop\test` + `packages` 下全部 `*.dart`，计 `.withOpacity(` 出现次数 ⇒ 必须 0 | `G10_WITH_OPACITY_ZERO=0` |
+
+**本轮不做**：计划 `7041`（T2 真实 Windows 显示缩放，需用户注销重登）／Task 39.6 三项（系统字体栈 / 语言可切换 / 升级可下载安装）／B1 #12（M21-1 未来日预排条目可编辑，需先改 spec §H-1）—— 皆属**用户拍板项**，不擅自动手。**需求 11 / 12 定性为「已按设计交付的文档需求」**（`docs\task40\项目页规划.md` / `关于页设计.md` / `模块优化建议.md`），Task 40 派工书明文「本轮不实施、不许改 Dart 源码」⇒ 不按未交付缺陷记。
+
+### 43.2 写集表（互斥，R8）
+控制器可写：`AGENTS.md`（§5 坑 65–66 + §7 快照）、`docs/superpowers/plans/2026-11-07-b1-flutter-implementation.md`（本段 + §43.4 复选框）、`docs/B1_验收记录.md`（第 5 节新增 1 行 + 文末 Task 43 段）、`.superpowers/sdd/2026-11-07-b1-flutter-implementation/handoff.md`（§38）、`.superpowers/sdd/2026-11-07-b1-flutter-implementation/progress.md`（流水）、`reports/task43-batch-log.md`（时间轴台账）、`reports/task43-*`（脚本与证据，`.gitignore` 覆盖 ⇒ 本地台账，不入库）。
+**`apps/**` 与 `packages/**` 本轮零改动**（R1）⇒ 不重编译、不重打包、不重装机；**R3 真源行不变**（唯一可分发包仍是 `release\actlog-Setup-1.0.0_20261119-000839.exe`）。
+
+### 43.3 完成判据
+1. `reports\task43-gate.ps1` 实跑 `GATE_VERDICT=PASS`（`FAIL_COUNT=0` / `ENV_COUNT=0`），且 G10 在断言表内；
+2. 需求 9 真机证据：沙箱内点「删除」弹出确认框并取到帧；点「取消」**零软删**；点「确认」**真软删**；**真实库逐行未变**；
+3. 五份台账同步 + commit + push。
+
+### 43.4 Task 43 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+- [ ] 43.1 需求 9 真机确认弹窗帧取证（沙箱隔离，真实库只读）
+- [ ] 43.1 点「取消」验零软删 + 点「确认」验真软删 + 真实库逐行未变
+- [ ] 43.1 G10 `.withOpacity(` 计数 0 进断言表（handoff §36 #2 补口）
+- [ ] 43.3 `reports\task43-gate.ps1` 实跑 `GATE_VERDICT=PASS`
+- [ ] 43.3 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS.md）
+- [ ] 43.3 commit + push 完成
