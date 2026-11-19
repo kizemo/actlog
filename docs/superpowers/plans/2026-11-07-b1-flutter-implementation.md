@@ -8028,9 +8028,9 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 3. 五份台账同步 + commit + push。
 
 ### 43.4 Task 43 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
-- [ ] 43.1 需求 9 真机确认弹窗帧取证（沙箱隔离，真实库只读）
-- [ ] 43.1 点「取消」验零软删 + 点「确认」验真软删 + 真实库逐行未变
-- [ ] 43.1 G10 `.withOpacity(` 计数 0 进断言表（handoff §36 #2 补口）
-- [ ] 43.3 `reports\task43-gate.ps1` 实跑 `GATE_VERDICT=PASS`
-- [ ] 43.3 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS.md）
-- [ ] 43.3 commit + push 完成
+- [x] 43.1 需求 9 真机确认弹窗帧取证（沙箱隔离，真实库只读）
+- [x] 43.1 点「取消」验零软删 + 点「确认」验真软删 + 真实库逐行未变
+- [x] 43.1 G10 `.withOpacity(` 计数 0 进断言表（handoff §36 #2 补口）
+- [x] 43.3 `reports\task43-gate.ps1` 实跑 `GATE_VERDICT=PASS`
+- [x] 43.3 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS.md）
+- [x] 43.3 commit + push 完成
