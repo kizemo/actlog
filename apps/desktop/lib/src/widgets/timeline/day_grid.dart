@@ -25,13 +25,14 @@ import '../../providers.dart';
 import '../../providers_p1.dart';
 import '../../theme/app_fonts.dart';
 import '../../theme/app_tokens.dart';
-import '../confirm_dialog.dart';
 import '../day_timeline.dart';
 import '../focus_ring.dart';
 import '../ledger_checkbox.dart';
 import '../priority_hover_bubble.dart';
+import 'plan_item_detail_dialog.dart';
 import 'slot_context_menu.dart';
 import 'slot_fill.dart';
+import 'slot_layout.dart';
 import 'slot_range_dialog.dart';
 import 'slot_state.dart';
 import 'timeline_store.dart';
@@ -46,6 +47,21 @@ Color colorOfSlotKind(SlotKind kind, ThemeTokens tokens) => switch (kind) {
   SlotKind.done => tokens.slotDone,
   SlotKind.plannedOpen => tokens.slotPlan,
 };
+
+/// 条目正文的最小可排版宽度。
+///
+/// 为什么需要它：条目宽度现在由「起始分钟 → 列」决定（`slot_layout.dart` 的
+/// `col`）。窄视口下 15 分钟只占 `658 / 4 = 164.5px`，减掉左右各 2px 缝与
+/// 内边距 8px 只剩 152.5px；而正文那串**不可压缩**的子项（复选框 22 +
+/// 起始时刻 50 + 字形 11 + 习惯回填徽标 50 及各处 3–6px 间隔）在测试字体
+/// （Ahem，每字符宽 = 字号）下就要 180px 左右，`Row` 会在窄档当场
+/// `RenderFlex overflowed`。
+///
+/// 260 = 上述工况（再算上优先级标记）留足呼吸的**上限**。Task 45 · W2 把
+/// 「未分级 30 + 状态词 20 + 删除 30」从正文里删掉后实际需求降到 180 左右，
+/// 但这里**不下调**：宽视口（1400 ⇒ 内宽 262.5）本来就走 `maxWidth` 原值、
+/// 逐像素不变；窄档与 2 倍字号档多裁一点，比让 `Row` 溢出安全。
+const double kChipContentMinWidth = 260;
 
 /// 纵轴小时 / 横轴分钟的方格时间轴。
 ///
@@ -73,6 +89,13 @@ class _DayGridState extends ConsumerState<DayGrid> {
 
   /// 最近一次 build 的条目，供拖动/右键反查时长。
   List<GridEntry> _entries = const <GridEntry>[];
+
+  /// 最近一次 build 的布局（行高 + 车道 + 段）。
+  ///
+  /// 存成字段而不是每次现算：`_minuteAt` 在右键 / 拖放回调里要用它做
+  /// 「像素 → 分钟」，而那时 `build` 的局部变量已经不在了。它与 [_entries]
+  /// 同为「上一次渲染的输入」，两者永远同步更新。
+  SlotLayout? _layout;
 
   /// 写操作串行化，避免连点产生重复行。
   bool _busy = false;
@@ -135,6 +158,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
       todayIso: todayIso,
       nowMinute: nowMinute ?? -1,
     );
+    // 并发车道与行高都在这一处算完：刻度尺、格线、条目、右键落点全部从这里
+    // 取几何，任何一方另起换算都会让「起始分钟」与「横轴坐标」重新分叉。
+    final SlotLayout layout = layoutSlots(win, _entries);
+    _layout = layout;
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints box) {
@@ -155,11 +182,17 @@ class _DayGridState extends ConsumerState<DayGrid> {
               children: <Widget>[
                 SizedBox(
                   width: axisWidth,
-                  height: win.height,
-                  child: _axis(win, t),
+                  height: layout.totalHeight,
+                  child: _axis(layout, t),
                 ),
                 SizedBox(width: axisGap),
-                Expanded(child: _gridArea(win, t)),
+                Expanded(
+                  child: _gridArea(
+                    layout,
+                    box.maxWidth - axisWidth - axisGap,
+                    t,
+                  ),
+                ),
               ],
             ),
           ],
@@ -232,17 +265,21 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 为什么用 `Stack` 而不是 `Column` + `SizedBox` 堆行：`Positioned` 子节点不参与
   /// `RenderFlex` 的溢出判定，测试字体（每字符等宽方块）把 `06:00` 折成多行时
   /// 只会被裁掉，不会把「看不全」变成一条测试错误。
-  Widget _axis(DayWindow win, ThemeTokens t) {
+  Widget _axis(SlotLayout layout, ThemeTokens t) {
+    // 窗口仍从布局取：行数、起始整点、可见区间都还是 `DayWindow` 的语义，
+    // 变的只有「每行多高、行顶在哪」——那两项必须走 [`SlotLayout`] 的实际
+    // 行高表，否则并发任务撑高某一行后，刻度尺会与格线错开。
+    final DayWindow win = layout.window;
     return Stack(
       key: const ValueKey<String>('day-grid-ruler'),
       children: <Widget>[
-        Positioned.fill(child: CustomPaint(painter: _RulerPainter(win, t))),
+        Positioned.fill(child: CustomPaint(painter: _RulerPainter(layout, t))),
         for (int row = 0; row < win.rows; row++)
           Positioned(
-            top: row * kHourRowHeight,
+            top: layout.rowTops[row],
             left: 0,
             right: 0,
-            height: kHourRowHeight,
+            height: layout.rowHeights[row],
             child: Align(
               // 垂直居中：文本中心恒等于行中心（`row*44+22`），与右侧 8px
               // 短横线同一条水平中轴。用 `center` 而不是 `top`，是为了不管
@@ -271,10 +308,15 @@ class _DayGridState extends ConsumerState<DayGrid> {
         // 短横线用绝对 `top` 直接落在行中心：`row*44 + (44-1)/2` ⇒ 中心恰为
         // `row*44 + 22`，与整点数字的 `centerRight` 中心同值，无需再套一层
         // 测量链（避免 `IntrinsicHeight`/`LayoutBuilder` 那类布局坑）。
+        // 短横线用绝对 `top` 直接落在**该行**中心：`rowTops[row] +
+        // (rowHeights[row]-1)/2`。并发把某行撑到 66px 后，中心也跟着下移
+        // 半个增量 —— 与整点数字的 `centerRight` 中心仍同值。
         for (final int hour in _kSegmentStartHours)
           if (win.contains(hour * 60))
             Positioned(
-              top: win.yOf(hour * 60) + (kHourRowHeight - 1) / 2,
+              top:
+                  layout.yOfMinute(hour * 60) +
+                  (layout.rowHeights[layout.rowOfMinute(hour * 60)] - 1) / 2,
               left: 0,
               child: Container(
                 key: ValueKey<String>('day-grid-segment-mark-$hour'),
@@ -306,7 +348,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
     t.gridSectionEvening,
   ];
 
-  Widget _gridArea(DayWindow win, ThemeTokens t) {
+  Widget _gridArea(SlotLayout layout, double gridOuterWidth, ThemeTokens t) {
+    // 段矩形的横轴换算要用**内容区**宽度：`day-grid` 这个 `Container` 的 1px
+    // 边框左右各吃 1px，组件堆里所有条目与列线都画在边框之内。
+    final double gridWidth = gridOuterWidth - 2 < 0 ? 0 : gridOuterWidth - 2;
     return GestureDetector(
       onSecondaryTapDown: (TapDownDetails details) =>
           _onContextMenu(_minuteAt(details.localPosition)),
@@ -323,7 +368,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
             ) {
               return Container(
                 key: const ValueKey<String>('day-grid'),
-                height: win.height,
+                height: layout.totalHeight,
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: t.card,
@@ -340,21 +385,30 @@ class _DayGridState extends ConsumerState<DayGrid> {
                     // 插在两者之间（brief 字面的「填充之下、线之上」），1px 网格线
                     // 会被整片盖掉。放第一子层后：底色在格填充之下 ✅、网格线仍可见 ✅，
                     // 且命中测试仍落在格填充上（底色不参与 hit-test）。
-                    Positioned.fill(
+                    // 高度取布局总高（而不是 `Positioned.fill` 的内容区高度）：
+                    // 色带与格线必须共用同一套 `rowTops` 坐标；差那 1px 边框就会
+                    // 让色带边界与格线错开。多出的 1–2px 由 `Stack` 的硬裁切吃掉
+                    // （`Stack` 不像 `RenderFlex` 那样断言溢出），视觉上只是最后
+                    // 一段色带的底边贴着容器边框。
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: layout.totalHeight,
                       child: Column(
                         key: const ValueKey<String>('day-grid-section-tint'),
-                        children: _sectionTintChildren(win, t),
+                        children: _sectionTintChildren(layout, t),
                       ),
                     ),
                     Positioned.fill(
                       child: CustomPaint(
-                        painter: _SlotPainter(_entries, win, t),
+                        painter: _SlotPainter(_entries, layout, t),
                       ),
                     ),
-                    for (final GridEntry entry in _entries)
-                      if (entry.startMinute < win.endMinute &&
-                          entry.endMinute > win.startMinute)
-                        _entryTile(entry, win, t),
+                    // 条目按**段**渲染（一条条目跨行时切成多段），不再整条满宽
+                    // 占位：左缘由起点分钟换算的列决定，纵向落位由车道决定。
+                    for (final SlotSegment seg in layout.segments)
+                      _segmentTile(seg, layout, gridWidth, t),
                     if (_entries.isEmpty)
                       Positioned(
                         left: 0,
@@ -376,12 +430,13 @@ class _DayGridState extends ConsumerState<DayGrid> {
 
   /// 分段底衬：`0–6` 用 `card` 打底，`06–12 / 12–18 / 18–24` 用 [_kSegmentTints]。
   ///
-  /// 只画与 [win] 可见区间相交的部分，`Expanded.flex` 直接取**分钟数**，
+  /// 只画与 [win] 可见区间相交的部分，高度直接问布局要像素（[SlotLayout.yOfMinute]），
   /// 因此默认窗口 `06–24` 得到 `360 / 360 / 360`（与参数化之前的三等分
   /// 逐像素一致），窗口收窄到 `09–18` 则得到 `180 / 360`，比例天然正确。
-  List<Widget> _sectionTintChildren(DayWindow win, ThemeTokens t) {
+  List<Widget> _sectionTintChildren(SlotLayout layout, ThemeTokens t) {
     final List<Widget> children = <Widget>[];
     final List<Color> tints = _segmentTintsOf(t);
+    final DayWindow win = layout.window;
     for (int i = -1; i < tints.length; i++) {
       final int segStartHour = i < 0 ? 0 : _kSegmentStartHours[i];
       final int segEndHour = i + 1 < _kSegmentStartHours.length
@@ -396,9 +451,15 @@ class _DayGridState extends ConsumerState<DayGrid> {
       if (to <= from) {
         continue;
       }
+      // 显式高度而不是 `Expanded(flex: 分钟数)`：并发会把某一行撑高，
+      // 「按分钟数等分」只在所有行同高时才与色带边界重合。这里直接问布局要
+      // 两端像素，色带因此永远与格线对齐。
+      final double top = layout.yOfMinute(from);
+      final double bottom = layout.yOfMinute(to);
       children.add(
-        Expanded(
-          flex: to - from,
+        SizedBox(
+          width: double.infinity,
+          height: bottom - top < 0 ? 0 : bottom - top,
           child: ColoredBox(color: i < 0 ? t.card : tints[i]),
         ),
       );
@@ -406,34 +467,62 @@ class _DayGridState extends ConsumerState<DayGrid> {
     return children;
   }
 
-  Widget _entryTile(GridEntry entry, DayWindow win, ThemeTokens t) {
-    final int visibleStart = entry.startMinute < win.startMinute
-        ? win.startMinute
-        : entry.startMinute;
-    final double top = win.yOf(visibleStart);
-    final double height = (entry.durationMinutes / 60 * kHourRowHeight).clamp(
-      22.0,
-      win.height,
+  /// 一条**段**的落位：横向由「起点分钟 → 列」决定，纵向由「车道 → 行内偏移」决定。
+  ///
+  /// 为什么按段画而不是按条目画：一条 09:50–10:20 的条目跨两行，两行的实际
+  /// 高度可能不同（并发只撑高了其中一行），单一矩形表达不了；切成两段后每段
+  /// 各自落在自己的行里，行高怎么变都不会错位。
+  ///
+  /// 只有 head 段挂正文与行级焦点（见 [SlotSegment.isHead]）。续段画成同色
+  /// 空壳、只负责「跨行不断线」：同一条目挂两个 `Focus` 会抢同一个 `FocusNode`
+  /// （`_nodeFor(id)` 按 id 缓存），Tab 序里就会出现焦点跳两次的怪象。
+  Widget _segmentTile(
+    SlotSegment seg,
+    SlotLayout layout,
+    double gridWidth,
+    ThemeTokens t,
+  ) {
+    final GridEntry entry = seg.entry;
+    final Rect rect = layout.tileRect(seg, gridWidth);
+    // head 段沿用并发之前的 key（`day-grid-entry-<id>`），续段另起后缀：
+    // 既有断言按 id 取到的是「条目第一段」的矩形，语义没变。
+    final String key = seg.isHead
+        ? 'day-grid-entry-${entry.id}'
+        : 'day-grid-entry-${entry.id}-seg-${seg.row}';
+    final Widget shell = _chipShell(
+      entry,
+      t,
+      keyValue: key,
+      live: seg.isHead,
+      showBody: seg.isHead,
     );
     return Positioned(
-      top: top + 1,
-      left: 2,
-      right: 2,
-      height: height - 2,
-      child: Draggable<String>(
-        data: 'plan:${entry.id}',
-        feedback: Material(
-          color: Colors.transparent,
-          child: SizedBox(
-            width: 180,
-            child: _chipShell(entry, t, live: false),
-          ),
-        ),
-        child: GestureDetector(
-          onDoubleTap: () => _editRange(entry),
-          child: _chipShell(entry, t, live: true),
-        ),
-      ),
+      top: rect.top,
+      left: rect.left,
+      width: rect.width < 0 ? 0 : rect.width,
+      height: rect.height < 0 ? 0 : rect.height,
+      child: seg.isHead
+          ? Draggable<String>(
+              data: 'plan:${entry.id}',
+              feedback: Material(
+                color: Colors.transparent,
+                child: SizedBox(
+                  width: 180,
+                  child: _chipShell(
+                    entry,
+                    t,
+                    keyValue: key,
+                    live: false,
+                    showBody: true,
+                  ),
+                ),
+              ),
+              child: GestureDetector(
+                onDoubleTap: () => _editRange(entry),
+                child: shell,
+              ),
+            )
+          : shell,
     );
   }
 
@@ -448,12 +537,18 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 代价是 `BoxBorder` 不允许「非均匀颜色 + `borderRadius`」同时出现
   /// （`box_border.dart` 里有明确断言），所以圆角改由外层 `ClipRRect` 提供 ——
   /// 视觉半径仍是 `AppTokens.radius`，断言也不会触发。
-  Widget _chipShell(GridEntry entry, ThemeTokens t, {required bool live}) {
-    final Widget body = _chipBody(entry, t);
+  Widget _chipShell(
+    GridEntry entry,
+    ThemeTokens t, {
+    required String keyValue,
+    required bool live,
+    bool showBody = true,
+  }) {
+    final Widget body = showBody ? _chipBody(entry, t) : const SizedBox();
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppTokens.radius),
       child: Container(
-        key: ValueKey<String>('day-grid-entry-${entry.id}'),
+        key: ValueKey<String>(keyValue),
         padding: const EdgeInsets.symmetric(horizontal: 4),
         alignment: Alignment.centerLeft,
         decoration: BoxDecoration(
@@ -469,20 +564,40 @@ class _DayGridState extends ConsumerState<DayGrid> {
           ),
         ),
         child: ClipRect(
-          child: OverflowBox(
-            maxHeight: double.infinity,
-            alignment: Alignment.centerLeft,
-            child: live ? _liveBody(entry, body) : body,
+          // 宽度保底：窄条目（15 分钟只占一列，内宽可能一百五十来像素）装不下
+          // 「勾选框 + 四维标记 + 标题」这串不可压缩的固定子项，`Row` 会溢出。
+          // 这里给内容一个**固定**宽度（`min == max`，只增不减），右端交给外层
+          // `ClipRect` 裁掉：文本节点仍在树里、内容一个不少，只是被切断 ——
+          // 比隐藏内容或缩字号更守既有 token 纪律。宽条目（内宽已 ≥ 该值）
+          // 走的是 `maxWidth` 原值，逐像素不变。
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints box) {
+              final double width = box.maxWidth < kChipContentMinWidth
+                  ? kChipContentMinWidth
+                  : box.maxWidth;
+              return OverflowBox(
+                maxHeight: double.infinity,
+                minWidth: width,
+                maxWidth: width,
+                alignment: Alignment.centerLeft,
+                child: live ? _liveBody(entry, body) : body,
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  /// 可交互外壳：`Space` 切勾选、`Enter` 开回填、点整条开回填。
+  /// 可交互外壳：`Space` 切勾选、`Enter` 开详情、点整条开详情。
   ///
   /// 语义直接沿用被删掉的「今日计划」行（`_PlanItemTile`）：行级焦点 +
   /// `requirePrimaryFocus` 的焦点环，焦点落到复选框上时行环**不**跟着亮。
+  ///
+  /// Task 45 · W2：`Enter` / 左键的目标从「成果 / 进展」回填层改成**任务详情
+  /// 窗**。意图类名仍是 [OpenSlotResultIntent]（`slot_fill.dart` 不归本波次
+  /// 改），但它的**消费端**已经换成本窗 —— 回填能力没有被删，只是搬进了详情
+  /// 窗（回填内容框 + 「成果 / 进展模板」按钮）。
   Widget _liveBody(GridEntry entry, Widget body) {
     final FocusNode node = _nodeFor(entry.id);
     return Actions(
@@ -495,7 +610,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
         ),
         OpenSlotResultIntent: CallbackAction<OpenSlotResultIntent>(
           onInvoke: (_) {
-            _openResult(entry);
+            _openDetail(entry);
             return null;
           },
         ),
@@ -511,7 +626,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
           requirePrimaryFocus: true,
           ringKey: const ValueKey<String>('focus-ring-border-plan-row'),
           child: InkWell(
-            onTap: _future ? null : () => _openResult(entry),
+            onTap: _future ? null : () => _openDetail(entry),
             canRequestFocus: false,
             child: body,
           ),
@@ -520,12 +635,16 @@ class _DayGridState extends ConsumerState<DayGrid> {
     );
   }
 
-  /// 一行内容：字形 · 状态词 · 复选框 · 起始时间 · 标题 · 进展 · 习惯回填徽标 · 删除。
+  /// 一行内容：复选框 · 四维标记 · 标题 · 起始时间 · 四态字形 · 进展 ·
+  /// 习惯回填徽标。
   ///
   /// 全部单行、全部可省略，唯一会撑宽的是标题与进展（都带省略号）。
   ///
-  /// 字形与状态词是四态背景色之外的**冗余通道**（形状 + 文字），
-  /// `--slot-done` 与 `--slot-plan` 近乎同色时靠它们才分得出来。
+  /// Task 45 · W2 从这里移除三样东西（用户当轮需求 2 前半）：**状态词**
+  /// （`stateLabelOfSlotKind` 的「打卡 / 回填 / 完成 / 计划」）、**「未分级」
+  /// 文本**、**「删除」入口**。状态表达只留背景色 + 四态字形 + 左缘竖条；
+  /// 「未分级」靠「不画标记、不留占位」表达（空白本身是信息）；删除移进
+  /// 详情窗（`plan_item_detail_dialog.dart`）。
   Widget _chipBody(GridEntry entry, ThemeTokens t) {
     final PlanItemData? row = _rowOf(entry.id);
     final bool done = row?.status == PlanStatus.done.code;
@@ -537,7 +656,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
     return Row(
       children: <Widget>[
         // 账页行序（方向 A）：勾选框 → 四维标记 → 标题 → mono 元信息 →
-        // 四态字形 + 状态词 → 未分级 → 进展 → 习惯回填 → 删除。
+        // 四态字形 → 进展 → 习惯回填。
         // 勾选框提到最左是「账页行」与「横排芯片」的差别所在：勾是行的第一列，
         // 不是标题的尾巴。行落位仍由 15 分钟格引擎决定，真实时刻走后面的元信息。
         LedgerCheckbox(
@@ -583,16 +702,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
             fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
           ),
         ),
-        // 未分级：不画标记（不是画空标记）、不留占位 —— 但「没有标记」与
-        // 「分级没渲染出来」在界面上必须可分，所以补一处 meta 说明。
-        if (quadrant == null) ...<Widget>[
-          const SizedBox(width: 4),
-          Text(
-            '未分级',
-            style: TextStyle(fontSize: 10, color: t.faint),
-          ),
-        ],
-        const SizedBox(width: 5),
+        const SizedBox(width: 6),
         // 故意用 `RichText` 而非 `Text`：字形字符（`\u25CB` `\u2713`
         // `\u25B6` `\u25CF`）与 `LedgerCheckbox` 自绘的勾选符是同一批码位，
         // 用 `Text` 会让既有的 `find.text('✓')` 精确计数从 1 变 2。
@@ -611,11 +721,6 @@ class _DayGridState extends ConsumerState<DayGrid> {
               fontFamilyFallback: AppFonts.bodyFallback,
             ),
           ),
-        ),
-        const SizedBox(width: 3),
-        Text(
-          stateLabelOfSlotKind(entry.kind),
-          style: TextStyle(fontSize: 10, color: ink),
         ),
         if (note.isNotEmpty && !_minimal) ...<Widget>[
           const SizedBox(width: 6),
@@ -640,19 +745,6 @@ class _DayGridState extends ConsumerState<DayGrid> {
             child: Text(
               '习惯回填',
               style: TextStyle(fontSize: 10, color: t.meta),
-            ),
-          ),
-        ],
-        if (!_future) ...<Widget>[
-          const SizedBox(width: 6),
-          InkWell(
-            onTap: () => _delete(entry),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Text(
-                '删除',
-                style: TextStyle(fontSize: 10, color: t.meta),
-              ),
             ),
           ),
         ],
@@ -706,7 +798,13 @@ class _DayGridState extends ConsumerState<DayGrid> {
     );
   }
 
-  Future<void> _openResult(GridEntry entry) async {
+  /// 打开任务详情窗（左键 / `Enter`）。
+  ///
+  /// 一次提交里最多同时改四列（`detail` / `quadrant` / `result_note` /
+  /// `planned_start` + `planned_end`），但只写**确实变了**的那些 —— 没改的
+  /// 字段不落库，避免凭空多出 oplog 条目。删除走独立分支：详情窗里已经
+  /// 二次确认过（`showConfirmDialog`），这里只负责软删。
+  Future<void> _openDetail(GridEntry entry) async {
     if (_future) {
       return;
     }
@@ -714,46 +812,43 @@ class _DayGridState extends ConsumerState<DayGrid> {
     if (row == null) {
       return;
     }
-    final SlotFillEdit? edit = await showSlotFillDialog(
+    final PlanItemDetailResult? result = await showPlanItemDetailDialog(
       context,
-      title: row.title,
-      initialNote: row.resultNote,
-    );
-    if (edit == null) {
-      return;
-    }
-    await _write(
-      () => ref
-          .read(repositoriesProvider)
-          .planItem
-          .setStatus(
-            row.id,
-            slotStatusAfterFill(edit, row.status),
-            resultNote: edit.note.isEmpty ? null : edit.note,
-          ),
-    );
-  }
-
-  /// 删除前先走一次确认（需求 9）：取消 ⇒ 一行都不动，也不弹错误。
-  ///
-  /// 「删除」按钮的文案与样式仍是原样，只是多了一道确认；确认后依旧走原来那条
-  /// 软删路径（循环 occurrence 联动在仓储层，见 `repositories.dart`）。
-  Future<void> _delete(GridEntry entry) async {
-    final bool confirmed = await showConfirmDialog(
-      context,
-      title: '删除计划项',
-      message: '确认删除「${entry.title}」？删除后它不再出现在清单里。',
+      item: row,
+      defaultStart: entry.startMinute,
+      defaultEnd: entry.startMinute + entry.durationMinutes,
     );
     // 弹窗期间条目可能已被别处重建/卸载，而 `_write` 要用 `ref` 与 `context`。
-    if (!mounted || !confirmed) {
+    if (!mounted || result == null) {
       return;
     }
-    await _write(
-      () => ref.read(repositoriesProvider).planItem.softDelete(entry.id),
-    );
+    await _write(() async {
+      final planItem = ref.read(repositoriesProvider).planItem;
+      if (result.delete) {
+        await planItem.softDelete(row.id);
+        return;
+      }
+      if (result.detail != row.detail) {
+        await planItem.setDetail(row.id, result.detail);
+      }
+      if (result.quadrant != Quadrant.fromCode(row.quadrant)) {
+        await planItem.setQuadrant(row.id, result.quadrant);
+      }
+      if (result.resultNote != row.resultNote) {
+        await planItem.setResultNote(row.id, result.resultNote);
+      }
+      if (result.startMinute != row.plannedStart ||
+          result.endMinute != row.plannedEnd) {
+        await _storeOf.reschedule(
+          planItemId: row.id,
+          startMinute: result.startMinute,
+          endMinute: result.endMinute,
+        );
+      }
+    });
   }
 
-  /// 条目级按键：`Space` 切勾选、`Enter` 开回填。
+  /// 条目级按键：`Space` 切勾选、`Enter` 开任务详情窗。
   ///
   /// 焦点不在条目上（落在复选框等子控件上）时让位 —— 就近优先，
   /// 复选框上的 `Space` 因此仍然只切勾选。
@@ -784,9 +879,16 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 像素 → 分钟：先落到 15 分钟格线，再夹进网格范围。
   int _minuteAt(Offset local) {
     final DayWindow win = ref.read(dayWindowProvider);
-    final double y = local.dy.clamp(0.0, win.height - 1);
-    final double raw = win.startMinute + y / kHourRowHeight * 60;
-    final int aligned = alignMinuteDown(raw.round());
+    final SlotLayout? layout = _layout;
+    // 像素 → 分钟必须走**实际行高**表：并发把某行撑到 66px 后，等行高近似
+    // 会把落点算偏。`_layout` 在 `build` 里写入，任何交互回调都晚于首帧；
+    // 为 null 只可能是首帧之前的极端路径，退回等行高近似即可。
+    final int raw = layout == null
+        ? win.startMinute +
+              (local.dy.clamp(0.0, win.height - 1) / kHourRowHeight * 60)
+                  .round()
+        : layout.minuteAt(local.dy);
+    final int aligned = alignMinuteDown(raw);
     if (aligned < win.startMinute) {
       return win.startMinute;
     }
@@ -1088,10 +1190,12 @@ class _TitleDialogState extends State<_TitleDialog> {
 
 /// 格子底色 + 网格线。
 class _SlotPainter extends CustomPainter {
-  _SlotPainter(this.entries, this.window, this.tokens);
+  _SlotPainter(this.entries, this.layout, this.tokens);
 
   final List<GridEntry> entries;
-  final DayWindow window;
+
+  /// 行高表与车道几何的唯一真源（见 `slot_layout.dart`）。
+  final SlotLayout layout;
 
   /// 颜色 token：`paint` 拿不到 `BuildContext`，只能由调用方注入。
   final ThemeTokens tokens;
@@ -1099,10 +1203,12 @@ class _SlotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double cellWidth = size.width / kGridCols;
-    final double rowHeight = size.height / window.rows;
+    final DayWindow window = layout.window;
     final Paint fill = Paint();
 
     for (int row = 0; row < window.rows; row++) {
+      final double top = layout.rowTops[row];
+      final double rowHeight = layout.rowHeights[row];
       for (int col = 0; col < kGridCols; col++) {
         final int cellStart =
             window.startMinute + row * 60 + col * kSlotMinutes;
@@ -1111,12 +1217,7 @@ class _SlotPainter extends CustomPainter {
           if (entry.startMinute < cellEnd && entry.endMinute > cellStart) {
             fill.color = colorOfSlotKind(entry.kind, tokens);
             canvas.drawRect(
-              Rect.fromLTWH(
-                col * cellWidth,
-                row * rowHeight,
-                cellWidth,
-                rowHeight,
-              ),
+              Rect.fromLTWH(col * cellWidth, top, cellWidth, rowHeight),
               fill,
             );
             break;
@@ -1129,7 +1230,7 @@ class _SlotPainter extends CustomPainter {
       ..color = tokens.hairSoft
       ..strokeWidth = 1;
     for (int row = 0; row <= window.rows; row++) {
-      final double y = row * rowHeight;
+      final double y = layout.rowTops[row];
       canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
     }
     for (int col = 0; col <= kGridCols; col++) {
@@ -1141,7 +1242,7 @@ class _SlotPainter extends CustomPainter {
   @override
   bool shouldRepaint(_SlotPainter oldDelegate) =>
       oldDelegate.entries != entries ||
-      oldDelegate.window != window ||
+      oldDelegate.layout != layout ||
       oldDelegate.tokens != tokens;
 }
 
@@ -1155,9 +1256,10 @@ class _SlotPainter extends CustomPainter {
 /// 半点刻 `+ kHourRowHeight / 2`，与 `_SlotPainter` 的行高完全同源。另起一套
 /// 换算会随视口变化漂移，刻度就指不准格线。
 class _RulerPainter extends CustomPainter {
-  const _RulerPainter(this.window, this.tokens);
+  const _RulerPainter(this.layout, this.tokens);
 
-  final DayWindow window;
+  /// 行高表 + 车道几何的唯一真源（见 `slot_layout.dart`）。
+  final SlotLayout layout;
 
   /// 颜色 token：`paint` 拿不到 `BuildContext`，只能由调用方注入。
   final ThemeTokens tokens;
@@ -1169,6 +1271,7 @@ class _RulerPainter extends CustomPainter {
     }
     // 半像素偏移让 1px 线压在像素中心，否则发虚成两列浅灰。
     final double x = size.width - 0.5;
+    final DayWindow window = layout.window;
 
     final Paint spine = Paint()
       ..color = tokens.hair
@@ -1180,7 +1283,7 @@ class _RulerPainter extends CustomPainter {
       ..color = tokens.hairStrong
       ..strokeWidth = 1;
     for (int row = 0; row <= window.rows; row++) {
-      final double y = row * kHourRowHeight;
+      final double y = layout.rowTops[row];
       canvas.drawLine(
         Offset(x - AppTokens.axisTickHour, y),
         Offset(x, y),
@@ -1193,7 +1296,7 @@ class _RulerPainter extends CustomPainter {
       ..color = tokens.hair
       ..strokeWidth = 1;
     for (int row = 0; row < window.rows; row++) {
-      final double y = row * kHourRowHeight + kHourRowHeight / 2;
+      final double y = layout.rowTops[row] + layout.rowHeights[row] / 2;
       canvas.drawLine(
         Offset(x - AppTokens.axisTickHalf, y),
         Offset(x, y),
@@ -1205,5 +1308,5 @@ class _RulerPainter extends CustomPainter {
   /// 只在窗口变化时需要重绘。
   @override
   bool shouldRepaint(_RulerPainter oldDelegate) =>
-      oldDelegate.window != window || oldDelegate.tokens != tokens;
+      oldDelegate.layout != layout || oldDelegate.tokens != tokens;
 }

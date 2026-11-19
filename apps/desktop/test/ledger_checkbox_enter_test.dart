@@ -244,7 +244,7 @@ void main() {
     });
   });
 
-  testWidgets('E3：对照组 —— 行级焦点上 Enter 确实弹出「成果 / 进展」（证明否定断言不是瞎的）', (
+  testWidgets('E3：对照组 —— 行级 Enter 打开任务详情窗，模板里确实有「成果 / 进展」（证明否定断言不是瞎的）', (
     tester,
   ) async {
     _useTallSurface(tester);
@@ -260,17 +260,31 @@ void main() {
       expect(FocusManager.instance.primaryFocus, row);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      await _settle(tester);
 
-      // 同一套判据在这里必须看得见弹层 —— 否则 E1 / E2 的 `findsNothing` 毫无判别力。
+      // Task 45 · W2：行级 Enter 的目标从「回填层」改成「任务详情窗」。
+      expect(
+        find.byKey(const ValueKey<String>('plan-detail-title')),
+        findsOneWidget,
+        reason: '行级 Enter 必须打开任务详情窗',
+      );
+      expect(find.text('任务详情'), findsOneWidget);
+
+      // 详情窗本身不摊开回填层 —— 回填搬到「成果 / 进展模板」按钮后面。
+      expect(find.text('成果 / 进展'), findsNothing);
+      expect(find.byType(OutcomeComposer), findsNothing);
+
+      // 同一套判据在这里必须看得见回填层 —— 否则 E1 / E2 的 `findsNothing` 毫无判别力。
+      await tester.tap(
+        find.byKey(const ValueKey<String>('plan-detail-template')),
+      );
+      await _settle(tester);
       expect(find.text('成果 / 进展'), findsOneWidget);
       expect(find.byType(OutcomeComposer), findsOneWidget);
-      expect(find.byType(AlertDialog), findsOneWidget);
 
-      // 顺带确认行级 Enter 不切勾选：弹层与状态切换是两件事。
+      // 顺带确认行级 Enter 不切勾选：开窗与状态切换是两件事。
       final PlanItemData after = await harness.read(itemId);
-      expect(after.status, PlanStatus.pending.code, reason: '行级 Enter 只开层、不切勾选');
+      expect(after.status, PlanStatus.pending.code, reason: '行级 Enter 只开窗、不切勾选');
     });
   });
 

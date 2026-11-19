@@ -7,8 +7,10 @@
 // 证据口径（`AGENTS.md` R5）：钉**结构事实**与**落库事实**，不钉像素。
 //   1. 今日页上「晚 · 复盘与心态」「✓ 已闭合」这两处只属于时间轴骨架的文案
 //      **一处都不出现**（`find.text` 全页搜，不是限定某个子树）；
-//   2. 复盘卡、心态卡与「从待办池捞」入口**左基线相同**（左栏包装被摘掉的
+//   2. 复盘卡、心态卡与方格时间轴**左基线相同**（左栏包装被摘掉的
 //      可测后果；只要有人把 `TimelineSection` 包回去，第一条断言立刻红）；
+//      锚点原先是「从待办池捞」入口，Task 45 需求 4 删掉它后改锚
+//      加计划条上的日期时间按钮（与复盘 / 心态卡同列左边界）；
 //   3. 复盘只剩三段输入框，删掉的三段**连控件都不在**；
 //   4. 删控件 ≠ 删数据：老库里的 `controllable` / `uncontrollable` 在改
 //      「学到了什么」时**必须原值保留**（`saveReview` 仍写这两列，
@@ -40,9 +42,14 @@ Finder _field(String label) => find.byWidgetPredicate(
           widget is TextField && widget.decoration?.labelText == label,
     );
 
-/// 「从待办池捞」入口：它与方格、手写条共用同一条左基线，是全页的内容左锚点。
+/// 内容左锚点：加计划条上的日期时间按钮与复盘卡、心态卡同属正文列，
+/// 共用一条左基线。
+///
+/// 原先锚在「＋ 从待办池捞」入口上；Task 45 需求 4 删掉入口后改锚
+/// `add-plan-datetime-button` —— 实测其左边界与复盘 / 心态卡逐像素相同
+/// （`day-grid` 的 key 容器从方格区起算，比正文列右移，不能当同列锚点）。
 final Finder _contentLeftAnchor =
-    find.byKey(const ValueKey<String>('plan-pool-entry'));
+    find.byKey(const ValueKey<String>('add-plan-datetime-button'));
 
 final class _Harness {
   _Harness._(this.container, this.repos);

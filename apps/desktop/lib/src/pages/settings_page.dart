@@ -405,6 +405,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ),
           ),
+          const SizedBox(height: AppTokens.gapSec),
+
+          // ---------------- 关于（Task 45 · G8 入口） ----------------
+          // 关于页是低频页，不进左轨导航；入口只挂在设置页，复用壳里已注册的
+          // `/about` 深链（`app.dart` 的 routes），不新增路由、不改 nav_rail。
+          _SettingRow(
+            label: t.aboutTitle,
+            hint: null,
+            control: Align(
+              alignment: Alignment.centerLeft,
+              child: _ActionButton(
+                buttonKey: const ValueKey<String>('settings-open-about'),
+                label: t.open,
+                onTap: () => Navigator.of(context).pushNamed('/about'),
+              ),
+            ),
+          ),
 
           const SizedBox(height: AppTokens.gapCard),
           Text(

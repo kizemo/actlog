@@ -582,6 +582,24 @@ final class PlanItemRepository {
     );
   }
 
+  /// 写入任务内容 / 正文（`plan_item.detail`）。
+  ///
+  /// 与 [setResultNote] 走同一条 `_patch` 通道：只改 `detail` 一列，
+  /// 标题 / 分级 / 起止 / 状态 / 回填内容一律不动。列本身早已存在
+  /// （`packages\core_db\lib\src\tables.dart`），这里只是补写入口。
+  Future<void> setDetail(String id, String detail) {
+    return _patch(
+      id,
+      changedFields: <String, Object?>{'detail': detail},
+      build: (deviceId, ts, rev) => PlanItemCompanion(
+        detail: Value(detail),
+        updatedAt: Value(ts),
+        originDeviceId: Value(deviceId),
+        rev: Value(rev),
+      ),
+    );
+  }
+
   /// 把习惯回填行「转正」为普通手动条目。
   ///
   /// 转正只改来源字段，条目本身（标题、状态、成果）保持不变。

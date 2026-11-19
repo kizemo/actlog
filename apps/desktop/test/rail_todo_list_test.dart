@@ -6,6 +6,7 @@
 // ② 「待办列表」只列待办（同一份右轨里不出现习惯名）；
 // ③ 两枚 `＋` 存在（`Semantics` label 可读），点击分别打开两个弹窗；
 // ④ 「添加习惯」空名不提交；填名保存后库里真有这条习惯。
+// ⑤ 「优先级分布」块已删（Task 45 需求 5），待办条目仍照常渲染。
 //
 // 渲染的是 `todayRailPanels()` 这份**生产清单**（`ShellHost` 依赖 `window_manager`，
 // 测试进程里起不来），所以面板顺序与动作位都取自真实实现，不是测试里另拼一份。
@@ -229,6 +230,41 @@ void main() {
     expect(
       after.any((HabitData habit) => habit.name == '右轨新习惯'),
       isTrue,
+    );
+
+    await _flushTimers(tester);
+  });
+
+  testWidgets('⑤ 待办列表不再有「优先级分布」，但待办条目照常渲染',
+      (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final harness = _Harness.create();
+    await harness.seed(tester);
+    await harness.mountRail(tester);
+
+    // ① 面板本体还在、条目照常渲染 —— 否则下面的 `findsNothing` 可能只是
+    //    「整块面板被误删」造成的空过。
+    expect(find.byType(TodoRailPanel), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(TodoRailPanel),
+        matching: find.text(_todoTitle),
+      ),
+      findsOneWidget,
+      reason: 'Task 45 需求 5 只删「优先级分布」，不许把待办条目一起带走',
+    );
+
+    // ② 需求 5：分布块的 key / 标题 / 四象限计数格全部命中 0。
+    expect(
+      find.byKey(const ValueKey<String>('rail-priority-distribution')),
+      findsNothing,
+      reason: '分布块整块删除，key 不许留下',
+    );
+    expect(find.text('优先级分布'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('rail-quadrant-q1')),
+      findsNothing,
+      reason: '四象限计数格随分布块一起删除',
     );
 
     await _flushTimers(tester);

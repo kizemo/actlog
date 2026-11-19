@@ -1,4 +1,3 @@
-import 'package:core_db/core_db.dart';
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,8 +29,8 @@ class TodoRailPanel extends ConsumerWidget {
     final todosAsync = ref.watch(todoPoolProvider);
     final slottedAsync = ref.watch(slottedTodosProvider);
 
-    // 三种状态（失败 / 加载 / 空）的原文案一字不改，只是把「优先级分布」块
-    // 从列表内容里摘出来、恒挂在末尾 —— 否则空态下整块分布会跟着消失。
+    // 三种状态（失败 / 加载 / 空）的原文案一字不改。
+    // 「优先级分布」块已删（Task 45 需求 5）：右栏「待办列表」只显示待办时间列表。
     final List<Widget> rows;
     if (todosAsync.hasError || slottedAsync.hasError) {
       rows = <Widget>[const _RailNote(text: '待办加载失败', danger: true)];
@@ -61,12 +60,7 @@ class TodoRailPanel extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ...rows,
-        // 「优先级分布」只能挂在这里：右轨四块由 `app.dart` 的
-        // `todayRailPanels()` 装配，而 `app.dart` 不在本批写集内。
-        const PriorityDistributionPanel(),
-      ],
+      children: rows,
     );
   }
 }
@@ -270,193 +264,4 @@ TextStyle _monoStyle({double size = 11.5, required Color color}) {
     color: color,
     fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
   );
-}
-
-/// 右轨块标题（原型 `.rail h3`：12px / 600 / 字距 .13em / `--faint`）。
-/// 为什么是函数而不是 `const TextStyle`：标题色随主题变，运行期颜色进不了
-/// 编译期常量。
-TextStyle _panelTitleStyle(ThemeTokens tokens) => TextStyle(
-  fontFamily: AppFonts.body,
-  fontFamilyFallback: AppFonts.bodyFallback,
-  fontSize: 12,
-  fontWeight: FontWeight.w600,
-  letterSpacing: 1.5,
-  color: tokens.faint,
-);
-
-/// 右轨「优先级分布」块：Q1–Q4 计数 **只读**展示。
-///
-/// 数据源就是今日计划条目的 `quadrant` 码值（`planItemsProvider` 已按所选日
-/// 过滤、已排除软删行），与格子里的四维字形同源 —— 不存在第二份计数口径。
-///
-/// 为什么没有写入口：改分级只有一个合法入口（格子里那条的四维气泡，T1）。
-/// 右轨再开一个写点就有两条改分级的路径，其中一条漏掉「未来日豁免」就会和
-/// 另一条打架。只读是纪律，不是没做完。
-class PriorityDistributionPanel extends ConsumerWidget {
-  /// 创建右轨「优先级分布」块。
-  const PriorityDistributionPanel({super.key});
-
-  /// 行标列宽（原型 `.qgrid` 第一列 `34px`，这里留到 38px 容纳「不重要」）。
-  static const double _labelWidth = 38;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final List<PlanItemData>? items =
-        ref.watch(planItemsProvider).asData?.value;
-    final Map<Quadrant, int> counts = <Quadrant, int>{
-      for (final Quadrant q in Quadrant.values) q: 0,
-    };
-    int total = 0;
-    int ungraded = 0;
-    for (final PlanItemData row in items ?? const <PlanItemData>[]) {
-      total++;
-      final Quadrant? quadrant = Quadrant.fromCode(row.quadrant);
-      if (quadrant == null) {
-        ungraded++;
-      } else {
-        counts[quadrant] = counts[quadrant]! + 1;
-      }
-    }
-
-    final ThemeTokens t = context.tokens;
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Container(
-        key: const ValueKey<String>('rail-priority-distribution'),
-        padding: const EdgeInsets.fromLTRB(11, 11, 11, 10),
-        decoration: BoxDecoration(
-          color: t.card,
-          borderRadius: BorderRadius.circular(AppTokens.radius),
-          border: Border.all(color: t.hairSoft),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text('优先级分布', style: _panelTitleStyle(t)),
-            const SizedBox(height: 8),
-            // 表头：紧急 / 不紧急（原型 `.qgrid` 第 2、3 列）。
-            Row(
-              children: <Widget>[
-                const SizedBox(width: _labelWidth),
-                Expanded(
-                  child: Text(
-                    '紧急',
-                    style: _bodyStyle(size: 10.5, color: t.faint),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    '不紧急',
-                    style: _bodyStyle(size: 10.5, color: t.faint),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: <Widget>[
-                SizedBox(
-                  width: _labelWidth,
-                  child: Text(
-                    '重要',
-                    style: _bodyStyle(size: 10.5, color: t.faint),
-                  ),
-                ),
-                Expanded(
-                  child: _QuadrantCell(
-                    quadrant: Quadrant.q1,
-                    count: counts[Quadrant.q1]!,
-                  ),
-                ),
-                Expanded(
-                  child: _QuadrantCell(
-                    quadrant: Quadrant.q2,
-                    count: counts[Quadrant.q2]!,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: <Widget>[
-                SizedBox(
-                  width: _labelWidth,
-                  child: Text(
-                    '不重要',
-                    style: _bodyStyle(size: 10.5, color: t.faint),
-                  ),
-                ),
-                Expanded(
-                  child: _QuadrantCell(
-                    quadrant: Quadrant.q3,
-                    count: counts[Quadrant.q3]!,
-                  ),
-                ),
-                Expanded(
-                  child: _QuadrantCell(
-                    quadrant: Quadrant.q4,
-                    count: counts[Quadrant.q4]!,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // 原型 `.rail-foot` 的上沿细线。
-            Container(height: 1, color: t.hairSoft),
-            const SizedBox(height: 7),
-            // 用 `Wrap` 而不是 `Row`：右轨宽度随视口收缩，`Wrap` 换行不溢出。
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: <Widget>[
-                Text(
-                  '$total 条计划 · 未分级 ',
-                  style: _bodyStyle(size: 12, color: t.faint),
-                ),
-                Text(
-                  '$ungraded 条',
-                  style: _monoStyle(
-                    size: 12,
-                    // 赭石只标「缺口」：真有未分级条目才着色，为 0 时与旁文同色。
-                    color: ungraded > 0 ? t.accentInk : t.faint,
-                  ),
-                ),
-                Text(
-                  '（不计入四象限）',
-                  style: _bodyStyle(size: 12, color: t.faint),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 四象限计数格（原型 `.qcell`）。计数为 0 时整格不渲染（`.qcell:empty`）。
-class _QuadrantCell extends StatelessWidget {
-  const _QuadrantCell({required this.quadrant, required this.count});
-
-  final Quadrant quadrant;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    if (count == 0) {
-      return const SizedBox.shrink();
-    }
-    final ThemeTokens t = context.tokens;
-    return Container(
-      key: ValueKey<String>('rail-quadrant-${quadrant.name}'),
-      margin: const EdgeInsets.only(left: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        color: t.paper,
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(color: t.hairSoft),
-      ),
-      child: Text('$count', style: _monoStyle(size: 12, color: t.ink)),
-    );
-  }
 }

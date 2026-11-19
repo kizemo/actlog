@@ -357,8 +357,19 @@ void main() {
       expect(find.text('今日'), findsNothing, reason: '页头标题「今日」不该再出现');
       expect(find.text('完整'), findsNothing, reason: '完整/极简芯片已删除');
       expect(find.text('极简'), findsNothing, reason: '完整/极简芯片已删除');
-      // 删完之后正文仍在（不是整块被误删）。
-      expect(find.text('＋ 从待办池捞'), findsOneWidget);
+      // 删完之后正文仍在（不是整块被误删）。Task 45 需求 4 之后，正文的
+      // 锚点换成方格时间轴 —— 入口本身反而必须消失。
+      expect(
+        find.byKey(const ValueKey<String>('plan-pool-entry')),
+        findsNothing,
+        reason: 'Task 45 需求 4：今日页不再挂待办池入口',
+      );
+      expect(find.text('＋ 从待办池捞'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('day-grid')),
+        findsOneWidget,
+        reason: '删入口不等于删正文：方格时间轴仍在',
+      );
 
       await tester.tap(find.byKey(_kPickImportant));
       await tester.pump();

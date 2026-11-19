@@ -29,7 +29,7 @@ import '../widgets/section_card.dart';
 /// 这里只输出「账页正文」这一列。历史提交里本页是 `Scaffold` + `AppBar` 的
 /// 独立页，W3 装配后被降级成内容体，理由见 `docs/B1_验收记录.md` 遗留 #1。
 ///
-/// 自上而下：日期条 → 待办池入口 → 方格时间轴 → 两段账页
+/// 自上而下：日期条 → 方格时间轴 → 未排期带 → 手写一条 → 两段账页
 /// （晨定计划 / 晚复盘心态）。闭环四段比例条已并入右栏「闭环提示」
 /// （W3 / Task 38），中栏不再有脊线。
 ///
@@ -131,8 +131,9 @@ class _TodayBody extends ConsumerWidget {
                 ref.read(_todayNoticeProvider.notifier).state = null,
           ),
         ],
-        const SizedBox(height: AppTokens.gapCard),
-        const _PoolEntryBar(),
+        // 「＋ 从待办池捞」入口已删（Task 45 需求 4）：计划列表上部不再挂这个
+        // 入口，也不做替代。两只 `gapCard` 收成一只 —— 否则中间会留下一条
+        // 32px 的空带，读起来像「这里本来就缺一块」。
         const SizedBox(height: AppTokens.gapCard),
         DayGrid(date: date, minimal: minimal),
         const SizedBox(height: AppTokens.gapCard),
@@ -177,8 +178,6 @@ class _TodayBody extends ConsumerWidget {
     );
   }
 }
-
-
 
 /// 账页里的次级按钮（替换 `TextButton` / `IconButton` 的默认视觉）。
 ///
@@ -435,37 +434,6 @@ class _FuturePlanHint extends StatelessWidget {
         child: Text(
           '未来日只可预排：可以先写计划，到了那天才能打卡与回填。',
           style: _bodyStyle(size: 12, color: t.meta, tokens: t),
-        ),
-      ),
-    );
-  }
-}
-
-/// 「从待办池捞」入口。
-///
-/// 旧计划段整块删除后，这个入口必须留在方格旁边 —— 它是把待办池条目
-/// 变成今日排期的第一条路径，入口跟着段一起消失就成了「功能静默丢失」。
-/// 键名 `plan-pool-entry` 是既有验收锚点（200% 文字缩放断言读它的矩形）。
-class _PoolEntryBar extends StatelessWidget {
-  const _PoolEntryBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      key: const ValueKey<String>('plan-pool-entry'),
-      padding: EdgeInsets.zero,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: <Widget>[
-            _GhostAction(
-              label: '＋ 从待办池捞',
-              dense: true,
-              onPressed: () => showPullFromPoolDialog(context),
-            ),
-          ],
         ),
       ),
     );

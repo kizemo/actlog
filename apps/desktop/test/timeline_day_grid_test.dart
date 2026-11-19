@@ -28,6 +28,7 @@ import 'package:actlog/src/theme/app_fonts.dart';
 import 'package:actlog/src/theme/app_tokens.dart';
 import 'package:actlog/src/widgets/ledger_checkbox.dart';
 import 'package:actlog/src/widgets/timeline/day_grid.dart';
+import 'package:actlog/src/widgets/timeline/slot_layout.dart';
 import 'package:actlog/src/widgets/timeline/slot_state.dart';
 import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 import 'package:actlog/src/widgets/timeline/todo_rail_panel.dart';
@@ -201,8 +202,8 @@ Future<PlanItemData> _onlyPlan(
 
 /// 走真仓储落一条「已排期」计划（待办 + 计划行一起建），不碰任何界面。
 ///
-/// 删除确认用例要的是一条**必然带「删除」按钮**的条目：`_future == false`
-/// 才渲染删除入口，所以只能选中日当天 / 过去日，不能拿未来日凑。
+/// 删除确认用例要的是一条**点得开任务详情窗**的条目：W2 起未来日不可聚焦、
+/// `onTap` 为空，只有当天 / 过去日才弹得出详情窗，所以不能拿未来日凑。
 Future<void> _seedPlan(
   _Harness harness, {
   required String date,
@@ -416,8 +417,8 @@ void main() {
   // ===========================================================================
   // Task 29 · 四态冗余通道（形状 + 文字 + 删除线 + 左缘 2px 竖条）
   // ===========================================================================
-  // 为什么四态要分四条用例而不是一条：每条都钉死「该态 → 该字形 / 该状态词 /
-  // 该前景色」，映射互换（例如 done 与 backfill 张冠李戴）只会让其中一条红，
+  // 为什么四态要分四条用例而不是一条：每条都钉死「该态 → 该字形 / 该前景色」，
+  // 映射互换（例如 done 与 backfill 张冠李戴）只会让其中一条红，
   // 定位成本最低。数据全部用 `todayIso` / `nowMinute` 显式注入，不读真实时钟。
 
   testWidgets('plannedOpen 态：○ + 「计划」，无删除线，左缘竖条 2px 主墨色', (tester) async {
@@ -443,7 +444,6 @@ void main() {
       kind: SlotKind.plannedOpen,
       title: '预排：评审',
       glyph: '\u25CB',
-      label: '计划',
     );
     // 反向对照：未完成态**不**划线，防止「到处都划线」也判绿。
     expect(_titleStyle(tester, id, '预排：评审').decoration, isNull);
@@ -478,7 +478,6 @@ void main() {
       kind: SlotKind.done,
       title: '已完成：写周报',
       glyph: '\u2713',
-      label: '完成',
     );
     final TextStyle titleStyle = _titleStyle(tester, id, '已完成：写周报');
     expect(titleStyle.decoration, isNotNull);
@@ -512,7 +511,6 @@ void main() {
       kind: SlotKind.backfill,
       title: '补记：排障',
       glyph: '\u25B6',
-      label: '回填',
     );
     // 回填态不是 done：删除线只在 `SlotKind.done` 上加。
     expect(_titleStyle(tester, id, '补记：排障').decoration, isNull);
@@ -550,7 +548,6 @@ void main() {
       kind: SlotKind.habit,
       title: '晨间拉伸',
       glyph: '\u25CF',
-      label: '打卡',
     );
 
     await _flushTimers(tester);
@@ -632,8 +629,8 @@ void main() {
     final String doneGlyph = _renderedGlyph(tester, doneId);
     expect(openGlyph, '\u25CB', reason: 'plannedOpen 字形变了');
     expect(doneGlyph, '\u2713', reason: 'done 字形变了');
-    _expectStateLabel(tester, planItemId: openId, label: '计划');
-    _expectStateLabel(tester, planItemId: doneId, label: '完成');
+    _expectNoChipText(tester, openId);
+    _expectNoChipText(tester, doneId);
 
     // ---- 第二屏：过去日 ⇒ backfill + habit（habit 压过 backfill）----
     final _Harness past = _Harness.create(selected: _past);
@@ -668,7 +665,7 @@ void main() {
     await _settle(tester);
     _expectNoOverflow(tester, '过去日 backfill + habit');
 
-    // habit 条目还多一个「习惯回填」徽标和「删除」按钮，是最宽也最挤的一条。
+    // habit 条目还多一个「习惯回填」徽标，是最宽也最挤的一条。
     for (final String id in <String>[backfillId, habitEntryId]) {
       _expectMinTile(tester, planItemId: id, netTileHeight: netTileHeight);
     }
@@ -678,8 +675,8 @@ void main() {
     // 回填字形必须是 `▶` U+25B6；`▸` U+25B8 是本任务明令禁用的那个。
     expect(backfillGlyph, '\u25B6', reason: 'backfill 字形变了');
     expect(habitGlyph, '\u25CF', reason: 'habit 字形变了');
-    _expectStateLabel(tester, planItemId: backfillId, label: '回填');
-    _expectStateLabel(tester, planItemId: habitEntryId, label: '打卡');
+    _expectNoChipText(tester, backfillId);
+    _expectNoChipText(tester, habitEntryId);
 
     // 四态字形互异：两屏各两个，合起来必须是 4 个不同字符。
     final Set<String> seen = <String>{
@@ -752,7 +749,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('点「删除」先弹确认；取消 ⇒ 条目仍在、库里没软删', (tester) async {
+  testWidgets('详情窗点「删除」先弹确认；取消 ⇒ 条目仍在、库里没软删', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _today);
     await _seedPlan(harness, date: _today, title: '别删我', startMinute: 9 * 60);
@@ -765,8 +762,10 @@ void main() {
     );
     expect(entry, findsOneWidget);
 
-    // 首次点击只能落在条目里那个「删除」上：弹窗一开，同文案会有两个。
-    await tester.tap(find.descendant(of: entry, matching: find.text('删除')));
+    // W2 起删除入口搬进了任务详情窗：点条目 → 弹详情 → 点窗里的「删除」。
+    await tester.tap(entry);
+    await _settle(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('plan-detail-delete')));
     await _settle(tester);
 
     final Finder cancel = find.byKey(
@@ -798,7 +797,9 @@ void main() {
       ValueKey<String>('day-grid-entry-${plan.id}'),
     );
 
-    await tester.tap(find.descendant(of: entry, matching: find.text('删除')));
+    await tester.tap(entry);
+    await _settle(tester);
+    await tester.tap(find.byKey(const ValueKey<String>('plan-detail-delete')));
     await _settle(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('confirm-dialog-confirm')),
@@ -813,9 +814,226 @@ void main() {
 
     await _flushTimers(tester);
   });
+
+  // ---------------------------------------------------------------- 需求 1 / 3
+  //
+  // 下面三条把 `slot_layout.dart` 的纯函数几何接到**真实渲染树**上：
+  // 纯函数算对只是必要条件，还得证明 `day_grid.dart` 确实照着那份几何画。
+  // 每条都能靠「撤掉修复」变红：并发不拆车道 ⇒ 两条条目同一个 `Rect`
+  // （top 差 0、互相盖住）；起点不参与横轴换算 ⇒ 09:45 的左缘仍是 +2。
+
+  testWidgets('同一时段两条任务 ⇒ 两条车道并排，格子高度不变（需求 1）', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _today);
+    await _seedPlan(harness, date: _today, title: '并发甲', startMinute: 9 * 60);
+    await _seedPlan(harness, date: _today, title: '并发乙', startMinute: 9 * 60);
+    await harness.mount(tester, _today);
+    await _settle(tester);
+
+    final List<PlanItemData> plans = (await tester.runAsync(
+      () => harness.repos.planItem.listByDate(_today),
+    ))!;
+    expect(plans, hasLength(2), reason: '两条计划没落库');
+
+    final Finder first = find.byKey(
+      ValueKey<String>('day-grid-entry-${plans[0].id}'),
+    );
+    final Finder second = find.byKey(
+      ValueKey<String>('day-grid-entry-${plans[1].id}'),
+    );
+    expect(first, findsOneWidget, reason: '并发第一条没画出来');
+    expect(second, findsOneWidget, reason: '并发第二条没画出来');
+    // 标题各自可见（限定在**格子里**那条条目内判：右轨也列着同名待办）⇒
+    // 不是「后一条把前一条整片盖掉」。
+    for (final PlanItemData plan in plans) {
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey<String>('day-grid-entry-${plan.id}')),
+          matching: find.text(plan.title),
+        ),
+        findsOneWidget,
+        reason: '${plan.title} 的正文没画在自己那条格子里',
+      );
+    }
+
+    final Rect grid = tester.getRect(find.byKey(_kGrid));
+    // 2 × 22 == 44：一行本来就放得下两条，撑高是多余动作。
+    expect(
+      grid.height,
+      closeTo(kGridHeight, 0.01),
+      reason: '两条并发把整块格子撑高了（2 车道应仍是 44/行）',
+    );
+
+    final Rect ra = tester.getRect(first);
+    final Rect rb = tester.getRect(second);
+    expect(ra.height, closeTo(kLaneHeight - 2, 0.01), reason: '车道高不是 22−2');
+    expect(rb.height, closeTo(kLaneHeight - 2, 0.01), reason: '车道高不是 22−2');
+    // 纵向错开一个车道高：这才是「并排」，同 top 就是互相盖住。
+    expect(
+      (ra.top - rb.top).abs(),
+      closeTo(kLaneHeight, 0.01),
+      reason: '两条并发落在同一条车道（top 差不是 22）',
+    );
+    // 同段同列 ⇒ 横向必须完全一致（都与 09:00 左贴）。
+    expect(ra.left, closeTo(rb.left, 0.01));
+    expect(ra.width, closeTo(rb.width, 0.01));
+
+    // 这两条都在第 9 行（grid 顶部起第 3 行），从行顶 +1 起排。
+    // 再 +1 是 `day-grid` 自身 1px 边框：`Positioned.top` 相对 Stack，而
+    // `getRect(day-grid)` 量的是含边框的外框。
+    const double gridBorder = 1;
+    final double row9Top = gridBorder + 3 * kHourRowHeight + 1;
+    final double topMin = ra.top < rb.top ? ra.top : rb.top;
+    final double topMax = ra.top < rb.top ? rb.top : ra.top;
+    expect(
+      topMin - grid.top,
+      closeTo(row9Top, 0.01),
+      reason: '第一条没落在 09:00 行顶',
+    );
+    expect(
+      topMax - grid.top,
+      closeTo(row9Top + kLaneHeight, 0.01),
+      reason: '第二条没落到第二车道',
+    );
+
+    _expectNoOverflow(tester, '同一时段两条并发');
+    await _flushTimers(tester);
+  });
+
+  testWidgets('同一时段三条任务 ⇒ 该行撑到 66，总高 814（需求 1）', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _today);
+    await _seedPlan(harness, date: _today, title: '并发甲', startMinute: 9 * 60);
+    await _seedPlan(harness, date: _today, title: '并发乙', startMinute: 9 * 60);
+    await _seedPlan(harness, date: _today, title: '并发丙', startMinute: 9 * 60);
+    await harness.mount(tester, _today);
+    await _settle(tester);
+
+    final List<PlanItemData> plans = (await tester.runAsync(
+      () => harness.repos.planItem.listByDate(_today),
+    ))!;
+    expect(plans, hasLength(3), reason: '三条计划没落库');
+
+    final Rect grid = tester.getRect(find.byKey(_kGrid));
+    // 3 × 22 == 66 > 44 ⇒ 只有这一行长 22px，总高 792 + 22 = 814。
+    expect(
+      grid.height,
+      closeTo(kGridHeight + 22, 0.01),
+      reason: '三条并发没有把该行撑高（或把别的行也撑了）',
+    );
+
+    final List<double> tops = <double>[];
+    for (final PlanItemData plan in plans) {
+      final Rect rect = tester.getRect(
+        find.byKey(ValueKey<String>('day-grid-entry-${plan.id}')),
+      );
+      // 每条都完整占到一个车道高（不再挤成 11px 一条，看不清内容）。
+      expect(
+        rect.height,
+        closeTo(kLaneHeight - 2, 0.01),
+        reason: '条目 ${plan.id} 在 3 车道行里高度不对',
+      );
+      tops.add(rect.top - grid.top);
+    }
+    tops.sort();
+    expect(tops[1] - tops[0], closeTo(kLaneHeight, 0.01));
+    expect(tops[2] - tops[1], closeTo(kLaneHeight, 0.01));
+    // +1 是 `day-grid` 自身的 1px 边框（`getRect` 量外框，`Positioned` 相对内容区）。
+    expect(
+      tops[0],
+      closeTo(1 + 3 * kHourRowHeight + 1, 0.01),
+      reason: '第一条没落在 09:00 行顶',
+    );
+
+    _expectNoOverflow(tester, '同一时段三条并发');
+    await _flushTimers(tester);
+  });
+
+  testWidgets('条目左缘按起始分钟落到对应列，不再满宽左贴（需求 3）', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _today);
+    // 两条都在 09 点这一行、互不重叠 ⇒ 单车道，横向差异只可能来自起点分钟。
+    await _seedPlan(harness, date: _today, title: '准点', startMinute: 9 * 60);
+    await _seedPlan(
+      harness,
+      date: _today,
+      title: '四十五',
+      startMinute: 9 * 60 + 45,
+    );
+    await harness.mount(tester, _today);
+    await _settle(tester);
+
+    final List<PlanItemData> plans = (await tester.runAsync(
+      () => harness.repos.planItem.listByDate(_today),
+    ))!;
+    expect(plans, hasLength(2));
+    final PlanItemData early = plans.firstWhere((PlanItemData p) => p.title == '准点');
+    final PlanItemData late = plans.firstWhere(
+      (PlanItemData p) => p.title == '四十五',
+    );
+
+    final Rect grid = tester.getRect(find.byKey(_kGrid));
+    expect(
+      grid.height,
+      closeTo(kGridHeight, 0.01),
+      reason: '两条不重叠的条目被算成并发',
+    );
+    // 列宽以**内容区**宽度算：`day-grid` 的 1px 边框左右各吃 1px。
+    final double cellWidth = (grid.width - 2) / kGridCols;
+    expect(cellWidth, greaterThan(0));
+
+    final Rect earlyRect = tester.getRect(
+      find.byKey(ValueKey<String>('day-grid-entry-${early.id}')),
+    );
+    final Rect lateRect = tester.getRect(
+      find.byKey(ValueKey<String>('day-grid-entry-${late.id}')),
+    );
+
+    // 内容区起点比 `day-grid` 外框内缩 1px（边框）。两条都是 15 分钟 ⇒ 各占一列。
+    const double gridBorder = 1;
+    // 09:00 ⇒ 第 0 列 + 2px 缝（与并发之前的 `left: 2` 一致）。
+    expect(
+      earlyRect.left - grid.left,
+      closeTo(gridBorder + 2, 0.01),
+      reason: '9:00 的条目没贴到左缘',
+    );
+    // 09:45 ⇒ 第 3 列 + 2px 缝。这就是需求 3 的判据：左缘由起点分钟决定。
+    expect(
+      lateRect.left - grid.left,
+      closeTo(gridBorder + 3 * cellWidth + 2, 0.01),
+      reason: '9:45 的条目左缘没落在第 4 格（仍按满宽左贴）',
+    );
+    // 宽度 = 1 列 − 左右各 2px 缝。**只占一列**这一点本身就是需求 3 的另一半：
+    // 修复前两条都吃满整宽（`left: 2, right: 2`），宽度会是 `4 * cellWidth - 4`。
+    expect(
+      earlyRect.width,
+      closeTo(cellWidth - 4, 0.01),
+      reason: '整点 15 分钟条目没收到 1 列',
+    );
+    expect(
+      lateRect.width,
+      closeTo(cellWidth - 4, 0.01),
+      reason: '9:45 的条目宽度没有收到 1 列',
+    );
+    // 纵向也仍是「按真实分钟落位」的既有行为，顺手钉住。
+    expect(
+      lateRect.top - grid.top,
+      closeTo(
+        gridBorder + 3 * kHourRowHeight + 0.75 * kHourRowHeight + 1,
+        0.01,
+      ),
+      reason: '单车道条目的纵向落位被改动',
+    );
+
+    _expectNoOverflow(tester, '起始分钟 → 列');
+    await _flushTimers(tester);
+  });
 }
 
-/// 一条网格条目的四通道联合判据：字形 · 状态词 · 左缘竖条 · （调用方另判删除线）。
+/// 一条网格条目的联合判据：字形 · 左缘竖条 ·（调用方另判删除线）。
+///
+/// W2 起条目右侧不再有「未分级 / 状态词 / 删除」文字，判据里也不再有状态词一栏；
+/// 「确实一个字都没了」由 `_expectNoChipText` 反向钉住。
 ///
 /// 字形 `Text` 还必须显式带正文字族 + 兜底列表 —— 四个字形都不在 Inter 里，
 /// 只靠继承 `DefaultTextStyle` 会在缺字体的机器上渲染成豆腐块。
@@ -825,7 +1043,6 @@ void _expectDualChannel(
   required SlotKind kind,
   required String title,
   required String glyph,
-  required String label,
 }) {
   final Finder entry = find.byKey(
     ValueKey<String>('day-grid-entry-$planItemId'),
@@ -851,15 +1068,6 @@ void _expectDualChannel(
   expect(glyphStyle.fontFamilyFallback, AppFonts.bodyFallback);
   expect(glyphStyle.color, foregroundOfSlotKind(kind, ThemeTokens.light));
   expect(glyphStyle.fontSize, 11);
-
-  final Finder labelBox = find.descendant(
-    of: entry,
-    matching: find.text(label),
-  );
-  expect(labelBox, findsOneWidget, reason: '$kind 缺状态词');
-  final TextStyle labelStyle = tester.widget<Text>(labelBox).style!;
-  expect(labelStyle.color, foregroundOfSlotKind(kind, ThemeTokens.light));
-  expect(labelStyle.fontSize, 10);
 
   // 标题仍在（既有元素不动）。
   expect(
@@ -975,18 +1183,26 @@ String _renderedGlyph(WidgetTester tester, String planItemId) {
   return hits.single.text.toPlainText();
 }
 
-/// 状态词必须落在**该条目**里（不是全屏某处有一个就算）。
-void _expectStateLabel(
-  WidgetTester tester, {
-  required String planItemId,
-  required String label,
-}) {
-  expect(
-    find.descendant(
-      of: find.byKey(ValueKey<String>('day-grid-entry-$planItemId')),
-      matching: find.text(label),
-    ),
-    findsOneWidget,
-    reason: '条目 $planItemId 缺状态词「$label」',
+/// 条目里的「未分级 / 状态词 / 删除」文字必须**一个都不剩**。
+///
+/// W2 把 chip 右侧那三样文字整段删掉，判据随之翻面：以前是「状态词必须在该条目
+/// 里」，现在是「一条都不许有」。谁把那段加回来（或只删一半），这条立刻红。
+void _expectNoChipText(WidgetTester tester, String planItemId) {
+  final Finder entry = find.byKey(
+    ValueKey<String>('day-grid-entry-$planItemId'),
   );
+  for (final String text in <String>[
+    '未分级',
+    '计划',
+    '完成',
+    '回填',
+    '打卡',
+    '删除',
+  ]) {
+    expect(
+      find.descendant(of: entry, matching: find.text(text)),
+      findsNothing,
+      reason: '条目 $planItemId 仍渲染着「$text」',
+    );
+  }
 }

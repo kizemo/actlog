@@ -126,23 +126,26 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('200% 下「从待办池捞」入口在段正文内、可换行、零溢出', (tester) async {
+  testWidgets('200% 下今日页不再有「从待办池捞」入口，正文仍零溢出', (tester) async {
     _useLargeSurface(tester);
     await _mountAt200(tester);
 
-    // 入口是 C7 的 D-a：今日计划段必须有一枚可见入口，不能只靠快捷键。
+    // Task 45 需求 4：入口已从今日页删除，且不做替代入口。
+    // 原先这条用例钉的是 C7 的 D-a（入口可见），现在钉的是同一事实的反面。
     final entry = find.byKey(const ValueKey<String>('plan-pool-entry'));
-    expect(entry, findsOneWidget);
-    expect(find.text('＋ 从待办池捞'), findsOneWidget);
+    expect(entry, findsNothing);
+    expect(find.text('＋ 从待办池捞'), findsNothing);
+    expect(find.textContaining('从待办池捞'), findsNothing);
 
-    // B2 后入口不再住在「今日计划」卡片里：宿主是今日页正文列，
-    // 判据改为「入口矩形完整落在今日页矩形内」，仍能抓住被挤到列外的情况。
+    // 入口删掉后，横向判据改锚在正文主块（方格）上：
+    // 它仍必须完整落在今日页矩形内，200% 下不许被挤出列外。
     final pageRect = tester.getRect(find.byType(TodayPage));
-    final entryRect = tester.getRect(entry);
-    expect(entryRect.left, greaterThanOrEqualTo(pageRect.left));
-    expect(entryRect.right, lessThanOrEqualTo(pageRect.right));
+    final contentRect =
+        tester.getRect(find.byKey(const ValueKey<String>('day-grid')));
+    expect(contentRect.left, greaterThanOrEqualTo(pageRect.left));
+    expect(contentRect.right, lessThanOrEqualTo(pageRect.right));
 
-    // 200% 下入口绝不溢出（`Wrap` 会换行而不是挤出边界）。
+    // 200% 下正文绝不溢出。
     expect(tester.takeException(), isNull);
 
     await _flushTimers(tester);

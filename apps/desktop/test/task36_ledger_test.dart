@@ -4,7 +4,8 @@
 //
 // 只钉「结构」，不钉像素：刻度尺存在且 06/12/18 三档整点齐备（起点用 8×1 短线，
 // 不再写「晨/午/晚」文字）、行按 `planned_start` 升序、
-// 未分级行不画标记但留一处 meta、右轨「优先级分布」标题存在且只读。
+// 未分级行不画标记但留一处 meta；右轨「优先级分布」块已删（Task 45 需求 5），
+// 但待办列表面板必须仍在。
 //
 // 为什么刻意让**插入顺序与时间顺序相反**（先写 20:00、再写 09:00）：
 // 若行序只是插入序的巧合，本文件的升序断言会假绿。反着写才有判别力。
@@ -225,7 +226,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('② 行按 planned_start 升序，未分级行不画标记但留一处 meta',
+  testWidgets('② 行按 planned_start 升序，未分级行零标记零文案（空白本身是信息）',
       (WidgetTester tester) async {
     _useTallSurface(tester);
     final harness = _Harness.create();
@@ -256,9 +257,12 @@ void main() {
       findsNothing,
     );
 
-    // 未分级行：两个标记组件都不渲染（不是渲染成空占位），只留一处 meta。
+    // 未分级行：两个标记组件都不渲染（不是渲染成空占位），也不留任何文案。
     // 这两条 `findsNothing` 之所以有意义，是因为同一用例里已分级行断言了
     // `findsOneWidget` —— 组件本身没被移除。
+    //
+    // Task 45 · W2 把格子里那处「未分级」文案也删了：空白本身是信息，
+    // 判别力改由同一用例的已分级行提供（`PriorityHoverBubble` 在那边照常渲染）。
     expect(
       find.descendant(of: early, matching: find.byType(PriorityHoverBubble)),
       findsNothing,
@@ -271,14 +275,14 @@ void main() {
     );
     expect(
       find.descendant(of: early, matching: find.text('未分级')),
-      findsOneWidget,
-      reason: '未分级必须留一处 meta，否则与「分级没渲染出来」不可分',
+      findsNothing,
+      reason: '未分级不留占位文案（不画标记、不留空白位）',
     );
 
     await _flushTimers(tester);
   });
 
-  testWidgets('③ 右轨「优先级分布」：标题在、Q1 计数来自计划条目、整块只读',
+  testWidgets('③ 右轨「优先级分布」块已删（Task 45 需求 5），待办列表面板仍在',
       (WidgetTester tester) async {
     _useTallSurface(tester);
     final harness = _Harness.create();
@@ -286,40 +290,26 @@ void main() {
     await harness.mount(tester);
     await _settle(tester);
 
-    final Finder block = find.byKey(_kDistribution);
-    expect(block, findsOneWidget, reason: '右轨必须有「优先级分布」块');
+    // 删的是「分布块」，不是整个右轨面板：面板本身必须照常装配出来。
     expect(
-      find.descendant(of: block, matching: find.text('优先级分布')),
+      find.byType(TodoRailPanel),
       findsOneWidget,
+      reason: 'Task 45 需求 5 只删优先级分布，不许把待办列表面板一起带走',
     );
-
-    // Q1 有一条（20:00 那条已分级），其余三格计数为 0 ⇒ 不渲染。
+    expect(find.byKey(_kDistribution), findsNothing);
+    expect(find.text('优先级分布'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('rail-quadrant-q1')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('rail-quadrant-q2')),
       findsNothing,
-      reason: '计数为 0 的格不渲染（对齐原型 .qcell:empty）',
+      reason: '四象限格子随块一起删除，不许留孤儿 key',
     );
-
-    // 只读：块里不许出现任何可改分级的写入口。
     expect(
-      find.descendant(of: block, matching: find.byType(PriorityHoverBubble)),
+      find.textContaining('条计划 · 未分级'),
       findsNothing,
-      reason: '改分级只有气泡一个入口，右轨块不开第二处',
+      reason: '尾注（计数）属于被删块，不许以任何形式回来',
     );
-
-    // 尾注：3 条计划、2 条未分级（1 条排期行 + 1 条未排期行）。
-    expect(
-      find.descendant(of: block, matching: find.text('3 条计划 · 未分级 ')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: block, matching: find.text('2 条')),
-      findsOneWidget,
-    );
+    // 面板内容照常渲染：本用例没种待办 ⇒ 空态原文案仍在（不是空白块）。
+    expect(find.text('暂无待办'), findsOneWidget);
 
     await _flushTimers(tester);
   });

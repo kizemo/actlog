@@ -2,7 +2,7 @@
 //
 // Task 20（裁定 K4 / K5 / K6）守今日计划行的两个键：
 //  - `Space` → **切勾选**（`plan_item.status`：`done ⇄ pending`），**不弹任何层**；
-//  - `Enter` → 打开「成果 / 进展」回填弹层（复用 `_editResult`）。
+//  - `Enter` → 打开任务详情窗（Task 45 · W2 起；回填框已搬进该窗）。
 //
 // 两者的语义必须不同（A3 / A4 / A5）：`Space` 不是「打开回填」的另一个名字。
 //
@@ -177,7 +177,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('A4：行上按 Enter 打开「成果 / 进展」回填弹层', (tester) async {
+  testWidgets('A4：行上按 Enter 打开任务详情窗', (tester) async {
     _useTallSurface(tester);
     final harness = _Harness.create();
     final String itemId = await harness.addPlanItem(_today, '回填我');
@@ -192,8 +192,14 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(OutcomeComposer), findsOneWidget);
-    expect(find.text('成果 / 进展'), findsOneWidget);
+    // W2 起 Enter 的落点是任务详情窗（不再是「成果 / 进展」回填弹层）。
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-title')),
+      findsOneWidget,
+      reason: 'Enter 没有打开任务详情窗',
+    );
+    expect(find.text('任务详情'), findsOneWidget);
+    expect(find.byType(OutcomeComposer), findsNothing);
 
     await _flushTimers(tester);
   });
@@ -369,8 +375,13 @@ void main() {
       isNot(row),
       reason: '点击不建立行级焦点 ⇒ `点击行 → 按 Space` 的配方在真机上必然空转',
     );
-    // 点击的真实后果是**打开回填弹层**（不是把焦点给行）。
-    expect(find.byType(OutcomeComposer), findsOneWidget);
+    // 点击的真实后果是**打开任务详情窗**（不是把焦点给行，也不是回填弹层）。
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-title')),
+      findsOneWidget,
+      reason: '点击计划行没有打开任务详情窗',
+    );
+    expect(find.byType(OutcomeComposer), findsNothing);
 
     await _flushTimers(tester);
   });

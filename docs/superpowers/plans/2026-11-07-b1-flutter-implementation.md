@@ -8059,3 +8059,63 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 44.3 台账同步（AGENTS §5 §7 / B1 / handoff / progress / batch-log）
 - [x] 44.3 收尾（注册表恢复 150%、计划任务 `T44ScaleCapture` 删除）
 - [x] 44.3 commit + push 完成
+
+## 45. Task 45 · 主界面六项改造（用户当轮指令 · 2026-11-19）
+
+### 45.1 需求原文（用户当轮，优先级最高）
+
+1. **并发多任务**：同一时间段要支持并发多线程任务；当前新增任务与原有任务时间重叠会「替代」原有任务；同一时间段有多个任务时**增加单元格高度**以完整显示（时间段），单元格高度**正常可容纳 2 行任务**。
+2. **chip 去文字 + 详情窗**：主界面已填入任务右侧的「回填」「删除」「未分级」等**文字删除**；**左键点击**已填入任务弹出的窗口须包含：任务/计划的**标题**、**内容（可编辑）**、**级别（重要性、紧急程度）选择（可编辑）**、**回填内容**、**删除按钮**、**任务持续时间（可编辑）**。
+3. **横轴对齐**：主界面中，任务在横轴的**起始时间**要与**横轴坐标**匹配。
+4. **删入口**：计划列表上部的「＋ 从待办池捞」删除。
+5. **右栏瘦身**：右边栏「待办列表」只显示待办时间列表，**去除优先级分布**。
+6. **关于页**：添加「关于」页面，之前提出过具体要求，按既有文档落实。
+
+### 45.2 根因判定（实测侦察结论）
+
+- 需求 1 根因在**渲染层**：`gridEntriesOf`（`slot_state.dart:349-389`）**不去重**（每条 `plan_item` 生成一条 `GridEntry`）是**正确**行为；「替代」发生在 `_entryTile`（`day_grid.dart:409-422`）—— `Positioned(top: top+1, left: 2, right: 2, height: height-2)` **一律满宽占位**，同刻两条 chip 后画盖先画；全仓无任何重叠/碰撞检测 ⇒ **修渲染布局，不动数据层**。
+- 需求 3 根因同上：横轴 = 每小时内 4 个 15 分钟列（`kGridCols=4` × `kSlotMinutes=15` = 60），但**任务的起始分钟完全没有映射到 x 坐标**；`colOfMinute`（`slot_state.dart:165-184`）已存在却**生产代码从未调用** ⇒ 直接复用，不新造常量。
+- 需求 2 现状：左键当前打开的是**「成果 / 进展」回填弹层**（`_openResult` → `showSlotFillDialog`），**不是详情窗**；「回填」是四态**状态词**（`stateLabelOfSlotKind`）、「删除」是 `InkWell`、「未分级」是纯 `Text`（`day_grid.dart:586-594 / 615-619 / 646-658`）。
+- 数据层缺口：`plan_item` **已有** `detail` 列（`packages\core_db\lib\src\tables.dart:255`）与 `result_note`(:292) / `quadrant`(:268) / `planned_start`(:280) / `planned_end`(:283)；仓储已有 `setQuadrant` / `setResultNote` / `softDelete`，**缺** `setDetail`（⇒ W2 补，**不改列定义、不改 schema、不做迁移**）；改起止走桌面层 `TimelineStore.reschedule`（`timeline_store.dart:187-217`）。
+- 需求 6 现状：关于页**已存在**（`pages\about_page.dart`，Task 39 落盘，14 枚 ValueKey 不得改名）；深链 `'/about'` 已在 `app.dart:125` 注册；**但 `settings_page.dart` 内无「关于」入口** ⇒ 实际只有深链可达（`app.dart:158-160` 的注释与代码不一致）。规格真源 = `docs\task40\关于页设计.md`（§1 入口 = 设置页 + 深链，**不加进左轨**；§5.2 / §7 = G1–G10 十条差距）。
+
+### 45.3 写集表（互斥，R8）
+
+| 单元 | 主题 | 写集（独占） |
+|---|---|---|
+| W1 | 并发多任务 + 单元格高度 + 横轴起始对齐（需求 1 + 3） | `apps\desktop\lib\src\widgets\timeline\day_grid.dart` + `slot_state.dart` + **新建** `slot_layout.dart` + **新建** `apps\desktop\test\timeline_slot_layout_test.dart` + `timeline_day_grid_test.dart`（更新） + `timeline_slot_state_test.dart`（仅冲突时） |
+| W2 | chip 去文字 + 左键详情窗（需求 2）—— **排在 W1 之后串行** | `apps\desktop\lib\src\widgets\timeline\day_grid.dart` + **新建** `plan_item_detail_dialog.dart` + `packages\core_data\lib\src\repositories.dart`（**仅**新增 `setDetail` 与 `detail` 透传） + **新建** `packages\core_data\test\plan_item_detail_test.dart` + **新建** `apps\desktop\test\timeline_plan_detail_test.dart` + `timeline_day_grid_test.dart` / `plan_row_shortcuts_test.dart` / `plan_row_focus_ring_test.dart`（更新） |
+| W3 | 删「＋ 从待办池捞」+ 右栏去「优先级分布」（需求 4 + 5） | `apps\desktop\lib\src\pages\today_page.dart` + `apps\desktop\lib\src\widgets\timeline\todo_rail_panel.dart` + `apps\desktop\test\rail_todo_list_test.dart`（更新） + `today_add_plan_item_time_test.dart`（仅冲突时） + **新建** `task45_removed_entries_test.dart` |
+| W4 | 关于页补 G1–G10 + 补设置页入口（需求 6） | `apps\desktop\lib\src\pages\about_page.dart` + `settings_page.dart` + `app_version.dart`（仅缺常量时） + `apps\desktop\test\task39_about_page_test.dart`（更新） + **新建** `task45_about_page_gaps_test.dart` |
+| 控制器 | 台账 + 门禁 + 打包 + 真机 | 本计划本段 / `docs\B1_验收记录.md` / `.superpowers\sdd\2026-11-07-b1-flutter-implementation\handoff.md`（§40）/ 同目录 `progress.md` / `reports\task45-*` / `AGENTS.md` §5 §7 |
+
+**派工书（唯一实现契约）**：`.superpowers\sdd\2026-11-07-b1-flutter-implementation\task-45-w1-brief.md` / `task-45-w2-brief.md` / `task-45-w3-brief.md` / `task-45-w4-brief.md` —— **冲突时以派工书为准**。
+
+### 45.4 门禁期望
+
+- `flutter analyze`（desktop）逐字 `No issues found!`（error / warning / **info** 全 0）。
+- desktop 全量 `flutter test` **≥ +462**（基线，**零回退**）；core_data 全量 **≥ +197**（W2 改 core_data ⇒ 必须真跑）。
+- 越界比对（sha diff + mtime 窗口双判据）⇒ `VIOLATIONS=0`。
+- **产品代码有改动 ⇒ 必须 `flutter build windows --release` → `tools\build\make_installer.ps1` 重打包，并更新 R3 唯一可分发包真源行**（`make_installer.ps1` **只打包不编译**）。
+
+### 45.5 明确不做（登记，不在本轮修）
+
+- 不动 `packages\core_db` 列定义、不改 `docs\schema_v1.sql`、不做任何迁移（schema v1 冻结）。
+- 不删任何文件（含 `slot_fill.dart` / `outcome_composer.dart` / `quick_todo_dialog.dart` / `slot_range_dialog.dart`）。
+- 不新增 `setTitle`（需求 2 的标题按规格**只读展示**）。
+- 不把「关于」加进左轨 `kShellNavItems`（规格 §1 明确不加）。
+- 不做 Task 39.6 三项（系统字体栈 / 语言可切换 / 升级可下载安装）、不做 B1 #12（M21-1 未来日预排条目可编辑，需先改 spec §H-1）—— 属用户拍板项。
+- 不动 `design-demos\TOKENS.md` §1–§7（视觉口径唯一真源）。
+
+### 45.6 Task 45 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+
+- [ ] 45.1 W1 布局模型落地（并发车道 + 变高行 + 横轴起始对齐 + `_minuteAt` 反算同步）
+- [ ] 45.1 W1 门禁自证（analyze 逐字 + desktop ≥ +462 + 新断言「撤掉修复即失败」）
+- [ ] 45.2 W2 详情窗落地（标题只读 / 内容 / 级别 / 回填内容 / 持续时间 / 删除）+ chip 去文字
+- [ ] 45.2 W2 core_data `setDetail` 落地（不改列定义）+ core_data ≥ +197
+- [ ] 45.3 W3 删「＋ 从待办池捞」+ 右栏去「优先级分布」+ 正向断言
+- [ ] 45.4 W4 关于页 G1–G10 + 设置页入口 + G9 200% 无溢出断言
+- [ ] 45.5 控制器门禁全量 + 越界 `VIOLATIONS=0`
+- [ ] 45.5 独立 verifier 复核（只读，≠ 实现者会话）
+- [ ] 45.5 重打包 + 包内核对 + R3 唯一可分发包真源行更新
+- [ ] 45.5 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS §5 §7）+ commit + push

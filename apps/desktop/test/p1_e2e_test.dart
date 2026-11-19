@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 import 'package:actlog/src/pages/today_page.dart';
 import 'package:actlog/src/providers.dart';
+import 'package:actlog/src/widgets/ledger_checkbox.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
 
 const _date = '2026-11-07';
@@ -151,7 +152,20 @@ void main() {
 
     await _boot(tester, harness);
 
+    // Task 45 · W2：左键点行开的是「任务详情」窗，回填搬进窗内的
+    // 「成果 / 进展模板」按钮（`plan-detail-template`）。
     await tester.tap(_inPlanBlock('整理后台'));
+    await _settle(tester);
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-title')),
+      findsOneWidget,
+      reason: '左键点行必须打开任务详情窗',
+    );
+    expect(find.text('成果 / 进展'), findsNothing, reason: '详情窗本身不摊开回填层');
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('plan-detail-template')),
+    );
     await _settle(tester);
     expect(find.text('成果 / 进展'), findsOneWidget);
 
@@ -160,15 +174,36 @@ void main() {
     await tester.tap(find.text('只存进展'));
     await _settle(tester);
 
+    // 模板只写「回填内容」框，落库还得点「保存」。
+    final TextField noteField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('plan-detail-note')),
+    );
+    expect(
+      noteField.controller!.text,
+      '[结论]按时完成',
+      reason: '模板结果必须落进回填内容框',
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('plan-detail-save')));
+    await _settle(tester);
+
     var row = await harness.onlyItem();
     expect(row.resultNote, '[结论]按时完成');
     expect(row.status, PlanStatus.pending.code, reason: '只存进展不得把条目判完成');
     expect(find.text('进展：[结论]按时完成'), findsOneWidget);
 
-    await tester.tap(_inPlanBlock('整理后台'));
+    // 完成由行首勾选框负责（模板不碰 status）。
+    final Finder box = find.descendant(
+      of: find.byKey(ValueKey<String>('day-grid-entry-${row.id}')),
+      matching: find.byType(LedgerCheckbox),
+    );
+    expect(box, findsOneWidget, reason: '方格行首必须有勾选框');
+    await tester.tap(box);
     await _settle(tester);
-    await tester.tap(find.text('完成'));
-    await _settle(tester);
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-title')),
+      findsNothing,
+      reason: '点勾选框只切状态、不得打开详情窗',
+    );
 
     row = await harness.onlyItem();
     expect(row.status, PlanStatus.done.code);
@@ -207,16 +242,24 @@ void main() {
     expect(_inPlanBlock('晨跑'), findsOneWidget);
     expect(_inPlanBlock('习惯回填'), findsOneWidget);
 
-    // 点行尾的删除按钮（W3 起是壳内文字动作，不再带 Tooltip）。
-    //
-    // 必须按结构定位：整页 `find.text('删除')` 还会命中规则区的「删除」
-    // （`recurring_rail_panel.dart`），直接 tap 会撞成多匹配。
-    final Finder rowDelete = find.descendant(
-      of: find.byKey(const ValueKey<String>('day-grid')),
-      matching: find.text('删除'),
+    // Task 45 · W2：行尾「删除」已移进任务详情窗（行尾只剩勾选 / 标记 / 标题 /
+    // 时刻 / 字形 / 进展 / 来源徽标）。先钉住行尾确实没有删除入口。
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('day-grid')),
+        matching: find.text('删除'),
+      ),
+      findsNothing,
+      reason: '行尾不得再有「删除」，删除只在详情窗里',
     );
-    expect(rowDelete, findsOneWidget, reason: '方格行尾应当恰好有一个「删除」');
-    await tester.tap(rowDelete);
+
+    await tester.tap(_inPlanBlock('晨跑'));
+    await _settle(tester);
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-title')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('plan-detail-delete')));
     await _settle(tester);
 
     // 需求 9：删除走二次确认 —— 弹窗期间数据一行都不许动。

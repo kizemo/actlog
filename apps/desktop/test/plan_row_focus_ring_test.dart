@@ -10,8 +10,8 @@
 //  T3 **就近优先**：焦点落进行内 `LedgerCheckbox` 时，行级环熄灭、
 //     只亮 22×22 复选框环；
 //  T4 未来日的行不可聚焦 ⇒ 行级环不亮；
-//  T5 插环不吃点击（`Stack` + `IgnorePointer`），点行仍开回填弹层；
-//  T6 键位语义零回退：行 `Space` 切状态、行 `Enter` 开弹层、
+//  T5 插环不吃点击（`Stack` + `IgnorePointer`），点行仍开任务详情窗；
+//  T6 键位语义零回退：行 `Space` 切状态、行 `Enter` 开任务详情窗、
 //     勾选框 `Space` 只切勾选（行级不抢）。
 //
 // T3 是本轮的判别性核心：判据若退化成 `hasFocus`（父子都亮）必须先红。
@@ -293,7 +293,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('T5：插环不吃点击 —— 点行标题仍打开「成果 / 进展」弹层', (tester) async {
+  testWidgets('T5：插环不吃点击 —— 点行标题仍打开任务详情窗', (tester) async {
     _useTallSurface(tester);
     final harness = _Harness.create();
     await harness.addPlanItem(_today, '插环不挡点');
@@ -307,8 +307,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     // `Stack` + `Positioned.fill` + `IgnorePointer` 不得吞掉指向子树的点击。
-    expect(find.byType(OutcomeComposer), findsOneWidget);
-    expect(find.text('成果 / 进展'), findsOneWidget);
+    // W2 起点击的落点是任务详情窗（回填框搬进了该窗），不再是回填弹层。
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-title')),
+      findsOneWidget,
+    );
+    expect(find.byType(OutcomeComposer), findsNothing);
 
     await _flushTimers(tester);
   });
@@ -374,7 +378,7 @@ void main() {
       reason: '行级 Space 若也响应，会被切两次又回到 pending',
     );
 
-    // ④ 焦点回到行上：`Enter` ⇒ 打开回填弹层。
+    // ④ 焦点回到行上：`Enter` ⇒ 打开任务详情窗。
     row.requestFocus();
     await _pumpFocus(tester);
     expect(FocusManager.instance.primaryFocus, row);
@@ -383,8 +387,11 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(OutcomeComposer), findsOneWidget);
-    expect(find.text('成果 / 进展'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-title')),
+      findsOneWidget,
+    );
+    expect(find.byType(OutcomeComposer), findsNothing);
 
     await _flushTimers(tester);
   });

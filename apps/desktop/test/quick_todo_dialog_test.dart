@@ -2,8 +2,12 @@
 //
 // C7（Task 19 / W7）回归：键条上承诺的动作必须有真实绑定。
 //
-// - D-a：今日计划段必须有一枚**可见**的「＋ 从待办池捞」入口
+// - D-a（历史）：今日计划段曾有**可见**的「＋ 从待办池捞」入口
 //   （此前 `pullToPlan` 全库只有待办池页一处调用，今日页无法把池子里的待办捞进来）。
+//   Task 45 需求 4 已把该入口从今日页删除（反面断言在
+//   `task45_removed_entries_test`）；但 `showPullFromPoolDialog` /
+//   `PullFromPoolDialog` 的实现按派工书 §5 保留 ⇒ 弹层自身的回归仍在本文件守，
+//   打开方式改成宿主按钮直开，不再经由今日页。
 // - D-b：`Ctrl+N` 打开手写面板、`Ctrl+D` 打卡第一条未打习惯、`Esc` 关闭弹层。
 //
 // 全部用内存真库 + 真仓储，键盘走 `HardwareKeyboard` 模拟（不是直接调函数），
@@ -70,6 +74,34 @@ final class _Harness {
         ),
       ),
     );
+    await _settle(tester);
+  }
+
+  /// 直接打开「从待办池捞」弹层。
+  ///
+  /// Task 45 需求 4 删掉了今日页的入口（今日页那面由
+  /// `task45_removed_entries_test` 与 `rail_todo_list_test` 的反向断言守着），
+  /// 但 `showPullFromPoolDialog` 与其实现按派工书 §5 保留 ⇒ 弹层自身的行为
+  /// 仍要回归，故改从一个宿主按钮直开，不依赖被删的入口。
+  Future<void> openPullDialog(WidgetTester tester) async {
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: AppTheme.light(DensityProfile.comfortable),
+          home: Scaffold(
+            body: Builder(
+              builder: (BuildContext context) => TextButton(
+                onPressed: () => showPullFromPoolDialog(context),
+                child: const Text('open-pull'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await _settle(tester);
+    await tester.tap(find.text('open-pull'));
     await _settle(tester);
   }
 }
@@ -243,7 +275,8 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('今日计划段顶部有「从待办池捞」入口，点开可捞入', (WidgetTester tester) async {
+  testWidgets('今日页不再有「从待办池捞」入口；弹层实现保留、仍可捞入',
+      (WidgetTester tester) async {
     _useTallSurface(tester);
     final harness = _Harness.create();
     await tester.runAsync(() async {
@@ -251,11 +284,17 @@ void main() {
     });
     await harness.mount(tester);
 
-    // D-a：入口必须**可见**在段正文里（不是只存在于待办池页）。
-    expect(find.text('＋ 从待办池捞'), findsOneWidget);
+    // Task 45 需求 4：今日页不再挂入口，也不做替代入口。
+    expect(find.text('＋ 从待办池捞'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('plan-pool-entry')),
+      findsNothing,
+      reason: '入口的 key 必须一起消失，不许留隐形锚点',
+    );
+    expect(find.textContaining('从待办池捞'), findsNothing);
 
-    await tester.tap(find.text('＋ 从待办池捞'));
-    await _settle(tester);
+    // 弹层实现按派工书 §5 保留 ⇒ 直开弹层，继续守住「捞入」这条真实写入路径。
+    await harness.openPullDialog(tester);
     expect(find.byType(PullFromPoolDialog), findsOneWidget);
     expect(find.text('池子里的A'), findsOneWidget);
 
@@ -274,10 +313,7 @@ void main() {
   testWidgets('待办池为空时面板说明空态', (WidgetTester tester) async {
     _useTallSurface(tester);
     final harness = _Harness.create();
-    await harness.mount(tester);
-
-    await tester.tap(find.text('＋ 从待办池捞'));
-    await _settle(tester);
+    await harness.openPullDialog(tester);
 
     expect(find.byType(PullFromPoolDialog), findsOneWidget);
     expect(find.text('待办池是空的'), findsOneWidget);
@@ -295,10 +331,7 @@ void main() {
         ),
       ],
     );
-    await harness.mount(tester);
-
-    await tester.tap(find.text('＋ 从待办池捞'));
-    await _settle(tester);
+    await harness.openPullDialog(tester);
 
     expect(find.byType(PullFromPoolDialog), findsOneWidget);
     expect(find.text('池子坏了'), findsOneWidget);

@@ -8,8 +8,9 @@ import '../providers.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
 
-/// 关于页（指令 8 / B9）：简介 / 仓库地址（可点开 + 可复制）/ 检查新版本 /
-/// 在线升级（禁用并说明原因）/ 开发者 / 其它软件推荐。
+/// 关于页（指令 8 / B9，Task 45 · W4 补齐 G1–G9）：简介 / 本页导航 /
+/// 版本（检查更新 + 在线升级禁用说明 + 有更新时的「打开发布页」）/ 最近变更 /
+/// 数据与隐私 / 仓库 / 开发者 / 其它软件 / 许可证。
 ///
 /// 与设置页同构：壳内**内容体**，不自建 `Scaffold`，根是 `mainAxisSize: min`
 /// 的 `Column`，外面套一层透明 `Material`（`InkWell` / `AlertDialog` 需要）。
@@ -33,6 +34,18 @@ class _AboutPageState extends ConsumerState<AboutPage> {
 
   /// 仓库地址是否刚被复制（复制反馈只留一小会儿，不弹窗）。
   bool _copied = false;
+
+  /// 七个区块的滚动锚点（G8：本页导航点击后 `ensureVisible`）。
+  ///
+  /// 用 `GlobalKey` 只为了拿 `currentContext` 做滚动定位，**不是**测试锚点：
+  /// 测试锚点仍然是文档 §4 指定的 `ValueKey`，一个都没自造。
+  final List<GlobalKey> _anchors = List<GlobalKey>.generate(
+    7,
+    (int _) => GlobalKey(),
+  );
+
+  /// 有更新时「打开发布页」的目标：仓库 releases 页。
+  static String get _releasesUrl => '$kAppRepositoryUrl/releases';
 
   Future<void> _checkUpdate() async {
     if (_checking) {
@@ -69,6 +82,20 @@ class _AboutPageState extends ConsumerState<AboutPage> {
     await ref.read(systemIntegrationProvider).openUrl(url);
   }
 
+  /// 滚到第 [index] 个区块。桌面壳的滚动容器在外层，`ensureVisible` 会自己
+  /// 找到最近的 `Scrollable`，不依赖本页自建滚动视图。
+  void _scrollToSection(int index) {
+    final BuildContext? target = _anchors[index].currentContext;
+    if (target == null) {
+      return;
+    }
+    Scrollable.ensureVisible(
+      target,
+      duration: const Duration(milliseconds: 200),
+      alignment: 0,
+    );
+  }
+
   /// 结果 → 文案。四种状态都必须有话说（B10：404 与网络失败都不许静默）。
   String _resultText(AppLocalizations t, ReleaseCheckResult result) {
     return switch (result.status) {
@@ -84,8 +111,13 @@ class _AboutPageState extends ConsumerState<AboutPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations t = ref.watch(appLocalizationsProvider);
+    final _AboutCopy copy = ref.watch(currentPreferencesProvider).language ==
+            AppLanguage.en
+        ? _AboutCopy.en
+        : _AboutCopy.zh;
     final ThemeTokens tokens = context.tokens;
     final ReleaseCheckResult? result = _result;
+    final bool hasNewer = result?.status == ReleaseCheckStatus.newer;
 
     return Material(
       type: MaterialType.transparency,
@@ -109,8 +141,24 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           ),
           const SizedBox(height: AppTokens.gapCard),
 
+          // ---------------- 本页导航（G8） ----------------
+          // 只做锚点跳转，不新增色值 / 字号；条目文字就是七个区块标题。
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: <Widget>[
+              for (int i = 0; i < copy.toc.length; i++)
+                _TocEntry(
+                  label: copy.toc[i],
+                  onTap: () => _scrollToSection(i),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: AppTokens.gapCard),
+
           // ---------------- 版本 ----------------
-          _sectionTitle(t.sectionVersion),
+          _sectionTitle(t.sectionVersion, anchorKey: _anchors[0]),
           Text(
             '${t.versionLabel}  $kAppVersionFull',
             key: const ValueKey<String>('about-version'),
@@ -149,11 +197,43 @@ class _AboutPageState extends ConsumerState<AboutPage> {
               style: _monoStyle(tokens).copyWith(color: tokens.ink2),
             ),
           ],
+          // G5：有更新时才给「打开发布页」，目标由常量拼出，不伪造任何直链。
+          if (hasNewer) ...<Widget>[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _LinkButton(
+                buttonKey: const ValueKey<String>('about-open-releases'),
+                label: copy.releases,
+                onTap: () => _open(_releasesUrl),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: AppTokens.gapCard),
+
+          // ---------------- 最近变更（G1） ----------------
+          _sectionTitle(copy.changelogTitle, anchorKey: _anchors[1]),
+          Text(
+            copy.changelog.join('\n'),
+            key: const ValueKey<String>('about-changelog'),
+            style: _paragraphStyle(tokens),
+          ),
+
+          const SizedBox(height: AppTokens.gapCard),
+
+          // ---------------- 数据与隐私（G3） ----------------
+          _sectionTitle(copy.privacyTitle, anchorKey: _anchors[2]),
+          Text(
+            copy.privacy,
+            key: const ValueKey<String>('about-privacy'),
+            style: _paragraphStyle(tokens),
+          ),
 
           const SizedBox(height: AppTokens.gapCard),
 
           // ---------------- 仓库 ----------------
-          _sectionTitle(t.sectionRepository),
+          _sectionTitle(t.sectionRepository, anchorKey: _anchors[3]),
           Text(
             kAppRepositoryUrl,
             key: const ValueKey<String>('about-repo-url'),
@@ -180,7 +260,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           const SizedBox(height: AppTokens.gapCard),
 
           // ---------------- 开发者 ----------------
-          _sectionTitle(t.sectionDeveloper),
+          _sectionTitle(t.sectionDeveloper, anchorKey: _anchors[4]),
           Text(
             kAppDeveloperName,
             key: const ValueKey<String>('about-developer'),
@@ -201,7 +281,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           const SizedBox(height: AppTokens.gapCard),
 
           // ---------------- 其它软件 ----------------
-          _sectionTitle(t.sectionOtherSoftware),
+          _sectionTitle(t.sectionOtherSoftware, anchorKey: _anchors[5]),
           Text(
             t.alphaFileManagerIntro,
             style: _paragraphStyle(tokens),
@@ -233,14 +313,25 @@ class _AboutPageState extends ConsumerState<AboutPage> {
             label: kPageWeaverUrl,
             onTap: () => _open(kPageWeaverUrl),
           ),
+
+          const SizedBox(height: AppTokens.gapCard),
+
+          // ---------------- 许可证（G2） ----------------
+          _sectionTitle(copy.licensesTitle, anchorKey: _anchors[6]),
+          Text(
+            copy.licenses,
+            key: const ValueKey<String>('about-licenses'),
+            style: _hintStyle(tokens),
+          ),
         ],
       ),
     );
   }
 
-  Widget _sectionTitle(String text) {
+  Widget _sectionTitle(String text, {Key? anchorKey}) {
     final ThemeTokens tokens = context.tokens;
     return Padding(
+      key: anchorKey,
       padding: const EdgeInsets.only(bottom: AppTokens.gapSec),
       child: Text(
         text,
@@ -257,8 +348,44 @@ class _AboutPageState extends ConsumerState<AboutPage> {
   }
 }
 
+/// 本页导航里的一条（G8）。只用 `InkWell` + `Text`：与 `_LinkButton` 同源，
+/// 但不带外框，避免一屏里出现两套按钮视觉。
+class _TocEntry extends StatelessWidget {
+  const _TocEntry({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeTokens tokens = context.tokens;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTokens.radius),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppFonts.body,
+            fontFamilyFallback: AppFonts.bodyFallback,
+            fontSize: 12,
+            height: 1.4,
+            color: tokens.ink2,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 文字按钮；`onTap == null` 即禁用（在线升级用这个态）。
-class _LinkButton extends StatelessWidget {
+///
+/// Task 45 · G6 / G7：改为 `StatefulWidget`，靠 `InkWell` 自带的焦点节点 +
+/// `ActivateIntent` 处理拿到键盘可达性（Tab 进入、Enter / Space 触发），
+/// 只额外跟踪 focus 态换边框色 —— 不引入 `FocusableActionDetector` 这类
+/// 需要另建焦点节点的封装，避免一枚按钮出现两个 Tab 停点。
+class _LinkButton extends StatefulWidget {
   const _LinkButton({
     required this.buttonKey,
     required this.label,
@@ -270,23 +397,42 @@ class _LinkButton extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
+  State<_LinkButton> createState() => _LinkButtonState();
+}
+
+class _LinkButtonState extends State<_LinkButton> {
+  /// 是否是键盘焦点所在（G7：focus 边框用 `ink`，与 hover / 默认的
+  /// `hairStrong` 区分）。
+  bool _focused = false;
+
+  @override
   Widget build(BuildContext context) {
     final ThemeTokens tokens = context.tokens;
-    final bool enabled = onTap != null;
+    final bool enabled = widget.onTap != null;
+    final Color border = !enabled
+        ? tokens.hair
+        : (_focused ? tokens.ink : tokens.hairStrong);
     return InkWell(
-      onTap: onTap,
+      onTap: widget.onTap,
+      // 禁用态不进 Tab 序（G6 规格第 4 条）。
+      canRequestFocus: enabled,
+      onFocusChange: (bool focused) {
+        if (focused != _focused) {
+          setState(() {
+            _focused = focused;
+          });
+        }
+      },
       borderRadius: BorderRadius.circular(AppTokens.radius),
       child: Container(
-        key: buttonKey,
+        key: widget.buttonKey,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTokens.radius),
-          border: Border.all(
-            color: enabled ? tokens.hairStrong : tokens.hair,
-          ),
+          border: Border.all(color: border),
         ),
         child: Text(
-          label,
+          widget.label,
           style: TextStyle(
             fontFamily: AppFonts.body,
             fontFamilyFallback: AppFonts.bodyFallback,
@@ -298,6 +444,91 @@ class _LinkButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 本页新增文案（最近变更 / 数据与隐私 / 许可证 / 发布页 / 导航）。
+///
+/// 为什么在页面内而不是 `AppLocalizations`：`l10n\app_localizations.dart`
+/// 不在本波写集内，新增 getter 会越界；这里按当前语言取一份静态常量，
+/// 与全页的「无新依赖、无新 token」口径一致，后续可整体迁进 l10n。
+class _AboutCopy {
+  const _AboutCopy({
+    required this.toc,
+    required this.changelogTitle,
+    required this.changelog,
+    required this.privacyTitle,
+    required this.privacy,
+    required this.licensesTitle,
+    required this.licenses,
+    required this.releases,
+  });
+
+  /// 本页导航条目，顺序与 `_anchors` 一一对应。
+  final List<String> toc;
+  final String changelogTitle;
+  final List<String> changelog;
+  final String privacyTitle;
+  final String privacy;
+  final String licensesTitle;
+  final String licenses;
+  final String releases;
+
+  static const _AboutCopy zh = _AboutCopy(
+    toc: <String>['版本', '最近变更', '数据与隐私', '仓库', '开发者', '其它软件', '许可证'],
+    changelogTitle: '最近变更',
+    changelog: <String>[
+      '0.1.0+1 · 首个可分发版本；仓库尚无对外发布。',
+      '今日 / 待办池 / 习惯 / 日历 四个主页面，数据写在本机 SQLite。',
+      '中文 / English 双语界面，明暗两套主题。',
+      '文字缩放到 200% 时页面不溢出、不截断。',
+      '关于页新增：最近变更、数据与隐私、许可证。',
+    ],
+    privacyTitle: '数据与隐私',
+    privacy: '待办、日志、习惯与设置都写在本机的 SQLite 数据库里，不出这台电脑。'
+        '除「检查更新」会向 GitHub releases API 发一次请求外，应用不发起任何网络请求；'
+        '没有账号系统，也不收集任何遥测数据。',
+    licensesTitle: '许可证',
+    licenses: '本应用使用 Flutter 构建。随包分发四款开源字体：Fraunces、Inter、'
+        'JetBrains Mono、Noto Sans SC，均以 SIL Open Font License 1.1 授权，'
+        '许可证全文见仓库 apps/desktop/assets/fonts/licenses/'
+        '（OFL-fraunces.txt、OFL-inter.txt、OFL-jetbrainsmono.txt、OFL-notosanssc.txt）。'
+        '应用自身与其余 Dart 依赖的许可证文本未随包分发，依赖清单见 '
+        'apps/desktop/pubspec.yaml。',
+    releases: '打开发布页',
+  );
+
+  static const _AboutCopy en = _AboutCopy(
+    toc: <String>[
+      'Version',
+      'Recent changes',
+      'Data & privacy',
+      'Repository',
+      'Developer',
+      'Other software',
+      'Licenses',
+    ],
+    changelogTitle: 'Recent changes',
+    changelog: <String>[
+      '0.1.0+1 — first distributable build; the repository has no public release yet.',
+      'Four main pages (Today, To-do pool, Habits, Calendar) store data in a local SQLite database.',
+      'Chinese / English UI, light and dark themes.',
+      'Text scaled to 200% still lays out without overflow.',
+      'About page gains recent changes, data & privacy and licenses sections.',
+    ],
+    privacyTitle: 'Data & privacy',
+    privacy: 'Tasks, logs, habits and settings are written to a local SQLite '
+        'database on this machine. Apart from the “Check for updates” request '
+        'to the GitHub releases API, the app makes no network calls. There is '
+        'no account system and no telemetry.',
+    licensesTitle: 'Licenses',
+    licenses: 'Built with Flutter. Four open-source typefaces are bundled: '
+        'Fraunces, Inter, JetBrains Mono and Noto Sans SC, all under the SIL '
+        'Open Font License 1.1; the full texts live in the repository at '
+        'apps/desktop/assets/fonts/licenses/ (OFL-*.txt). License texts for '
+        'the app itself and for the remaining Dart dependencies are not '
+        'bundled; see apps/desktop/pubspec.yaml for the dependency list.',
+    releases: 'Open releases page',
+  );
 }
 
 /// 正文段落样式。
