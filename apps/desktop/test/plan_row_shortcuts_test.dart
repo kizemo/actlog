@@ -8,7 +8,8 @@
 //
 // 另外两条边界：
 //  - 焦点在 `LedgerCheckbox` 上时 `Space` **只**切勾选，就近优先、行级不抢（A6）；
-//  - 未来日（`future == true`）的行不可聚焦，`Space` / `Enter` 零副作用（A7）。
+//  - Task 45 · W6 起未来日的行**可**聚焦、`Enter` 也能开详情窗（编辑 / 删除
+//    必须可达），但 `Space` 仍零副作用、勾选框仍禁用（A7）。
 //
 // 真实库往返：断言都读 `plan_item` 表，不用内存假态。
 import 'package:core_data/core_data.dart';
@@ -253,7 +254,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('A7：未来日的行不可聚焦，Space / Enter 零副作用', (tester) async {
+  testWidgets('A7：未来日可聚焦、Enter 开详情窗，Space 仍零副作用', (tester) async {
     _useTallSurface(tester);
     final harness = _Harness.create(selected: _future);
     final String itemId = await harness.addPlanItem(_future, '预排一条');
@@ -262,30 +263,45 @@ void main() {
 
     expect(_inPlanCard(find.text('预排一条')), findsOneWidget);
 
-    // 行级焦点节点存在，但**不可请求焦点**（spec §H-1：未来日只可预排）。
+    // Task 45 · W6 起口径改为「未来日可开详情窗」（编辑 / 删除都要能进去），
+    // 所以行级焦点**可**请求；拦的是「完成」这一件事。
     final Focus focus = tester.widget<Focus>(
       find.byKey(ValueKey<String>('plan-row-focus-$itemId')),
     );
-    expect(focus.canRequestFocus, isFalse);
+    expect(focus.canRequestFocus, isTrue, reason: '未来日也要能用键盘开详情窗');
     final FocusNode row = focus.focusNode!;
     row.requestFocus();
     await tester.pump();
-    expect(
-      FocusManager.instance.primaryFocus,
-      isNot(row),
-      reason: '未来日的行拿不到焦点',
-    );
+    expect(FocusManager.instance.primaryFocus, row, reason: '未来日的行应能拿到焦点');
+
+    // 打勾入口仍锁死：勾选框 `onChanged` 为 null（不可点、不可聚焦）。
+    final List<LedgerCheckbox> boxes = tester
+        .widgetList<LedgerCheckbox>(_inPlanCard(find.byType(LedgerCheckbox)))
+        .toList(growable: false);
+    expect(boxes, hasLength(1));
+    expect(boxes.single.onChanged, isNull, reason: '未来日不可打勾');
 
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await _settle(tester);
 
     final PlanItemData item = (await harness.repos.planItem.listByDate(_future))
         .firstWhere((PlanItemData row) => row.id == itemId);
-    expect(item.status, PlanStatus.pending.code, reason: '未来日零写入');
+    expect(item.status, PlanStatus.pending.code, reason: '未来日 Space 零写入');
     expect(item.doneAt, isNull);
+    expect(find.byType(OutcomeComposer), findsNothing);
+    expect(find.text('任务详情'), findsNothing, reason: 'Space 不该开详情窗');
+
+    // `Enter` 与左键同路：未来日也必须能打开详情窗（否则级别 / 内容 / 删除
+    // 三件事在预排日全部无入口）。
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await _settle(tester);
+    expect(find.text('任务详情'), findsOneWidget, reason: '未来日 Enter 没有开详情窗');
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-title')),
+      findsOneWidget,
+    );
     expect(find.byType(OutcomeComposer), findsNothing);
 
     await _flushTimers(tester);

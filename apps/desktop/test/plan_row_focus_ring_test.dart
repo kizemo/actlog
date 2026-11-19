@@ -9,7 +9,7 @@
 //  T2 失焦 ⇒ 行级环熄灭（transparent）；
 //  T3 **就近优先**：焦点落进行内 `LedgerCheckbox` 时，行级环熄灭、
 //     只亮 22×22 复选框环；
-//  T4 未来日的行不可聚焦 ⇒ 行级环不亮；
+//  T4 未来日的行**可**聚焦（详情窗键盘入口）⇒ 行级环照常点亮；
 //  T5 插环不吃点击（`Stack` + `IgnorePointer`），点行仍开任务详情窗；
 //  T6 键位语义零回退：行 `Space` 切状态、行 `Enter` 开任务详情窗、
 //     勾选框 `Space` 只切勾选（行级不抢）。
@@ -271,24 +271,26 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('T4：未来日的行不可聚焦 ⇒ 行级环不亮', (tester) async {
+  testWidgets('T4：未来日的行可聚焦（详情窗入口）⇒ 行级环照常点亮', (tester) async {
     _useTallSurface(tester);
     final harness = _Harness.create(selected: _future);
-    final String itemId = await harness.addPlanItem(_future, '未来日环不亮');
+    final String itemId = await harness.addPlanItem(_future, '未来日环点亮');
     await harness.mount(tester);
     await _settle(tester);
 
-    expect(_inPlanCard(find.text('未来日环不亮')), findsOneWidget);
+    expect(_inPlanCard(find.text('未来日环点亮')), findsOneWidget);
     final Focus focus = tester.widget<Focus>(
       find.byKey(ValueKey<String>('plan-row-focus-$itemId')),
     );
-    expect(focus.canRequestFocus, isFalse, reason: 'spec §H-1：未来日只可预排');
+    // Task 45 · W6：未来日必须能开详情窗（编辑 / 删除），所以行级焦点开放；
+    // 「不可打勾」由勾选框自身 `onChanged: null` 守住（见 A7）。
+    expect(focus.canRequestFocus, isTrue, reason: '未来日也要能 Tab 进条目开详情窗');
     final FocusNode row = focus.focusNode!;
     row.requestFocus();
     await _pumpFocus(tester);
 
-    expect(FocusManager.instance.primaryFocus, isNot(row));
-    expect(_rowRingBorder(tester, itemId).top.color, Colors.transparent);
+    expect(FocusManager.instance.primaryFocus, row);
+    expect(_rowRingBorder(tester, itemId).top.color, ThemeTokens.light.ink);
 
     await _flushTimers(tester);
   });

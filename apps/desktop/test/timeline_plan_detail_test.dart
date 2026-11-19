@@ -27,6 +27,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/providers.dart';
+import 'package:actlog/src/widgets/ledger_checkbox.dart';
 import 'package:actlog/src/widgets/priority_marks.dart';
 import 'package:actlog/src/widgets/timeline/day_grid.dart';
 import 'package:actlog/src/widgets/timeline/timeline_store.dart';
@@ -34,6 +35,9 @@ import 'package:actlog/src/widgets/timeline/todo_rail_panel.dart';
 
 /// 固定「今天」；被测日期就是它（过去 / 未来与详情窗无关，取当天最直接）。
 const String _today = '2026-11-09';
+
+/// 未来日（预排日）：Task 45 · W6 起也**必须**能开详情窗编辑 / 删除。
+const String _future = '2026-11-12';
 
 const ValueKey<String> _kContent = ValueKey<String>('plan-detail-content');
 const ValueKey<String> _kNote = ValueKey<String>('plan-detail-note');
@@ -136,18 +140,23 @@ Future<void> _seedPlan(
   _Harness harness, {
   required String title,
   required int startMinute,
+  String date = _today,
 }) async {
   await TimelineStore(harness.repos).createTodoWithSlot(
-    date: _today,
+    date: date,
     title: title,
     startMinute: startMinute,
     endMinute: startMinute + 15,
   );
 }
 
-Future<PlanItemData> _onlyPlan(WidgetTester tester, _Harness harness) async {
+Future<PlanItemData> _onlyPlan(
+  WidgetTester tester,
+  _Harness harness, [
+  String date = _today,
+]) async {
   final List<PlanItemData> plans = (await tester.runAsync(
-    () => harness.repos.planItem.listByDate(_today),
+    () => harness.repos.planItem.listByDate(date),
   ))!;
   expect(plans, hasLength(1));
   return plans.single;
@@ -438,6 +447,109 @@ void main() {
     expect(find.text('任务详情'), findsOneWidget);
     expect(find.text('成果 / 进展'), findsNothing);
     expect(find.byKey(_kContent), findsOneWidget);
+
+    await _flushTimers(tester);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Task 45 · W6：未来日（预排日）的两个入口必须与当天一致。
+  //
+  // 缺陷背景：W2 把「删除 / 回填 / 分级」从 chip 搬进本详情窗后，`day_grid.dart`
+  // 里 `canRequestFocus: !_future` / `onTap: _future ? null : ...` /
+  // `_openDetail` 开头的 `if (_future) return;` 三处旧拦截没跟着撤 ⇒ 明天 / 后天
+  // 预排的条目既改不了级别 / 内容 / 时长，也删不掉。
+  // 收窄后的口径：**只拦「完成 / 打勾」**，编辑与删除对未来日开放。
+  // ---------------------------------------------------------------------------
+
+  testWidgets('10. 未来日左键点条目 ⇒ 出详情窗，但「完成」入口仍禁用', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _future);
+    await _seedPlan(
+      harness,
+      title: '明天：评审',
+      startMinute: 9 * 60,
+      date: _future,
+    );
+    await harness.mount(tester, _future);
+    await _settle(tester);
+
+    final PlanItemData plan = await _onlyPlan(tester, harness, _future);
+
+    // 前置判据：「完成」的唯一主入口是 chip 左侧勾选框 —— 未来日必须锁死。
+    final Finder boxes = find.descendant(
+      of: _entryOf(plan.id),
+      matching: find.byType(LedgerCheckbox),
+    );
+    expect(boxes, findsOneWidget);
+    expect(
+      tester.widget<LedgerCheckbox>(boxes).onChanged,
+      isNull,
+      reason: '未来日的勾选框必须保持禁用（本修复不放开「完成」）',
+    );
+
+    // 左键点条目：旧实现 `onTap` 为 null，这一步什么也不会发生。
+    await tester.tap(_entryOf(plan.id));
+    await _settle(tester);
+
+    expect(find.text('任务详情'), findsOneWidget, reason: '未来日点条目没开详情窗');
+    final Finder title = find.byKey(_kTitle);
+    expect(title, findsOneWidget);
+    expect(tester.widget<Text>(title).data, '明天：评审');
+    expect(find.byKey(_kContent), findsOneWidget);
+    expect(find.byKey(_kDelete), findsOneWidget);
+
+    // 窗内没有任何「完成」类控件 —— 未来日不可能借详情窗伪造「做完了」。
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.textContaining('完成'),
+      ),
+      findsNothing,
+      reason: '详情窗里不该有「完成」入口（未来日尤其不该有）',
+    );
+
+    // 库层同一条事实：只是开了窗，一个字节都没写。
+    final PlanItemData after = await _onlyPlan(tester, harness, _future);
+    expect(after.status, PlanStatus.pending.code);
+    expect(after.doneAt, isNull);
+
+    await _flushTimers(tester);
+  });
+
+  testWidgets('11. 未来日点删除 ⇒ 二次确认 ⇒ 条目从网格消失', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _future);
+    await _seedPlan(
+      harness,
+      title: '后天：删我',
+      startMinute: 9 * 60,
+      date: _future,
+    );
+    await harness.mount(tester, _future);
+    await _settle(tester);
+
+    final PlanItemData plan = await _onlyPlan(tester, harness, _future);
+    final Finder entry = _entryOf(plan.id);
+    expect(entry, findsOneWidget);
+
+    await tester.tap(entry);
+    await _settle(tester);
+    expect(find.text('任务详情'), findsOneWidget);
+
+    await tester.tap(find.byKey(_kDelete));
+    await _settle(tester);
+    final Finder confirm = find.byKey(_kConfirmConfirm);
+    expect(confirm, findsOneWidget, reason: '未来日删除也必须先二次确认');
+
+    await tester.tap(confirm);
+    await _settle(tester);
+
+    expect(find.text('任务详情'), findsNothing, reason: '确认后详情窗还挂着');
+    expect(entry, findsNothing, reason: '未来日确认删除后条目仍在网格上');
+    final List<PlanItemData> left = (await tester.runAsync(
+      () => harness.repos.planItem.listByDate(_future),
+    ))!;
+    expect(left, isEmpty, reason: '未来日确认后没有软删');
 
     await _flushTimers(tester);
   });

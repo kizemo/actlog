@@ -108,7 +108,12 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 最近一次 build 的计划行原始数据，供条目按 id 反查状态 / 进展串。
   List<PlanItemData> _rows = const <PlanItemData>[];
 
-  /// 选中日是否晚于今天（未来日只可预排：不可勾选、不回填、不聚焦）。
+  /// 选中日是否晚于今天（未来日只可预排：不可勾选、不回填）。
+  ///
+  /// Task 45 · W6 收窄了它的作用面：**只拦「完成 / 打勾」类动作**
+  /// （[_toggleStatus]）。编辑与删除搬进详情窗后，未来日若仍拦
+  /// [_openDetail]，预排的条目就既改不了级别 / 内容 / 时长、也删不掉 ——
+  /// 与 [_setQuadrant] 既有口径（分级不拦未来日）自相矛盾。
   bool _future = false;
 
   /// 极简模式的当前值（见 [DayGrid.minimal]）。
@@ -618,7 +623,11 @@ class _DayGridState extends ConsumerState<DayGrid> {
       child: Focus(
         key: ValueKey<String>('plan-row-focus-${entry.id}'),
         focusNode: node,
-        canRequestFocus: !_future,
+        // 行级焦点对**所有**日子开放：焦点本身不是「做完了」的记录，
+        // 而 `Enter` 是详情窗的键盘入口（未来日也要能编辑 / 删除）。
+        // 「未来日不可勾选」由 `LedgerCheckbox` 的 `onChanged: null` 与
+        // [_toggleStatus] 的双重守卫保证。
+        canRequestFocus: true,
         onKeyEvent: (FocusNode target, KeyEvent event) =>
             _onKey(target, event, entry),
         child: FocusRing(
@@ -626,7 +635,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
           requirePrimaryFocus: true,
           ringKey: const ValueKey<String>('focus-ring-border-plan-row'),
           child: InkWell(
-            onTap: _future ? null : () => _openDetail(entry),
+            onTap: () => _openDetail(entry),
             canRequestFocus: false,
             child: body,
           ),
@@ -784,7 +793,8 @@ class _DayGridState extends ConsumerState<DayGrid> {
 
   /// 改条目的四象限（`null` = 取消分级）。
   ///
-  /// 与 [_toggleStatus] 的唯一差别：**不拦未来日**。状态是「做没做完」的事实，
+  /// 与 [_toggleStatus] 的差别：**不拦未来日**（[_openDetail] 起同样不拦）。
+  /// 状态是「做没做完」的事实，
   /// 未来日不该有；分级是排期前的判断，预排时就该能定下来 —— 在未来日改分级
   /// 不构成伪造记录。
   Future<void> _setQuadrant(GridEntry entry, Quadrant? quadrant) async {
@@ -804,10 +814,12 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// `planned_start` + `planned_end`），但只写**确实变了**的那些 —— 没改的
   /// 字段不落库，避免凭空多出 oplog 条目。删除走独立分支：详情窗里已经
   /// 二次确认过（`showConfirmDialog`），这里只负责软删。
+  ///
+  /// **不拦未来日**（Task 45 · W6）：内容 / 级别 / 回填内容 / 持续时间 / 删除
+  /// 都是「排期本身的编辑」，预排时就该能改。唯一留在 [_toggleStatus] 里的
+  /// `_future` 守卫，且详情窗里没有「标记完成」按钮 —— 未来日不可能借本窗
+  /// 产生「做完了」的记录。
   Future<void> _openDetail(GridEntry entry) async {
-    if (_future) {
-      return;
-    }
     final PlanItemData? row = _rowOf(entry.id);
     if (row == null) {
       return;
