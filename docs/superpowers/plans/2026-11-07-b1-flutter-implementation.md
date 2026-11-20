@@ -8185,4 +8185,4 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 46.3 W3 关于页 G2（第三方库许可证名）+ G4（检查结果可复制，`about-copy-result`）
 - [x] 46.4 控制器门禁全量（analyze 逐字 + desktop ≥ +462 + core_data ≥ +197 + 越界 `VIOLATIONS=0`）
 - [x] 46.4 重打包 + 包内核对 + R3 唯一可分发包真源行更新
-- [ ] 46.5 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS §5 §7）+ commit + push
+- [x] 46.5 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS §5 §7）+ commit + push
