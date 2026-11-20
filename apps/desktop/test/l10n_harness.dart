@@ -4,7 +4,7 @@
 // 为什么这些放在 test\ 而不是 lib\：它只为测试服务，进 lib 就是又造一层生产代码
 // 里的转发（本项目明令不要 `AppStrings.xxx => t.xxx` 那种壳）。
 //
-// `l10nAccessors` 是**测试数据**：把 61 条 getter 一条一条列成「键 → 取值闭包」。
+// `l10nAccessors` 是**测试数据**：把 73 条 getter 一条一条列成「键 → 取值闭包」。
 // 有了它，测试才能不看 getter 名地遍历全部文案（校验非空、校验中英不同、校验
 // 键数与条数一致）。新增 getter 时两侧都要加一行 —— 少了就会在
 // `l10n_base_test.dart` 的「条数一致」用例上红。
@@ -23,7 +23,7 @@ import 'package:actlog/src/l10n/l10n_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 61 条 getter 的访问器表：键 → 在当前语言下取该条文案。
+/// 73 条 getter 的访问器表：键 → 在当前语言下取该条文案。
 final Map<String, String Function(AppLocalizations)> l10nAccessors =
     <String, String Function(AppLocalizations)>{
   // 设置页 35 条
@@ -99,6 +99,24 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.commonCopy: (AppLocalizations t) => t.copy,
   L10nKeys.commonCopied: (AppLocalizations t) => t.copied,
   L10nKeys.commonOpen: (AppLocalizations t) => t.open,
+  // 域层文案 12 条（四象限 label/shortLabel + ABC label + 未分级）
+  L10nKeys.domainQuadrantQ1Label: (AppLocalizations t) => t.quadrantQ1Label,
+  L10nKeys.domainQuadrantQ1ShortLabel: (AppLocalizations t) =>
+      t.quadrantQ1ShortLabel,
+  L10nKeys.domainQuadrantQ2Label: (AppLocalizations t) => t.quadrantQ2Label,
+  L10nKeys.domainQuadrantQ2ShortLabel: (AppLocalizations t) =>
+      t.quadrantQ2ShortLabel,
+  L10nKeys.domainQuadrantQ3Label: (AppLocalizations t) => t.quadrantQ3Label,
+  L10nKeys.domainQuadrantQ3ShortLabel: (AppLocalizations t) =>
+      t.quadrantQ3ShortLabel,
+  L10nKeys.domainQuadrantQ4Label: (AppLocalizations t) => t.quadrantQ4Label,
+  L10nKeys.domainQuadrantQ4ShortLabel: (AppLocalizations t) =>
+      t.quadrantQ4ShortLabel,
+  L10nKeys.domainAbcALabel: (AppLocalizations t) => t.abcALabel,
+  L10nKeys.domainAbcBLabel: (AppLocalizations t) => t.abcBLabel,
+  L10nKeys.domainAbcCLabel: (AppLocalizations t) => t.abcCLabel,
+  L10nKeys.domainPriorityUnsetLabel: (AppLocalizations t) =>
+      t.priorityUnsetLabel,
 };
 
 /// 允许中英同值的键（白名单）。

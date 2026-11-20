@@ -15,6 +15,8 @@
 import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/l10n/l10n_keys.dart';
 import 'package:actlog/src/l10n/l10n_scope.dart';
+import 'package:core_data/core_data.dart';
+import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -22,9 +24,9 @@ import 'l10n_harness.dart';
 
 void main() {
   group('键表结构', () {
-    test('61 条 getter 全部登记在对照表里', () {
-      expect(L10nKeys.byGetter.length, 61);
-      expect(l10nAccessors.length, 61);
+    test('73 条 getter 全部登记在对照表里', () {
+      expect(L10nKeys.byGetter.length, 73);
+      expect(l10nAccessors.length, 73);
       // `byGetter` 是「getter 名 → 键」，访问器表是「键 → 取值」，所以这里比
       // 的是 `byGetter` 的**值**集合（都是 kebab 键）。
       expect(l10nAccessors.keys.toSet(), L10nKeys.byGetter.values.toSet());
@@ -38,12 +40,12 @@ void main() {
       );
     });
 
-    test('全部键值不重复（61 + 4 = 65）', () {
+    test('全部键值不重复（73 + 4 = 77）', () {
       final Set<String> all = <String>{
         ...L10nKeys.byGetter.values,
         ...L10nKeys.byMethod.values,
       };
-      expect(all.length, 65);
+      expect(all.length, 77);
     });
 
     test('键一律 kebab-case（小写字母数字，单横线分隔）', () {
@@ -62,13 +64,59 @@ void main() {
         expect(
           key.startsWith('settings-') ||
               key.startsWith('about-') ||
-              key.startsWith('common-'),
+              key.startsWith('common-') ||
+              key.startsWith('domain-'),
           isTrue,
           reason: 'getter 键必须以模块前缀开头：$key',
         );
       }
       for (final String key in L10nKeys.byMethod.values) {
         expect(key.startsWith('domain-'), isTrue, reason: '方法键缺前缀：$key');
+      }
+    });
+  });
+
+  group('域层文案 id 对齐', () {
+    /// 当前语言（中文态）下「键 → 文案」的查表结果。
+    Map<String, String> zhByKey() => <String, String>{
+      for (final MapEntry<String, String Function(AppLocalizations)> entry
+          in l10nAccessors.entries)
+        entry.key: entry.value(AppLocalizations.zh),
+    };
+
+    test('包层给出的 id 全部已建键，且中文逐字一致', () {
+      final Map<String, String> zh = zhByKey();
+      for (final QuadrantStyle style in QuadrantStyle.all.values) {
+        expect(zh[style.labelKey], style.label, reason: style.labelKey);
+        expect(
+          zh[style.shortLabelKey],
+          style.shortLabel,
+          reason: style.shortLabelKey,
+        );
+      }
+      for (final AbcStyle style in AbcStyle.all.values) {
+        expect(zh[style.labelKey], style.label, reason: style.labelKey);
+      }
+      expect(zh[PriorityDisplay.unsetLabelKey], PriorityDisplay.unsetLabel);
+    });
+
+    test('labelKeyFor 与 labelFor 一一对应（含未分级兜底）', () {
+      final Map<String, String> zh = zhByKey();
+      for (final PriorityDisplayMode mode in PriorityDisplayMode.values) {
+        for (final Quadrant? q in <Quadrant?>[...Quadrant.values, null]) {
+          expect(
+            zh[PriorityDisplay.labelKeyFor(mode, quadrant: q)],
+            PriorityDisplay.labelFor(mode, quadrant: q),
+            reason: '$mode/$q',
+          );
+        }
+        for (final PriorityAbc? a in <PriorityAbc?>[...PriorityAbc.values, null]) {
+          expect(
+            zh[PriorityDisplay.labelKeyFor(mode, priorityAbc: a)],
+            PriorityDisplay.labelFor(mode, priorityAbc: a),
+            reason: '$mode/$a',
+          );
+        }
       }
     });
   });

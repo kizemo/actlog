@@ -28,9 +28,15 @@ final class QuadrantStyle {
   final Quadrant quadrant;
 
   /// 完整名称（如「重要且紧急」）。
+  ///
+  /// 这是**兜底文案**，仅供无 `BuildContext` 的场合（日志导出、调试）。
+  /// 界面一律取 [labelKey] 去 l10n 里查，不要直接渲染本字段；
+  /// 本字段在 W9 波次随 l10n 全量收敛一并删除。
   final String label;
 
   /// 宫格内的短名（如「立即做」）。
+  ///
+  /// 同 [label]：兜底文案，界面取 [shortLabelKey]，本字段 W9 删除。
   final String shortLabel;
 
   /// 行动建议文案。
@@ -74,6 +80,15 @@ final class QuadrantStyle {
   /// 取某象限的元数据；未知值返回 Q4 的样式（不抛异常）。
   static QuadrantStyle of(Quadrant? quadrant) =>
       all[quadrant ?? Quadrant.q4]!;
+
+  /// [label] 对应的 l10n 键（`domain-quadrant-q1-label` 等）。
+  ///
+  /// 包层只出 id、不出文案：宿主拿到键自己去查当前语言。
+  String get labelKey => 'domain-quadrant-${quadrant.code.toLowerCase()}-label';
+
+  /// [shortLabel] 对应的 l10n 键（`domain-quadrant-q1-short-label` 等）。
+  String get shortLabelKey =>
+      'domain-quadrant-${quadrant.code.toLowerCase()}-short-label';
 }
 
 /// ABC 的展示元数据。
@@ -89,6 +104,8 @@ final class AbcStyle {
   final PriorityAbc priority;
 
   /// 标签（如「A 类要事」）。
+  ///
+  /// 兜底文案，界面取 [labelKey] 去 l10n 里查；本字段 W9 波次删除。
   final String label;
 
   /// 说明。
@@ -116,6 +133,9 @@ final class AbcStyle {
   /// 取某优先级的元数据；未知值返回 C 的样式（不抛异常）。
   static AbcStyle of(PriorityAbc? priority) =>
       all[priority ?? PriorityAbc.c]!;
+
+  /// [label] 对应的 l10n 键（`domain-abc-a-label` 等）。
+  String get labelKey => 'domain-abc-${priority.code.toLowerCase()}-label';
 }
 
 /// 显示模式相关的纯函数集合。
@@ -126,6 +146,14 @@ abstract final class PriorityDisplay {
   /// ABC 模式下表头显示的提示。
   static const String abcHeaderHint = 'A 类要事优先安排';
 
+  /// 两种模式都没分级时的显示文案（兜底值）。
+  ///
+  /// 界面一律取 [unsetLabelKey]；本常量仅供无 `BuildContext` 的场合。
+  static const String unsetLabel = '未分级';
+
+  /// [unsetLabel] 对应的 l10n 键。
+  static const String unsetLabelKey = 'domain-priority-unset-label';
+
   /// 当前模式对应的表头提示。
   static String headerHint(PriorityDisplayMode mode) =>
       mode == PriorityDisplayMode.quadrant ? quadrantHeaderHint : abcHeaderHint;
@@ -133,16 +161,33 @@ abstract final class PriorityDisplay {
   /// 当前模式下要渲染的标签文本。
   ///
   /// **只返回一套**：四象限模式返回象限名，ABC 模式返回优先级名。
-  /// 两者都为空时返回 `未分级`。
+  /// 两者都为空时返回 [unsetLabel]。
+  ///
+  /// 这是兜底文案；界面请用 [labelKeyFor] 拿 id 再查 l10n。
+  /// 本方法在 W9 波次随 l10n 全量收敛一并删除。
   static String labelFor(
     PriorityDisplayMode mode, {
     Quadrant? quadrant,
     PriorityAbc? priorityAbc,
   }) {
     if (mode == PriorityDisplayMode.quadrant) {
-      return quadrant == null ? '未分级' : QuadrantStyle.of(quadrant).label;
+      return quadrant == null ? unsetLabel : QuadrantStyle.of(quadrant).label;
     }
-    return priorityAbc == null ? '未分级' : AbcStyle.of(priorityAbc).label;
+    return priorityAbc == null ? unsetLabel : AbcStyle.of(priorityAbc).label;
+  }
+
+  /// [labelFor] 对应的 l10n 键（一一对应，含未分级的兜底键）。
+  static String labelKeyFor(
+    PriorityDisplayMode mode, {
+    Quadrant? quadrant,
+    PriorityAbc? priorityAbc,
+  }) {
+    if (mode == PriorityDisplayMode.quadrant) {
+      return quadrant == null
+          ? unsetLabelKey
+          : QuadrantStyle.of(quadrant).labelKey;
+    }
+    return priorityAbc == null ? unsetLabelKey : AbcStyle.of(priorityAbc).labelKey;
   }
 
   /// 条目的排序权重（越小越靠前），用于「今日优先」排序。

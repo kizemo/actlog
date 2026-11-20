@@ -18,26 +18,22 @@
 /// 对外宣传不得称「四象限来自五项管理」。
 enum Quadrant {
   /// 重要且紧急 —— 立即做。
-  q1('Q1', '重要且紧急'),
+  q1('Q1'),
 
   /// 重要不紧急 —— 计划做。这是「要事」的核心区间。
-  q2('Q2', '重要不紧急'),
+  q2('Q2'),
 
   /// 紧急不重要 —— 委托或压缩。
-  q3('Q3', '紧急不重要'),
+  q3('Q3'),
 
   /// 不重要不紧急 —— 砍掉。
-  q4('Q4', '不重要不紧急');
+  q4('Q4');
 
   /// 构造 [Quadrant] 常量。
-
-  const Quadrant(this.code, this.label);
+  const Quadrant(this.code);
 
   /// 存储到数据库的取值，与 schema 的 CHECK 约束一致。
   final String code;
-
-  /// 中文显示名。
-  final String label;
 
   /// 重要的事（无论是否紧急）—— 四象限模式下等价于原书的「A 类要事」。
   bool get isImportant => this == Quadrant.q1 || this == Quadrant.q2;
@@ -47,14 +43,6 @@ enum Quadrant {
 
   /// 从数据库取值解析；无法识别时返回 null（**不抛异常**），
   /// 因为同步对端可能来自更高版本的 schema。
-  /// 从数据库存储值解析。
-
-  ///
-
-  /// 无法识别时返回 null 而**不抛异常** —— 同步对端可能来自更高版本的
-
-  /// schema，抛异常会导致整个同步批次失败。
-
   static Quadrant? fromCode(String? code) {
     if (code == null) {
       return null;
@@ -71,32 +59,22 @@ enum Quadrant {
 /// 原书体系的三级优先级（只用于完整版日志的 A/B/C 列）。
 enum PriorityAbc {
   /// 最重要。
-  a('A', 'A 类要事'),
+  a('A'),
 
   /// 重要。
-  b('B', 'B 类次要'),
+  b('B'),
 
   /// 次重要。
-  c('C', 'C 类一般');
+  c('C');
 
   /// 构造 [PriorityAbc] 常量。
-
-  const PriorityAbc(this.code, this.label);
+  const PriorityAbc(this.code);
 
   /// 存储到数据库的取值，与 schema 的 CHECK 约束一致。
   final String code;
 
-  /// 中文显示名。
-  final String label;
-
-  /// 从数据库存储值解析。
-
-  ///
-
-  /// 无法识别时返回 null 而**不抛异常** —— 同步对端可能来自更高版本的
-
-  /// schema，抛异常会导致整个同步批次失败。
-
+  /// 从数据库取值解析；无法识别时返回 null（**不抛异常**），
+  /// 因为同步对端可能来自更高版本的 schema。
   static PriorityAbc? fromCode(String? code) {
     if (code == null) {
       return null;

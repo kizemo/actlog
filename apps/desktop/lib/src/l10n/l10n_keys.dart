@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「61 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「73 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -234,10 +234,58 @@ abstract final class L10nKeys {
   static const String domainMoodScoreLabel = 'domain-mood-score-label';
 
   // ---------------------------------------------------------------------------
+  // 优先级展示文案（parts\domain.dart，12 条 getter；W0.5 域层 id 化）
+  // ---------------------------------------------------------------------------
+  // 这 12 条的中文取值与 `packages\core_data\lib\src\priority.dart` 里
+  // `QuadrantStyle` / `AbcStyle` / `PriorityDisplay` 的旧常量**逐字一致**（由
+  // `test\l10n_base_test.dart` 的「id ↔ l10n 对齐」用例守着）。包层出 id，UI 侧
+  // 查这张表拿到当前语言的文案。
+
+  /// 象限全名：Q1。
+  static const String domainQuadrantQ1Label = 'domain-quadrant-q1-label';
+
+  /// 象限短名：Q1。
+  static const String domainQuadrantQ1ShortLabel =
+      'domain-quadrant-q1-short-label';
+
+  /// 象限全名：Q2。
+  static const String domainQuadrantQ2Label = 'domain-quadrant-q2-label';
+
+  /// 象限短名：Q2。
+  static const String domainQuadrantQ2ShortLabel =
+      'domain-quadrant-q2-short-label';
+
+  /// 象限全名：Q3。
+  static const String domainQuadrantQ3Label = 'domain-quadrant-q3-label';
+
+  /// 象限短名：Q3。
+  static const String domainQuadrantQ3ShortLabel =
+      'domain-quadrant-q3-short-label';
+
+  /// 象限全名：Q4。
+  static const String domainQuadrantQ4Label = 'domain-quadrant-q4-label';
+
+  /// 象限短名：Q4。
+  static const String domainQuadrantQ4ShortLabel =
+      'domain-quadrant-q4-short-label';
+
+  /// A 级标签。
+  static const String domainAbcALabel = 'domain-abc-a-label';
+
+  /// B 级标签。
+  static const String domainAbcBLabel = 'domain-abc-b-label';
+
+  /// C 级标签。
+  static const String domainAbcCLabel = 'domain-abc-c-label';
+
+  /// 未分级标签。
+  static const String domainPriorityUnsetLabel = 'domain-priority-unset-label';
+
+  // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（61 条，覆盖 `AppLocalizations` 全部无参 getter）。
+  /// getter 名 → 键（73 条，覆盖 `AppLocalizations` 全部无参 getter）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
   static const Map<String, String> byGetter = <String, String>{
@@ -305,6 +353,19 @@ abstract final class L10nKeys {
     'copy': commonCopy,
     'copied': commonCopied,
     'open': commonOpen,
+    // 优先级展示文案 12 条（W0.5 域层 id 化）
+    'quadrantQ1Label': domainQuadrantQ1Label,
+    'quadrantQ1ShortLabel': domainQuadrantQ1ShortLabel,
+    'quadrantQ2Label': domainQuadrantQ2Label,
+    'quadrantQ2ShortLabel': domainQuadrantQ2ShortLabel,
+    'quadrantQ3Label': domainQuadrantQ3Label,
+    'quadrantQ3ShortLabel': domainQuadrantQ3ShortLabel,
+    'quadrantQ4Label': domainQuadrantQ4Label,
+    'quadrantQ4ShortLabel': domainQuadrantQ4ShortLabel,
+    'abcALabel': domainAbcALabel,
+    'abcBLabel': domainAbcBLabel,
+    'abcCLabel': domainAbcCLabel,
+    'priorityUnsetLabel': domainPriorityUnsetLabel,
   };
 
   /// 插值方法名 → 键（4 条）。

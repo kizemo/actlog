@@ -35,6 +35,8 @@ class UnscheduledStrip extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final ThemeTokens t = context.tokens;
+    final String unsetLabel =
+        ref.watch(appLocalizationsProvider).priorityUnsetLabel;
     return Padding(
       key: const ValueKey<String>('unscheduled-strip'),
       padding: const EdgeInsets.only(top: 8),
@@ -48,11 +50,17 @@ class UnscheduledStrip extends ConsumerWidget {
               feedback: Material(
                 color: Colors.transparent,
                 // 拖动中的影子是纯展示：不挂写入回调，免得拖拽时误落库。
-                child: _chip(row, t, onChanged: null),
+                child: _chip(
+                  row,
+                  t,
+                  unsetLabel: unsetLabel,
+                  onChanged: null,
+                ),
               ),
               child: _chip(
                 row,
                 t,
+                unsetLabel: unsetLabel,
                 onChanged: (Quadrant? next) =>
                     _setQuadrant(context, ref, row.id, next),
               ),
@@ -84,6 +92,7 @@ class UnscheduledStrip extends ConsumerWidget {
   Widget _chip(
     PlanItemData row,
     ThemeTokens t, {
+    required String unsetLabel,
     required ValueChanged<Quadrant?>? onChanged,
   }) {
     // 与 `day_grid.dart` 的格子芯片同一条规矩：行里存码值，渲染层自己解析；
@@ -122,7 +131,7 @@ class UnscheduledStrip extends ConsumerWidget {
           if (quadrant == null) ...<Widget>[
             const SizedBox(width: 4),
             Text(
-              '未分级',
+              unsetLabel,
               style: TextStyle(fontSize: 10, color: t.faint),
             ),
           ],

@@ -8316,8 +8316,8 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 
 - [x] 47.1 W0 底座落地（9 part + keys + scope + harness + base_test），基线不减
 - [x] 47.1 W0 单独提交 + zh/en 同 key 不同文案用例
-- [ ] 47.2 W0.5 域层 13 文件 id 化（只增不减 + `@Deprecated`；`result_note.dart` 未动）
-- [ ] 47.4 R-08 / R-12 / 关于页 19 条 三项复核闭合
+- [x] 47.2 W0.5 域层 7 文件 id 化（按 D-47-c 删重复定义、不加 `@Deprecated`）
+- [x] 47.4 R-08 / R-12 / 关于页 19 条 三项复核闭合
 - [x] 47.5 D-47-a / D-47-b / D-47-c 产品决策落定
 - [ ] 47.1 W1 外壳与入口（含 G8 窗口标题，按 D-47-b）
 - [ ] 47.1 W2 日历与日期（G7 主战场，与 W0.5 的 `calendar.dart` key 不建两份）
