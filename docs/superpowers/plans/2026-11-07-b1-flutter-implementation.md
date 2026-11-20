@@ -8176,13 +8176,13 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 
 ### 46.6 Task 46 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
 
-- [ ] 46.2 W1 版本三处统一到 1.0.0 + build 1（`app_version.dart` / `pubspec.yaml` / `make_installer.ps1` 口径一致）
-- [ ] 46.2 W1 随包 CJK 衬线落地（Noto Serif SC Regular TTF + OFL 许可 + pubspec 声明 + `app_fonts.dart` 核对）
-- [ ] 46.2 W1 `font_bundle_test.dart` 守卫改强（字体族清单 / OFL 五份 / 未打包的可变字体不声明）
-- [ ] 46.2 W2 `setTitle` 落地（不改列定义）+ 未来日可改标题 / 详情 / 删除
-- [ ] 46.2 W2 未来日**回填 / 打卡 / 复盘 / 心态**守卫补齐（修 §H-1 越口径缺陷）
-- [ ] 46.2 W2 spec §H-1 口径同步修订
-- [ ] 46.3 W3 关于页 G2（第三方库许可证名）+ G4（检查结果可复制，`about-copy-result`）
-- [ ] 46.4 控制器门禁全量（analyze 逐字 + desktop ≥ +462 + core_data ≥ +197 + 越界 `VIOLATIONS=0`）
-- [ ] 46.4 重打包 + 包内核对 + R3 唯一可分发包真源行更新
+- [x] 46.2 W1 版本三处统一到 1.0.0 + build 1（`app_version.dart` / `pubspec.yaml` / `make_installer.ps1` 口径一致）
+- [x] 46.2 W1 随包 CJK 衬线落地（Noto Serif SC Regular TTF + OFL 许可 + pubspec 声明 + `app_fonts.dart` 核对）
+- [x] 46.2 W1 `font_bundle_test.dart` 守卫改强（字体族清单 / OFL 五份 / 未打包的可变字体不声明）
+- [x] 46.2 W2 `setTitle` 落地（不改列定义）+ 未来日可改标题 / 详情 / 删除
+- [x] 46.2 W2 未来日**回填 / 打卡 / 复盘 / 心态**守卫补齐（修 §H-1 越口径缺陷）
+- [x] 46.2 W2 spec §H-1 口径同步修订
+- [x] 46.3 W3 关于页 G2（第三方库许可证名）+ G4（检查结果可复制，`about-copy-result`）
+- [x] 46.4 控制器门禁全量（analyze 逐字 + desktop ≥ +462 + core_data ≥ +197 + 越界 `VIOLATIONS=0`）
+- [x] 46.4 重打包 + 包内核对 + R3 唯一可分发包真源行更新
 - [ ] 46.5 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS §5 §7）+ commit + push
