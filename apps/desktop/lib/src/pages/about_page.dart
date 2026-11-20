@@ -133,10 +133,6 @@ class _AboutPageState extends ConsumerState<AboutPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations t = ref.watch(appLocalizationsProvider);
-    final _AboutCopy copy = ref.watch(currentPreferencesProvider).language ==
-            AppLanguage.en
-        ? _AboutCopy.en
-        : _AboutCopy.zh;
     final ThemeTokens tokens = context.tokens;
     final ReleaseCheckResult? result = _result;
     final bool hasNewer = result?.status == ReleaseCheckStatus.newer;
@@ -169,9 +165,9 @@ class _AboutPageState extends ConsumerState<AboutPage> {
             spacing: 4,
             runSpacing: 4,
             children: <Widget>[
-              for (int i = 0; i < copy.toc.length; i++)
+              for (int i = 0; i < t.aboutToc.length; i++)
                 _TocEntry(
-                  label: copy.toc[i],
+                  label: t.aboutToc[i],
                   onTap: () => _scrollToSection(i),
                 ),
             ],
@@ -230,7 +226,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                 const SizedBox(width: 8),
                 _LinkButton(
                   buttonKey: const ValueKey<String>('about-copy-result'),
-                  label: _resultCopied ? t.copied : copy.copyResult,
+                  label: _resultCopied ? t.copied : t.aboutCopyResult,
                   onTap: () => _copyResult(_resultText(t, result)),
                 ),
               ],
@@ -243,7 +239,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
               alignment: Alignment.centerLeft,
               child: _LinkButton(
                 buttonKey: const ValueKey<String>('about-open-releases'),
-                label: copy.releases,
+                label: t.aboutReleases,
                 onTap: () => _open(_releasesUrl),
               ),
             ),
@@ -252,9 +248,9 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           const SizedBox(height: AppTokens.gapCard),
 
           // ---------------- 最近变更（G1） ----------------
-          _sectionTitle(copy.changelogTitle, anchorKey: _anchors[1]),
+          _sectionTitle(t.aboutChangelogTitle, anchorKey: _anchors[1]),
           Text(
-            copy.changelog.join('\n'),
+            t.aboutChangelog.join('\n'),
             key: const ValueKey<String>('about-changelog'),
             style: _paragraphStyle(tokens),
           ),
@@ -262,9 +258,9 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           const SizedBox(height: AppTokens.gapCard),
 
           // ---------------- 数据与隐私（G3） ----------------
-          _sectionTitle(copy.privacyTitle, anchorKey: _anchors[2]),
+          _sectionTitle(t.aboutPrivacyTitle, anchorKey: _anchors[2]),
           Text(
-            copy.privacy,
+            t.aboutPrivacy,
             key: const ValueKey<String>('about-privacy'),
             style: _paragraphStyle(tokens),
           ),
@@ -356,9 +352,9 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           const SizedBox(height: AppTokens.gapCard),
 
           // ---------------- 许可证（G2） ----------------
-          _sectionTitle(copy.licensesTitle, anchorKey: _anchors[6]),
+          _sectionTitle(t.aboutLicensesTitle, anchorKey: _anchors[6]),
           Text(
-            copy.licenses,
+            t.aboutLicenses,
             key: const ValueKey<String>('about-licenses'),
             style: _hintStyle(tokens),
           ),
@@ -483,116 +479,6 @@ class _LinkButtonState extends State<_LinkButton> {
       ),
     );
   }
-}
-
-/// 本页新增文案（最近变更 / 数据与隐私 / 许可证 / 发布页 / 导航）。
-///
-/// 为什么在页面内而不是 `AppLocalizations`：`l10n\app_localizations.dart`
-/// 不在本波写集内，新增 getter 会越界；这里按当前语言取一份静态常量，
-/// 与全页的「无新依赖、无新 token」口径一致，后续可整体迁进 l10n。
-class _AboutCopy {
-  const _AboutCopy({
-    required this.toc,
-    required this.changelogTitle,
-    required this.changelog,
-    required this.privacyTitle,
-    required this.privacy,
-    required this.licensesTitle,
-    required this.licenses,
-    required this.copyResult,
-    required this.releases,
-  });
-
-  /// 本页导航条目，顺序与 `_anchors` 一一对应。
-  final List<String> toc;
-  final String changelogTitle;
-  final List<String> changelog;
-  final String privacyTitle;
-  final String privacy;
-  final String licensesTitle;
-  final String licenses;
-
-  /// 「复制检查结果」按钮文案（Task 46 · G4）。
-  ///
-  /// 不复用 AppLocalizations.copy（「复制地址」）：那条专指仓库 URL，
-  /// 用在检查结果上语义不对。
-  final String copyResult;
-  final String releases;
-
-  static const _AboutCopy zh = _AboutCopy(
-    toc: <String>['版本', '最近变更', '数据与隐私', '仓库', '开发者', '其它软件', '许可证'],
-    changelogTitle: '最近变更',
-    changelog: <String>[
-      // 版本串取自 `app_version.dart`（Task 46 · 版本口径统一到 1.0.0），
-      // 不在文案里硬编码 —— 否则关于页会与真实版本脱节。
-      '$kAppVersionFull · 首个可分发版本；仓库尚无对外发布。',
-      '今日 / 待办池 / 习惯 / 日历 四个主页面，数据写在本机 SQLite。',
-      '中文 / English 双语界面，明暗两套主题。',
-      '文字缩放到 200% 时页面不溢出、不截断。',
-      '关于页新增：最近变更、数据与隐私、许可证。',
-    ],
-    privacyTitle: '数据与隐私',
-    privacy: '待办、日志、习惯与设置都写在本机的 SQLite 数据库里，不出这台电脑。'
-        '除「检查更新」会向 GitHub releases API 发一次请求外，应用不发起任何网络请求；'
-        '没有账号系统，也不收集任何遥测数据。',
-    licensesTitle: '许可证',
-    // Task 46 · G2：逐条列出 pubspec.yaml 里真实存在的依赖与真实许可证名
-    // （MIT / BSD-3-Clause 已实测，不许把 BSD 写成 MIT）；随包字体按
-    // 「字体族 + OFL-1.1」分组表述，**不写死数量**（W1 会新增第 5 个字体族）。
-    licenses: '第三方软件与许可证 · 本应用以 Flutter 构建，随包分发下列第三方组件：'
-        'cupertino_icons（MIT）、drift（MIT）、flutter_riverpod（MIT）、'
-        'window_manager（MIT）、tray_manager（MIT）、sqlite3（MIT）、'
-        'flutter_local_notifications（BSD-3-Clause）、path（BSD-3-Clause）、'
-        'path_provider（BSD-3-Clause）。随包字体族（Fraunces / Inter / '
-        'JetBrains Mono / Noto Sans SC 等）均以 SIL Open Font License 1.1 授权；'
-        'SQLite 运行库 sqlite3.dll 归公有领域。本仓库自身的 core_domain / '
-        'core_db / core_data 三个包不在第三方之列。许可证全文除 OFL 外未随包'
-        '分发，OFL 全文见仓库 apps/desktop/assets/fonts/licenses/（OFL-*.txt），'
-        '完整依赖清单见 apps/desktop/pubspec.yaml。',
-    copyResult: '复制结果',
-    releases: '打开发布页',
-  );
-
-  static const _AboutCopy en = _AboutCopy(
-    toc: <String>[
-      'Version',
-      'Recent changes',
-      'Data & privacy',
-      'Repository',
-      'Developer',
-      'Other software',
-      'Licenses',
-    ],
-    changelogTitle: 'Recent changes',
-    changelog: <String>[
-      // Task 46：与中文档同源，取 `kAppVersionFull`，不硬编码版本串。
-      '$kAppVersionFull — first distributable build; the repository has no public '
-      'release yet.',
-      'Four main pages (Today, To-do pool, Habits, Calendar) store data in a local SQLite database.',
-      'Chinese / English UI, light and dark themes.',
-      'Text scaled to 200% still lays out without overflow.',
-      'About page gains recent changes, data & privacy and licenses sections.',
-    ],
-    privacyTitle: 'Data & privacy',
-    privacy: 'Tasks, logs, habits and settings are written to a local SQLite '
-        'database on this machine. Apart from the “Check for updates” request '
-        'to the GitHub releases API, the app makes no network calls. There is '
-        'no account system and no telemetry.',
-    licensesTitle: 'Licenses',
-    // Task 46 · G2：与中文档同一份真值（MIT / BSD-3-Clause 逐条对齐）。
-    licenses: 'Third-party software and licences — built with Flutter, this '
-        'package ships: cupertino_icons (MIT), drift (MIT), flutter_riverpod '
-        '(MIT), window_manager (MIT), tray_manager (MIT), sqlite3 (MIT), '
-        'flutter_local_notifications (BSD-3-Clause), path (BSD-3-Clause), '
-        'path_provider (BSD-3-Clause). Bundled typeface families (Fraunces / '
-        'Inter / JetBrains Mono / Noto Sans SC and others) are under the SIL '
-        'Open Font License 1.1; the SQLite runtime sqlite3.dll is in the public '
-        'domain. Full licence texts are not bundled except the OFL files under '
-        'apps/desktop/assets/fonts/licenses/ (OFL-*.txt); see '
-        'apps/desktop/pubspec.yaml for the complete dependency list.',
-    copyResult: 'Copy result',
-    releases: 'Open releases page',
-  );
 }
 
 /// 正文段落样式。

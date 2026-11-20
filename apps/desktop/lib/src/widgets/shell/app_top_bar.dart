@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart' as wm;
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/l10n_scope.dart';
 import '../../theme/theme_tokens.dart';
 
 /// 顶栏高度（Windows 说明按钮区的标准高度）。
@@ -123,6 +125,13 @@ class AppTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 窗口按钮的 label 只是无障碍名（图标本身没有文字），所以这里不做
+    // `AppLocalizations.of(context)` 的硬断言：`test\app_top_bar_test.dart` 与
+    // `test\task48_brand_icon_test.dart` 直接构造本控件、不套 `L10nScope`，
+    // 硬取会抛 FlutterError 打挂既有测试。取不到 scope 时回落中文态。
+    final AppLocalizations t =
+        context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+            AppLocalizations.zh;
     return SizedBox(
       height: kTopBarHeight,
       child: Material(
@@ -161,7 +170,7 @@ class AppTopBar extends StatelessWidget {
             TopBarButton(
               key: minimizeButtonKey,
               glyph: TopBarGlyph.minimize,
-              label: '最小化',
+              label: t.windowMinimize,
               onPressed: onMinimize,
             ),
             ValueListenableBuilder<bool>(
@@ -170,7 +179,7 @@ class AppTopBar extends StatelessWidget {
                 final TopBarButton button = TopBarButton(
                   key: maximizeButtonKey,
                   glyph: maximized ? TopBarGlyph.restore : TopBarGlyph.maximize,
-                  label: maximized ? '还原' : '最大化',
+                  label: maximized ? t.windowRestore : t.windowMaximize,
                   onPressed: onToggleMaximize,
                 );
                 return ValueListenableBuilder<bool>(
@@ -189,7 +198,7 @@ class AppTopBar extends StatelessWidget {
             TopBarButton(
               key: closeButtonKey,
               glyph: TopBarGlyph.close,
-              label: '关闭',
+              label: t.windowClose,
               onPressed: onClose,
             ),
           ],

@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「73 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「89 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -130,7 +130,7 @@ abstract final class L10nKeys {
   static const String settingsFootnote = 'settings-footnote';
 
   // ---------------------------------------------------------------------------
-  // 关于页（parts\about.dart，19 条）
+  // 关于页（parts\about.dart，28 条：19 条原文 + 9 条正文/列表）
   // ---------------------------------------------------------------------------
 
   /// 关于页标题。
@@ -191,6 +191,65 @@ abstract final class L10nKeys {
 
   /// 「仓库地址待核实」标注。
   static const String aboutUnverifiedLink = 'about-unverified-link';
+
+  /// 关于页目录（列表型 getter）。
+  static const String aboutToc = 'about-toc';
+
+  /// 分组：最近变更。
+  static const String aboutChangelogTitle = 'about-changelog-title';
+
+  /// 最近变更条目（列表型 getter）。
+  static const String aboutChangelog = 'about-changelog';
+
+  /// 分组：数据与隐私。
+  static const String aboutPrivacyTitle = 'about-privacy-title';
+
+  /// 数据与隐私正文。
+  static const String aboutPrivacy = 'about-privacy';
+
+  /// 分组：许可证。
+  static const String aboutLicensesTitle = 'about-licenses-title';
+
+  /// 许可证正文。
+  static const String aboutLicenses = 'about-licenses';
+
+  /// 复制结果按钮。
+  static const String aboutCopyResult = 'about-copy-result';
+
+  /// 打开发布页按钮。
+  static const String aboutReleases = 'about-releases';
+
+  // ---------------------------------------------------------------------------
+  // 外壳（窗口标题 / 顶栏 / 托盘，9 条；暂寄 parts\about.dart，待 parts\shell.dart
+  // 立项时整体挪走）
+  // ---------------------------------------------------------------------------
+
+  /// 窗口标题（含英文标识）。
+  static const String shellAppTitle = 'shell-app-title';
+
+  /// 应用名（只中文/只英文，不含标识）。
+  static const String shellAppName = 'shell-app-name';
+
+  /// 顶栏：最小化。
+  static const String shellWindowMinimize = 'shell-window-minimize';
+
+  /// 顶栏：最大化。
+  static const String shellWindowMaximize = 'shell-window-maximize';
+
+  /// 顶栏：还原。
+  static const String shellWindowRestore = 'shell-window-restore';
+
+  /// 顶栏：关闭。
+  static const String shellWindowClose = 'shell-window-close';
+
+  /// 托盘菜单：显示窗口。
+  static const String shellTrayShow = 'shell-tray-show';
+
+  /// 托盘菜单：隐藏到托盘。
+  static const String shellTrayHide = 'shell-tray-hide';
+
+  /// 托盘菜单：退出。
+  static const String shellTrayQuit = 'shell-tray-quit';
 
   // ---------------------------------------------------------------------------
   // 跨页共用（parts\common.dart，7 条）
@@ -285,7 +344,8 @@ abstract final class L10nKeys {
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（73 条，覆盖 `AppLocalizations` 全部无参 getter）。
+  /// getter 名 → 键（89 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// 另有 2 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
   static const Map<String, String> byGetter = <String, String>{
@@ -366,6 +426,33 @@ abstract final class L10nKeys {
     'abcBLabel': domainAbcBLabel,
     'abcCLabel': domainAbcCLabel,
     'priorityUnsetLabel': domainPriorityUnsetLabel,
+    // 关于页正文 7 条（W1 新增；另 2 条列表型见 byListGetter）
+    'aboutChangelogTitle': aboutChangelogTitle,
+    'aboutPrivacyTitle': aboutPrivacyTitle,
+    'aboutPrivacy': aboutPrivacy,
+    'aboutLicensesTitle': aboutLicensesTitle,
+    'aboutLicenses': aboutLicenses,
+    'aboutCopyResult': aboutCopyResult,
+    'aboutReleases': aboutReleases,
+    // 外壳 9 条（W1 新增）
+    'appTitle': shellAppTitle,
+    'appName': shellAppName,
+    'windowMinimize': shellWindowMinimize,
+    'windowMaximize': shellWindowMaximize,
+    'windowRestore': shellWindowRestore,
+    'windowClose': shellWindowClose,
+    'trayShow': shellTrayShow,
+    'trayHide': shellTrayHide,
+    'trayQuit': shellTrayQuit,
+  };
+
+  /// 列表型 getter 名 → 键（2 条；`byGetter` 只收 String getter）。
+  ///
+  /// 列表型 getter（`List<String>`）无法塞进 `Map<String, String>`，单列一张表，
+  /// 好让测试同样能遍历「键一条不少 + 中英两态都非空且不同」。
+  static const Map<String, String> byListGetter = <String, String>{
+    'aboutToc': aboutToc,
+    'aboutChangelog': aboutChangelog,
   };
 
   /// 插值方法名 → 键（4 条）。

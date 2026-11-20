@@ -12,6 +12,7 @@ import 'package:tray_manager/legacy.dart';
 import 'package:window_manager/legacy.dart';
 
 import 'desktop_shell.dart';
+import 'l10n/app_localizations.dart';
 
 /// 自检开关用的环境变量名。
 const String kSelfTestEnvVar = 'ACTLOG_SELFTEST';
@@ -193,11 +194,13 @@ Future<int> runSelfTest({
     await windowManager
         .ensureInitialized()
         .timeout(const Duration(seconds: 10));
-    await windowManager.setTitle(kAppTitle).timeout(const Duration(seconds: 10));
+    await windowManager
+        .setTitle(kAppTitle())
+        .timeout(const Duration(seconds: 10));
     final title = await windowManager
         .getTitle()
         .timeout(const Duration(seconds: 10));
-    add(_Check('window_title_utf8', title == kAppTitle, 'title="$title"'));
+    add(_Check('window_title_utf8', title == kAppTitle(), 'title="$title"'));
   } catch (error) {
     add(_Check('window_title_utf8', false, '$error'));
   }
@@ -208,24 +211,28 @@ Future<int> runSelfTest({
   // 否则用户点了关闭按钮就既看不到窗口、也没有托盘可点，进程会变成僵尸。
   try {
     await trayManager.setIcon(kTrayIconAsset).timeout(const Duration(seconds: 10));
-    await trayManager.setToolTip(kAppTitle).timeout(const Duration(seconds: 10));
+    // 托盘文案与主界面同源：自检进程不保证有 L10nScope，直接用默认语言实例。
+    final AppLocalizations t = AppLocalizations.zh;
+    await trayManager
+        .setToolTip(kAppTitle())
+        .timeout(const Duration(seconds: 10));
     await trayManager
         .setContextMenu(
           Menu(
             items: [
               MenuItem(
                 key: kTrayKeyShow,
-                label: '显示窗口',
+                label: t.trayShow,
                 onClick: (_) {},
               ),
               MenuItem(
                 key: kTrayKeyHide,
-                label: '隐藏到托盘',
+                label: t.trayHide,
                 onClick: (_) {},
               ),
               MenuItem(
                 key: kTrayKeyQuit,
-                label: '退出',
+                label: t.trayQuit,
                 onClick: (_) {},
               ),
             ],

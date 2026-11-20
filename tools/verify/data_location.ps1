@@ -124,7 +124,11 @@ function Get-ActLogTitleCandidates {
       the renamed product name and the legacy one.
     #>
     $cn = [string]([char]0x77E5) + [char]0x884C + [char]0x65E5 + [char]0x5FD7
-    return @($cn, 'actlog', 'practilog')
+    # Task 47 W1 (D-47-b): the shipped window title is now the localized product
+    # title, i.e. the Chinese title plus the ASCII product name separated by one
+    # space ('<cn> actlog'). Keep the bare forms for older builds and the tray
+    # tooltip fallback.
+    return @(($cn + ' actlog'), $cn, 'actlog', 'practilog')
 }
 
 function Test-ActLogTitle {
@@ -135,6 +139,10 @@ function Test-ActLogTitle {
     foreach ($c in (Get-ActLogTitleCandidates)) {
         if ($Text.Trim() -ieq $c) { return $true }
     }
+    # Task 47 W1 (D-47-b): the title is localized at runtime, so a non-Chinese
+    # build shows the ASCII product name only. Accept any string that contains
+    # one of the accepted titles instead of demanding an exact match.
+    if ($Text -match (Get-ActLogTitleRegex)) { return $true }
     return $false
 }
 

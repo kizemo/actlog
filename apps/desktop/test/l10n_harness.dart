@@ -4,7 +4,8 @@
 // 为什么这些放在 test\ 而不是 lib\：它只为测试服务，进 lib 就是又造一层生产代码
 // 里的转发（本项目明令不要 `AppStrings.xxx => t.xxx` 那种壳）。
 //
-// `l10nAccessors` 是**测试数据**：把 73 条 getter 一条一条列成「键 → 取值闭包」。
+// `l10nAccessors` 是**测试数据**：把 89 条 getter 一条一条列成「键 → 取值闭包」
+// （列表型 2 条在 `l10nListAccessors`）。
 // 有了它，测试才能不看 getter 名地遍历全部文案（校验非空、校验中英不同、校验
 // 键数与条数一致）。新增 getter 时两侧都要加一行 —— 少了就会在
 // `l10n_base_test.dart` 的「条数一致」用例上红。
@@ -23,7 +24,7 @@ import 'package:actlog/src/l10n/l10n_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 73 条 getter 的访问器表：键 → 在当前语言下取该条文案。
+/// 89 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
 final Map<String, String Function(AppLocalizations)> l10nAccessors =
     <String, String Function(AppLocalizations)>{
   // 设置页 35 条
@@ -91,6 +92,24 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.alphaFileManagerIntro,
   L10nKeys.aboutPageWeaver: (AppLocalizations t) => t.pageWeaverIntro,
   L10nKeys.aboutUnverifiedLink: (AppLocalizations t) => t.unverifiedLink,
+  // 关于页正文 7 条（W1 新增；列表型 2 条见 l10nListAccessors）
+  L10nKeys.aboutChangelogTitle: (AppLocalizations t) => t.aboutChangelogTitle,
+  L10nKeys.aboutPrivacyTitle: (AppLocalizations t) => t.aboutPrivacyTitle,
+  L10nKeys.aboutPrivacy: (AppLocalizations t) => t.aboutPrivacy,
+  L10nKeys.aboutLicensesTitle: (AppLocalizations t) => t.aboutLicensesTitle,
+  L10nKeys.aboutLicenses: (AppLocalizations t) => t.aboutLicenses,
+  L10nKeys.aboutCopyResult: (AppLocalizations t) => t.aboutCopyResult,
+  L10nKeys.aboutReleases: (AppLocalizations t) => t.aboutReleases,
+  // 外壳 9 条（W1 新增）
+  L10nKeys.shellAppTitle: (AppLocalizations t) => t.appTitle,
+  L10nKeys.shellAppName: (AppLocalizations t) => t.appName,
+  L10nKeys.shellWindowMinimize: (AppLocalizations t) => t.windowMinimize,
+  L10nKeys.shellWindowMaximize: (AppLocalizations t) => t.windowMaximize,
+  L10nKeys.shellWindowRestore: (AppLocalizations t) => t.windowRestore,
+  L10nKeys.shellWindowClose: (AppLocalizations t) => t.windowClose,
+  L10nKeys.shellTrayShow: (AppLocalizations t) => t.trayShow,
+  L10nKeys.shellTrayHide: (AppLocalizations t) => t.trayHide,
+  L10nKeys.shellTrayQuit: (AppLocalizations t) => t.trayQuit,
   // 跨页共用 7 条
   L10nKeys.commonCancel: (AppLocalizations t) => t.cancel,
   L10nKeys.commonConfirm: (AppLocalizations t) => t.confirm,
@@ -117,6 +136,16 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.domainAbcCLabel: (AppLocalizations t) => t.abcCLabel,
   L10nKeys.domainPriorityUnsetLabel: (AppLocalizations t) =>
       t.priorityUnsetLabel,
+};
+
+/// 列表型 getter（`List<String>`）的访问器表（2 条）。
+///
+/// 与 `l10nAccessors` 同一套键空间，只是取值返回 `List<String>`，所以单列一张
+/// 表，避免把 `Map<String, String Function(...)>` 撑成动态类型。
+final Map<String, List<String> Function(AppLocalizations)> l10nListAccessors =
+    <String, List<String> Function(AppLocalizations)>{
+  L10nKeys.aboutToc: (AppLocalizations t) => t.aboutToc,
+  L10nKeys.aboutChangelog: (AppLocalizations t) => t.aboutChangelog,
 };
 
 /// 允许中英同值的键（白名单）。

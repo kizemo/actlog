@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'desktop_shell.dart';
+import 'l10n/app_localizations.dart';
+import 'l10n/l10n_scope.dart';
 import 'pages/about_page.dart';
 import 'pages/calendar_page.dart';
 import 'pages/habits_page.dart';
@@ -77,6 +81,12 @@ class _ActLogAppState extends State<ActLogApp> {
       ? widget.textScale
       : 1.0;
 
+  /// 已经回写到原生外壳（窗口标题 / 托盘菜单）的语言。
+  ///
+  /// 初值 `zh` 与启动链路一致：`main.dart` 调 `setupDesktopShell()` 时不传语言。
+  /// 之后偏好一变（用户切语言），就在这里回写一次。
+  AppLanguage _shellLanguage = AppLanguage.zh;
+
   @override
   Widget build(BuildContext context) {
     // 没有 `ProviderScope` 祖先时（部分既有测试直接 pump `ActLogApp`），
@@ -103,27 +113,40 @@ class _ActLogAppState extends State<ActLogApp> {
   /// 把 `locale` 设成 `zh` 会让 Material 内建文案找不到本地化实现。语言切换
   /// 只作用于我们自己的 `AppLocalizations` 文案（设置页 / 关于页）。
   Widget _buildApp(AppPreferences prefs) {
-    return MaterialApp(
-      title: '知行日志',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(prefs.density),
-      darkTheme: AppTheme.dark(prefs.density),
-      themeMode: prefs.themeMode,
-      // 裁定 B：字号缩放只施加在这一层，页面代码一律不感知。
-      builder: (BuildContext context, Widget? child) {
-        final media = MediaQuery.maybeOf(context) ?? const MediaQueryData();
-        return MediaQuery(
-          data: media.copyWith(textScaler: TextScaler.linear(_scale)),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-      home: widget.home ?? const ShellHost(),
-      routes: <String, WidgetBuilder>{
-        '/todo': (_) => const ShellHost(initialNavId: 'inbox'),
-        '/calendar': (_) => const ShellHost(initialNavId: 'calendar'),
-        '/settings': (_) => const ShellHost(initialNavId: 'settings'),
-        '/about': (_) => const _AboutRoute(),
-      },
+    final AppLocalizations t = AppLocalizations.forLanguage(prefs.language);
+    // 语言切换后窗口标题 / 托盘菜单也要跟上（产品决策 D-47-b）。`main.dart`
+    // 不在本波写集内，所以由根组件驱动；post-frame 才碰原生插件，避免在 build
+    // 帧里改窗口。测试环境没有插件，`applyShellLanguage` 自己吞异常。
+    if (_shellLanguage != prefs.language) {
+      _shellLanguage = prefs.language;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(applyShellLanguage(prefs.language));
+      });
+    }
+    return L10nScope(
+      localizations: t,
+      child: MaterialApp(
+        title: t.appName,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(prefs.density),
+        darkTheme: AppTheme.dark(prefs.density),
+        themeMode: prefs.themeMode,
+        // 裁定 B：字号缩放只施加在这一层，页面代码一律不感知。
+        builder: (BuildContext context, Widget? child) {
+          final media = MediaQuery.maybeOf(context) ?? const MediaQueryData();
+          return MediaQuery(
+            data: media.copyWith(textScaler: TextScaler.linear(_scale)),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+        home: widget.home ?? const ShellHost(),
+        routes: <String, WidgetBuilder>{
+          '/todo': (_) => const ShellHost(initialNavId: 'inbox'),
+          '/calendar': (_) => const ShellHost(initialNavId: 'calendar'),
+          '/settings': (_) => const ShellHost(initialNavId: 'settings'),
+          '/about': (_) => const _AboutRoute(),
+        },
+      ),
     );
   }
 }

@@ -13,13 +13,19 @@ import 'package:path/path.dart' as p;
 import 'package:tray_manager/legacy.dart';
 import 'package:window_manager/legacy.dart';
 
+import 'l10n/app_localizations.dart';
 import 'widgets/shell/app_top_bar.dart';
 
-/// 窗口标题（UTF-8 中文）。
+/// 窗口标题（UTF-8 中文；随界面语言翻译，产品决策 D-47-b）。
 ///
 /// 标题走 Dart 侧 `windowManager.setTitle`，**不**在 C++ 里写中文：
 /// Flutter Windows 模板的 `main.cpp` 没有加 `/utf-8`，中文源码会按本地代码页编译。
-const String kAppTitle = '知行日志 actlog';
+///
+/// 标识符 `kAppTitle` **保留**（`selftest.dart` 的 `window_title_utf8` 自检按它
+/// 断言），但值不再是常量：从 l10n 派生。无参调用 = 中文态，逐字仍是
+/// `'知行日志 actlog'`。
+String kAppTitle([AppLanguage language = AppLanguage.zh]) =>
+    AppLocalizations.forLanguage(language).appTitle;
 
 /// 托盘图标资源路径（必须在 pubspec.yaml 的 `assets` 中声明）。
 const String kTrayIconAsset = 'assets/icon.png';
@@ -98,8 +104,12 @@ Future<void> logStartupLine(Directory? dir, String line) => _logStartup(dir, lin
 /// **每一步都是独立兜底的**：任何一步失败都不能连累后面的步骤。
 /// 特别是「托盘」和「关窗隐藏」必须真的执行到 —— 它们不是可选装饰，
 /// 而是「关窗隐藏到托盘」这条产品行为的开关。
-Future<void> setupDesktopShell({Directory? supportDir}) async {
+Future<void> setupDesktopShell({
+  Directory? supportDir,
+  AppLanguage language = AppLanguage.zh,
+}) async {
   await _logStartup(supportDir, 'shell.start');
+  final AppLocalizations t = AppLocalizations.forLanguage(language);
 
   try {
     await windowManager.ensureInitialized();
@@ -108,7 +118,7 @@ Future<void> setupDesktopShell({Directory? supportDir}) async {
   }
 
   try {
-    await windowManager.setTitle(kAppTitle);
+    await windowManager.setTitle(t.appTitle);
     await _logStartup(supportDir, 'title ok');
   } catch (error) {
     await _logStartup(supportDir, 'title FAIL $error');
@@ -125,11 +135,12 @@ Future<void> setupDesktopShell({Directory? supportDir}) async {
     await _logStartup(supportDir, 'isMaximized FAIL $error');
   }
 
-  const options = WindowOptions(
-    size: Size(1440, 900),
-    minimumSize: Size(960, 640),
+  // 标题随语言取，所以这里不能再是 `const`。
+  final WindowOptions options = WindowOptions(
+    size: const Size(1440, 900),
+    minimumSize: const Size(960, 640),
     center: true,
-    title: kAppTitle,
+    title: t.appTitle,
   );
 
   // 窗口选项逐项应用：某一项失败不能影响其余项，更不能影响托盘初始化。
@@ -148,7 +159,10 @@ Future<void> setupDesktopShell({Directory? supportDir}) async {
   }
 
   // 托盘必须在窗口起来之后建立：托盘建不起来时不能拦截关窗。
-  final trayError = await setupTray(log: (line) => _logStartup(supportDir, line));
+  final trayError = await setupTray(
+    log: (line) => _logStartup(supportDir, line),
+    language: language,
+  );
   _trayReady = trayError == null;
   if (_trayReady) {
     await _armHideOnClose(supportDir);
@@ -234,47 +248,74 @@ Future<void> _applyTitleBarStyle(Directory? supportDir) async {
 }
 
 /// 建立托盘图标与菜单。返回 null 表示成功，返回异常表示失败。
-Future<Object?> setupTray({void Function(String line)? log}) async {
+Future<Object?> setupTray({
+  void Function(String line)? log,
+  AppLanguage language = AppLanguage.zh,
+}) async {
   void write(String line) => log?.call(line);
+  final AppLocalizations t = AppLocalizations.forLanguage(language);
   try {
     await trayManager.setIcon(kTrayIconAsset);
-    await trayManager.setToolTip(kAppTitle);
-    await trayManager.setContextMenu(
-      Menu(
-        items: [
-          MenuItem(
-            key: kTrayKeyShow,
-            label: '显示窗口',
-            onClick: (_) {
-              write('tray menu show');
-              showMainWindow();
-            },
-          ),
-          MenuItem(
-            key: kTrayKeyHide,
-            label: '隐藏到托盘',
-            onClick: (_) {
-              write('tray menu hide');
-              hideMainWindow();
-            },
-          ),
-          MenuItem(
-            key: kTrayKeyQuit,
-            label: '退出',
-            onClick: (_) {
-              write('tray menu quit');
-              quitApp();
-            },
-          ),
-        ],
-      ),
-    );
+    await trayManager.setToolTip(t.appTitle);
+    await trayManager.setContextMenu(_trayMenu(t, write));
     trayManager.addListener(_ShellTrayListener(write));
     write('tray ready');
     return null;
   } catch (error) {
     write('tray FAIL $error');
     return error;
+  }
+}
+
+/// 托盘右键菜单：文案取当前语言，`write` 只负责启动日志留痕。
+Menu _trayMenu(AppLocalizations t, void Function(String line) write) => Menu(
+      items: [
+        MenuItem(
+          key: kTrayKeyShow,
+          label: t.trayShow,
+          onClick: (_) {
+            write('tray menu show');
+            showMainWindow();
+          },
+        ),
+        MenuItem(
+          key: kTrayKeyHide,
+          label: t.trayHide,
+          onClick: (_) {
+            write('tray menu hide');
+            hideMainWindow();
+          },
+        ),
+        MenuItem(
+          key: kTrayKeyQuit,
+          label: t.trayQuit,
+          onClick: (_) {
+            write('tray menu quit');
+            quitApp();
+          },
+        ),
+      ],
+    );
+
+/// 语言切换后回写窗口标题与托盘菜单。
+///
+/// `main.dart` 不在本波写集内，所以由 `app.dart` 在偏好变化后调用一次。
+/// 插件缺失时（widget test / 纯 Dart 测试）只吞异常：标题回写失败不能让 UI 挂掉。
+Future<void> applyShellLanguage(AppLanguage language) async {
+  final AppLocalizations t = AppLocalizations.forLanguage(language);
+  try {
+    await windowManager.setTitle(t.appTitle);
+  } catch (_) {
+    // 没有原生窗口：忽略。
+  }
+  if (!_trayReady) {
+    return;
+  }
+  try {
+    await trayManager.setToolTip(t.appTitle);
+    await trayManager.setContextMenu(_trayMenu(t, (_) {}));
+  } catch (_) {
+    // 托盘不可用：忽略。
   }
 }
 

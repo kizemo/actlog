@@ -24,12 +24,21 @@ import 'l10n_harness.dart';
 
 void main() {
   group('键表结构', () {
-    test('73 条 getter 全部登记在对照表里', () {
-      expect(L10nKeys.byGetter.length, 73);
-      expect(l10nAccessors.length, 73);
+    test('89 条 getter 全部登记在对照表里', () {
+      expect(L10nKeys.byGetter.length, 89);
+      expect(l10nAccessors.length, 89);
       // `byGetter` 是「getter 名 → 键」，访问器表是「键 → 取值」，所以这里比
       // 的是 `byGetter` 的**值**集合（都是 kebab 键）。
       expect(l10nAccessors.keys.toSet(), L10nKeys.byGetter.values.toSet());
+    });
+
+    test('2 条列表型 getter 全部登记在列表表里', () {
+      expect(L10nKeys.byListGetter.length, 2);
+      expect(l10nListAccessors.length, 2);
+      expect(
+        l10nListAccessors.keys.toSet(),
+        L10nKeys.byListGetter.values.toSet(),
+      );
     });
 
     test('4 条插值方法登记在方法表里', () {
@@ -40,18 +49,20 @@ void main() {
       );
     });
 
-    test('全部键值不重复（73 + 4 = 77）', () {
+    test('全部键值不重复（89 + 2 + 4 = 95）', () {
       final Set<String> all = <String>{
         ...L10nKeys.byGetter.values,
+        ...L10nKeys.byListGetter.values,
         ...L10nKeys.byMethod.values,
       };
-      expect(all.length, 77);
+      expect(all.length, 95);
     });
 
     test('键一律 kebab-case（小写字母数字，单横线分隔）', () {
       final RegExp kebab = RegExp(r'^[a-z0-9]+(-[a-z0-9]+)*$');
       final Set<String> all = <String>{
         ...L10nKeys.byGetter.values,
+        ...L10nKeys.byListGetter.values,
         ...L10nKeys.byMethod.values,
       };
       for (final String key in all) {
@@ -60,11 +71,15 @@ void main() {
     });
 
     test('键带模块前缀，前缀与 part 归属一致', () {
-      for (final String key in L10nKeys.byGetter.values) {
+      for (final String key in <String>[
+        ...L10nKeys.byGetter.values,
+        ...L10nKeys.byListGetter.values,
+      ]) {
         expect(
           key.startsWith('settings-') ||
               key.startsWith('about-') ||
               key.startsWith('common-') ||
+              key.startsWith('shell-') ||
               key.startsWith('domain-'),
           isTrue,
           reason: 'getter 键必须以模块前缀开头：$key',
@@ -141,6 +156,22 @@ void main() {
         final String zh = entry.value(AppLocalizations.zh);
         final String en = entry.value(AppLocalizations.en);
         expect(zh, isNot(en), reason: '${entry.key} 中英同值且不在白名单里');
+      }
+    });
+
+    test('每条列表型 getter 中英两态都非空，条目数一致且逐条不同', () {
+      for (final MapEntry<String, List<String> Function(AppLocalizations)> entry
+          in l10nListAccessors.entries) {
+        final List<String> zh = entry.value(AppLocalizations.zh);
+        final List<String> en = entry.value(AppLocalizations.en);
+        expect(zh, isNotEmpty, reason: '${entry.key} 中文态为空');
+        expect(en, isNotEmpty, reason: '${entry.key} 英文态为空');
+        expect(en.length, zh.length, reason: '${entry.key} 中英条目数不一致');
+        for (int i = 0; i < zh.length; i++) {
+          expect(zh[i].trim(), isNotEmpty, reason: '${entry.key}[$i] 中文态为空');
+          expect(en[i].trim(), isNotEmpty, reason: '${entry.key}[$i] 英文态为空');
+          expect(zh[i], isNot(en[i]), reason: '${entry.key}[$i] 中英同值');
+        }
       }
     });
 
