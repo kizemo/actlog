@@ -336,6 +336,11 @@ practilog/
 
 80. 症状：门禁首轮 FAIL 报出一大批 `G5_*=<missing>` ⇒ 看着像「十几条越界」，实则**脚本一行输出都没产出**（Task 46 实测：`.ps1` 里三个数组的**末元素后各留了一个尾随逗号** ⇒ 整个脚本哑火）。**正确做法**：① 判据「**一批键同时缺失**」⇒ 先查**探针自己**（哑火），不许直接写成产品越界；② 任何 `.ps1` 改完先**静态解析**：`[System.Management.Automation.Language.Parser]::ParseInput((Get-Content -Raw $f),[ref]$null,[ref]$errs)` ⇒ **一次列出全部**语法错（比逐轮试跑省 3–5 次调用）；③ 数组字面量的**末元素一律不带尾随逗号**；④ 修完先**手动跑一遍**该脚本把各键拿到，再重跑门禁。
 
+81. 症状：写「图标是否真的进了 exe」的取证脚本，解析 ICO 目录项时**忘了递增偏移**（`off += 16`）⇒ 9 档全被读成第 1 档，输出「尺寸全是 16×16 / computed_total 与文件大小不符」这种**自相矛盾**的假红，看着像 W1 根本没生成多档 ico（Task 48 实测：判据脚本自身的 bug，W1 产物 9 档其实齐全）。**正确做法**：① 解析二进制目录前把**步进**写死，`off` 必须逐项递增；② **判据脚本的失败先自证** —— 拿一份**已知合规**的样本跑一遍，脚本能报 PASS 才配拿去判别人；③ 交叉验算：`6 + count×16 + Σtier_size` 必须**逐字等于**文件大小（Task 48 实测 `6+144+380888=381038` == 实际 381038）。
+82. 症状：门禁报 `G6_WORKTREE_DIRTY=N` ⇒ 以为「我已经 commit 了」，实际是**新增文件没 `git add`**（`git commit -a` **不提交未跟踪文件**）⇒ `tools\icons\*.py` 这类新建脚本一直挂在 `??` 状态（Task 48 实测）。**正确做法**：① `G6_WORKTREE_DIRTY` 数的是 `git status --porcelain` 的**全量行数**（含 `??`）⇒ 跑门禁前**必须把新文件一并 `git add`**；② 进门前先 `git status --porcelain` 看一眼，`DIRTY_LINES=0` 再启动门禁；③ `reports\` `.superpowers\` `design-demos\` `release\` 被 gitignore ⇒ 那些证据文件**不会**让门禁变红，不必为它们操心。
+83. 症状：换应用图标时只改了 `app_icon.ico`，担心「安装器 / 卸载器 exe 的图标是不是得另外改」⇒ 差点去改 nsi（Task 48 实测：不必改）。**正确做法**：① `tools\build\make_installer.ps1` 的默认 `IconPath` 就是 `apps\desktop\windows\runner\resources\app_icon.ico`，并以 `/DICON_PATH=` 注入；② `installer.nsi:107-110` 据此 `!define MUI_ICON` / `!define MUI_UNICON` ⇒ **任务栏 / 窗口 / Alt-Tab / 安装器 / 卸载器五处同步生效**；③ 但 `make_installer.ps1` **只打包不编译** ⇒ 改完资源仍必须重走 `flutter build windows --release`（`.ico` 由 rc 编译进 exe，PNG 由 flutter 打进 `data\flutter_assets\`），否则装出来的是旧图。
+84. 症状：给 widget 加「按主题亮暗换资源」的分支，测试里只造 `ThemeData(brightness: Brightness.dark)` ⇒ widget 里 `Theme.of(context).brightness` 拿到的却可能是 light，分支永远走不到（Task 48 实测：`AppTheme.dark()` 才真正设了 `brightness: Brightness.dark`）。**正确做法**：① 注入**产品真实主题**（`AppTheme.dark()` / `AppTheme.light()`），不要裸 `ThemeData`；② 先读 `app_theme.dart` 确认产品主题确实设了 `brightness:` —— 否则「暗色」只是配色变了、`brightness` 仍是 light；③ 判别性测试要**浅/暗各一条 assetName 断言**（证明分支真被走到），并做一次「改坏即红」自证（Task 48 实测：三元表达式改成恒浅色 ⇒ 两文件各红一条 `Expected: 'assets/brand_mark_dark.png'`）。
+
 ## 6. 权威文档导航（哪件事以谁为准）
 
 | 想知道 | 看这里 |
