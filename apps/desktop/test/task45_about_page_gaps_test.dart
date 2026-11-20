@@ -181,6 +181,25 @@ void main() {
         tester.widget<Text>(find.byKey(_key('about-licenses'))).data!;
     expect(licenses, contains('OFL'));
     expect(licenses, contains('pubspec.yaml'));
+
+    // Task 46 · G2：真依赖 + 真许可证名逐条对齐（BSD-3-Clause 不许写成 MIT）。
+    const Map<String, String> deps = <String, String>{
+      'cupertino_icons': 'MIT',
+      'drift': 'MIT',
+      'flutter_riverpod': 'MIT',
+      'window_manager': 'MIT',
+      'tray_manager': 'MIT',
+      'sqlite3': 'MIT',
+      'flutter_local_notifications': 'BSD-3-Clause',
+      'path': 'BSD-3-Clause',
+      'path_provider': 'BSD-3-Clause',
+    };
+    for (final MapEntry<String, String> dep in deps.entries) {
+      expect(licenses, contains('${dep.key}（${dep.value}）'),
+          reason: '${dep.key} 应标 ${dep.value}');
+    }
+    expect(licenses, contains('SIL Open Font License 1.1'));
+    expect(licenses, contains('BSD-3-Clause'));
   });
 
   testWidgets('G1/G3 区块顺序：版本 → 最近变更 → 数据与隐私 → 仓库 → 许可证',
@@ -467,5 +486,66 @@ void main() {
 
     expect(find.byKey(_key('about-page')), findsOneWidget);
     expect(find.byKey(_key('about-version')), findsOneWidget);
+  });
+
+  // Task 46 · G4：检查结果可复制 —— 与其它按钮同构（key 在按钮上、可用可聚焦）。
+  testWidgets('Task 46 G4 检查结果右侧有一枚复制按钮', (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create(
+      result: const ReleaseCheckResult(ReleaseCheckStatus.noRelease),
+    );
+    await h.mount(tester);
+    await _pump(tester);
+
+    expect(find.byKey(_key('about-copy-result')), findsNothing);
+
+    await tester.tap(find.byKey(_key('about-check-update')));
+    await _pump(tester);
+
+    expect(find.byKey(_key('about-copy-result')), findsOneWidget);
+    // 结果行仍是普通 `Text`（Task 39 逐字断言依赖）⇒ 复制靠旁挂按钮实现。
+    expect(find.byKey(_key('about-check-result')), findsOneWidget);
+    expect(find.text('复制结果'), findsOneWidget);
+    expect(_inkOf(tester, 'about-copy-result').canRequestFocus, isTrue);
+  });
+
+  // Task 46 · G2/G4：既有 ValueKey 一枚都不许被改名或删掉。
+  testWidgets('既有 ValueKey 全部仍在', (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create(
+      result: const ReleaseCheckResult(
+        ReleaseCheckStatus.newer,
+        latestTag: 'v0.2.0',
+      ),
+    );
+    await h.mount(tester);
+    await _pump(tester);
+    await tester.tap(find.byKey(_key('about-check-update')));
+    await _pump(tester);
+
+    // 结果行出现后，18 枚既有 key + 新增的 about-copy-result 应全部在册。
+    for (final String key in <String>[
+      'about-page',
+      'about-version',
+      'about-check-update',
+      'about-online-upgrade',
+      'about-online-upgrade-reason',
+      'about-check-result',
+      'about-copy-result',
+      'about-open-releases',
+      'about-changelog',
+      'about-privacy',
+      'about-repo-url',
+      'about-open-repo',
+      'about-copy-repo',
+      'about-developer',
+      'about-open-developer',
+      'about-open-alpha',
+      'about-pageweaver-unverified',
+      'about-open-pageweaver',
+      'about-licenses',
+    ]) {
+      expect(find.byKey(_key(key)), findsOneWidget, reason: '缺少或重名：$key');
+    }
   });
 }

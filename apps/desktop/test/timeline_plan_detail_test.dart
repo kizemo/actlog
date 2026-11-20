@@ -5,7 +5,7 @@
 //
 // 九条断言（对应派工书 §3）：
 //   1. 左键点已填任务 ⇒ 出详情窗（标题「任务详情」），不是「成果 / 进展」层；
-//   2. 窗内六块齐备（标题只读 / 内容 / 级别 / 回填内容 / 持续时间 / 删除）；
+//   2. 窗内六块齐备（标题可编辑 / 内容 / 级别 / 回填内容 / 持续时间 / 删除）；
 //   3. 内容可编辑并落库（`plan_item.detail`）；
 //   4. 级别可编辑并落库（Q1 ⇄ 未分级）；
 //   5. 回填内容可编辑并落库（`plan_item.result_note`）；
@@ -209,14 +209,14 @@ void main() {
     final PlanItemData plan = await _onlyPlan(tester, harness);
     await _openDetail(tester, plan.id);
 
-    // ① 标题只读：是一个 `Text`，没有 `TextField`。
+    // ① 标题可编辑（Task 46 · W2 由只读改成输入框）：是 `TextField`，初值 = 库里标题。
     final Finder title = find.byKey(_kTitle);
     expect(title, findsOneWidget, reason: '缺标题');
-    expect(tester.widget<Text>(title).data, '六块都在');
+    expect(tester.widget<TextField>(title).controller?.text, '六块都在');
     expect(
-      find.descendant(of: title, matching: find.byType(TextField)),
-      findsNothing,
-      reason: '标题按规格只读',
+      tester.widget<TextField>(title).readOnly,
+      isFalse,
+      reason: '标题应可编辑（Task 46 起放开，用户当轮口径）',
     );
     // ② 内容
     expect(find.byKey(_kContent), findsOneWidget, reason: '缺内容框');
@@ -494,7 +494,22 @@ void main() {
     expect(find.text('任务详情'), findsOneWidget, reason: '未来日点条目没开详情窗');
     final Finder title = find.byKey(_kTitle);
     expect(title, findsOneWidget);
-    expect(tester.widget<Text>(title).data, '明天：评审');
+    expect(
+      tester.widget<TextField>(title).controller?.text,
+      '明天：评审',
+      reason: '未来日详情窗仍应展示原标题',
+    );
+    expect(
+      tester.widget<TextField>(title).readOnly,
+      isFalse,
+      reason: '未来日标题可改（Task 46 口径：预排可修订标题）',
+    );
+    // 回填仍锁死：框禁用 + 锁定提示可见（未来日不可回填）。
+    expect(tester.widget<TextField>(find.byKey(_kNote)).enabled, isFalse);
+    expect(
+      find.byKey(const ValueKey<String>('plan-detail-note-locked')),
+      findsOneWidget,
+    );
     expect(find.byKey(_kContent), findsOneWidget);
     expect(find.byKey(_kDelete), findsOneWidget);
 
@@ -550,6 +565,41 @@ void main() {
       () => harness.repos.planItem.listByDate(_future),
     ))!;
     expect(left, isEmpty, reason: '未来日确认后没有软删');
+
+    await _flushTimers(tester);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Task 46 · W2：未来日**开放改标题 / 内容**（回填仍锁死）。
+  //
+  // 用户当轮口径：未来日预排条目 → 开放改标题 / 详情 / 删除；打卡 / 回填 /
+  // 复盘 / 心态仍只限今天与过去。测试 10 钉住「回填框禁用」，本条钉住
+  // 「标题 / 内容真的能改进库」，防止把守卫做成整窗只读。
+  // ---------------------------------------------------------------------------
+
+  testWidgets('12. 未来日改标题 / 内容 ⇒ 保存后落库，回填不动', (tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _future);
+    await _seedPlan(
+      harness,
+      title: '后天：改我',
+      startMinute: 9 * 60,
+      date: _future,
+    );
+    await harness.mount(tester, _future);
+    await _settle(tester);
+
+    final PlanItemData plan = await _onlyPlan(tester, harness, _future);
+    await _openDetail(tester, plan.id);
+
+    await tester.enterText(find.byKey(_kTitle), '后天：改好了');
+    await tester.enterText(find.byKey(_kContent), '预排说明');
+    await _save(tester);
+
+    final PlanItemData after = await _onlyPlan(tester, harness, _future);
+    expect(after.title, '后天：改好了', reason: '未来日改标题没有落库');
+    expect(after.detail, '预排说明', reason: '未来日改内容没有落库');
+    expect(after.resultNote, isEmpty, reason: '未来日不该写进回填内容');
 
     await _flushTimers(tester);
   });

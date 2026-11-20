@@ -297,14 +297,20 @@ void main() {
       .toList();
 
   group('字体打包守卫', () {
-    test('四个字体族都在 flutter.fonts 里声明', () {
+    test('五个字体族都在 flutter.fonts 里声明', () {
       final Set<String> families =
           decls.map((_FontDecl d) => d.family).toSet();
       expect(
         families,
-        containsAll(<String>['Inter', 'Fraunces', 'JetBrains Mono', 'Noto Sans SC']),
+        containsAll(<String>[
+          'Inter',
+          'Fraunces',
+          'JetBrains Mono',
+          'Noto Sans SC',
+          'Noto Serif SC',
+        ]),
       );
-      expect(families.length, 4, reason: '不得有多余或拼错的字体族');
+      expect(families.length, 5, reason: '不得有多余或拼错的字体族');
     });
 
     test('族名与 AppFonts 常量逐字一致', () {
@@ -317,6 +323,17 @@ void main() {
         AppFonts.bodyFallback.contains('Noto Sans SC'),
         isTrue,
         reason: 'CJK 兜底族必须已随包自带',
+      );
+      // D-6：display 栈里的衬线兜底族同样必须随包，否则中文标题静默回落系统宋体。
+      expect(
+        AppFonts.displayFallback.contains('Noto Serif SC'),
+        isTrue,
+        reason: 'display 栈必须保留 Noto Serif SC 兜底（排在 SimSun 之前）',
+      );
+      expect(
+        families.contains('Noto Serif SC'),
+        isTrue,
+        reason: 'display 兜底族 Noto Serif SC 没有随包声明 ⇒ 中文标题仍用系统宋体（D-6 未闭合）',
       );
     });
 
@@ -333,6 +350,26 @@ void main() {
         );
         expect(file.lengthSync(), greaterThan(1000), reason: '${d.asset} 过小');
       }
+    });
+
+    test('随包字体文件数 = 3+3+2+1+1 = 10（每族字重不多不少）', () {
+      final Map<String, int> perFamily = <String, int>{};
+      for (final _FontDecl d in decls) {
+        perFamily[d.family] = (perFamily[d.family] ?? 0) + 1;
+      }
+      expect(
+        perFamily,
+        <String, int>{
+          'Inter': 3,
+          'Fraunces': 3,
+          'JetBrains Mono': 2,
+          'Noto Sans SC': 1,
+          'Noto Serif SC': 1,
+        },
+        reason: '随包字体清单 = Inter 3 + Fraunces 3 + JetBrains Mono 2 + '
+            'Noto Sans SC 1 + Noto Serif SC 1（当前实际：$perFamily）',
+      );
+      expect(decls.length, 10, reason: '总文件数必须是 10');
     });
 
     test('::N4-A:: pubspec 的 family 与字体文件排版族名逐字一致', () {
@@ -399,10 +436,44 @@ void main() {
       }
     });
 
-    test('::N4-D:: 四族 OFL 许可证逐族齐全', () {
+    test('::N4-C2:: Noto Serif SC 是 Regular 静态实例，不残留可变字体名', () {
+      final List<_FontDecl> serif =
+          decls.where((_FontDecl d) => d.family == 'Noto Serif SC').toList();
+      expect(serif, isNotEmpty, reason: 'display 衬线兜底族必须随包自带');
+      for (final _FontDecl d in serif) {
+        final Map<int, String> names = namesOf(d.asset);
+        expect(
+          names[2],
+          'Regular',
+          reason: '${d.asset} 的 nameID 2（subfamily）= 「${names[2]}」，应为 Regular',
+        );
+        expect(
+          names[17] ?? names[2],
+          'Regular',
+          reason: '${d.asset} 的 nameID 17（typo-subfamily）= 「${names[17]}」，应为 Regular',
+        );
+        final Iterable<String> stale = names.entries
+            .where((MapEntry<int, String> e) =>
+                e.value.contains('Thin') || e.value.contains('ExtraLight'))
+            .map((MapEntry<int, String> e) => 'nameID ${e.key}=「${e.value}」');
+        expect(
+          stale,
+          isEmpty,
+          reason: '${d.asset} 的 name 表残留可变字体默认实例名：${stale.join('、')}',
+        );
+      }
+    });
+
+    test('::N4-D:: 五族 OFL 许可证逐族齐全', () {
       expect(licDir.existsSync(), isTrue);
       final List<String> names = licenseFileNames();
       final Set<String> slugs = names.map(_licenseSlug).toSet();
+      expect(
+        names.length,
+        5,
+        reason: '许可必须五份（inter / fraunces / jetbrainsmono / notosanssc / notoserifsc），'
+            '现有：${names.join('、')}',
+      );
       for (final String family in decls.map((_FontDecl d) => d.family).toSet()) {
         expect(
           slugs.contains(_licenseSlug(family)),
@@ -426,7 +497,7 @@ void main() {
       }
     });
 
-    test('未参与打包的字体文件（可变字体 / CJK 子集）不被声明进包', () {
+    test('未随包的可变字体（wght / VF 命名）不得被声明进包', () {
       expect(
         assets,
         isNot(contains('assets/fonts/')),
@@ -434,14 +505,27 @@ void main() {
             '一并打进包，绕过本文件的逐文件核对口径',
       );
       final Set<String> declared = decls.map((_FontDecl d) => d.asset).toSet();
+      // 意图（Task 46 改写）：随包的 CJK 子集**是**本轮要的产物；不许进包的是
+      // 「可变字体源文件 / 中间实例」—— 它们靠文件名认，缺字重声明时 Flutter
+      // 只会拿到默认实例（Noto 是 Thin），界面看着「有字」但字重全错。
+      final RegExp variablePattern = RegExp(r'wght|\[vf\]|-vf\.|_vf\.');
+      final Iterable<String> variableFonts =
+          declared.where((String a) => variablePattern.hasMatch(a.toLowerCase()));
+      expect(
+        variableFonts,
+        isEmpty,
+        reason: 'pubspec 声明了可变字体 / 可变实例：${variableFonts.join('、')}'
+            '⇒ 静态实例化应在打包前完成（见 AppFonts 注释的 Noto Sans SC 做法）',
+      );
       for (final String unused in <String>[
         'NotoSansSC-VF.ttf',
         'NotoSansSC-400.ttf',
+        'NotoSerifSC[wght].ttf',
       ]) {
         expect(
           declared.any((String a) => a.endsWith(unused)),
           isFalse,
-          reason: '$unused 不进包（VF 是源文件，400 是 Thin 子集）',
+          reason: '$unused 不进包（VF / 可变字体 / Thin 子集）',
         );
       }
     });
@@ -554,8 +638,25 @@ void main() {
     );
     final bool hasReleasePayload = payloadLic.existsSync();
 
+    // 仅用于失败信息：把 payload 里实际打进去的字体文件名列出来，
+    // 让「旧包」与「新包漏许可」在同一句 reason 里可区分。
+    final Directory payloadFonts = Directory(
+      '${root.path}/build/windows/x64/runner/Release'
+      '/data/flutter_assets/assets/fonts',
+    );
+    String payloadFontNames() {
+      if (!payloadFonts.existsSync()) {
+        return '（无字体目录）';
+      }
+      return payloadFonts
+          .listSync()
+          .map((FileSystemEntity e) => e.path.split(RegExp(r'[/\\]')).last)
+          .where((String n) => n.toLowerCase().endsWith('.ttf'))
+          .join('、');
+    }
+
     test(
-      '::N4-G:: 构建产物 payload 内四份 OFL 齐全'
+      '::N4-G:: 构建产物 payload 内五份 OFL 齐全'
       '（Release 产物不存在时显式 skip，不静默通过）',
       () {
         final List<String> names = payloadLic
@@ -574,7 +675,9 @@ void main() {
             matches,
             isNotEmpty,
             reason: '构建产物缺「$family」的 OFL（payload 现有：${names.join('、')}）'
-                '⇒ 装出来的包缺许可',
+                '⇒ 装出来的包缺许可。注意：payload 若是本次改动**之前**打的旧包，'
+                '本条也会命中 —— 判据看 payload 字体文件是否已含该族文件'
+                '（payload 字体：${payloadFontNames()}），重打包后必须复跑。',
           );
           final File f = File('${payloadLic.path}/${matches.first}');
           expect(f.lengthSync(), greaterThan(1000), reason: '${f.path} 过小');

@@ -6,12 +6,12 @@
 // 两边一致，只改一处就红。
 
 /// 语义化版本号（不含构建号）。
-const String kAppVersion = '0.1.0';
+const String kAppVersion = '1.0.0';
 
 /// 构建号（pubspec 的 `+` 后缀）。
 const String kAppBuildNumber = '1';
 
-/// `0.1.0+1` 形式，关于页与设置页都显示这一个。
+/// `1.0.0+1` 形式，关于页与设置页都显示这一个。
 const String kAppVersionFull = '$kAppVersion+$kAppBuildNumber';
 
 /// 产品仓库地址（`AGENTS.md` 记录的 public 仓库，默认分支 `main`）。

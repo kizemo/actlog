@@ -8,7 +8,7 @@
 name: actlog
 description: "知行日志 ActLog：面向高绩效人士的每日知行闭环桌面应用。"
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.13.0
@@ -79,4 +79,10 @@ flutter:
     - family: Noto Sans SC
       fonts:
         - asset: assets/fonts/NotoSansSC-Regular.ttf
+          weight: 400
+    # CJK 衬线族：Noto Serif SC Regular 静态实例（由 SubsetOTF 转 TTF，OFL，
+    # 随包分发）。display 栈里排在 Fraunces 之后、宋体之前（见 app_fonts.dart）。
+    - family: Noto Serif SC
+      fonts:
+        - asset: assets/fonts/NotoSerifSC-Regular.ttf
           weight: 400

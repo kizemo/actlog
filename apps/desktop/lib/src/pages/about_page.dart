@@ -35,6 +35,11 @@ class _AboutPageState extends ConsumerState<AboutPage> {
   /// 仓库地址是否刚被复制（复制反馈只留一小会儿，不弹窗）。
   bool _copied = false;
 
+  /// 检查结果是否刚被复制（Task 46 · G4：结果行可复制）。复用 `_copied`
+  /// 同一套「原地换文案、不弹窗」反馈机制，但**独立一个标志位** —— 复用同一个
+  /// 字段会让「复制结果」把「复制仓库」按钮的文案一起换掉。
+  bool _resultCopied = false;
+
   /// 七个区块的滚动锚点（G8：本页导航点击后 `ensureVisible`）。
   ///
   /// 用 `GlobalKey` 只为了拿 `currentContext` 做滚动定位，**不是**测试锚点：
@@ -54,6 +59,9 @@ class _AboutPageState extends ConsumerState<AboutPage> {
     setState(() {
       _checking = true;
       _result = null;
+      // 新结果即将替换旧结果 ⇒ 上一轮的「已复制」反馈必须复位，
+      // 否则新结果会顶着「已复制」标签出现（Task 46 · G4）。
+      _resultCopied = false;
     });
     // `check()` 的契约是「自行吞掉所有网络异常」：这里不需要 try/catch，
     // 但仍要 mounted 保护 —— 请求最长 10s，用户可能已经离开本页。
@@ -75,6 +83,20 @@ class _AboutPageState extends ConsumerState<AboutPage> {
     }
     setState(() {
       _copied = true;
+    });
+  }
+
+  /// Task 46 · G4：把当前检查结果整段写进剪贴板（结果行右侧的「复制」按钮）。
+  ///
+  /// 结果文案本身就是页面上的那句（同一份 [_resultText]），不另拼一份 ——
+  /// 复制到的必须与用户看到的一致。
+  Future<void> _copyResult(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _resultCopied = true;
     });
   }
 
@@ -191,10 +213,27 @@ class _AboutPageState extends ConsumerState<AboutPage> {
           ),
           if (result != null) ...<Widget>[
             const SizedBox(height: 6),
-            Text(
-              _resultText(t, result),
-              key: const ValueKey<String>('about-check-result'),
-              style: _monoStyle(tokens).copyWith(color: tokens.ink2),
+            // Task 46 · G4：结果原来是不可选中的单个 `Text`（鼠标划不中、
+            // 也复制不了）⇒ 换成「结果文本 + 复制按钮」一行。`about-check-result`
+            // 仍挂在那枚 `Text` 上（Task 39 的逐字断言依赖它），新增的
+            // `about-copy-result` 挂在按钮上。
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    _resultText(t, result),
+                    key: const ValueKey<String>('about-check-result'),
+                    style: _monoStyle(tokens).copyWith(color: tokens.ink2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _LinkButton(
+                  buttonKey: const ValueKey<String>('about-copy-result'),
+                  label: _resultCopied ? t.copied : copy.copyResult,
+                  onTap: () => _copyResult(_resultText(t, result)),
+                ),
+              ],
             ),
           ],
           // G5：有更新时才给「打开发布页」，目标由常量拼出，不伪造任何直链。
@@ -460,6 +499,7 @@ class _AboutCopy {
     required this.privacy,
     required this.licensesTitle,
     required this.licenses,
+    required this.copyResult,
     required this.releases,
   });
 
@@ -471,13 +511,21 @@ class _AboutCopy {
   final String privacy;
   final String licensesTitle;
   final String licenses;
+
+  /// 「复制检查结果」按钮文案（Task 46 · G4）。
+  ///
+  /// 不复用 AppLocalizations.copy（「复制地址」）：那条专指仓库 URL，
+  /// 用在检查结果上语义不对。
+  final String copyResult;
   final String releases;
 
   static const _AboutCopy zh = _AboutCopy(
     toc: <String>['版本', '最近变更', '数据与隐私', '仓库', '开发者', '其它软件', '许可证'],
     changelogTitle: '最近变更',
     changelog: <String>[
-      '0.1.0+1 · 首个可分发版本；仓库尚无对外发布。',
+      // 版本串取自 `app_version.dart`（Task 46 · 版本口径统一到 1.0.0），
+      // 不在文案里硬编码 —— 否则关于页会与真实版本脱节。
+      '$kAppVersionFull · 首个可分发版本；仓库尚无对外发布。',
       '今日 / 待办池 / 习惯 / 日历 四个主页面，数据写在本机 SQLite。',
       '中文 / English 双语界面，明暗两套主题。',
       '文字缩放到 200% 时页面不溢出、不截断。',
@@ -488,12 +536,20 @@ class _AboutCopy {
         '除「检查更新」会向 GitHub releases API 发一次请求外，应用不发起任何网络请求；'
         '没有账号系统，也不收集任何遥测数据。',
     licensesTitle: '许可证',
-    licenses: '本应用使用 Flutter 构建。随包分发四款开源字体：Fraunces、Inter、'
-        'JetBrains Mono、Noto Sans SC，均以 SIL Open Font License 1.1 授权，'
-        '许可证全文见仓库 apps/desktop/assets/fonts/licenses/'
-        '（OFL-fraunces.txt、OFL-inter.txt、OFL-jetbrainsmono.txt、OFL-notosanssc.txt）。'
-        '应用自身与其余 Dart 依赖的许可证文本未随包分发，依赖清单见 '
-        'apps/desktop/pubspec.yaml。',
+    // Task 46 · G2：逐条列出 pubspec.yaml 里真实存在的依赖与真实许可证名
+    // （MIT / BSD-3-Clause 已实测，不许把 BSD 写成 MIT）；随包字体按
+    // 「字体族 + OFL-1.1」分组表述，**不写死数量**（W1 会新增第 5 个字体族）。
+    licenses: '第三方软件与许可证 · 本应用以 Flutter 构建，随包分发下列第三方组件：'
+        'cupertino_icons（MIT）、drift（MIT）、flutter_riverpod（MIT）、'
+        'window_manager（MIT）、tray_manager（MIT）、sqlite3（MIT）、'
+        'flutter_local_notifications（BSD-3-Clause）、path（BSD-3-Clause）、'
+        'path_provider（BSD-3-Clause）。随包字体族（Fraunces / Inter / '
+        'JetBrains Mono / Noto Sans SC 等）均以 SIL Open Font License 1.1 授权；'
+        'SQLite 运行库 sqlite3.dll 归公有领域。本仓库自身的 core_domain / '
+        'core_db / core_data 三个包不在第三方之列。许可证全文除 OFL 外未随包'
+        '分发，OFL 全文见仓库 apps/desktop/assets/fonts/licenses/（OFL-*.txt），'
+        '完整依赖清单见 apps/desktop/pubspec.yaml。',
+    copyResult: '复制结果',
     releases: '打开发布页',
   );
 
@@ -509,7 +565,9 @@ class _AboutCopy {
     ],
     changelogTitle: 'Recent changes',
     changelog: <String>[
-      '0.1.0+1 — first distributable build; the repository has no public release yet.',
+      // Task 46：与中文档同源，取 `kAppVersionFull`，不硬编码版本串。
+      '$kAppVersionFull — first distributable build; the repository has no public '
+      'release yet.',
       'Four main pages (Today, To-do pool, Habits, Calendar) store data in a local SQLite database.',
       'Chinese / English UI, light and dark themes.',
       'Text scaled to 200% still lays out without overflow.',
@@ -521,12 +579,18 @@ class _AboutCopy {
         'to the GitHub releases API, the app makes no network calls. There is '
         'no account system and no telemetry.',
     licensesTitle: 'Licenses',
-    licenses: 'Built with Flutter. Four open-source typefaces are bundled: '
-        'Fraunces, Inter, JetBrains Mono and Noto Sans SC, all under the SIL '
-        'Open Font License 1.1; the full texts live in the repository at '
-        'apps/desktop/assets/fonts/licenses/ (OFL-*.txt). License texts for '
-        'the app itself and for the remaining Dart dependencies are not '
-        'bundled; see apps/desktop/pubspec.yaml for the dependency list.',
+    // Task 46 · G2：与中文档同一份真值（MIT / BSD-3-Clause 逐条对齐）。
+    licenses: 'Third-party software and licences — built with Flutter, this '
+        'package ships: cupertino_icons (MIT), drift (MIT), flutter_riverpod '
+        '(MIT), window_manager (MIT), tray_manager (MIT), sqlite3 (MIT), '
+        'flutter_local_notifications (BSD-3-Clause), path (BSD-3-Clause), '
+        'path_provider (BSD-3-Clause). Bundled typeface families (Fraunces / '
+        'Inter / JetBrains Mono / Noto Sans SC and others) are under the SIL '
+        'Open Font License 1.1; the SQLite runtime sqlite3.dll is in the public '
+        'domain. Full licence texts are not bundled except the OFL files under '
+        'apps/desktop/assets/fonts/licenses/ (OFL-*.txt); see '
+        'apps/desktop/pubspec.yaml for the complete dependency list.',
+    copyResult: 'Copy result',
     releases: 'Open releases page',
   );
 }

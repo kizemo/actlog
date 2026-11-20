@@ -8119,3 +8119,70 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 45.5 独立 verifier 复核（只读，≠ 实现者会话）
 - [x] 45.5 重打包 + 包内核对 + R3 唯一可分发包真源行更新
 - [x] 45.5 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS §5 §7）+ commit + push
+
+## 46. Task 46 · 遗留拍板四项落地（用户当轮拍板 · 2026-11-19）
+
+### 46.1 用户当轮拍板（问卷 `ask_4c1dcc8f542aec0da3106cb4`，四项原文）
+
+1. **字体轨** → **加随包 CJK 衬线**（不再靠系统宋体兜底）；预计包体 **+约 10.6 MB**；中文 display 由系统 `SimSun` 改为随包衬线。
+2. **语言切换** → **全应用中英双语**（工作量最大项 ⇒ 独立 **Task 47** 立项，本节只做缺口登记与底座前置）。
+3. **升级可下载安装** → **本轮不做**（登记为「明确不做」项）。
+4. **未来日预排条目** → **开放改标题 / 详情 / 删除**；但**打卡 / 回填 / 复盘 / 心态仍限今天与过去**。
+
+**覆盖关系**：§45.5「不做 Task 39.6 三项 / 不做 B1 #12（M21-1）/ 不新增 `setTitle`」被本节**部分推翻** —— 字体轨与 M21-1 本轮做，「升级可下载安装」本轮不做；`setTitle` 由 W2 新增（复用既有 `title` 列，**不改 schema**）。
+
+### 46.2 根因与已坐实事实（本轮实测 + 侦察证据）
+
+- **D-6 确切根因**：`app_fonts.dart:32-66` 的 display 栈 = `Fraunces` + fallback `['Noto Serif SC','Songti SC','Georgia','SimSun','serif']`；**「Noto Serif SC」早已在栈里，只是没随包** ⇒ 中文 display 落到系统宋体 `SimSun`。加随包衬线即闭合 D-6；body 栈不含衬线 ⇒ **不影响正文**。
+- **D-5 不翻案**：Task 22 已由用户拍板「接受合成假粗」（`p1_widgets_test.dart:282`）；Inter 无 w700 的事实保留，但**不落 Roboto**。
+- **字体来源（已实测可下载）**：`notofonts/noto-cjk` release `Serif2.003` → 资产 `14_NotoSerifSC.zip`（asset id `182829864`，68,960,596 B）内含 `SubsetOTF/SC/NotoSerifSC-Regular.otf`（**11,625,800 B**，同 zip 另有 6 个字重）+ `LICENSE`（4,301 B）。
+  - **可用下载命令**（release 直链超时；api 资产端点直连 200/206 成功）：`curl.exe -sL -H "Accept: application/octet-stream" -o <zip> "https://api.github.com/repos/notofonts/noto-cjk/releases/assets/182829864"`。
+  - `google/fonts` 的 `NotoSerifSC[wght].ttf` = **25,125,512 B 可变字体**（超包体预算，且 Flutter 需 `fontVariations` 才生效）⇒ **不采用**。
+  - 仓库现有 `NotoSansSC-Regular.ttf`（10,596,412 B）为 TrueType（`glyf`/`loca` 表）⇒ 衬线亦按 **TTF** 形态随包（本机 `fontTools 4.66.0` 可做 OTF→TTF 转换）。
+- **版本口径分裂（真缺陷，本轮修）**：应用自报 `kAppVersion='0.1.0'`（`app_version.dart:9`）/ `kAppBuildNumber='1'`（`:12`）/ `pubspec.yaml:11 = 0.1.0+1` / `make_installer.ps1:16` 默认 `-Version '1.0.0'`（写入 `installer.nsi:412 DisplayVersion`）⇒ 前两处统一到 **1.0.0 + build 1**（第三处已是 1.0.0，只加一致性断言）。
+- **M21-1 现状（审计「三条路径都没入口」已过期）**：Task 45 已让未来日条目可开详情窗并可改详情 / 删除（`timeline_plan_detail_test.dart:39-40 / :455-560`）；仓储层**零日期校验**（`repositories.dart` setQuadrant:519 / setPriorityAbc:536 / setStatus:550 / setResultNote:572 / setDetail:590 / promote:606 / moveToDate:626 / softDelete:646 / `_patch`:712 全只接 id）；界面守卫在 `day_grid.dart:674 / :778-780`、`today_page.dart:150-152 / :161-166 / :1121-1128`、`habits_page.dart:163`、`habit_checkin_strip.dart:61`、`date_bar.dart:98`；**详情窗内无 future 守卫 ⇒ 未来日条目当前可写回填，违反 §H-1 正文（真缺陷，本轮必须修）**；无 `setTitle` / rename，但 `core_db\lib\src\tables.dart:252` 已有 `title` 列 ⇒ **不涉 schema / 不做迁移**。
+- **G4 口径更正**：`docs\task40\关于页设计.md:217` 的 G4 = **「检查结果不可复制」**（不是「缺 key 的区块」）；文档未给 ValueKey ⇒ 本轮自定 `about-copy-result`（遵循既有 `about-*` 约定）并必须配断言。
+- **G2 口径**：`docs\task40\关于页设计.md:215` = 列出 Flutter / drift / riverpod 等**真实依赖及其许可证名**（区块标题 + 说明，位置在「其它软件」之后）。
+- **第三方库许可证真值**：cupertino_icons / drift / flutter_riverpod / window_manager / tray_manager / sqlite3 = **MIT**；flutter_local_notifications / path / path_provider = **BSD-3-Clause**（**不是** MIT）。
+- **spec §H-1 原文**（`docs\superpowers\specs\2026-11-07-双端交互体验设计.md:426`）：「未来只读预排：允许给未来日期建 `plan_item`（徽标 `预排`）；打卡、回填、复盘、心态只允许今天与过去。」同口径见 `:77-78 / :286 / :482`；文件内**无「冻结 / 不得修改」字样**（三处「冻结」均指 schema 等上游输入）⇒ 「冻结」是台账口径，非 spec 原文。
+
+### 46.3 写集表（互斥，R8）
+
+| 单元 | 主题 | 写集（独占） |
+|---|---|---|
+| W1 | 版本口径统一 + 随包 CJK 衬线 | `apps\desktop\pubspec.yaml`（`version: 1.0.0+1` + 新字体族声明） + `apps\desktop\assets\fonts\NotoSerifSC-Regular.ttf`（新） + `apps\desktop\assets\fonts\licenses\OFL-notoserifsc.txt`（新） + `apps\desktop\lib\src\app_version.dart` + `apps\desktop\lib\src\theme\app_fonts.dart`（仅需时） + `apps\desktop\test\font_bundle_test.dart`（改强守卫） + **新建** `apps\desktop\test\task46_font_version_test.dart` + `design-demos\TOKENS.md`（仅 `:142` 一带字体实际加载清单） |
+| W2 | M21-1 未来日开放改标题 / 详情 / 删除 + 回填守卫 + spec §H-1 修订 | `packages\core_data\lib\src\repositories.dart`（新增 `setTitle`） + **新建** `packages\core_data\test\task46_plan_item_title_test.dart` + `apps\desktop\lib\src\widgets\timeline\plan_item_detail_dialog.dart` + `apps\desktop\lib\src\widgets\timeline\day_grid.dart` + `apps\desktop\test\timeline_plan_detail_test.dart`（更新） + **新建** `apps\desktop\test\task46_future_edit_guard_test.dart` + `docs\superpowers\specs\2026-11-07-双端交互体验设计.md`（`:426` 口径修订） |
+| W3 | 关于页 G2（第三方库许可证）+ G4（检查结果可复制） | `apps\desktop\lib\src\pages\about_page.dart` + `apps\desktop\test\task45_about_page_gaps_test.dart`（更新） + **新建** `apps\desktop\test\task46_about_licenses_test.dart` |
+| 控制器 | 台账 + 门禁 + 打包 + 装机 | 本计划本段 / `docs\B1_验收记录.md` / `.superpowers\sdd\2026-11-07-b1-flutter-implementation\handoff.md`（§41）/ 同目录 `progress.md` / `reports\task46-*` / `AGENTS.md` §5 §7 |
+
+**派工书（唯一实现契约）**：`.superpowers\sdd\2026-11-07-b1-flutter-implementation\task-46-w1-brief.md` / `task-46-w2-brief.md` / `task-46-w3-brief.md` —— **冲突时以派工书为准**。
+
+### 46.4 门禁期望
+
+- `flutter analyze`（desktop）逐字 `No issues found!`（error / warning / **info** 全 0）。
+- desktop 全量 `flutter test` **≥ +462**（基线，**零回退**）；core_data 全量 **≥ +197**（W2 改 core_data ⇒ 必须真跑）。
+- 越界比对（sha diff + mtime 窗口双判据）⇒ `VIOLATIONS=0`。
+- **产品代码有改动 ⇒ 必须 `flutter build windows --release` → `tools\build\make_installer.ps1` 重打包，并更新 R3 唯一可分发包真源行**（`make_installer.ps1` **只打包不编译**）。
+- 新增判别性断言：随包衬线 **cmap 必须覆盖 U+4E2D / U+77E5 / U+884C** 且家族名逐字 `Noto Serif SC`；OFL 许可**五份**齐全；`app_version.dart` 与 `pubspec.yaml` 版本逐字一致。
+
+### 46.5 明确不做（登记，不在本轮修）
+
+- **不做**应用内「检查更新 / 下载 / 触发安装」（用户拍板本轮不做）；`GitHubReleaseChecker`（`providers.dart:674-731`）与 `about-online-upgrade` 按钮保持现状。
+- **不落 Roboto / 不推翻 D-5 合成假粗裁定**（Task 22 用户已拍板）。
+- **不动 `packages\core_db` 列定义 / 不改 `docs\schema_v1.sql` / 不做任何迁移**（schema v1 冻结）；`setTitle` 复用既有 `title` 列。
+- **不改** `design-demos\TOKENS.md` §1–§6 的视觉口径；**仅**更新其字体实际加载清单（`:142` 一带）以与随包资产保持一致。
+- **Task 47（全应用中英双语）独立立项**：本轮**不实施**，只登记缺口（`AppLocalizations.of(` 全仓命中 0、`appLocalizationsProvider` 无消费者 ⇒ 现语言开关是**死开关**；硬编码中文 40 段 / 37 条，集中在 `about_page.dart` `_AboutCopy:454-532` 与 `plan_item_detail_dialog.dart`）。
+- 不删任何文件（清理一律 `Move-Item` 改名）。
+
+### 46.6 Task 46 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+
+- [ ] 46.2 W1 版本三处统一到 1.0.0 + build 1（`app_version.dart` / `pubspec.yaml` / `make_installer.ps1` 口径一致）
+- [ ] 46.2 W1 随包 CJK 衬线落地（Noto Serif SC Regular TTF + OFL 许可 + pubspec 声明 + `app_fonts.dart` 核对）
+- [ ] 46.2 W1 `font_bundle_test.dart` 守卫改强（字体族清单 / OFL 五份 / 未打包的可变字体不声明）
+- [ ] 46.2 W2 `setTitle` 落地（不改列定义）+ 未来日可改标题 / 详情 / 删除
+- [ ] 46.2 W2 未来日**回填 / 打卡 / 复盘 / 心态**守卫补齐（修 §H-1 越口径缺陷）
+- [ ] 46.2 W2 spec §H-1 口径同步修订
+- [ ] 46.3 W3 关于页 G2（第三方库许可证名）+ G4（检查结果可复制，`about-copy-result`）
+- [ ] 46.4 控制器门禁全量（analyze 逐字 + desktop ≥ +462 + core_data ≥ +197 + 越界 `VIOLATIONS=0`）
+- [ ] 46.4 重打包 + 包内核对 + R3 唯一可分发包真源行更新
+- [ ] 46.5 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS §5 §7）+ commit + push

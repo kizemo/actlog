@@ -810,23 +810,27 @@ class _DayGridState extends ConsumerState<DayGrid> {
 
   /// 打开任务详情窗（左键 / `Enter`）。
   ///
-  /// 一次提交里最多同时改四列（`detail` / `quadrant` / `result_note` /
-  /// `planned_start` + `planned_end`），但只写**确实变了**的那些 —— 没改的
-  /// 字段不落库，避免凭空多出 oplog 条目。删除走独立分支：详情窗里已经
-  /// 二次确认过（`showConfirmDialog`），这里只负责软删。
+  /// 一次提交里最多同时改五列（`title` / `detail` / `quadrant` /
+  /// `result_note` / `planned_start` + `planned_end`），但只写**确实变了**的
+  /// 那些 —— 没改的字段不落库，避免凭空多出 oplog 条目。删除走独立分支：
+  /// 详情窗里已经二次确认过（`showConfirmDialog`），这里只负责软删。
   ///
-  /// **不拦未来日**（Task 45 · W6）：内容 / 级别 / 回填内容 / 持续时间 / 删除
-  /// 都是「排期本身的编辑」，预排时就该能改。唯一留在 [_toggleStatus] 里的
-  /// `_future` 守卫，且详情窗里没有「标记完成」按钮 —— 未来日不可能借本窗
-  /// 产生「做完了」的记录。
+  /// **未来日只拦回填**（Task 46 · W2）：标题 / 内容 / 级别 / 持续时间 /
+  /// 删除都是「排期本身的编辑」，预排时就该能改；回填（`result_note`）是
+  /// 「做完了」的产物，未来日一律不落 —— 详情窗里输入框已禁用，这里再拦
+  /// 一道，窗被别处放开也不会写脏。完成状态仍只由 [_toggleStatus] 管，
+  /// 详情窗里没有「标记完成」按钮。
   Future<void> _openDetail(GridEntry entry) async {
     final PlanItemData? row = _rowOf(entry.id);
     if (row == null) {
       return;
     }
+    // 在 `await` 之前算定：弹窗期间不保证再 build，`_future` 可能已是旧值。
+    final bool isFuture = widget.date.compareTo(_todayIso) > 0;
     final PlanItemDetailResult? result = await showPlanItemDetailDialog(
       context,
       item: row,
+      todayIso: _todayIso,
       defaultStart: entry.startMinute,
       defaultEnd: entry.startMinute + entry.durationMinutes,
     );
@@ -840,13 +844,16 @@ class _DayGridState extends ConsumerState<DayGrid> {
         await planItem.softDelete(row.id);
         return;
       }
+      if (result.title != null && result.title != row.title) {
+        await planItem.setTitle(row.id, result.title!);
+      }
       if (result.detail != row.detail) {
         await planItem.setDetail(row.id, result.detail);
       }
       if (result.quadrant != Quadrant.fromCode(row.quadrant)) {
         await planItem.setQuadrant(row.id, result.quadrant);
       }
-      if (result.resultNote != row.resultNote) {
+      if (!isFuture && result.resultNote != row.resultNote) {
         await planItem.setResultNote(row.id, result.resultNote);
       }
       if (result.startMinute != row.plannedStart ||

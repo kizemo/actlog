@@ -12,16 +12,18 @@
 /// 反例：本机没装 JetBrains Mono，若为此把 `mono` 改写成已装的 `Consolas`，
 /// 换到装了 JetBrains Mono 的机器上原型族就永远不生效 —— 机器事实会过期，代码不该记它。
 ///
-/// **打包状态**：四族**随应用自带**，声明在 `pubspec.yaml` 的 `flutter.fonts`
+/// **打包状态**：五族**随应用自带**，声明在 `pubspec.yaml` 的 `flutter.fonts`
 /// （只声明用到的字重，不整目录声明 `assets/fonts/`）：
 /// - `Inter` 400 / 500 / 600；
 /// - `Fraunces` 400 / 600 / 700；
 /// - `JetBrains Mono` 400 / 500；
 /// - `Noto Sans SC` 400 —— 由可变字体（`wght` 100–900）**静态实例化**为 `wght=400`，
 ///   name 表的 subfamily 与 typo-subfamily 均为 `Regular`（不是可变字体的
-///   Thin 默认实例）。
+///   Thin 默认实例）；
+/// - `Noto Serif SC` 400 —— 取自 noto-cjk 的 `SubsetOTF` 静态实例，CFF 轮廓
+///   经 `Cu2QuPen` 转二次曲线后重建成 `glyf`（31,058 字形全量保留）。
 ///
-/// 四族均为 OFL 1.1，许可证随包分发在 `assets/fonts/licenses/`（四族各一份）。
+/// 五族均为 OFL 1.1，许可证随包分发在 `assets/fonts/licenses/`（五族各一份）。
 /// `Noto Sans SC` 是 `bodyFallback` 的首项 ⇒ **中文正文不再依赖系统字体**；
 /// `TOKENS.md` §8「桌面端缺字库时必须自带」的要求已满足，`144dpi` / `200%`
 /// 字号验收的字库前置条件不再缺失。

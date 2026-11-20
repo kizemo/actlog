@@ -600,6 +600,27 @@ final class PlanItemRepository {
     );
   }
 
+  /// 改标题（`plan_item.title`）。
+  ///
+  /// 与 [setDetail] 走同一条 `_patch` 通道：只改 `title` 一列，内容 / 回填 /
+  /// 分级 / 起止 / 状态一律不动。列本身早已存在（`packages\core_db\lib\src\tables.dart`），
+  /// 这里只是补写入口 —— 不新增 schema、不做迁移。
+  ///
+  /// **不校验空串 / 长度**：口径与 [setDetail] / [setResultNote] 完全一致，
+  /// 仓储层原样写入；「标题能不能空」是界面决策，不在这一层自创规则。
+  Future<void> setTitle(String id, String title) {
+    return _patch(
+      id,
+      changedFields: <String, Object?>{'title': title},
+      build: (deviceId, ts, rev) => PlanItemCompanion(
+        title: Value(title),
+        updatedAt: Value(ts),
+        originDeviceId: Value(deviceId),
+        rev: Value(rev),
+      ),
+    );
+  }
+
   /// 把习惯回填行「转正」为普通手动条目。
   ///
   /// 转正只改来源字段，条目本身（标题、状态、成果）保持不变。

@@ -19,6 +19,14 @@
 // 为什么起止控件照抄 `slot_range_dialog.dart` 的步进口径：
 //   15 分钟粒度 + `formatMinute` + 实时「共 N 分钟」是既有的唯一语义，
 //   这里只是换一套 Key 重画一遍，不去改那个文件（双击行仍走它）。
+//
+// Task 46 · W2 改了两件事（用户当轮口径）：
+//   ① 标题从只读改成可编辑（写 `plan_item.title`，列早已存在、无迁移）；
+//   ② 未来日（预排日）补上回填守卫：回填框禁用 + 可见锁定提示，保存时再把
+//      `resultNote` 强制还原成库里的原值。`day_grid._openDetail` 侧另有
+//      `!_future` 守卫 —— 窗与调用方双保险，任一处被放开也不会写脏。
+//   标题 / 内容 / 级别 / 持续时间 / 删除对**未来日照常开放**：那是排期本身的
+//   编辑，不是「做完了」的事实；打卡 / 回填 / 复盘 / 心态仍只限今天与过去。
 // =============================================================================
 
 import 'package:core_db/core_db.dart';
@@ -33,17 +41,23 @@ import 'slot_state.dart';
 
 /// 详情窗的提交结果。
 ///
-/// 四个可编辑区块 + 一个删除标记：调用方按字段与旧值比对，只写变化的列。
+/// 五个可编辑区块 + 一个删除标记：调用方按字段与旧值比对，只写变化的列。
 class PlanItemDetailResult {
   /// 创建一次提交结果。
   const PlanItemDetailResult({
     required this.startMinute,
     required this.endMinute,
+    this.title,
     this.detail = '',
     this.resultNote = '',
     this.quadrant,
     this.delete = false,
   });
+
+  /// 标题（`plan_item.title`）；null = 调用方不该写这一列。
+  ///
+  /// 只有「保存」分支会带上它；「删除」分支保持 null，因此不会顺带改标题。
+  final String? title;
 
   /// 内容（`plan_item.detail`）。
   final String detail;
@@ -68,9 +82,12 @@ class PlanItemDetailResult {
 ///
 /// [defaultStart] / [defaultEnd] 是条目在网格上的实际区间，用于
 /// `planned_start` / `planned_end` 为空的老数据 —— 不拿 0 当兜底。
+/// [todayIso] 是调用方手上的「今天」（本地 `YYYY-MM-DD`）：窗内不自己调
+/// `DateTime.now()`，否则测试无法把日期钉死。
 Future<PlanItemDetailResult?> showPlanItemDetailDialog(
   BuildContext context, {
   required PlanItemData item,
+  required String todayIso,
   required int defaultStart,
   required int defaultEnd,
 }) {
@@ -78,6 +95,7 @@ Future<PlanItemDetailResult?> showPlanItemDetailDialog(
     context: context,
     builder: (BuildContext ctx) => PlanItemDetailDialog(
       item: item,
+      todayIso: todayIso,
       defaultStart: defaultStart,
       defaultEnd: defaultEnd,
     ),
@@ -90,12 +108,16 @@ class PlanItemDetailDialog extends StatefulWidget {
   const PlanItemDetailDialog({
     super.key,
     required this.item,
+    required this.todayIso,
     required this.defaultStart,
     required this.defaultEnd,
   });
 
   /// 当前条目（构建时传入的行快照）。
   final PlanItemData item;
+
+  /// 调用方的「今天」（本地 `YYYY-MM-DD`）。
+  final String todayIso;
 
   /// 网格上的实际起始分钟（`planned_start` 为空时兜底）。
   final int defaultStart;
@@ -108,10 +130,18 @@ class PlanItemDetailDialog extends StatefulWidget {
 }
 
 class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
+  late final TextEditingController _title =
+      TextEditingController(text: widget.item.title);
   late final TextEditingController _content =
       TextEditingController(text: widget.item.detail);
   late final TextEditingController _note =
       TextEditingController(text: widget.item.resultNote);
+
+  /// 本条目所在日期是否晚于今天（本地日期字符串比较，与 `day_grid` 同口径）。
+  ///
+  /// 未来日只锁**回填**（打卡 / 回填 / 复盘 / 心态）；标题 / 内容 / 级别 /
+  /// 持续时间 / 删除照常可改 —— 那是排期本身的编辑。
+  late final bool _future = widget.item.date.compareTo(widget.todayIso) > 0;
 
   /// 级别当前值：`null` = 未分级（与 `plan_item.quadrant` 的 null 同构）。
   late Quadrant? _quadrant = Quadrant.fromCode(widget.item.quadrant);
@@ -130,6 +160,7 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
 
   @override
   void dispose() {
+    _title.dispose();
     _content.dispose();
     _note.dispose();
     super.dispose();
@@ -158,6 +189,11 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
   /// 只取 `note`、**不碰 status** —— 「完成」仍由 chip 的勾选框负责，
   /// 这里落库的是 `result_note` 一列。
   Future<void> _openTemplate() async {
+    // 未来日模板按钮本就是 disabled，这里再拦一道：窗内任何路径都不该往
+    // `result_note` 里写字。
+    if (_future) {
+      return;
+    }
     final SlotFillEdit? edit = await showSlotFillDialog(
       context,
       title: widget.item.title,
@@ -190,8 +226,10 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
   void _submit() {
     Navigator.of(context).pop(
       PlanItemDetailResult(
+        title: _title.text,
         detail: _content.text,
-        resultNote: _note.text,
+        // 未来日不落回填：即使控件被别处放开，这里也把值还原成库里的原值。
+        resultNote: _future ? widget.item.resultNote : _note.text,
         quadrant: _quadrant,
         startMinute: _start,
         endMinute: _end,
@@ -218,13 +256,18 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // ① 标题：只读（规格只把内容 / 级别 / 持续时间标为可编辑）。
+            // ① 标题：可编辑（Task 46 · W2 放开；写 `plan_item.title`）。
+            //    未来日同样可改 —— 预排时本来就要能修订标题。
             Text('标题', style: TextStyle(fontSize: 10, color: t.meta)),
             const SizedBox(height: 2),
-            Text(
-              widget.item.title,
+            TextField(
               key: const ValueKey<String>('plan-detail-title'),
+              controller: _title,
               style: TextStyle(fontSize: 16, color: t.ink),
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: AppTokens.gapCard),
             // ② 内容：写 `plan_item.detail`。
@@ -254,9 +297,11 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
             ),
             const SizedBox(height: AppTokens.gapCard),
             // ④ 回填内容：写 `plan_item.result_note`，不改 status。
+            //    未来日禁用 —— 回填是「做完了」的产物，只允许今天与过去。
             TextField(
               key: const ValueKey<String>('plan-detail-note'),
               controller: _note,
+              enabled: !_future,
               minLines: 2,
               maxLines: 4,
               style: TextStyle(fontSize: 13, color: t.ink2),
@@ -266,11 +311,20 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
                 border: OutlineInputBorder(),
               ),
             ),
+            if (_future)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '未来日不可回填：打卡 / 回填 / 复盘 / 心态只允许今天与过去。',
+                  key: const ValueKey<String>('plan-detail-note-locked'),
+                  style: TextStyle(fontSize: 11.5, color: t.meta),
+                ),
+              ),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
                 key: const ValueKey<String>('plan-detail-template'),
-                onPressed: _openTemplate,
+                onPressed: _future ? null : _openTemplate,
                 child: const Text('成果 / 进展模板'),
               ),
             ),
