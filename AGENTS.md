@@ -332,6 +332,10 @@ practilog/
 77. 症状：合成点击脚本在启动时缓存 `originX/originY`，`Ensure-Foreground` 里 `ShowWindow($hwnd,9)` 一改窗口矩形，后续 `Click-Png` 全部点空 —— 表现为「文字找到了、点了没反应」（Task 45 实测：`Find-Chars` 命中但页面没切换）。**正确做法**：① **抢前台之后必须重新 `GetWindowRect`** 并把 `$script:originX/$originY/$w/$h` 回写，同时打印 `CLICK_GEOM_CHANGED` 便于判读；② 前置三件套固定：`SetProcessDpiAwarenessContext(-4)` → `SetForegroundWindow` → 断言 `GetForegroundWindow() -eq $hwnd`；③ 「命中但无效应」的归因顺序是**送达（坐标/前台）** 优先，不是被测代码。
 78. 症状：PowerShell 5.1 里单条命中时 `$hits.Count` 打印成空串（`PSCustomObject` 没有 `.Count`）⇒ 日志出现 `SETTINGS_CANDIDATES= try=0` 这种自相矛盾的行，容易被当成缺陷。**正确做法**：计数一律 `@($hits).Count`；同理 `List[object]` 进 `@()` 前先 `.ToArray()`，`[pscustomobject]` 作方法实参不安全（先赋值再 Add）。判读时把「空值」与「0」分开看。
 
+79. 症状：`flutter build windows --release` 在**仓库根**跑 ⇒ 失败或产物不对；`.bat` 子进程的 cwd 取自 **PowerShell `$PWD`**（`.NET SetCurrentDirectory` 无效）⇒ `make_installer.ps1` 会拿**旧 payload** 照样打成「空壳包」（Task 46 实测：连出 `…_082915.exe` / `…_083532.exe` 两个包，**都不含**当轮的关于页版本口径修复）。**正确做法**：① build 必须在 `apps\desktop` 下跑 —— 写成 `reports\taskXX-build.ps1`：`Push-Location 'apps\desktop'` + `try { … } finally { Pop-Location }`（镜像环境变量在**同进程**设）；② 打包前**必须**先看到 `BUILD_EXIT=0` 与 `√ Built …\Release\actlog.exe`，再跑 `make_installer.ps1`；③ 产物判真靠 **payload 的 sha**（本轮 `data\app.so` sha16 `CD1100EA717839B7` ≠ 上一版 `387256A230AA6090` ⇒ 新代码确实进包），不能凭包名/时间戳猜；④ 任何**用旧 payload 打出的中间包**必须在 R3 真源行标注**严禁分发**。
+
+80. 症状：门禁首轮 FAIL 报出一大批 `G5_*=<missing>` ⇒ 看着像「十几条越界」，实则**脚本一行输出都没产出**（Task 46 实测：`.ps1` 里三个数组的**末元素后各留了一个尾随逗号** ⇒ 整个脚本哑火）。**正确做法**：① 判据「**一批键同时缺失**」⇒ 先查**探针自己**（哑火），不许直接写成产品越界；② 任何 `.ps1` 改完先**静态解析**：`[System.Management.Automation.Language.Parser]::ParseInput((Get-Content -Raw $f),[ref]$null,[ref]$errs)` ⇒ **一次列出全部**语法错（比逐轮试跑省 3–5 次调用）；③ 数组字面量的**末元素一律不带尾随逗号**；④ 修完先**手动跑一遍**该脚本把各键拿到，再重跑门禁。
+
 ## 6. 权威文档导航（哪件事以谁为准）
 
 | 想知道 | 看这里 |
