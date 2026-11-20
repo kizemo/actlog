@@ -8186,3 +8186,66 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 46.4 控制器门禁全量（analyze 逐字 + desktop ≥ +462 + core_data ≥ +197 + 越界 `VIOLATIONS=0`）
 - [x] 46.4 重打包 + 包内核对 + R3 唯一可分发包真源行更新
 - [x] 46.5 台账同步（计划 / B1 / handoff / progress / batch-log / AGENTS §5 §7）+ commit + push
+
+## 48. Task 48 · 品牌图标换新（用户当轮拍板 · 2026-11-20 · **插在 Task 47 之前执行**）
+
+> **编号说明**：Task 47（全应用中英双语 l10n）只有侦察稿 `reports\task47-recon-l10n-full.md`，尚未实施；本轮图标任务插在它前面，编号为 **Task 48**，**不改 Task 47 的既有编号与侦察文件**。后续会话执行 l10n 时仍叫 Task 47。
+
+### 48.1 用户当轮拍板（原文 + 问卷）
+
+原文：「软件图标，包括任务栏图标、app左上角图标，请使用：`log_design_brightbg.png` 或 `log_design_darkbg.png`，可以修改颜色。」
+
+问卷 `ask_306453ec89cc81fdaf175614` 两项：
+
+1. **任务栏小尺寸（16/20/24/32px）→ 全部尺寸都用完整「aag」字标**（明确**不做**「▶ 圆标」简化形）。
+2. **系统托盘图标 → 同步换成新的「aag」深色方块**。
+
+### 48.2 已坐实的图标链路（本轮实测，非推断）
+
+- **任务栏 / 窗口 / Alt-Tab**：`apps\desktop\windows\runner\resources\app_icon.ico`（**381038 B**，9 档 **16/20/24/32/40/48/64/128/256**，全部 32bpp DIB 非 PNG 压缩）→ `windows\runner\Runner.rc` `IDI_APP_ICON`。
+- **Setup 安装器 / 卸载器 exe 图标**：`tools\build\make_installer.ps1:30` 的默认 `IconPath` 就是上面这个 ico ⇒ **改一处，任务栏 / 窗口 / Alt-Tab / 安装器 / 卸载器五处同步生效**，无需改 `installer.nsi`。
+- **app 左上角**：`apps\desktop\assets\brand_mark.png`（3019 B / **64×32 / Format32bppArgb**）→ `apps\desktop\lib\src\widgets\shell\app_top_bar.dart:269` `Image.asset('assets/brand_mark.png', height: 16, key: AppTopBar.brandMarkKey)`。
+- **托盘**：`apps\desktop\assets\icon.png`（13186 B / **256×256 / Format32bppArgb**）→ `lib\src\desktop_shell.dart:25` `kTrayIconAsset` → `:240` `trayManager.setIcon`。
+- **两张设计稿实测**：`log_design_brightbg.png` 6276 B / **240×240 / Format32bppArgb**（**黑「aag」字标 + 透明底**）；`log_design_darkbg.png` 7814 B / **240×240 / Format24bppRgb**（**白「aag」字标 + 暖墨深褐方块底，无 alpha**；暖墨深褐正是 Task 41 暗色主题色系）。
+
+### 48.3 方案（用户拍板后定稿）
+
+1. **任务栏 ico** ← 以 `log_design_darkbg.png` 为**方形母版**（暖墨深褐方块 + 白字标），缩出 9 档 32bpp DIB；**全尺寸都用完整字标**，不做小尺寸简化形（用户当轮明确）。
+2. **顶栏左上角** ← 以 `log_design_brightbg.png` 抠墨迹 bbox 出透明底字标，产出两份 RGBA：`assets\brand_mark.png`（**黑**字标，浅色主题）+ **新建** `assets\brand_mark_dark.png`（**白**字标，暗色主题）；widget 按 `Theme.of(context).brightness` 选资产 ⇒ **暗色主题不再出现黑字标糊在深色顶栏**（旧 I03 深蓝碗形本就存在该隐患，本轮一并闭合）。
+3. **托盘** ← 与任务栏同源：`assets\icon.png` = 256×256 RGBA 暖墨深褐方块 + 白字标。
+
+### 48.4 写集表（互斥，R8）
+
+| 单元 | 主题 | 写集（独占） |
+|---|---|---|
+| W1 | 素材生成 + ico 合成 | `tools\icons\make_aag_icon.py`（**新建**） + `apps\desktop\assets\brand_mark.png` + `apps\desktop\assets\brand_mark_dark.png`（**新建**） + `apps\desktop\assets\icon.png` + `apps\desktop\windows\runner\resources\app_icon.ico` + `apps\desktop\pubspec.yaml`（**仅** assets 段新增一行） |
+| W2 | 顶栏按主题选资产 + 判别性测试 | `apps\desktop\lib\src\widgets\shell\app_top_bar.dart` + `apps\desktop\test\app_top_bar_test.dart` + **新建** `apps\desktop\test\task48_brand_icon_test.dart` |
+| 控制器 | 台账 + 门禁 + 打包 + 装机 | 本计划本段 / `docs\B1_验收记录.md` / `.superpowers\sdd\2026-11-07-b1-flutter-implementation\handoff.md`（§42）/ 同目录 `progress.md` / `reports\task48-*` / `AGENTS.md` §5 §7 |
+
+**派工书（唯一实现契约）**：`.superpowers\sdd\2026-11-07-b1-flutter-implementation\task-48-w1-brief.md` / `task-48-w2-brief.md` —— **冲突时以派工书为准**。
+
+### 48.5 门禁期望
+
+- `flutter analyze`（desktop）逐字 `No issues found!`（error / warning / **info** 全 0）。
+- desktop 全量 `flutter test` **≥ +531**（Task 46 基线，**零回退**）；core_data ≥ +204 / core_db +71 / core_domain +62。
+- 越界比对（sha diff + mtime 窗口双判据）⇒ `VIOLATIONS=0` / `G6_OUT_OF_SET=0` / `G6_WORKTREE_DIRTY=0`。
+- **判别性断言**：① `brand_mark.png` 与 `brand_mark_dark.png` 均 PNG 颜色类型 6（RGBA）且**墨迹 bbox 几何完全一致**（同宽高、只换 RGB）；② `app_icon.ico` 9 档尺寸齐全且每档 32bpp；③ `assets\icon.png` 256×256 RGBA；④ 顶栏在暗色主题下断言用的是 `brand_mark_dark.png`（把 brightness 分支去掉即红）。
+- 资源有改动 ⇒ 必须 `flutter build windows --release` → `tools\build\make_installer.ps1` → **覆盖装机验证** → 更新 R3 唯一可分发包真源行（`make_installer.ps1` **只打包不编译**）。
+
+### 48.6 明确不做（登记，不在本轮修）
+
+- **不做**「▶ 圆标」小尺寸简化形（用户当轮拍板：全尺寸完整字标）。
+- **不改** `log_design_brightbg.png` / `log_design_darkbg.png` 两个源文件（**只读消费**）。
+- **不动** `tools\icons\make_brand_icon.py`（旧 I03 生成器）与旧素材 —— 新链路另起脚本，旧文件保留（R4 不删）。
+- 不做 SVG / 多色渐变 / 圆角遮罩 / 主题化图标（.ico SVG）/ 图标动效 / 多尺寸变体字标。
+- 不改 `installer.nsi` / `make_installer.ps1`（默认已取 `app_icon.ico`）。
+- 不删任何文件（清理一律 `Move-Item` 改名）。
+
+### 48.7 Task 48 复选框清单（**只有控制器能打勾；必须等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+
+- [ ] 48.3 W1 新图标生成脚本 + 9 档 ico + 三份 PNG 落地
+- [ ] 48.3 W1 pubspec assets 段登记新资产
+- [ ] 48.3 W2 顶栏按亮度选黑/白字标 + 判别性测试
+- [ ] 48.5 控制器门禁全量 + 越界 `VIOLATIONS=0`
+- [ ] 48.5 重打包 + 包内核对 + 覆盖装机验证 + R3 真源行更新
+- [ ] 48.6 台账同步 + commit + push
