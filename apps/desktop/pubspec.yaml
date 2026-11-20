@@ -45,10 +45,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    # 托盘图标（tools/icons/make_brand_icon.py 程序化生成，源自 logo Set I / I03）。
+    # 托盘图标（tools/icons/make_aag_icon.py 生成，母版 log_design_darkbg.png，256×256 方块白字标）。
     - assets/icon.png
-    # 顶栏左上角品牌标记（logo Set I / I03 深蓝碗形叠合 + 基线，透明底纯形）。
+    # 顶栏左上角品牌标记（tools/icons/make_aag_icon.py 生成，母版 log_design_brightbg.png，231×76 透明底黑字标）。
     - assets/brand_mark.png
+    - assets/brand_mark_dark.png  # 顶栏品牌标记 · 暗色主题白字标（tools/icons/make_aag_icon.py 生成，与上一行同几何，仅 RGB 换白）
     # 字体许可证（OFL 要求重分发时随包附带）。
     - assets/fonts/licenses/
   fonts:

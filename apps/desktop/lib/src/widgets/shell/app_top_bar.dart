@@ -21,6 +21,15 @@ const double kTopBarButtonWidth = 44;
 /// 改它会破坏三钮的命中区与 Win11 snap 的手感。
 const double kBrandMarkTopGap = 12;
 
+/// 浅色主题的品牌标记资产：黑字标（透明底，231×76 RGBA）。
+const String _kBrandMarkLightAsset = 'assets/brand_mark.png';
+
+/// 暗色主题的品牌标记资产：白字标（透明底，231×76 RGBA）。
+///
+/// 与 [_kBrandMarkLightAsset]**同几何、alpha 逐像素一致**，只有 RGB 换白 ——
+/// 所以两份是同一字标的亮/暗两版，不是两个不同的标。
+const String _kBrandMarkDarkAsset = 'assets/brand_mark_dark.png';
+
 /// 是否已给最大化钮接线 Win11 snap layouts。
 ///
 /// 默认 `false`：widget test 与任何没有原生窗口的环境都不该碰插件。
@@ -109,7 +118,7 @@ class AppTopBar extends StatelessWidget {
   /// 顶栏空白拖拽区。
   static const Key dragAreaKey = ValueKey<String>('app-top-bar-drag');
 
-  /// 品牌标记位（I03 新品牌标记 PNG）。
+  /// 品牌标记位（顶栏左上角「aag」字标 PNG，随主题亮暗切换黑 / 白两份资产）。
   static const Key brandMarkKey = ValueKey<String>('app-top-bar-brand-mark');
 
   @override
@@ -252,22 +261,30 @@ class _TopBarButtonState extends State<TopBarButton> {
   }
 }
 
-/// 品牌标识：I03 新品牌标记（透明底 PNG，深蓝碗形叠合 + 基线）。
+/// 品牌标识：顶栏左上角「aag」字标（透明底 PNG，按主题亮暗选两份资产之一）。
 ///
-/// 真源 `design-demos/logo-set-i-bowl-overlap-2026-11-11/I03-bowl36-navy-hard-mark.png`
-/// （1024×1024 裁到墨迹 bbox 后缩到 64×32）⇒ 颜色由 PNG 自带，**不硬编码色值**。
+/// 母版是用户提供的 `log_design_*.png`（浅色底 / 深色底各一），由
+/// `tools/icons/make_aag_icon.py` 产出两份**真实资产**：
+/// * [_kBrandMarkLightAsset] —— 黑字标，浅色主题用；
+/// * [_kBrandMarkDarkAsset] —— 白字标，暗色主题用；与前者同几何（231×76 RGBA、
+///   alpha 逐像素一致），仅 RGB 换白。
 ///
-/// 16 高，宽度按原始比例自适应（≈32×16）；顶边距见 [kBrandMarkTopGap]。
+/// 上一代素材是深色调图形，落在暖墨深褐的暗色顶栏上几乎不可见 —— 按主题切换资产
+/// 就是为了闭合这个缺陷。颜色由 PNG 自带，**不硬编码色值**；也**不**给同一张图加
+/// `color` 再配混合模式染色（那会让抗锯齿边缘二次相乘发虚）。
 ///
-/// 旧的「账页」自绘（方框 + 两道账目线）已删除：它与品牌真源不是同一个东西，
-/// 且换资源解决不了 —— 这里直接渲染品牌真源本身。
+/// 16 高，宽度按原始比例自适应（231:76 ≈ 3.04 ⇒ ≈49px）；顶边距见 [kBrandMarkTopGap]。
 class _BrandMark extends StatelessWidget {
   const _BrandMark();
 
   @override
   Widget build(BuildContext context) {
+    // 亮暗主题换的是**资产本身**（黑字标 / 白字标），不是给同一张图染色。
+    final String asset = Theme.of(context).brightness == Brightness.dark
+        ? _kBrandMarkDarkAsset
+        : _kBrandMarkLightAsset;
     return Image.asset(
-      'assets/brand_mark.png',
+      asset,
       key: AppTopBar.brandMarkKey,
       height: 16,
       filterQuality: FilterQuality.medium,

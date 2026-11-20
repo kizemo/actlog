@@ -8219,7 +8219,7 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 | 单元 | 主题 | 写集（独占） |
 |---|---|---|
 | W1 | 素材生成 + ico 合成 | `tools\icons\make_aag_icon.py`（**新建**） + `apps\desktop\assets\brand_mark.png` + `apps\desktop\assets\brand_mark_dark.png`（**新建**） + `apps\desktop\assets\icon.png` + `apps\desktop\windows\runner\resources\app_icon.ico` + `apps\desktop\pubspec.yaml`（**仅** assets 段新增一行） |
-| W2 | 顶栏按主题选资产 + 判别性测试 | `apps\desktop\lib\src\widgets\shell\app_top_bar.dart` + `apps\desktop\test\app_top_bar_test.dart` + **新建** `apps\desktop\test\task48_brand_icon_test.dart` |
+| W2 | 顶栏按主题选资产 + 判别性测试 + pubspec 注释改写 | `apps\desktop\lib\src\widgets\shell\app_top_bar.dart` + `apps\desktop\test\app_top_bar_test.dart` + **新建** `apps\desktop\test\task48_brand_icon_test.dart` + `apps\desktop\pubspec.yaml`（**仅** 3 行过时注释：托盘 / 品牌标记 / brand_mark_dark 三行；**不动** assets 条目与其余字段） |
 | 控制器 | 台账 + 门禁 + 打包 + 装机 | 本计划本段 / `docs\B1_验收记录.md` / `.superpowers\sdd\2026-11-07-b1-flutter-implementation\handoff.md`（§42）/ 同目录 `progress.md` / `reports\task48-*` / `AGENTS.md` §5 §7 |
 
 **派工书（唯一实现契约）**：`.superpowers\sdd\2026-11-07-b1-flutter-implementation\task-48-w1-brief.md` / `task-48-w2-brief.md` —— **冲突时以派工书为准**。

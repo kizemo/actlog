@@ -10,6 +10,10 @@ import 'package:actlog/src/widgets/shell/app_top_bar.dart';
 ///
 /// 关键点：这里**不**碰 `window_manager` —— 顶栏只吃注入的回调（T5），
 /// 所以本文件在纯 widget 环境里就能跑，不需要任何插件。
+///
+/// `brightness` 非空时只翻 `ThemeData.brightness`（品牌位按它选黑 / 白字标资产）；
+/// 色板仍由 `ThemeTokens` 扩展给，这里**不**顺带换色板 —— 所以既有用例（不传）
+/// 拿到的仍是浅色主题，无一变。
 Future<void> _pumpTopBar(
   WidgetTester tester, {
   ValueNotifier<bool>? maximized,
@@ -18,6 +22,7 @@ Future<void> _pumpTopBar(
   VoidCallback? onClose,
   VoidCallback? onDragStart,
   double textScale = 1,
+  Brightness? brightness,
 }) async {
   final Widget bar = AppTopBar(
     isMaximized: maximized ?? ValueNotifier<bool>(false),
@@ -30,12 +35,21 @@ Future<void> _pumpTopBar(
     MaterialApp(
       home: Scaffold(
         body: Builder(
-          // 文本缩放只放大**文字**，不放 `SizedBox` / 图片盒 ⇒ 顶栏几何必须按像素量。
-          builder: (BuildContext context) => MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.linear(textScale)),
-            child: bar,
-          ),
+          builder: (BuildContext context) {
+            Widget child = bar;
+            if (brightness != null) {
+              child = Theme(
+                data: Theme.of(context).copyWith(brightness: brightness),
+                child: child,
+              );
+            }
+            // 文本缩放只放大**文字**，不放 `SizedBox` / 图片盒 ⇒ 顶栏几何必须按像素量。
+            return MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(textScale)),
+              child: child,
+            );
+          },
         ),
       ),
     ),
@@ -80,7 +94,7 @@ void main() {
     );
   });
 
-  testWidgets('品牌位渲染 I03 新标记 asset，顶栏不再有旧账页自绘', (WidgetTester tester) async {
+  testWidgets('品牌位渲染字标 asset，顶栏不再有旧账页自绘', (WidgetTester tester) async {
     await _pumpTopBar(tester);
 
     final Finder mark = find.byKey(AppTopBar.brandMarkKey);
@@ -103,6 +117,31 @@ void main() {
       find.ancestor(of: mark, matching: find.byKey(AppTopBar.dragAreaKey)),
       findsNothing,
     );
+  });
+
+  // 品牌位按主题亮暗选资产（Task 48）：浅色一支已被上一条用例锁死，
+  // 这里补暗色一支 —— 分支被删掉或两个资产名写反，本用例必红。
+  testWidgets('暗色主题下品牌位换成白字标资产，几何与顶边距不变', (WidgetTester tester) async {
+    await _pumpTopBar(tester, brightness: Brightness.dark);
+
+    final Finder mark = find.byKey(AppTopBar.brandMarkKey);
+    expect(mark, findsOneWidget);
+
+    final Image image = tester.widget<Image>(mark);
+    expect(image.image, isA<AssetImage>());
+    expect(
+      (image.image as AssetImage).assetName,
+      'assets/brand_mark_dark.png',
+      reason: '暗色主题必须用白字标；写反 / 丢分支都会落回黑字标',
+    );
+    expect(image.height, 16);
+
+    // 换资产只换 RGB：几何（高 16、顶边距 12、底边距 4）必须与浅色一致。
+    final Rect bar = tester.getRect(find.byType(AppTopBar));
+    final Rect rect = tester.getRect(mark);
+    expect(rect.height, 16);
+    expect(rect.top - bar.top, closeTo(kBrandMarkTopGap, 0.01));
+    expect(bar.bottom - rect.bottom, inInclusiveRange(3, 5));
   });
 
   testWidgets('品牌标记顶边距 11–13px、底边距 3–5px（不再垂直居中）', (WidgetTester tester) async {
