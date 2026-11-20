@@ -10,6 +10,20 @@
 #
 # ASCII only; the Chinese tooltip is built from char codes.
 
+[CmdletBinding()]
+param(
+    # A3 (round 5): the probe used to depend on whatever actlog instance
+    # happened to be running. With -ExePath it resolves, fingerprints and (if
+    # nothing is running yet) STARTS that exact binary, so the evidence is tied
+    # to a known build. Without -ExePath the old behaviour is unchanged, which
+    # is what device self-test control C12 relies on.
+    [string]$ExePath = '',
+    # D6 (Task 47 W1b): the report used to be written into the planning folder
+    # (.superpowers). Callers now pass the evidence directory. The old path
+    # stays as the default so existing invocations keep working.
+    [string]$ReportDir = 'F:\soft\00selfmade\practilog\.superpowers'
+)
+
 $ErrorActionPreference = 'Stop'
 $out = New-Object System.Collections.Generic.List[string]
 function Say([string]$s) { $script:out.Add($s); Write-Output $s }
@@ -38,21 +52,98 @@ function Get-Title([IntPtr]$h) {
     [void][TW.Win32]::GetWindowText($h, $sb, 256)
     return $sb.ToString()
 }
+# D4 (Task 47 W1b): UIA returns an "infinite" rectangle (X/Y around
+# -8.99E+307) for elements it cannot place on screen. Casting that to [int]
+# threw InvalidArgument and killed the whole run. Every rect now goes through
+# this formatter, which reports the literal word INFINITE instead of throwing,
+# so control C12 (CONTROL_UIA_INFINITE_RECT) can grep a stable token.
+function Format-Rect($r) {
+    try {
+        $x = [double]$r.X; $y = [double]$r.Y; $w = [double]$r.Width; $h = [double]$r.Height
+        foreach ($v in @($x, $y, $w, $h)) {
+            if ([double]::IsNaN($v) -or [double]::IsInfinity($v) -or [math]::Abs($v) -ge 1e9) {
+                return 'INFINITE'
+            }
+        }
+        return ('({0},{1},{2},{3})' -f [int]$x, [int]$y, [int]$w, [int]$h)
+    } catch {
+        return 'INFINITE'
+    }
+}
 
 . (Join-Path $PSScriptRoot 'data_location.ps1')
 
 $Target = [string]([char]0x77E5) + [char]0x884C + [char]0x65E5 + [char]0x5FD7   # zhi xing ri zhi
 Say "target tooltip = '$Target'"
 
+# ---- 0. optional: fingerprint (and start) the build under test --------------
+$startedByUs = $false
+$startedPid = 0
+if (-not [string]::IsNullOrWhiteSpace($ExePath)) {
+    if (-not [System.IO.File]::Exists($ExePath)) {
+        Say "ERROR exe not found: $ExePath"
+        exit 1
+    }
+    $fi = Get-Item -LiteralPath $ExePath
+    $sha = (Get-FileHash -LiteralPath $ExePath -Algorithm SHA256).Hash
+    Say "exe_path = $($fi.FullName)"
+    Say "exe_size = $($fi.Length)"
+    Say "exe_sha256 = $sha"
+    Say "exe_sha256_16 = $($sha.Substring(0,16))"
+    $alive = @(Get-Process -Name (Get-ActLogProcessNames) -ErrorAction SilentlyContinue)
+    Say "actlog_pids_before = $(($alive | ForEach-Object { $_.Id }) -join ',')"
+    if ($alive.Count -eq 0) {
+        $sp = Start-Process -FilePath $fi.FullName -PassThru
+        $startedByUs = $true
+        $startedPid = $sp.Id
+        Say "started_pid = $startedPid"
+        # The shipped build shows its window ~0.3s after start and finishes the
+        # tray setup right after; 5s covers that plus the title re-localization.
+        Start-Sleep -Seconds 5
+        $sp.Refresh()
+        Say "started_alive = $(-not $sp.HasExited)"
+    } else {
+        Say 'reused a running instance (this probe never starts a second one)'
+    }
+}
+
 $auto = [System.Windows.Automation.AutomationElement]
 $trueCond = [System.Windows.Automation.Condition]::TrueCondition
-# Any accepted title spelling counts as a hit.
-$titleConds = New-Object 'System.Collections.Generic.List[System.Windows.Automation.Condition]'
-foreach ($c in (Get-ActLogTitleCandidates)) {
-    $titleConds.Add((New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::NameProperty, $c)))
+# Any accepted title spelling counts as a hit, as a CONTAINS match.
+# Task 47 W1b E.2B: UIA has no "Name contains" condition, and the hard
+# NameProperty equality condition never matched the real notification-area
+# button (observed name: "actlog - 1 running window(s)" in the zh locale), so
+# containment is evaluated in PowerShell over the descendants the caller has
+# already enumerated.
+$titleNames = @(Get-ActLogTitleCandidates)
+function Test-NameContains([string]$n) {
+    if ([string]::IsNullOrWhiteSpace($n)) { return $false }
+    $nn = $n.Trim()
+    foreach ($c in $titleNames) {
+        if (-not $c) { continue }
+        if ($nn.IndexOf($c, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+    }
+    return $false
 }
-$nameCond = New-Object System.Windows.Automation.OrCondition($titleConds.ToArray())
+function Find-TitleHit($el) {
+    try {
+        $kids = $el.FindAll([System.Windows.Automation.TreeScope]::Descendants, $trueCond)
+        foreach ($k in $kids) {
+            if (Test-NameContains $k.Current.Name) { return $k }
+        }
+    } catch { }
+    return $null
+}
+# A3 (round 5): a tray hit is only claimed for the shell surfaces that really
+# host notification icons. Any other window that merely mentions the title is
+# reported on a 'win' line instead of being called HIT, so the evidence cannot
+# be mistaken for "the tray icon was found".
+function Test-TrayClass([string]$c) {
+    if ($c -eq 'Shell_TrayWnd') { return $true }
+    if ($c -like 'TopLevelWindowForOverflowXamlIsland*') { return $true }
+    if ($c -like '*NotifyIconOverflowWindow*') { return $true }
+    return $false
+}
 
 # ---- 1. the taskbar itself ----
 $hTray = [TW.Win32]::FindWindow('Shell_TrayWnd', $null)
@@ -66,14 +157,23 @@ if ($hTray -ne [IntPtr]::Zero) {
         $name = $e.Current.Name
         if ([string]::IsNullOrWhiteSpace($name)) { continue }
         $r = $e.Current.BoundingRectangle
-        Say ("    {0,-22} id='{1}' rect=({2},{3},{4},{5}) name='{6}'" -f `
+        Say ("    {0,-22} id='{1}' rect={2} name='{3}'" -f `
             $e.Current.ControlType.ProgrammaticName.Replace('ControlType.', ''), `
-            $e.Current.AutomationId, [int]$r.X, [int]$r.Y, [int]$r.Width, [int]$r.Height, $name)
+            $e.Current.AutomationId, (Format-Rect $r), $name)
         $n++
-        if ($n -ge 60) { Say '    ... truncated'; break }
+        if ($n -ge 200) { Say '    ... truncated'; break }
     }
-    $hit = $el.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $nameCond)
-    Say "  taskbar hit for tooltip = $(if ($hit) { $hit.Current.BoundingRectangle.ToString() } else { 'NOT FOUND' })"
+    # A3 (round 5): report EVERY named element whose name carries an accepted
+    # title, with its AutomationId, instead of only the first hit. The taskbar
+    # button used to be cut off by the 60-element cap.
+    $hitCount = 0
+    foreach ($e in $all) {
+        if (-not (Test-NameContains $e.Current.Name)) { continue }
+        $hitCount++
+        Say ("  taskbar hit = name='{0}' automation_id='{1}' class='{2}' rect={3}" -f `
+            $e.Current.Name, $e.Current.AutomationId, $e.Current.ClassName, (Format-Rect $e.Current.BoundingRectangle))
+    }
+    if ($hitCount -eq 0) { Say '  taskbar hit = NOT FOUND' }
 }
 
 # ---- 2. every visible top-level window, with its named descendants ----
@@ -91,10 +191,12 @@ foreach ($t in $tops) {
     $ttl = Get-Title $t
     try {
         $el = $auto::FromHandle($t)
-        $hit = $el.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $nameCond)
-        if ($hit) {
-            $r = $hit.Current.BoundingRectangle
-            Say "  HIT  hwnd=$t class='$cls' title='$ttl' rect=($([int]$r.X),$([int]$r.Y),$([int]$r.Width),$([int]$r.Height))"
+        $hit = Find-TitleHit $el
+        if ($hit -and (Test-TrayClass $cls)) {
+            Say ("  HIT  hwnd={0} class='{1}' title='{2}' name='{3}' automation_id='{4}' rect={5}" -f `
+                $t, $cls, $ttl, $hit.Current.Name, $hit.Current.AutomationId, (Format-Rect $hit.Current.BoundingRectangle))
+        } elseif ($hit) {
+            Say "  win  hwnd=$t class='$cls' title='$ttl' hitname='$($hit.Current.Name)' (not a tray window class)"
         } else {
             $names = @()
             $kids = $el.FindAll([System.Windows.Automation.TreeScope]::Children, $trueCond)
@@ -108,6 +210,23 @@ foreach ($t in $tops) {
     }
 }
 
-$rep = 'F:\soft\00selfmade\practilog\.superpowers\uia_find_tray.txt'
-$out | Set-Content -Path $rep -Encoding UTF8
+if (-not (Test-Path -LiteralPath $ReportDir)) {
+    [void](New-Item -ItemType Directory -Path $ReportDir -Force)
+}
+$rep = Join-Path $ReportDir 'uia_find_tray.txt'
+# A3 (round 5): report bytes are written with WriteAllText (UTF-8, no BOM) and
+# read back, so a silently truncated report cannot pass as evidence.
 Say "report = $rep"
+# A3 (round 5): only stop the instance this probe started itself.
+if ($startedByUs -and $startedPid -gt 0) {
+    try {
+        [void](Get-Process -Id $startedPid -ErrorAction Stop)
+        Stop-Process -Id $startedPid -Force
+        Say "stopped_pid = $startedPid"
+    } catch {
+        Say "started instance already gone (pid=$startedPid)"
+    }
+}
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($rep, ($out -join "`r`n"), $utf8)
+Write-Output ("report_bytes = {0}" -f (Get-Item -LiteralPath $rep).Length)

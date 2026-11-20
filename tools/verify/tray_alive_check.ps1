@@ -15,7 +15,11 @@
 
 param(
     [string]$ExePath = '',
-    [switch]$Kill
+    [switch]$Kill,
+    # D6 (Task 47 W1b): the report used to land in the planning folder
+    # (.superpowers). Callers pass the evidence directory instead; the old
+    # location stays the default so existing invocations keep working.
+    [string]$ReportDir = 'F:\soft\00selfmade\practilog\.superpowers'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,7 +36,6 @@ if ([string]::IsNullOrWhiteSpace($ExePath)) {
 }
 $LogDir = (Resolve-ActLogDataDir -ExePath $ExePath).Path
 $LogFile = Resolve-ActLogLogFile -FileName 'actlog_startup.log' -ExePath $ExePath
-$ReportDir = 'F:\soft\00selfmade\practilog\.superpowers'
 $Shot = Join-Path $env:TEMP 'tray_alive_shot.png'
 $Report = Join-Path $ReportDir 'tray_alive_check.txt'
 New-Item -ItemType Directory -Force -Path $ReportDir | Out-Null
@@ -137,39 +140,76 @@ if (-not $clicked) { Say 'overflow-button = NOT FOUND (icon may already be pinne
 Start-Sleep -Milliseconds 1200
 
 # ---- 5. look for the tooltip name inside any top-level window ----
-$found = @()
-$winCond = New-Object System.Windows.Automation.PropertyCondition(
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-    [System.Windows.Automation.ControlType]::Window)
-# Any accepted title spelling counts: the Chinese product title, actlog, or the
-# legacy practilog. One UIA OrCondition covers all three.
-$titleConds = New-Object 'System.Collections.Generic.List[System.Windows.Automation.Condition]'
-foreach ($c in (Get-ActLogTitleCandidates)) {
-    $titleConds.Add((New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::NameProperty, $c)))
+# D5 (Task 47 W1b): on this machine the actlog icon is NOT in the visible
+# notification area -- it lives inside the overflow flyout, which is its own
+# top-level window ('NotifyIconOverflowWindow', or the XAML 'TopLevelWindow' /
+# 'Windows.UI.Core.CoreWindow' on newer shell builds). Scanning only
+# Shell_TrayWnd descendants therefore reported NOT FOUND for an icon that was
+# in fact present. The scan now covers the flyout windows too, and the name
+# test is a CONTAINS match (the real button name is "actlog - 1 running
+# window(s)" / the zh equivalent), because UIA has no Name-contains condition.
+$titleNames = @(Get-ActLogTitleCandidates)
+function Test-NameContains([string]$n) {
+    if ([string]::IsNullOrWhiteSpace($n)) { return $false }
+    $nn = $n.Trim()
+    foreach ($c in $titleNames) {
+        if (-not $c) { continue }
+        if ($nn.IndexOf($c, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) { return $true }
+    }
+    return $false
 }
-$nameCond = New-Object System.Windows.Automation.OrCondition($titleConds.ToArray())
 $handles = New-Object System.Collections.Generic.List[System.IntPtr]
 $cb = [TW.Win32+EnumProc] { param($h, $l) if ([TW.Win32]::IsWindowVisible($h)) { [void]$script:handles.Add($h) }; return $true }
 [void][TW.Win32]::EnumWindows($cb, [IntPtr]::Zero)
-Say "candidate-top-levels = $($handles.Count)"
+$flyoutHandles = New-Object System.Collections.Generic.List[System.IntPtr]
+foreach ($fc in @('NotifyIconOverflowWindow', 'TopLevelWindow', 'Windows.UI.Core.CoreWindow')) {
+    $fh = [TW.Win32]::FindWindow($fc, $null)
+    if ($fh -ne [System.IntPtr]::Zero -and -not $handles.Contains($fh)) {
+        [void]$handles.Add($fh)
+        [void]$flyoutHandles.Add($fh)
+    }
+}
+Say "candidate-top-levels = $($handles.Count) flyout-windows = $($flyoutHandles.Count)"
+$found = @()
 foreach ($h in $handles) {
     try {
         $el = $auto::FromHandle($h)
-        $hit = $el.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $nameCond)
-        if ($null -ne $hit) {
-            $cls = New-Object System.Text.StringBuilder 256
-            [void][TW.Win32]::GetClassName($h, $cls, 256)
-            $found += "$($cls.ToString()) | $($hit.Current.ControlType.ProgrammaticName) | '$($hit.Current.Name)'"
+        $kids = $el.FindAll([System.Windows.Automation.TreeScope]::Descendants, $condAll)
+        $named = @()
+        foreach ($k in $kids) {
+            $n = $k.Current.Name
+            if ([string]::IsNullOrWhiteSpace($n)) { continue }
+            $named += $n
+            if (Test-NameContains $n) {
+                $cls = New-Object System.Text.StringBuilder 256
+                [void][TW.Win32]::GetClassName($h, $cls, 256)
+                $found += "$($cls.ToString()) | $($k.Current.ControlType.ProgrammaticName) | '$n'"
+            }
+        }
+        if ($flyoutHandles.Contains($h)) {
+            $short = if ($named.Count -gt 8) { ($named[0..7] -join ' ; ') + ' ; ...' } else { $named -join ' ; ' }
+            Say "  flyout hwnd=$h items=$($named.Count) names=[$short]"
         }
     } catch { }
 }
-if ($found.Count -gt 0) {
-    Say 'A3 = PASS  tray item found by UIA name'
-    $found | ForEach-Object { Say "   hit: $_" }
-} else {
-    Say "A3 = NOT FOUND (no element named '$Target' / actlog / practilog in any visible top-level window)"
+# D5b (Task 47 W1b): A3 is now a pure function of two counts.
+# Reason: "the overflow flyout never opened" carries NO evidence about the tray
+# item -- it is an unjudged case, and wording it NOT FOUND made it look like a
+# real negative. Keeping the table inside a function also lets the device self
+# test (C15) exercise this exact code path by lifting the source, instead of
+# re-implementing the table in the test.
+function Get-A3Verdict {
+    param([int]$FoundCount, [int]$FlyoutCount)
+    if ($FoundCount -gt 0) {
+        return 'PASS  tray item found by UIA name'
+    }
+    if ($FlyoutCount -eq 0) {
+        return 'INCONCLUSIVE_TRAY_IN_OVERFLOW (overflow flyout did not open: no NotifyIconOverflowWindow / TopLevelWindow / Windows.UI.Core.CoreWindow on screen)'
+    }
+    return 'NOT FOUND (overflow flyout open, items enumerated above, but no name contains actlog)'
 }
+Say "A3 = $(Get-A3Verdict -FoundCount $found.Count -FlyoutCount $flyoutHandles.Count)"
+if ($found.Count -gt 0) { $found | ForEach-Object { Say "   hit: $_" } }
 
 # ---- 6. screenshot the whole virtual desktop ----
 $b = [System.Windows.Forms.SystemInformation]::VirtualScreen

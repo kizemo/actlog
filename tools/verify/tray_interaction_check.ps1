@@ -18,12 +18,19 @@
 
 param(
     [string]$ExePath = '',
-    [int]$WaitSec = 40
+    [int]$WaitSec = 40,
+    # A2 (round 5): the expected context-menu labels depend on the UI language.
+    # 'zh' is the default so every existing invocation (device self-test
+    # controls C10/C11) keeps exactly the old semantics.
+    [string]$Language = 'zh',
+    # D6 (Task 47 W1b): the report used to land in the planning folder
+    # (.superpowers). Callers pass the evidence directory instead; the old
+    # location stays the default so existing invocations keep working.
+    [string]$ReportDir = 'F:\soft\00selfmade\practilog\.superpowers'
 )
 
 $ErrorActionPreference = 'Stop'
 
-$ReportDir = 'F:\soft\00selfmade\practilog\.superpowers'
 $Report = Join-Path $ReportDir 'tray_interaction_report.txt'
 . (Join-Path $PSScriptRoot 'data_location.ps1')   # new userdata first, legacy %APPDATA% fallback
 if ([string]::IsNullOrWhiteSpace($ExePath)) {
@@ -50,11 +57,22 @@ $MOUSEEVENTF_RIGHTUP = 0x0010
 
 # tooltip / menu labels from lib/src/desktop_shell.dart
 $TIP = [string]([char]0x77E5) + [char]0x884C + [char]0x65E5 + [char]0x5FD7                  # zhi xing ri zhi
-$LABEL_SHOW = [string]([char]0x663E) + [char]0x793A + [char]0x7A97 + [char]0x53E3          # xian shi chuang kou
-$LABEL_HIDE = [string]([char]0x9690) + [char]0x85CF + [char]0x5230 + [char]0x6258 + [char]0x76D5
-$LABEL_QUIT = [string]([char]0x9000) + [char]0x51FA                                        # tui chu
+# A2 (round 5): the menu labels used to be hard-coded Chinese (and the old
+# "hide" constant even used a wrong code point, U+76D5 instead of U+76D8), so
+# an English run could never pass. The labels now come from the shared layer
+# and follow -Language. The chevron regex already covers both languages.
+$EXPECTED_LABELS = @(Get-ActLogExpectedTrayMenuLabels -Language $Language)
+if ($EXPECTED_LABELS.Count -eq 0) {
+    Write-Host "WARN unknown -Language '$Language': falling back to the 'zh' labels"
+    $EXPECTED_LABELS = @(Get-ActLogExpectedTrayMenuLabels -Language 'zh')
+}
+$LABEL_SHOW = [string]$EXPECTED_LABELS[0]
+$LABEL_HIDE = [string]$EXPECTED_LABELS[1]
+$LABEL_QUIT = [string]$EXPECTED_LABELS[2]
 $CHEVRON_RE = '(\u663E\u793A\u9690\u85CF)|(hidden)|(\u5D4C\u85CF)'
 $TITLE_RE = Get-ActLogTitleRegex
+Say "tray_menu_language = $Language"
+Say "tray_menu_labels_expected = '$LABEL_SHOW' / '$LABEL_HIDE' / '$LABEL_QUIT'"
 
 if (-not ('TW.Win32' -as [type])) {
     Add-Type -Namespace TW -Name Win32 -MemberDefinition @'
@@ -209,14 +227,41 @@ function Measure-Menu([int]$targetPid, [int]$appearMs = 3000, [int]$holdMs = 250
     return [pscustomobject]@{ Hwnd = $h; AppearedAt = $appearAt; GoneAt = $goneAt; LifetimeMs = $life; Polls = $polls }
 }
 
+# Round 5 (en-state defect): a blind "click the chevron" toggles the overflow
+# flyout CLOSED when it is already open, which made step 6 report "the tray
+# icon disappeared before the right click" although the icon was still there.
+# The lookup now inspects the flyout state before clicking and retries.
+function Test-FlyoutOpen {
+    foreach ($t in (Get-VisibleTops)) {
+        $c = Get-Class $t
+        if ($c -and $c -like 'TopLevelWindowForOverflow*') { return $true }
+    }
+    return $false
+}
+
 # Locate the tray icon and return its click point, opening the overflow
 # flyout when the icon is not in the visible notification area.
 function Get-TrayIconPoint {
     $el = Find-TrayIcon $TIP $flutterHwnd
     if ($null -eq $el) {
-        [void](Open-Flyout)
-        Start-Sleep -Milliseconds 800
-        $el = Find-TrayIcon $TIP $flutterHwnd
+        for ($attempt = 1; $attempt -le 4; $attempt++) {
+            $flyoutOpen = Test-FlyoutOpen
+            Say ("tray lookup attempt {0}: icon not visible directly, overflow_flyout_open={1}" -f $attempt, $flyoutOpen)
+            if (-not $flyoutOpen) {
+                $chev = Open-Flyout
+                Say ("  overflow chevron = " + $chev)
+            }
+            $findEnd = (Get-Date).AddMilliseconds(2500)
+            while ((Get-Date) -lt $findEnd) {
+                $el = Find-TrayIcon $TIP $flutterHwnd
+                if ($null -ne $el) { break }
+                Start-Sleep -Milliseconds 150
+            }
+            if ($null -ne $el) { break }
+            # Leave the flyout closed so the next attempt starts from a known state.
+            if (Test-FlyoutOpen) { [void](Open-Flyout) }
+            Start-Sleep -Milliseconds 400
+        }
     }
     if ($null -eq $el) { return $null }
     $r = $el.Current.BoundingRectangle
@@ -355,11 +400,65 @@ Say "control_icon = '$($ctlP.Name)' point = $($ctlP.X),$($ctlP.Y)"
 Click-Point $ctlP.X $ctlP.Y $true
 $ctl = Measure-Menu $proc.Id 3000 2500
 Say "control_menu = hwnd=$($ctl.Hwnd) appeared_at=$($ctl.AppearedAt)ms lifetime=$($ctl.LifetimeMs)ms polls=$($ctl.Polls)"
+# A2 (round 5): dump the CONTROL menu items as well. The step-6 menu is what
+# the verdict uses, but the control menu opens under the same conditions in
+# every language state, so its labels are the most reliable language evidence
+# when the step-6 lookup is blocked by the overflow flyout.
 if ($ctl.Hwnd -ne [IntPtr]::Zero) {
-    [void][TW.Win32]::PostMessage($ctl.Hwnd, 0x0100, [IntPtr]0x1B, [IntPtr]::Zero)
-    [void][TW.Win32]::PostMessage($ctl.Hwnd, 0x0101, [IntPtr]0x1B, [IntPtr]::Zero)
-    Start-Sleep -Milliseconds 900
-    Say "control_menu_closed = $(-not [TW.Win32]::IsWindow($ctl.Hwnd))"
+    try {
+        $hCtl = [TW.Win32]::SendMessage($ctl.Hwnd, $MN_GETHMENU, [IntPtr]::Zero, [IntPtr]::Zero)
+        $cntCtl = [TW.Win32]::GetMenuItemCount($hCtl)
+        Say "control_hmenu = $hCtl items = $cntCtl"
+        for ($i = 0; $i -lt $cntCtl; $i++) {
+            $sbCtl = New-Object System.Text.StringBuilder 256
+            [void][TW.Win32]::GetMenuStringW($hCtl, [uint32]$i, $sbCtl, 256, $MF_BYPOSITION)
+            Say "  control_item[$i] = '$($sbCtl.ToString())'"
+        }
+    } catch {
+        Say "control_menu_items WARN: $_"
+    }
+}
+
+# D3 (Task 47 W1b): closing the menu has to be DETERMINISTIC. A menu left open
+# swallows the next left click, and that used to be reported as the product
+# defect "left click on the tray icon did not hide the window". Close with ESC,
+# then WM_CANCELMODE, then a real click on dead space, polling
+# FindWindow('#32768') after each step; if it never goes away the run is
+# INCONCLUSIVE, never a product FAIL.
+$menuClosed = $true
+$menuCloseMethod = 'none'
+if ($ctl.Hwnd -eq [IntPtr]::Zero) {
+    $menuCloseMethod = 'no-menu-appeared'
+} elseif (-not [TW.Win32]::IsWindow($ctl.Hwnd)) {
+    $menuCloseMethod = 'already-gone'
+} else {
+    $menuClosed = $false
+    foreach ($how in @('esc', 'cancelmode', 'click-away')) {
+        if ($how -eq 'esc') {
+            [void][TW.Win32]::PostMessage($ctl.Hwnd, 0x0100, [IntPtr]0x1B, [IntPtr]::Zero)
+            [void][TW.Win32]::PostMessage($ctl.Hwnd, 0x0101, [IntPtr]0x1B, [IntPtr]::Zero)
+        } elseif ($how -eq 'cancelmode') {
+            [void][TW.Win32]::PostMessage($ctl.Hwnd, 0x001F, [IntPtr]::Zero, [IntPtr]::Zero)  # WM_CANCELMODE
+        } else {
+            $rcAway = New-Object TW.Win32+RECT
+            [void][TW.Win32]::GetWindowRect($ctl.Hwnd, [ref]$rcAway)
+            Click-Point ([int]([math]::Max(4, $rcAway.Left - 80))) ([int]([math]::Max(4, $rcAway.Top - 80)))
+        }
+        $endClose = (Get-Date).AddSeconds(2)
+        while ((Get-Date) -lt $endClose) {
+            if ([TW.Win32]::FindWindow($MENU_CLASS, $null) -eq [IntPtr]::Zero) { $menuClosed = $true; break }
+            Start-Sleep -Milliseconds 25
+        }
+        if ($menuClosed) { $menuCloseMethod = $how; break }
+    }
+}
+Say "control_menu_closed = $menuClosed"
+Say "menu_close_method = $menuCloseMethod"
+if (-not $menuClosed) {
+    Say 'VERDICT = INCONCLUSIVE (precondition: the context menu would not close; a left click with a menu open cannot be judged)'
+    $lines | Set-Content -Path $Report -Encoding UTF8
+    Say 'RESULT = INCONCLUSIVE'
+    return
 }
 
 # ---- 5. LEFT CLICK on the real icon ----
@@ -372,6 +471,9 @@ if ($null -eq $lp) {
     return
 }
 $logMark = (Get-Item $LogFile).Length
+# C11 (CONTROL_TRAY_LEFTCLICK): the criterion is that IsWindowVisible flips,
+# so both sides of the flip are recorded by name.
+$visibleBefore = Get-Visible $flutterHwnd
 Click-Point $lp.X $lp.Y $false
 $hidden = $false
 $end = (Get-Date).AddSeconds(8)
@@ -380,7 +482,11 @@ while ((Get-Date) -lt $end) {
     Start-Sleep -Milliseconds 50
 }
 $segAfter = Read-NewLog $logMark
-Say "left_click_hidden = $hidden (visible now = $(Get-Visible $flutterHwnd))"
+$visibleAfter = Get-Visible $flutterHwnd
+Say "left_click_visible_before = $visibleBefore"
+Say "left_click_visible_after = $visibleAfter"
+Say "left_click_flip = $($visibleBefore -ne $visibleAfter)"
+Say "left_click_hidden = $hidden (visible now = $visibleAfter)"
 Say "left_click_log = $(($segAfter -split "`n" | Where-Object { $_ -match 'tray' }) -join ' | ')"
 if (-not $hidden) {
     Say 'VERDICT = FAIL (left click on the tray icon did not hide the window)'
@@ -416,22 +522,34 @@ if ($menuWnd -eq [IntPtr]::Zero) {
 $hMenu = [TW.Win32]::SendMessage($menuWnd, $MN_GETHMENU, [IntPtr]::Zero, [IntPtr]::Zero)
 $itemCount = [TW.Win32]::GetMenuItemCount($hMenu)
 Say "hmenu = $hMenu items = $itemCount"
-$showIndex = -1
 $labels = New-Object System.Collections.Generic.List[string]
 for ($i = 0; $i -lt $itemCount; $i++) {
     $sb = New-Object System.Text.StringBuilder 256
     [void][TW.Win32]::GetMenuStringW($hMenu, [uint32]$i, $sb, 256, $MF_BYPOSITION)
-    $label = $sb.ToString()
-    $labels.Add($label)
-    if ($label.Trim() -eq $LABEL_SHOW) { $showIndex = $i }
+    $labels.Add($sb.ToString())
 }
-if ($showIndex -lt 0) {
-    Say "VERDICT = FAIL (the context menu has no '$LABEL_SHOW' item)"
+# A2 (round 5): print the items that were ACTUALLY read before judging, so a
+# FAIL names its evidence (the old code printed them only on the PASS path).
+for ($i = 0; $i -lt $labels.Count; $i++) { Say "  item[$i] = '$($labels[$i])'" }
+$showIndex = -1
+$hideIndex = -1
+$quitIndex = -1
+for ($i = 0; $i -lt $labels.Count; $i++) {
+    $t = $labels[$i].Trim()
+    if ($t -eq $LABEL_SHOW) { $showIndex = $i }
+    elseif ($t -eq $LABEL_HIDE) { $hideIndex = $i }
+    elseif ($t -eq $LABEL_QUIT) { $quitIndex = $i }
+}
+# Round 5 also tightens the criterion: all three labels must be present in the
+# expected language, not just the "show window" item.
+$menuLabelsOk = (($showIndex -ge 0) -and ($hideIndex -ge 0) -and ($quitIndex -ge 0))
+Say "menu_label_index = show=$showIndex hide=$hideIndex quit=$quitIndex all_present=$menuLabelsOk"
+if (-not $menuLabelsOk) {
+    Say "VERDICT = FAIL (the context menu does not carry the expected '$Language' labels: '$LABEL_SHOW' / '$LABEL_HIDE' / '$LABEL_QUIT')"
     $lines | Set-Content -Path $Report -Encoding UTF8
     Say 'RESULT = FAIL'
     return
 }
-for ($i = 0; $i -lt $itemCount; $i++) { Say "  item[$i] = '$($labels[$i])'" }
 
 # ---- 7. click 'show window' -> the hidden window must come back ----
 # GetMenuItemRect() with an HMENU returns an all-zero rectangle for a popup

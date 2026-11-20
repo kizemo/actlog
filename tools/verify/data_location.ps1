@@ -134,7 +134,16 @@ function Get-ActLogTitleCandidates {
 function Test-ActLogTitle {
     <# True when the text is exactly one of the accepted titles (case-insensitive). #>
     [CmdletBinding()]
-    param([string]$Text = '')
+    param(
+        [string]$Text = '',
+        # Task 47 W1b (E.1): optional language gate. When given, the text must
+        # equal that language's expected title exactly; '' keeps the old
+        # behaviour (exact candidate match, then the loose regex fallback).
+        [string]$ExpectedLanguage = ''
+    )
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedLanguage)) {
+        return (Test-ActLogTitleStrict -Text $Text -Language $ExpectedLanguage)
+    }
     if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
     foreach ($c in (Get-ActLogTitleCandidates)) {
         if ($Text.Trim() -ieq $c) { return $true }
@@ -143,6 +152,78 @@ function Test-ActLogTitle {
     # build shows the ASCII product name only. Accept any string that contains
     # one of the accepted titles instead of demanding an exact match.
     if ($Text -match (Get-ActLogTitleRegex)) { return $true }
+    return $false
+}
+
+function Get-ActLogExpectedTitle {
+    <#
+      Task 47 W1b (E.1): the exact window title expected in one UI language:
+      zh = '<chinese product title> actlog', en = 'actlog'. The Chinese half is
+      built from code points so this file stays pure ASCII. An unknown or empty
+      language returns '' and the caller decides what that means.
+    #>
+    [CmdletBinding()]
+    param([string]$Language = '')
+    $cn = [string]([char]0x77E5) + [char]0x884C + [char]0x65E5 + [char]0x5FD7
+    switch ($Language.Trim().ToLowerInvariant()) {
+        'zh'    { return ($cn + ' actlog') }
+        'zh-cn' { return ($cn + ' actlog') }
+        'en'    { return 'actlog' }
+        'en-us' { return 'actlog' }
+        default { return '' }
+    }
+}
+
+function Get-ActLogExpectedTrayMenuLabels {
+    <#
+      Task 47 W1b round 5 (A2): the exact tray context-menu labels expected in
+      one UI language, in menu order:
+        zh = <show window> / <hide to tray> / <quit>
+        en = 'Show window' / 'Hide to tray' / 'Quit'
+      Everything Chinese is built from code points so this file stays pure
+      ASCII. An unknown or empty language returns an EMPTY array: callers must
+      treat that as "no language gate", never as a failure.
+      Callers must wrap the result in @(...) - PowerShell unrolls a single
+      element otherwise.
+    #>
+    [CmdletBinding()]
+    param([string]$Language = '')
+    $cnShow = [string]([char]0x663E) + [char]0x793A + [char]0x7A97 + [char]0x53E3
+    $cnHide = [string]([char]0x9690) + [char]0x85CF + [char]0x5230 + [char]0x6258 + [char]0x76D8
+    $cnQuit = [string]([char]0x9000) + [char]0x51FA
+    switch ($Language.Trim().ToLowerInvariant()) {
+        'zh'    { return @($cnShow, $cnHide, $cnQuit) }
+        'zh-cn' { return @($cnShow, $cnHide, $cnQuit) }
+        'en'    { return @('Show window', 'Hide to tray', 'Quit') }
+        'en-us' { return @('Show window', 'Hide to tray', 'Quit') }
+        default { return @() }
+    }
+}
+
+function Test-ActLogTitleStrict {
+    <#
+      Task 47 W1b (E.1): exact title match (trim, case-insensitive) with NO
+      regex fallback, so this test can actually tell the zh state from the en
+      state -- the loose Test-ActLogTitle accepts any string containing
+      'actlog', which is true in both states.
+      Without -Language any entry of Get-ActLogTitleCandidates is accepted;
+      with -Language only that language's expected title is.
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Text = '',
+        [string]$Language = ''
+    )
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
+    $t = $Text.Trim()
+    if (-not [string]::IsNullOrWhiteSpace($Language)) {
+        $exp = Get-ActLogExpectedTitle -Language $Language
+        if ([string]::IsNullOrWhiteSpace($exp)) { return $false }
+        return ($t -ieq $exp)
+    }
+    foreach ($c in (Get-ActLogTitleCandidates)) {
+        if ($t -ieq $c) { return $true }
+    }
     return $false
 }
 
