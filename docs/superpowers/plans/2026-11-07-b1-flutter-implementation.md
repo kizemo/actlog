@@ -8249,3 +8249,80 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 48.5 控制器门禁全量 + 越界 `VIOLATIONS=0`
 - [x] 48.5 重打包 + 包内核对 + 覆盖装机验证 + R3 真源行更新
 - [x] 48.6 台账同步 + commit + push
+
+---
+
+### 47 Task 47 · 全应用中英双语 l10n（实施正文）
+
+编号说明：图标（Task 48）插在 l10n（Task 47）之前立项，Task 47 编号与侦察文件不变；本节是 Task 47 的实施正文，位置排在 §48 之后。**新增本节使计划字节数变化，前后字节数登记在 handoff。**
+
+真源文档（细节一律以它们为准，本节不复制清单）：
+- 侦察稿：`reports\task47-recon-l10n-full.md`（634 条口径体系；§1 清单 / §2 底座实测 / §3 测试 / §4 方案 / §5 波次 / §6 风险 / 附录 A 全量键表）
+- 关于页前置侦察：`reports\task46-recon-l10n-about.md`
+- W0 派工书：`.superpowers\sdd\2026-11-07-b1-flutter-implementation\waves\task47-W0.md`
+
+**范围校正（覆盖 §8174 的旧口径）**：语言开关不是死开关，但生效范围仅 `settings_page` + `about_page`；底座 61 getter 对 apps 其余 **434 条 UI 文案零覆盖**，全仓中文字面量 **634 / 去重 482**，真正待迁 **510 = 634 − 61（已就位）− 56（调试/异常不迁）− 7（协议常量禁改）**。§8174 里「40 段/37 条」是 Task 46 时期的保守旧口径，作废。
+
+**基线校正**：侦察稿沿用 desktop `+357` / core_data `+175`，**已过期**。Task 48 后真基线 = **desktop `+539` / core_data `+204` / core_db `+71` / core_domain `+62`**。一切验收以当轮实测为准，不得照抄侦察稿数字。
+
+#### 47.1 方案定稿：甲（沿用手写类 + 按模块拆 part）
+
+采**方案甲**，不采方案乙（ARB + gen_l10n + intl）。乙的四条否决理由：挂 delegate 后 Material/Cupertino 内建文案随 locale 变、异步 load 冲击 267 处 `find.text` 时序、`intl` 与 SDK 版本绑定且镜像下解析风险更高、**丢失「漏翻即编译失败」保障**。采纳乙的两条做法：kebab-case 资源键命名规范 + 自写 `L10nFormat`（治 G7 locale 敏感格式，如 `recurring_task.dart:106` 的中文顿号 `、`）。
+
+落地形态（甲-1…甲-6）：`l10n\parts\<module>.dart` × 9（Settings/About/Today/Calendar/Timeline/Habit/Dialog/Common/Domain）+ `l10n\l10n_keys.dart` + `l10n\l10n_scope.dart`（补 `of(context)`，**不给 MaterialApp 挂 delegate**）+ 插值方法族 + `test\l10n_harness.dart`。**零新依赖**。
+
+拆 part 的理由是写集互斥：不拆则 W1…W8 九波抢写同一个 624 行文件，无法并行、无法回滚。
+
+#### 47.2 波次表（照抄侦察稿 §5.1；条数为字面量口径）
+
+| 波次 | 主题 | 文件数 | 条数 | 待迁 | 前置 | 可并行 |
+|---|---|---|---|---|---|---|
+| W0 | 底座重构 | 1(+9) | 61 | 0 | 无 | **否，必须第一个** |
+| W0.5 | 域层 id 化（packages） | 13 | 132 | 76 | W0 | **否，必须先于 W3–W6** |
+| W1 | 外壳与入口 | 7 | 33 | 33 | W0 | 是 |
+| W2 | 日历与日期 | 6 | 52 | 52 | W0 | 是 |
+| W3 | 时间线 | 10 | 60 | 56 | W0+W0.5 | 是 |
+| W4 | 今天页与复盘 | 4 | 58 | 58 | W0+W0.5 | 是 |
+| W5 | 心态/习惯/优先级 | 8 | 76 | 75 | W0+W0.5 | 是 |
+| W6 | 录入对话框 | 4 | 85 | 85 | W0+W0.5 | 是 |
+| W7 | 结果与待办池 | 3 | 53 | 53 | W0 | 是 |
+| W8 | 关于页与探针 | 3 | 23 | 22 | W0 | 是 |
+| W9 | 收尾校验 | 0 | 0 | 0 | 全部 | 否 |
+
+校验：61+132+33+52+60+58+76+85+53+23+1(W9 调试) = **634** ✓
+
+已定执行细节：W0 必须**单独提交**便于回滚；W0.5 采**「只增不减 + `@Deprecated`」**（不删中文 label，否则 desktop 暂时编译不过，留到 W9 删）；`confirm_dialog.dart` 的 `common-*` key 提前到 W0 定稿；`result_note.dart` 列**禁改区**（`:59` 中文参与存储格式正则，误翻 = 静默破坏历史数据）。
+
+#### 47.3 测试改造三条铁律（侦察稿 §3.4）
+
+1. **禁止** `find.text('取消')` → `find.text(t.cancel)`（同义反复、丢判别力），必须断字面期望值。
+2. W0 交付 `pumpAppInLanguage(AppLanguage)`，关键用例 zh/en **双态各断各自文案**。
+3. 基线**只增不减**，每波结束与波次报告预期值逐字对齐；用例名建议保留中文（不参与 l10n）。
+重灾区（改断言最危险）：`timeline_day_grid_test` 111、`timeline_plan_detail_test` 81、`font_bundle_test` 77、`priority_marks_test` 72、`recurring_task_test` 63、`p1_e2e_test` 49、`chip_row_visual_test` 18/19 靠文本定位。
+
+#### 47.4 待核实（派后续波次前必须闭合）
+
+- **R-08**：`repositories.dart:350,448,814,1276`「标题不能为空」是否透传 UI。若是，从「不迁」改「迁」，需追调用链。
+- **R-12**：`tools\gates\g1–g4`、`tools\verify\*` 是否按中文文本 grep。若是，第一批 UI 波会误报，门禁判据要同步改。
+- **§2.4 复核**：侦察稿「关于页残留 19 条硬编码」是 Task 46 W2 时期读数，W3（G2/G4）后需重测。
+
+#### 47.5 产品决策（三项 **已于 2026-11-20 由用户拍板**；控制器原「需用户拍板」标记作废，以下为拍板结果，是派工与验收真源）
+
+- **D-47-a（R-13）心态两套模型并存**（`entities.dart:17-38` 八条 vs `mood_dimensions.dart:89-123` 五维度）⇒ **拍板：l10n 先各译各的，两套 key 分开命名空间，不做复用；模型统一另立独立 Task，不得与 Task 47 任何波次绑定。** 落点：W0.5 与 W5 派工书照此口径；波次内碰到心态模型定义只译不改，需要改模型即停下回报控制器。
+- **D-47-b（R-06）窗口/任务栏标题**（`kAppTitle='知行日志 actlog'`）⇒ **拍板：标题与任务栏文案整体随语言翻译**，`kAppTitle` 纳入 l10n —— **覆盖侦察建议「产品名固定不随 locale、副标题随」**。连带代价由本项目在 W1 内消化，不得留给下游：Task 30/31 与 Task 48 的窗口标题 / 顶栏黑字标判据、任务栏图标取证必须按 zh 与 en **两态重新取证**；`tools\gates\*` 与 `tools\verify\*` 中任何按中文标题 grep 的锚点同步改成双语兼容口径；G8 验收范围扩大到双语两态。前置：R-12 须在 W1 开工前闭合。
+- **D-47-c（R-14）四象限 / ABC 域层重复定义两份**（`priority.dart:46-69,101-112` 与 `enums.dart:21-30,74-80`，11 条重复）⇒ **拍板：归一，删掉重复的那份** —— 侦察稿「只增不减 + 旧定义标 `@Deprecated`」在此项**不再自动适用**。硬前置：W0.5 派工前须闭合**存储依赖核查**，坐实没有任何持久化路径把中文 `.label` 写进库字段。已取证据（控制器 2026-11-20 实测）：`packages\core_domain\lib\src\enums.dart:19-69` 的 `Quadrant` 带 `code`（`'Q1'..'Q4'`）与中文 `label`，`:36` 注释写明**入库取值是 `code`**、`fromCode` 只按 `code` 解析，`PriorityAbc` code 为 `'A'/'B'/'C'`（`:72-84`）；`packages\core_db\test\enum_constraint_parity_test.dart:28-42` 用 `e.code` 集合校验 schema CHECK 约束，`constraints_test.dart:27-54,117-128` 插 `'Q9'`/`'D'` 期望 CHECK 失败；`packages\core_db\lib\src\connection.g.dart:2675-2688,2937-2944,3001-3005` drift 列 `quadrant`/`priority_abc` 均 `String?` 直读；`docs\schema_v1.sql:116` 的中文串只在注释行；`packages\core_data\lib\src\priority.dart:125-190` 的 `abcHeaderHint`/`headerHint`/`labelFor`/`sortWeight` 属展示与派生，`isClassAUnderQuadrant` 注释明确「只读派生，不写库」。⇒ 倾向「删除安全」，但**尚未闭合**：中文串全仓命中 22 个文件，`.label` 消费点全量核对未做完，且 3 个 desktop 测试（`task35_glyph_render_test` / `priority_hover_bubble_test` / `wiring_test`）按中文文本断言，删定义会连带冲击断言，须 W0.5 派工一并处理。**退路**：若核查发现有路径依赖中文 label 或枚举 index ⇒ 停下回报用户，退回「只归一 UI 出口 + 旧定义标 `@Deprecated`」。
+
+#### 47.6 Task 47 复选框清单（**只有控制器能打勾；等长替换 `- [ ] ` → `- [x] `，未通过不许打勾**）
+
+- [x] 47.1 W0 底座落地（9 part + keys + scope + harness + base_test），基线不减
+- [x] 47.1 W0 单独提交 + zh/en 同 key 不同文案用例
+- [ ] 47.2 W0.5 域层 13 文件 id 化（只增不减 + `@Deprecated`；`result_note.dart` 未动）
+- [ ] 47.4 R-08 / R-12 / 关于页 19 条 三项复核闭合
+- [x] 47.5 D-47-a / D-47-b / D-47-c 产品决策落定
+- [ ] 47.1 W1 外壳与入口（含 G8 窗口标题，按 D-47-b）
+- [ ] 47.1 W2 日历与日期（G7 主战场，与 W0.5 的 `calendar.dart` key 不建两份）
+- [ ] 47.1 W3 时间线 / W4 今天页与复盘 / W5 心态习惯优先级 / W6 录入对话框 / W7 结果待办池 / W8 关于页与探针
+- [ ] 47.3 `chip_row_visual_test` 定位方式重写 + `scale200_overflow_test` 英文变长溢出回归
+- [ ] 47.2 W9 全量 en 态 g1–g4 + verify、死 key 清理、基线定稿写 AGENTS §7、删 `@Deprecated`
+- [ ] R3 出货链：build → make_installer → 覆盖装机 → 双语真机取证 → R3 真源行更新
+- [ ] 台账同步 + commit + push
