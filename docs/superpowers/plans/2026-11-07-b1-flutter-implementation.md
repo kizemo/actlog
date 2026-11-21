@@ -8443,4 +8443,4 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 50.3 h：条目正文只显示标题（时间与进展文本移除），悬停浮窗显示起止时间 / 标题 / 详情
 - [x] 50.5 门禁：desktop 全量 **+580→N**（N = 580 + W2 新增用例数）/ core_data 204 / core_db 71 / core_domain 62；四包 analyze 逐字 `No issues found!`
 - [x] 50.6 出货链：build → makensis → 覆盖装机 → 真机像素验收 → R3 真源行更新
-- [ ] 50.7 台账同步 + commit + push
+- [x] 50.7 台账同步 + commit + push
