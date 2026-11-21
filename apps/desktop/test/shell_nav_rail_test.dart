@@ -101,7 +101,7 @@ void main() {
     await _pumpNav(tester);
 
     expect(NavRail.width, 214);
-    for (final String label in <String>['今日', '待办池', '习惯', '项目', '日历', '设置']) {
+    for (final String label in <String>['日志', '待办池', '习惯', '项目', '日历', '设置']) {
       expect(find.text(label), findsOneWidget, reason: '缺少导航项 $label');
     }
     for (final String index in <String>['01', '02', '03', '04', '05', '06']) {
@@ -164,11 +164,11 @@ void main() {
     );
     expect(washed, findsOneWidget, reason: '当前页必须且只能用 inkWash 洗底');
     expect(
-      find.descendant(of: washed, matching: find.text('今日')),
+      find.descendant(of: washed, matching: find.text('日志')),
       findsOneWidget,
     );
 
-    final Text current = tester.widget<Text>(find.text('今日'));
+    final Text current = tester.widget<Text>(find.text('日志'));
     expect(current.style?.color, ThemeTokens.light.ink);
     expect(current.style?.fontWeight, FontWeight.w500);
 
@@ -183,7 +183,7 @@ void main() {
     expect(tester.getSize(find.byType(NavRail)).width, 1200);
     expect(find.text('页面切换'), findsNothing);
     expect(find.text('actlog'), findsNothing);
-    expect(find.text('今日'), findsOneWidget);
+    expect(find.text('日志'), findsOneWidget);
   });
 
   testWidgets('200% 下序号徽标单行不换行，盒子宽度按缩放后字号算', (

@@ -118,7 +118,7 @@ void main() {
     expect(find.byType(TodoPoolPage), findsNothing);
     expect(find.byType(LedgerShell), findsOneWidget);
 
-    await tester.tap(find.text('今日'));
+    await tester.tap(find.text('日志'));
     await _settle(tester);
     expect(find.byType(TodayPage), findsOneWidget);
     expect(find.byType(CalendarPage), findsNothing);

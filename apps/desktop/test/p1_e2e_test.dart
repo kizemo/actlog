@@ -189,7 +189,10 @@ void main() {
     var row = await harness.onlyItem();
     expect(row.resultNote, '[结论]按时完成');
     expect(row.status, PlanStatus.pending.code, reason: '只存进展不得把条目判完成');
-    expect(find.text('进展：[结论]按时完成'), findsOneWidget);
+    // Task 50 · W2：单行芯片不再内联「进展：」串 —— 它改由悬停浮窗承载。
+    // 这条只守住「不再内联」；「进展仍然看得到」由
+    // `task50_timeline_lines_test.dart` 的浮窗断言等价覆盖。
+    expect(find.text('进展：[结论]按时完成'), findsNothing);
 
     // 完成由行首勾选框负责（模板不碰 status）。
     final Finder box = find.descendant(

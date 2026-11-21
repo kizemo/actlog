@@ -27,10 +27,10 @@ class ShellNavItem {
 
 /// 原型固定的 6 项主导航。
 ///
-/// 「今日 / 待办池 / 习惯 / 日历 / 设置」五项有真实落点；项目本轮没有页面，
+/// 「日志 / 待办池 / 习惯 / 日历 / 设置」五项有真实落点；项目本轮没有页面，
 /// 一律禁用而不是做成假按钮（点击无落点等于骗用户）。
 const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
-  ShellNavItem(id: 'today', label: '今日'),
+  ShellNavItem(id: 'today', label: '日志'),
   ShellNavItem(id: 'inbox', label: '待办池'),
   ShellNavItem(id: 'habits', label: '习惯'),
   // [未覆盖] 原因：计划 Task 19 未实现该页面

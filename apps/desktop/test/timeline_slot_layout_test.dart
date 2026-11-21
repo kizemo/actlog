@@ -312,4 +312,136 @@ void main() {
       ]);
     });
   });
+
+  group('需求 a–d：每小时最多三条带 + 溢出叠带', () {
+    test('四条同段并发 ⇒ 不开第 4 条带，行高仍 66、多出一条 LaneConflict', () {
+      // 需求 a：一行最多 3 条视觉带；第 4 条不再把行撑高（88），而是叠回
+      // 重叠最少的一条带里，由格底加深提示「这里叠了两条」。
+      final SlotLayout layout = layoutSlots(win, <GridEntry>[
+        _entry('a', 9 * 60, 9 * 60 + 30),
+        _entry('b', 9 * 60, 9 * 60 + 30),
+        _entry('c', 9 * 60, 9 * 60 + 30),
+        _entry('d', 9 * 60, 9 * 60 + 30),
+      ]);
+
+      expect(kMaxLanesPerRow, 3);
+      expect(layout.laneCounts[_row9], 3);
+      // 66 而不是 88：行高封顶在三条带。
+      expect(layout.rowHeights[_row9], 3 * kLaneHeight);
+      expect(layout.totalHeight, 814);
+
+      final SlotSegment a = layout.segments.firstWhere(
+        (SlotSegment s) => s.entry.id == 'a',
+      );
+      final SlotSegment d = layout.segments.firstWhere(
+        (SlotSegment s) => s.entry.id == 'd',
+      );
+      expect(d.isOverflow, isTrue);
+      // 三条带的重叠分钟数都是 30 ⇒ 平局取编号最小的带，等价于「向上换带」。
+      expect(d.lane, 0);
+      expect(layout.segmentHeight(d), closeTo(20, 1e-9));
+
+      // 需求 f：冲突有记录，且只记 guest 侧（a 不是 guest）。
+      expect(layout.conflicts, hasLength(1));
+      final LaneConflict conflict = layout.conflicts.single;
+      expect(conflict.guestId, 'd');
+      expect(conflict.hostId, 'a');
+      expect(conflict.row, _row9);
+      expect(conflict.lane, 0);
+      expect(conflict.startMinute, 9 * 60);
+      expect(conflict.endMinute, 9 * 60 + 30);
+      expect(conflict.durationMinutes, 30);
+      // 四条完全同段 ⇒ 区间相等也算「完全落在 host 内」（⊆ 的退化情形）⇒
+      // containment 为真，guest 画成宿主的内嵌小盒，视觉上才能把两条区分开。
+      expect(conflict.containment, isTrue);
+      expect(d.conflictWithId, 'a');
+      expect(layout.conflictOf(d)?.hostId, 'a');
+      expect(layout.conflictOf(a), isNull);
+    });
+
+    test('第 4 条被完全包含 ⇒ 画成宿主的内嵌小盒，高度少 4', () {
+      final SlotLayout layout = layoutSlots(win, <GridEntry>[
+        _entry('a', 9 * 60, 10 * 60),
+        _entry('b', 9 * 60, 10 * 60),
+        _entry('c', 9 * 60, 10 * 60),
+        _entry('inner', 9 * 60 + 30, 9 * 60 + 50),
+      ]);
+
+      expect(layout.laneCounts[_row9], 3);
+      final SlotSegment a = layout.segments.firstWhere(
+        (SlotSegment s) => s.entry.id == 'a',
+      );
+      final SlotSegment inner = layout.segments.firstWhere(
+        (SlotSegment s) => s.entry.id == 'inner',
+      );
+      expect(inner.isOverflow, isTrue);
+      // 三条带的重叠分钟数都是 20 ⇒ 平局取第 0 条带，也就是 a。
+      expect(inner.lane, a.lane);
+      expect(layout.conflicts.single.containment, isTrue);
+      expect(layout.conflicts.single.hostId, 'a');
+
+      const double gridWidth = 1096;
+      final Rect hostRect = layout.hostRectOf(inner, gridWidth)!;
+      expect(hostRect, layout.tileRect(a, gridWidth));
+      final Rect innerRect = layout.tileRect(inner, gridWidth);
+      const double cell = gridWidth / kGridCols;
+      // 需求 g：上下各缩 2 ⇒ 高度 = 宿主高度 − 4；横向不缩（否则「盒中有盒」
+      // 会变成「盒旁边有个盒」）。
+      expect(innerRect.height, closeTo(hostRect.height - 4, 1e-9));
+      expect(innerRect.top, closeTo(hostRect.top + 2, 1e-9));
+      expect(inner.col, 2);
+      expect(innerRect.left, closeTo(2 * cell + 2, 1e-9));
+    });
+
+    test('titleLimitOf：无内嵌小盒为 null；有则等于小盒左缘距宿主左缘', () {
+      final SlotLayout plain = layoutSlots(win, <GridEntry>[
+        _entry('a', 9 * 60, 10 * 60),
+      ]);
+      expect(plain.titleLimitOf(plain.segments.single, 1096), isNull);
+
+      final SlotLayout nested = layoutSlots(win, <GridEntry>[
+        _entry('a', 9 * 60, 10 * 60),
+        _entry('b', 9 * 60, 10 * 60),
+        _entry('c', 9 * 60, 10 * 60),
+        _entry('inner', 9 * 60 + 30, 9 * 60 + 50),
+      ]);
+      const double gridWidth = 1096;
+      const double cell = gridWidth / kGridCols;
+      final SlotSegment a = nested.segments.firstWhere(
+        (SlotSegment s) => s.entry.id == 'a',
+      );
+      final SlotSegment inner = nested.segments.firstWhere(
+        (SlotSegment s) => s.entry.id == 'inner',
+      );
+      // inner 从第 2 列起 ⇒ 距 a 的左缘正好 2 个列宽，宿主标题据此截窄。
+      expect(nested.titleLimitOf(a, gridWidth), closeTo(2 * cell, 1e-9));
+      // 自身作为 guest 的段不会给自己设限。
+      expect(nested.titleLimitOf(inner, gridWidth), isNull);
+    });
+  });
+
+  group('需求 e：跨行段两端的接续标记', () {
+    test('09:50–10:20 ⇒ 首段 continuesBelow、次段 continuesAbove', () {
+      final SlotLayout layout = layoutSlots(win, <GridEntry>[
+        _entry('a', 9 * 60 + 50, 10 * 60 + 20),
+      ]);
+
+      final SlotSegment first = layout.segments[0];
+      final SlotSegment second = layout.segments[1];
+      expect(first.continuesAbove, isFalse);
+      expect(first.continuesBelow, isTrue);
+      expect(second.continuesAbove, isTrue);
+      expect(second.continuesBelow, isFalse);
+    });
+
+    test('被窗口上沿夹住的段：没有上一行同条目 ⇒ continuesAbove 仍为假', () {
+      final SlotLayout layout = layoutSlots(win, <GridEntry>[
+        _entry('edge', 5 * 60, 6 * 60 + 30),
+      ]);
+
+      final SlotSegment seg = layout.segments.single;
+      expect(seg.continuesAbove, isFalse);
+      expect(seg.continuesBelow, isFalse);
+    });
+  });
 }

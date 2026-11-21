@@ -11,6 +11,7 @@
 //   跨格」这件事变得表达不出来。
 // =============================================================================
 
+import 'package:core_data/core_data.dart' show QuadrantStyle;
 import 'package:core_db/core_db.dart';
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,7 @@ import '../priority_hover_bubble.dart';
 import 'plan_item_detail_dialog.dart';
 import 'slot_context_menu.dart';
 import 'slot_fill.dart';
+import 'slot_hover_card.dart';
 import 'slot_layout.dart';
 import 'slot_range_dialog.dart';
 import 'slot_state.dart';
@@ -49,14 +51,14 @@ Color colorOfSlotKind(SlotKind kind, ThemeTokens tokens) => switch (kind) {
 /// 为什么需要它：条目宽度现在由「起始分钟 → 列」决定（`slot_layout.dart` 的
 /// `col`）。窄视口下 15 分钟只占 `658 / 4 = 164.5px`，减掉左右各 2px 缝与
 /// 内边距 8px 只剩 152.5px；而正文那串**不可压缩**的子项（复选框 22 +
-/// 起始时刻 50 + 字形 11 + 习惯回填徽标 50 及各处 3–6px 间隔）在测试字体
+/// 字形 11 + 习惯回填徽标 50 及各处 3–6px 间隔）在测试字体
 /// （Ahem，每字符宽 = 字号）下就要 180px 左右，`Row` 会在窄档当场
 /// `RenderFlex overflowed`。
 ///
-/// 260 = 上述工况（再算上优先级标记）留足呼吸的**上限**。Task 45 · W2 把
-/// 「未分级 30 + 状态词 20 + 删除 30」从正文里删掉后实际需求降到 180 左右，
-/// 但这里**不下调**：宽视口（1400 ⇒ 内宽 262.5）本来就走 `maxWidth` 原值、
-/// 逐像素不变；窄档与 2 倍字号档多裁一点，比让 `Row` 溢出安全。
+/// Task 50 把「起始时刻」与「进展：」从正文里搬进了悬停浮窗
+/// （`slot_hover_card.dart`），正文的实际需求又降了一档；跨行续接的弯折箭头
+/// 另各占 12px。这里仍**不下调**：宽视口（1400 ⇒ 内宽 262.5）本来就走
+/// `maxWidth` 原值、逐像素不变；窄档与 2 倍字号档多裁一点，比让 `Row` 溢出安全。
 const double kChipContentMinWidth = 260;
 
 /// 纵轴小时 / 横轴分钟的方格时间轴。
@@ -70,10 +72,12 @@ class DayGrid extends ConsumerStatefulWidget {
   /// 所属日期（`YYYY-MM-DD`）。
   final String date;
 
-  /// 极简模式：只藏条目的次级信息（进展串），不藏数据。
+  /// 极简模式：悬停浮窗里不显示详情与进展串，不藏数据。
   ///
-  /// 「今日计划」段删掉后，页头的极简/完整开关只剩这一个可见回落；
-  /// 没有它这个开关就是假按钮。
+  /// Task 50 把起始时刻与「进展：」从条目正文搬进了悬停浮窗
+  /// （`slot_hover_card.dart`），正文因此只剩标题。极简/完整开关的可见回落
+  /// 也跟着搬进浮窗：完整档浮窗给起止时间、标题、详情、进展、状态、级别；
+  /// 极简档去掉详情与进展两行。没有它这个开关就是假按钮。
   final bool minimal;
 
   @override
@@ -112,7 +116,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 与 [_setQuadrant] 既有口径（分级不拦未来日）自相矛盾。
   bool _future = false;
 
-  /// 极简模式的当前值（见 [DayGrid.minimal]）。
+  /// 极简模式的当前值（见 [DayGrid.minimal]）：只影响悬停浮窗的内容行。
   bool _minimal = false;
 
   /// 每个条目一个稳定焦点节点：条目会被拖动/重建，节点不能跟着重建。
@@ -445,6 +449,45 @@ class _DayGridState extends ConsumerState<DayGrid> {
       keyValue: key,
       live: seg.isHead,
       showBody: seg.isHead,
+      seg: seg,
+      layout: layout,
+      gridWidth: gridWidth,
+    );
+    // 跨行续接的弯折箭头（需求 e）画在**外壳之外**的 `Stack` 里，而不是塞进
+    // `_chipShell` 的内容行：外壳里还有 `ClipRRect` + `ClipRect` +
+    // `OverflowBox(minWidth: 260)`，塞进去会被裁掉，`Positioned` 也会相对
+    // 那 260px 的溢出内容而不是相对条目本身。这里 `Positioned.fill` 给外壳
+    // 的紧约束与原实现逐像素相同，箭头因此稳定落在条目的左上 / 右下角。
+    final Widget tile = Stack(
+      children: <Widget>[
+        Positioned.fill(child: shell),
+        if (seg.continuesAbove)
+          Positioned(
+            left: 2,
+            top: 0,
+            width: 12,
+            height: 20,
+            child: CustomPaint(
+              key: ValueKey<String>(
+                'day-grid-continue-up-${entry.id}-${seg.row}',
+              ),
+              painter: _ContinueArrowPainter(up: true, color: t.ink),
+            ),
+          ),
+        if (seg.continuesBelow)
+          Positioned(
+            right: 2,
+            bottom: 0,
+            width: 12,
+            height: 20,
+            child: CustomPaint(
+              key: ValueKey<String>(
+                'day-grid-continue-down-${entry.id}-${seg.row}',
+              ),
+              painter: _ContinueArrowPainter(up: false, color: t.ink),
+            ),
+          ),
+      ],
     );
     return Positioned(
       top: rect.top,
@@ -469,10 +512,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
               ),
               child: GestureDetector(
                 onDoubleTap: () => _editRange(entry),
-                child: shell,
+                child: tile,
               ),
             )
-          : shell,
+          : tile,
     );
   }
 
@@ -493,8 +536,20 @@ class _DayGridState extends ConsumerState<DayGrid> {
     required String keyValue,
     required bool live,
     bool showBody = true,
+    SlotSegment? seg,
+    SlotLayout? layout,
+    double gridWidth = 0,
   }) {
-    final Widget body = showBody ? _chipBody(entry, t) : const SizedBox();
+    final Widget body = showBody
+        ? _chipBody(
+            entry,
+            t,
+            seg: seg,
+            layout: layout,
+            gridWidth: gridWidth,
+            hover: live,
+          )
+        : const SizedBox();
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppTokens.radius),
       child: Container(
@@ -589,17 +644,31 @@ class _DayGridState extends ConsumerState<DayGrid> {
     );
   }
 
-  /// 一行内容：复选框 · 四维标记 · 标题 · 起始时间 · 四态字形 · 进展 ·
-  /// 习惯回填徽标。
+  /// 一行内容：复选框 · 四维标记 · 标题 · 四态字形 · 习惯回填徽标。
   ///
-  /// 全部单行、全部可省略，唯一会撑宽的是标题与进展（都带省略号）。
+  /// 全部单行、全部可省略，唯一会撑宽的是标题（带省略号）。
   ///
-  /// Task 45 · W2 从这里移除三样东西（用户当轮需求 2 前半）：**状态词**
+  /// Task 50 · W2 又从这里搬走两样东西（用户当轮需求 h）：**起始时刻**与
+  /// **「进展：」串**。它们没有消失，只是改挂到悬停浮窗
+  /// （`slot_hover_card.dart`）里 —— 单行芯片只留标题，横向空间才够让同一
+  /// 小时里的并发条目并排，也才够给内嵌小盒留出标题避让位。
+  ///
+  /// Task 45 · W2 已从这里移除三样东西（用户当轮需求 2 前半）：**状态词**
   /// （`stateLabelOfSlotKind` 的「打卡 / 回填 / 完成 / 计划」）、**「未分级」
   /// 文本**、**「删除」入口**。状态表达只留背景色 + 四态字形 + 左缘竖条；
   /// 「未分级」靠「不画标记、不留占位」表达（空白本身是信息）；删除移进
   /// 详情窗（`plan_item_detail_dialog.dart`）。
-  Widget _chipBody(GridEntry entry, ThemeTokens t) {
+  ///
+  /// [hover] 只对 head 段为真：`Draggable.feedback` 的子树不保证有
+  /// `Overlay` 祖先，且拖动幽灵不需要悬停卡。
+  Widget _chipBody(
+    GridEntry entry,
+    ThemeTokens t, {
+    SlotSegment? seg,
+    SlotLayout? layout,
+    double gridWidth = 0,
+    bool hover = false,
+  }) {
     final PlanItemData? row = _rowOf(entry.id);
     final bool done = row?.status == PlanStatus.done.code;
     // 行里存的是码值字符串，渲染层自己解析；无法识别（未来 schema）就当作
@@ -607,12 +676,58 @@ class _DayGridState extends ConsumerState<DayGrid> {
     final Quadrant? quadrant = Quadrant.fromCode(row?.quadrant);
     final String note = row?.resultNote ?? '';
     final Color ink = foregroundOfSlotKind(entry.kind, t);
-    return Row(
+    // 需求 g：被更高层的条目包含时，本条的标题必须让出「内嵌小盒左缘」之前
+    // 的空间 —— 上限由布局层逐像素算出（宿主标题右缘 / 小盒左缘），这里只
+    // 负责把宽度钉死。`null` = 没有宿主，按原样 `Flexible` 铺满。
+    final double? titleLimit = seg == null || layout == null || gridWidth <= 0
+        ? null
+        : layout.titleLimitOf(seg, gridWidth);
+    // 标题左侧的固定开销：左缘竖条 2 + 外壳内边距 4 + 勾选框 22 + 与四维标记
+    // 的间隔 5 + 四维标记 14（含其后的 4）+ 跨行向上箭头占位 12 + 右侧留白 6。
+    final double chrome =
+        2 +
+        4 +
+        22 +
+        5 +
+        (quadrant != null ? 14 : 0) +
+        ((seg?.continuesAbove ?? false) ? 12 : 0) +
+        6;
+    final Widget titleText = Text(
+      entry.title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 11,
+        color: t.ink2,
+        // 完成态加删除线：第三重通道，不必依赖颜色感知。
+        // `decorationColor` 显式钉死该态前景色，避免继承出别的颜色。
+        decoration: entry.kind == SlotKind.done
+            ? TextDecoration.lineThrough
+            : null,
+        decorationColor: entry.kind == SlotKind.done ? ink : null,
+      ),
+    );
+    final double? titleWidth = titleLimit == null ? null : titleLimit - chrome;
+    final Widget title;
+    if (titleWidth == null) {
+      title = Flexible(child: titleText);
+    } else if (titleWidth <= 8) {
+      // 宿主标题已经吃掉这一行：连一个字都放不下时宁可不画，也不画一串
+      // 省略号去和宿主的文字叠在一起。
+      title = const SizedBox.shrink();
+    } else {
+      title = SizedBox(width: titleWidth, child: titleText);
+    }
+    final Widget content = Row(
       children: <Widget>[
-        // 账页行序（方向 A）：勾选框 → 四维标记 → 标题 → mono 元信息 →
-        // 四态字形 → 进展 → 习惯回填。
+        // 账页行序（方向 A）：勾选框 → 四维标记 → 标题 → 四态字形 →
+        // 习惯回填。
         // 勾选框提到最左是「账页行」与「横排芯片」的差别所在：勾是行的第一列，
-        // 不是标题的尾巴。行落位仍由 15 分钟格引擎决定，真实时刻走后面的元信息。
+        // 不是标题的尾巴。行落位仍由 15 分钟格引擎决定。
+        //
+        // 跨行箭头（需求 e）画在外壳之上的 `Stack` 里；这两个占位块只把文字
+        // 让开那 12px，避免标题压到箭头上。
+        if (seg?.continuesAbove ?? false) const SizedBox(width: 12),
         LedgerCheckbox(
           value: done,
           semanticLabel: entry.title,
@@ -629,34 +744,9 @@ class _DayGridState extends ConsumerState<DayGrid> {
           ),
           const SizedBox(width: 4),
         ],
-        Flexible(
-          child: Text(
-            entry.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
-              color: t.ink2,
-              // 完成态加删除线：第三重通道，不必依赖颜色感知。
-              // `decorationColor` 显式钉死该态前景色，避免继承出别的颜色。
-              decoration: entry.kind == SlotKind.done
-                  ? TextDecoration.lineThrough
-                  : null,
-              decorationColor: entry.kind == SlotKind.done ? ink : null,
-            ),
-          ),
-        ),
-        const SizedBox(width: 6),
-        // mono 元信息：起始时刻。表格数字宽度固定，条目再长也不抖。
-        Text(
-          formatMinute(entry.startMinute),
-          style: TextStyle(
-            fontSize: 10,
-            color: t.faint,
-            fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-          ),
-        ),
-        const SizedBox(width: 6),
+        // 标题：宽度未知（无宿主）时自己 `Flexible` 吃满剩余空间；有宿主时
+        // 宽度已被 [titleWidth] 钉死，不再参与弹性分配。
+        title,
         // 故意用 `RichText` 而非 `Text`：字形字符（`\u25CB` `\u2713`
         // `\u25B6` `\u25CF`）与 `LedgerCheckbox` 自绘的勾选符是同一批码位，
         // 用 `Text` 会让既有的 `find.text('✓')` 精确计数从 1 变 2。
@@ -676,17 +766,6 @@ class _DayGridState extends ConsumerState<DayGrid> {
             ),
           ),
         ),
-        if (note.isNotEmpty && !_minimal) ...<Widget>[
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              '进展：$note',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 10, color: t.meta),
-            ),
-          ),
-        ],
         if (entry.kind == SlotKind.habit) ...<Widget>[
           const SizedBox(width: 6),
           Container(
@@ -702,7 +781,26 @@ class _DayGridState extends ConsumerState<DayGrid> {
             ),
           ),
         ],
+        // 向下跨行的箭头占在右下角（需求 e），末尾同样让开 12px。
+        if (seg?.continuesBelow ?? false) const SizedBox(width: 12),
       ],
+    );
+    if (!hover) {
+      return content;
+    }
+    // 需求 h：起始时刻 / 标题 / 详情 / 进展 / 状态 / 级别都搬进悬停浮窗。
+    // 浮窗必须走 `OverlayPortal` —— 格子区外层是 `Clip.antiAlias`，普通
+    // `Overlay` 子树会被裁在这一格里。
+    return SlotHoverCard(
+      title: entry.title,
+      startMinute: entry.startMinute,
+      endMinute: entry.endMinute,
+      detail: _minimal ? '' : (row?.detail ?? ''),
+      note: note,
+      stateLabel: stateLabelOfSlotKind(entry.kind),
+      levelLabel: quadrant == null ? '未分级' : QuadrantStyle.of(quadrant).label,
+      showNote: !_minimal,
+      child: content,
     );
   }
 
@@ -1190,6 +1288,32 @@ class _SlotPainter extends CustomPainter {
       }
     }
 
+    // 需求 f：三条带都换不出空位时，重叠处**格底加深**（数据层已在
+    // `LaneConflict` 里记下区间），提示读者「这里叠了两条」。
+    //
+    // 加深一律用 `ink` 叠色，不用 `accent` / `accentWash` —— 方格区是中性
+    // 账页，赭石只归「当前/强调」。透明度 0.08 是既有底色之上的最浅一档：
+    // 能看出差别，又不至于把四态底色本身染脏。
+    final Paint conflictFill = Paint()
+      ..color = tokens.ink.withValues(alpha: 0.08);
+    for (final LaneConflict conflict in layout.conflicts) {
+      final int rowStart = window.startMinute + conflict.row * 60;
+      final int colStart = ((conflict.startMinute - rowStart) ~/ kSlotMinutes)
+          .clamp(0, kGridCols - 1);
+      final int colEnd =
+          ((conflict.endMinute - rowStart + kSlotMinutes - 1) ~/ kSlotMinutes)
+              .clamp(colStart + 1, kGridCols);
+      canvas.drawRect(
+        Rect.fromLTWH(
+          colStart * cellWidth,
+          layout.rowTops[conflict.row],
+          (colEnd - colStart) * cellWidth,
+          layout.rowHeights[conflict.row],
+        ),
+        conflictFill,
+      );
+    }
+
     final Paint line = Paint()
       ..color = tokens.hairSoft
       ..strokeWidth = 1;
@@ -1208,6 +1332,62 @@ class _SlotPainter extends CustomPainter {
       oldDelegate.entries != entries ||
       oldDelegate.layout != layout ||
       oldDelegate.tokens != tokens;
+}
+
+/// 跨行弯折箭头（需求 e）：一条任务在未完成的小时结束处 / 下一小时开始处
+/// 各画一个「折回箭头」，提示「这条还接着上面 / 下面」。
+///
+/// 为什么必须自绘：`↳`(U+21B3) 与 `↰`(U+21B0) 在随包的 10 个字体里覆盖率
+/// 是 0/10，用字符只会渲染成豆腐块。`CustomPainter` + `Path` 不依赖任何
+/// 字体，也不进语义树 —— 它纯装饰，信息由布局层（`continuesAbove/Below`）
+/// 与悬停浮窗承载。
+///
+/// 线宽 1.2 + 圆头圆角：落在 20px 高的条目里既不糊成一团，也比 1px 更像
+/// 「方向」而非「边框」。
+class _ContinueArrowPainter extends CustomPainter {
+  const _ContinueArrowPainter({required this.up, required this.color});
+
+  /// `true` = 指向上方（本段是某一小时的首段，任务从上一小时接过来）。
+  final bool up;
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final Path path = Path();
+    if (up) {
+      // 竖线自上而下，然后折向右；箭尖在折点处朝右。
+      path
+        ..moveTo(3.5, 1.5)
+        ..lineTo(3.5, 6.5)
+        ..lineTo(9.5, 6.5);
+      path
+        ..moveTo(6.8, 3.8)
+        ..lineTo(9.5, 6.5)
+        ..lineTo(6.8, 9.2);
+    } else {
+      // 竖线自下而上，然后折向左；箭尖朝左。
+      path
+        ..moveTo(8.5, 18.5)
+        ..lineTo(8.5, 13.5)
+        ..lineTo(2.5, 13.5);
+      path
+        ..moveTo(5.2, 10.8)
+        ..lineTo(2.5, 13.5)
+        ..lineTo(5.2, 16.2);
+    }
+    canvas.drawPath(path, stroke);
+  }
+
+  @override
+  bool shouldRepaint(_ContinueArrowPainter oldDelegate) =>
+      oldDelegate.up != up || oldDelegate.color != color;
 }
 
 /// 刻度尺：1px 连续竖轴 + 整点 6px 刻 + 半点 3px 刻。

@@ -7,11 +7,13 @@
 //   1. **同一时间段有两条任务** —— 等行高模型里两条条目只能互相盖住；
 //   2. **条目的横向起点** —— 单元格坐标（列）与像素的换算在渲染层各写一遍。
 //
-// 这一层只做三件事，全部是纯函数，不碰 `BuildContext`、不碰 I/O：
+// 这一层只做四件事，全部是纯函数，不碰 `BuildContext`、不碰 I/O：
 //
 //   - 把每条条目按「小时行」切成**段**（`SlotSegment`），段是唯一可渲染单位；
 //   - 每行内按时间区间做**最少车道贪心装箱**（interval partitioning），
-//     得到该行的车道数与该段的车道号；
+//     得到该行的车道数与该段的车道号；车道数封顶 [kMaxLanesPerRow]；
+//   - 车道挤不下时**不再开新带**，而是把后来者叠进「重叠分钟数最少」的那条带，
+//     并把每段真实重叠记账成 [LaneConflict]（渲染层据此加深格底 / 画内嵌小盒）；
 //   - 由车道数推出**每行的实际行高**，进而给出「分钟 → 像素 / 像素 → 分钟」
 //     的可逆换算，供刻度尺、格线、条目、右键落点**共用同一份真源**。
 //
@@ -23,6 +25,8 @@
 // 已知取舍（刻意不做，不是漏做）：车道号是**逐行**算的，跨小时的条目在相邻两行
 // 可能换车道。跨行条目本来就只能拆成多段画（行高不同），强求车道号跨行一致
 // 会把「最少车道」变成 NP 式的全局装箱，收益只是视觉上的一点点连贯，不值。
+// 跨行的一致性改由 [SlotSegment.continuesAbove] / [SlotSegment.continuesBelow]
+// 两个弯折箭头标志表达：读者看到箭头就知道「这条在上一行 / 下一行接着走」。
 // =============================================================================
 
 import 'dart:ui' show Rect;
@@ -36,6 +40,71 @@ import 'slot_state.dart';
 /// 「一行正常放得下两条并发任务」这条需求因此是**布局恒等式**，不是巧合。
 const double kLaneHeight = 22.0;
 
+/// 每行最多允许的并发车道数。
+///
+/// 3 × 22 = 66 已经把单行撑到默认行高的 1.5 倍；再开第 4 条会让整块方格区在
+/// 最小视口里彻底失去「一眼看清一天」的意义。超额时段**不**开新带，改为叠进
+/// 重叠分钟数最少的那条带，并把重叠区间记进 [LaneConflict] 交给渲染层加深。
+const int kMaxLanesPerRow = 3;
+
+/// 内嵌小盒相对宿主段矩形的上下内缩量。
+///
+/// 需求「B 完全落在 A 内时，B 画成 A 的内嵌小盒」：上下各缩 2px ⇒ 宿主 20px
+/// 的净高里 guest 占 16px，边框仍能分辨出「盒中有盒」而不会糊成一块。
+const double kContainedInset = 2.0;
+
+/// 一次**真实的**时间重叠：同一行、同一条车道里两条段盖住了同一段时间。
+///
+/// 只在车道已满（[kMaxLanesPerRow]）时才产生 —— 有富余车道时装箱本身就会把
+/// 两条并发分到不同带上，不构成冲突。渲染层用它做两件事：
+///
+///   - 需求 f：`[startMinute, endMinute)` 这段格底加深，提示「这里确实挤了」；
+///   - 需求 g：[containment] 为真时 guest 改画成 host 的内嵌小盒。
+class LaneConflict {
+  /// 创建一条冲突记录（只由 [layoutSlots] 构造）。
+  const LaneConflict({
+    required this.row,
+    required this.lane,
+    required this.startMinute,
+    required this.endMinute,
+    required this.hostId,
+    required this.guestId,
+    required this.containment,
+  });
+
+  /// 行号（相对窗口起点）。
+  final int row;
+
+  /// 车道号（`0..kMaxLanesPerRow-1`）。
+  final int lane;
+
+  /// 重叠区间起点分钟（两段的交集，不是任一段的原始区间）。
+  final int startMinute;
+
+  /// 重叠区间终点分钟（`> startMinute`）。
+  final int endMinute;
+
+  /// 先落位的那条（被盖住的宿主）。
+  final String hostId;
+
+  /// 后落位的那条（叠上去的客人）。
+  final String guestId;
+
+  /// guest 的时间区间是否**完全落在** host 内。
+  ///
+  /// 只有完全包含才画内嵌小盒：部分相交时画小盒会让人误以为它是子项。
+  final bool containment;
+
+  /// 重叠分钟数。
+  int get durationMinutes => endMinute - startMinute;
+
+  @override
+  String toString() =>
+      'LaneConflict(r$row lane$lane '
+      '${formatMinute(startMinute)}-${formatMinute(endMinute)} '
+      '$hostId←$guestId contained=$containment)';
+}
+
 /// 条目在**某一行**内的一段投影。
 ///
 /// 一条 09:50–10:20 的条目会产生两段（第 9 行、第 10 行）；一条 09:15–09:45
@@ -43,8 +112,9 @@ const double kLaneHeight = 22.0;
 class SlotSegment {
   /// 创建一段投影（只由 [layoutSlots] 构造）。
   ///
-  /// [lane] 与 [isHead] 由装箱阶段回填：切段时还不知道同行有几条并发，
-  /// 先建可变量比「切一遍再重建一遍」少一次整表复制。
+  /// [lane] / [isHead] / [isOverflow] / [continuesAbove] / [continuesBelow]
+  /// 由装箱阶段回填：切段时还不知道同行有几条并发、也不知道上下行有没有
+  /// 同一条目的下一段，先建可变量比「切一遍再重建一遍」少一次整表复制。
   SlotSegment({
     required this.entry,
     required this.row,
@@ -55,6 +125,10 @@ class SlotSegment {
     required this.coveredCols,
     this.lane = 0,
     this.isHead = false,
+    this.isOverflow = false,
+    this.conflictWithId,
+    this.continuesAbove = false,
+    this.continuesBelow = false,
   });
 
   /// 来源条目（同一条目的多段共享同一个 `entry.id`）。
@@ -91,6 +165,21 @@ class SlotSegment {
   /// 焦点跳两次的怪象。
   bool isHead;
 
+  /// 本段是否因车道已满而**叠在**别人的时间段上（需求 f 的触发条件）。
+  bool isOverflow;
+
+  /// 被叠的那条宿主的 id（`isOverflow` 为假时是 null）。
+  ///
+  /// 只记第一条：同一条 guest 可能同时压住两段，但「跟谁挤了」对读者只需要
+  /// 一个指认对象，逐个列出来反而没法在 chip 里表达。
+  String? conflictWithId;
+
+  /// 上一条**可见**行里还有同一条目的段（需求 e：段左上角画向上弯折箭头）。
+  bool continuesAbove;
+
+  /// 下一条行里还有同一条目的段（需求 e：段右下角画向下弯折箭头）。
+  bool continuesBelow;
+
   /// 段持续分钟数。
   int get durationMinutes => endMinute - startMinute;
 
@@ -98,19 +187,23 @@ class SlotSegment {
   String toString() =>
       'SlotSegment(${entry.id} r$row lane$lane '
       '${formatMinute(startMinute)}-${formatMinute(endMinute)} '
-      'col$col×$coveredCols head=$isHead)';
+      'col$col×$coveredCols head=$isHead overflow=$isOverflow '
+      'up=$continuesAbove down=$continuesBelow)';
 }
 
-/// 一天的网格布局：行高表 + 车道数 + 全部段。
+/// 一天的网格布局：行高表 + 车道数 + 全部段 + 全部冲突。
 ///
 /// 所有几何查询都从这里出发，保证「刻度尺画在哪」与「条目画在哪」不可能分叉。
 class SlotLayout {
-  SlotLayout._({
+  SlotLayout._(
+    this._hostOf,
+    this._conflictOfGuest, {
     required this.window,
     required this.rowHeights,
     required this.rowTops,
     required this.laneCounts,
     required this.segments,
+    required this.conflicts,
   });
 
   /// 所属窗口。
@@ -127,6 +220,17 @@ class SlotLayout {
 
   /// 全部段，按「行号升序 → 段起点升序」排列。
   final List<SlotSegment> segments;
+
+  /// 全部真实时间重叠（按发现顺序）。
+  ///
+  /// 空列表 = 没有任何两条任务被叠在同一车道上，此时渲染层不需要加深任何格底。
+  final List<LaneConflict> conflicts;
+
+  /// guest 段 → 它的宿主段（仅 `containment == true` 的那些）。
+  final Map<SlotSegment, SlotSegment> _hostOf;
+
+  /// guest 段 → 它记录的第一条冲突。
+  final Map<SlotSegment, LaneConflict> _conflictOfGuest;
 
   /// 网格总高度。无并发时逐值等于 `window.height`。
   double get totalHeight => rowTops.last;
@@ -196,14 +300,69 @@ class SlotLayout {
   /// 左右各留 2px 缝（沿用并发之前的 `left: 2, right: 2`），因此
   /// `width = 覆盖列宽 - 4`。宽度不足时可能为负 —— 由调用方 clip 兜底，
   /// 本层不夹取，免得把几何断言变成「永远是正数」的假绿。
+  ///
+  /// 被完全包含的 guest（[LaneConflict.containment]）在此换算成宿主的**内嵌
+  /// 小盒**：上下各缩 [kContainedInset]，横向仍按自己的起始列 —— 内缩只改
+  /// 纵向，否则「盒中有盒」会变成「盒旁边有个盒」，看不出包含关系。
   Rect tileRect(SlotSegment segment, double gridWidth) {
     final double cellWidth = gridWidth / kGridCols;
+    final double left = segment.col * cellWidth + 2;
+    final double width = segment.coveredCols * cellWidth - 4;
+    final SlotSegment? host = _hostOf[segment];
+    if (host == null) {
+      return Rect.fromLTWH(
+        left,
+        segmentTop(segment),
+        width,
+        segmentHeight(segment),
+      );
+    }
+    final double hostHeight = segmentHeight(host);
+    final double inset = hostHeight > kContainedInset * 3 ? kContainedInset : 0;
     return Rect.fromLTWH(
-      segment.col * cellWidth + 2,
-      segmentTop(segment),
-      segment.coveredCols * cellWidth - 4,
-      segmentHeight(segment),
+      left,
+      segmentTop(host) + inset,
+      width,
+      hostHeight - inset * 2,
     );
+  }
+
+  /// [segment] 作为 guest 的冲突记录（不是 guest 则为 null）。
+  LaneConflict? conflictOf(SlotSegment segment) => _conflictOfGuest[segment];
+
+  /// [segment] 若被完全包含在另一段里，返回那一段的矩形；否则 null。
+  ///
+  /// `day_grid` 用它算「宿主标题还能剩多少横向空间」（需求 g 的文字避让）。
+  Rect? hostRectOf(SlotSegment segment, double gridWidth) {
+    final SlotSegment? host = _hostOf[segment];
+    return host == null ? null : tileRect(host, gridWidth);
+  }
+
+  /// [segment] 作为**宿主**时，标题最多能占多少横向像素（需求 g 的文字避让）。
+  ///
+  /// 「B 完全落在 A 内」时 B 被画成 A 的内嵌小盒；若 A 的标题一路铺满，
+  /// 就会压到 B 的文字上。这里返回「离宿主最近的第一个内嵌小盒的左边界距
+  /// 宿主左边界」的距离 —— 调用方据此把 A 的标题截窄，B 的文字因此始终
+  /// 可读（两条任务标题都不重叠）。
+  ///
+  /// 没有任何内嵌小盒落进本段时返回 `null`（表示不设限，走 `Flexible` 原路）。
+  /// 返回 `0` 是合法结果（小盒从宿主左边界起画），此时调用方应当**不画标题**
+  /// 而不是画一条零宽的省略号。
+  double? titleLimitOf(SlotSegment segment, double gridWidth) {
+    final double cellWidth = gridWidth / kGridCols;
+    final double ownLeft = segment.col * cellWidth + 2;
+    double? limit;
+    for (final MapEntry<SlotSegment, SlotSegment> pair in _hostOf.entries) {
+      if (!identical(pair.value, segment)) {
+        continue;
+      }
+      final double guestLeft = pair.key.col * cellWidth + 2;
+      final double gap = guestLeft - ownLeft;
+      if (limit == null || gap < limit) {
+        limit = gap;
+      }
+    }
+    return limit;
   }
 }
 
@@ -265,6 +424,11 @@ SlotLayout layoutSlots(DayWindow window, List<GridEntry> entries) {
   final List<int> laneCounts = List<int>.filled(window.rows, 0);
   final List<SlotSegment> placed = <SlotSegment>[];
   final Set<String> seen = <String>{};
+  final List<LaneConflict> conflicts = <LaneConflict>[];
+  final Map<SlotSegment, SlotSegment> hostOf =
+      Map<SlotSegment, SlotSegment>.identity();
+  final Map<SlotSegment, LaneConflict> conflictOfGuest =
+      Map<SlotSegment, LaneConflict>.identity();
 
   for (int row = 0; row < window.rows; row++) {
     final List<SlotSegment> rowList = rowSegments[row];
@@ -284,7 +448,9 @@ SlotLayout layoutSlots(DayWindow window, List<GridEntry> entries) {
 
     // 最少车道贪心：按起点升序，塞进「已空出的最早一条车道」，否则开新车道。
     // 对区间图（interval graph）这个贪心即最优，车道数 = 最大并发数。
+    // 车道数封顶 [kMaxLanesPerRow]：满了之后不再开带，改为叠进重叠最少的那条。
     final List<int> laneEnds = <int>[];
+    final List<SlotSegment> placedInRow = <SlotSegment>[];
     for (final SlotSegment segment in rowList) {
       int lane = -1;
       for (int i = 0; i < laneEnds.length; i++) {
@@ -293,19 +459,81 @@ SlotLayout layoutSlots(DayWindow window, List<GridEntry> entries) {
           break;
         }
       }
-      if (lane < 0) {
+      if (lane >= 0) {
+        laneEnds[lane] = segment.endMinute;
+      } else if (laneEnds.length < kMaxLanesPerRow) {
         lane = laneEnds.length;
         laneEnds.add(segment.endMinute);
       } else {
-        laneEnds[lane] = segment.endMinute;
+        // 三条带全占着 ⇒ 不开第 4 条带。挑重叠分钟数最少的那条叠上去；
+        // 平局取编号最小的那条，等价于「向上换带」（需求 d）。
+        lane = _leastOverlapLane(placedInRow, segment, laneEnds.length);
+        segment.isOverflow = true;
+        if (laneEnds[lane] < segment.endMinute) {
+          laneEnds[lane] = segment.endMinute;
+        }
       }
       final bool isHead = seen.add(segment.entry.id);
       segment
         ..lane = lane
         ..isHead = isHead;
+      placedInRow.add(segment);
       placed.add(segment);
+
+      if (!segment.isOverflow) {
+        continue;
+      }
+      // 逐条记真实重叠：只记「同一行、同一车道、时间真的相交」的那些。
+      for (final SlotSegment host in placedInRow) {
+        if (identical(host, segment) || host.lane != lane) {
+          continue;
+        }
+        final int start = host.startMinute > segment.startMinute
+            ? host.startMinute
+            : segment.startMinute;
+        final int end = host.endMinute < segment.endMinute
+            ? host.endMinute
+            : segment.endMinute;
+        if (end <= start) {
+          continue;
+        }
+        final bool containment =
+            segment.startMinute >= host.startMinute &&
+            segment.endMinute <= host.endMinute;
+        final LaneConflict conflict = LaneConflict(
+          row: row,
+          lane: lane,
+          startMinute: start,
+          endMinute: end,
+          hostId: host.entry.id,
+          guestId: segment.entry.id,
+          containment: containment,
+        );
+        conflicts.add(conflict);
+        if (!conflictOfGuest.containsKey(segment)) {
+          conflictOfGuest[segment] = conflict;
+          segment.conflictWithId = host.entry.id;
+        }
+        // 内嵌小盒只认第一条「完全包含」自己的宿主。
+        if (containment && !hostOf.containsKey(segment)) {
+          hostOf[segment] = host;
+        }
+      }
     }
     laneCounts[row] = laneEnds.length;
+  }
+
+  // 跨行箭头（需求 e）：同一条目在上一行 / 下一行还有段 ⇒ 该段两端各加弯折箭头。
+  // 用「id@row」集合而不是 `isHead` 反推：`isHead` 只说明「是不是第一条可见段」，
+  // 拿它当 `continuesAbove` 在窗口起点被裁的条目上虽然碰巧等价，但语义是错的。
+  final Set<String> occupancy = <String>{
+    for (final SlotSegment segment in placed)
+      '${segment.entry.id}@${segment.row}',
+  };
+  for (final SlotSegment segment in placed) {
+    segment
+      ..continuesAbove = occupancy.contains('${segment.entry.id}@${segment.row - 1}')
+      ..continuesBelow = occupancy.contains('${segment.entry.id}@${segment.row + 1}');
   }
 
   final List<double> rowHeights = List<double>.generate(window.rows, (int row) {
@@ -320,10 +548,49 @@ SlotLayout layoutSlots(DayWindow window, List<GridEntry> entries) {
   }
 
   return SlotLayout._(
+    hostOf,
+    conflictOfGuest,
     window: window,
     rowHeights: rowHeights,
     rowTops: rowTops,
     laneCounts: laneCounts,
     segments: placed,
+    conflicts: conflicts,
   );
+}
+
+/// 车道已满时，为 [guest] 挑一条「重叠分钟数最少」的车道。
+///
+/// 只看 [placedInRow] 里**已经落位**的段：贪心是单趟的，后面那些段还没定带，
+/// 拿它们算重叠等于偷看未来，会让结果随排序细节抖动。
+/// 平局取编号最小（`<` 而不是 `<=`），于是同等拥挤时优先向上换带。
+int _leastOverlapLane(
+  List<SlotSegment> placedInRow,
+  SlotSegment guest,
+  int laneCount,
+) {
+  int bestLane = 0;
+  int bestOverlap = -1;
+  for (int lane = 0; lane < laneCount; lane++) {
+    int total = 0;
+    for (final SlotSegment host in placedInRow) {
+      if (host.lane != lane) {
+        continue;
+      }
+      final int start = host.startMinute > guest.startMinute
+          ? host.startMinute
+          : guest.startMinute;
+      final int end = host.endMinute < guest.endMinute
+          ? host.endMinute
+          : guest.endMinute;
+      if (end > start) {
+        total += end - start;
+      }
+    }
+    if (bestOverlap < 0 || total < bestOverlap) {
+      bestOverlap = total;
+      bestLane = lane;
+    }
+  }
+  return bestLane;
 }
