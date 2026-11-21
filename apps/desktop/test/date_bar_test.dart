@@ -40,7 +40,7 @@ void main() {
     expect(find.text('预排'), findsOneWidget);
   });
 
-  testWidgets('左右箭头切日，今天按钮回到今天', (tester) async {
+  testWidgets('左右箭头切日', (tester) async {
     final container = ProviderContainer(
       overrides: [todayProvider.overrideWithValue('2026-11-07')],
     );
@@ -54,7 +54,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('date-bar-next')));
     await tester.pump();
     expect(container.read(selectedDateProvider), '2026-11-08');
-    await tester.tap(find.byKey(const ValueKey('date-bar-today')));
+    await tester.tap(find.byKey(const ValueKey('date-bar-prev')));
     await tester.pump();
     expect(container.read(selectedDateProvider), '2026-11-07');
   });

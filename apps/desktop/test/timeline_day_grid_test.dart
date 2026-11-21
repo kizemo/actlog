@@ -693,58 +693,33 @@ void main() {
 
   // --- Task 40 · B1：计划区表格化表头 + 删除确认 ---------------------------
 
-  testWidgets('表头最左单元格是日期 · 有独立底色 · 左缘与刻度列/内容列同线', (tester) async {
+  testWidgets('日期表头行已删（日期只由顶部日期模块表达）；刻度列对齐未受影响', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _today);
     await harness.mount(tester, _today);
     await _settle(tester);
 
-    final Finder cell = find.byKey(
-      const ValueKey<String>('day-grid-header-date'),
-    );
-    expect(cell, findsOneWidget, reason: '表头没有日期单元格');
-
-    // 底色判据只读 widget 属性，不碰像素（坑 51）。
-    final Container shell = tester.widget<Container>(cell);
-    final BoxDecoration decoration = shell.decoration! as BoxDecoration;
-    expect(decoration.color, ThemeTokens.light.accentWash, reason: '日期单元格底色必须独立于四态格底');
-    // 与四态格底逐值不同，不是「看起来差一点」。
-    for (final Color slot in <Color>[
-      ThemeTokens.light.slotPlan,
-      ThemeTokens.light.slotHabit,
-      ThemeTokens.light.slotBackfill,
-      ThemeTokens.light.slotDone,
-    ]) {
-      expect(decoration.color, isNot(slot), reason: '表头底色撞了四态格底');
-    }
-
-    // 日期真的画在这个单元格里（不是别处也有一个同名 Text）。
+    // Task 49：日期表头整行删除，`day-grid-header-date` 连同该行一起去掉。
     expect(
-      find.descendant(of: cell, matching: find.textContaining(_today)),
-      findsOneWidget,
-      reason: '日期单元格里没有日期文本',
+      find.byKey(const ValueKey<String>('day-grid-header-date')),
+      findsNothing,
+      reason: '日期表头行还在：日期只应由顶部日期模块表达',
     );
 
-    // 左缘对齐：表头日期单元 · 刻度列 · section 内容列（x=0）三者同一条线。
+    // 刻度列仍在，且没被挤歪：窄档（1400 − 240 = 1160 < 1280）仍是 52。
     final Finder ruler = find.byKey(const ValueKey<String>('day-grid-ruler'));
-    final double headerLeft = tester.getTopLeft(cell).dx;
-    expect(headerLeft, closeTo(0, 0.01), reason: '表头被额外边距推离了内容列左缘');
-    expect(
-      headerLeft,
-      closeTo(tester.getTopLeft(ruler).dx, 0.01),
-      reason: '表头左缘与刻度列左缘不一致',
-    );
-    expect(
-      tester.getTopLeft(find.byType(DayGrid)).dx,
-      closeTo(headerLeft, 0.01),
-      reason: '表头左缘与 DayGrid（section）左缘不一致',
-    );
-
-    // 日期单元格不得挤歪刻度列：窄档（1400 − 240 = 1160 < 1280）仍是 52。
+    expect(ruler, findsOneWidget, reason: '刻度列不见了');
     expect(
       tester.getSize(ruler).width,
       closeTo(AppTokens.tlWidthNarrow, 0.01),
-      reason: '刻度列被表头挤歪了',
+      reason: '刻度列被挤歪了',
+    );
+
+    // 左缘仍与内容列（x=0）同线：表头删掉后不得反过来把刻度列推歪。
+    expect(
+      tester.getTopLeft(ruler).dx,
+      closeTo(tester.getTopLeft(find.byType(DayGrid)).dx, 0.01),
+      reason: '刻度列左缘与 DayGrid（section）左缘不一致',
     );
 
     await _flushTimers(tester);

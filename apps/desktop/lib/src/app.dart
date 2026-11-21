@@ -62,11 +62,22 @@ double resolveTextScaleFromEnvironment(Map<String, String> environment) =>
 /// 应用根组件。
 class ActLogApp extends StatefulWidget {
   /// 创建应用根组件。
-  const ActLogApp({super.key, this.textScale = 1.0, this.home});
+  const ActLogApp({
+    super.key,
+    this.textScale = 1.0,
+    this.home,
+    this.initialLanguage,
+  });
 
   /// 可选根页面（测试缝）。`null` ⇒ 真壳 [ShellHost]；测试进程里起不来
   /// `window_manager`，因此允许直接注入一个页面断言应用级行为。
   final Widget? home;
+
+  /// 启动时已解析出的界面语言（`main.dart` 在 `runApp()` 之前读库得到）。
+  ///
+  /// 只用于对齐 [State] 里「已经回写到原生外壳」的镜像值：首次标题 / 任务栏
+  /// 名字的推送发生在 `main.dart`，这里不该再白推一次。`null` ⇒ 沿用出厂 zh。
+  final AppLanguage? initialLanguage;
 
   /// 全局字号缩放（1.0 = 原型基准 100%）。
   final double textScale;
@@ -83,9 +94,16 @@ class _ActLogAppState extends State<ActLogApp> {
 
   /// 已经回写到原生外壳（窗口标题 / 托盘菜单）的语言。
   ///
-  /// 初值 `zh` 与启动链路一致：`main.dart` 调 `setupDesktopShell()` 时不传语言。
-  /// 之后偏好一变（用户切语言），就在这里回写一次。
-  AppLanguage _shellLanguage = AppLanguage.zh;
+  /// 初值取 `widget.initialLanguage`：`main.dart` 已在 `runApp()` 之前解析过持久化
+  /// 语言，并按它推送过首次标题 / 任务栏名（见 `setupDesktopShell`）。不从初值
+  /// 对齐的话，en 态会在第一帧后再补一次 zh→en 的无谓往返。
+  late AppLanguage _shellLanguage;
+
+  @override
+  void initState() {
+    super.initState();
+    _shellLanguage = widget.initialLanguage ?? AppLanguage.zh;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,9 +132,10 @@ class _ActLogAppState extends State<ActLogApp> {
   /// 只作用于我们自己的 `AppLocalizations` 文案（设置页 / 关于页）。
   Widget _buildApp(AppPreferences prefs) {
     final AppLocalizations t = AppLocalizations.forLanguage(prefs.language);
-    // 语言切换后窗口标题 / 托盘菜单也要跟上（产品决策 D-47-b）。`main.dart`
-    // 不在本波写集内，所以由根组件驱动；post-frame 才碰原生插件，避免在 build
-    // 帧里改窗口。测试环境没有插件，`applyShellLanguage` 自己吞异常。
+    // 语言切换后窗口标题 / 托盘菜单也要跟上（产品决策 D-47-b）。启动时的首次
+    // 推送在 `main.dart` 的 `setupDesktopShell`（那里有持久的语言与数据目录），
+    // 这里只负责「运行中切语言」；post-frame 才碰原生插件，避免在 build 帧里
+    // 改窗口。测试环境没有插件，`applyShellLanguage` 自己吞异常。
     if (_shellLanguage != prefs.language) {
       _shellLanguage = prefs.language;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -251,7 +270,7 @@ class _ShellHostState extends State<ShellHost> {
                   currentNavId: _nav,
                   onNavSelected: _onNavSelected,
                   railPanels: _railPanels(context),
-                  pinnedHeader: _pinnedHeader(),
+                  pinnedHeader: _pinnedHeader(context),
                   content: _content(),
                 ),
               ),
@@ -296,11 +315,14 @@ class _ShellHostState extends State<ShellHost> {
   /// 日期条原先长在 `TodayPage` 正文**里面**，等于坐在滚动区里 —— 往下翻方格
   /// 时间轴时它会跟着滚走，用户就失去了「现在看的是哪一天」这个锚点。
   /// 挂在壳的纸面头部后，它成为滚动区之外的列兄弟，结构性不可能滚走。
-  Widget? _pinnedHeader() {
+  ///
+  /// Task 49：日期文字点开日期卡片选日，这里由宿主显式接线（弹层用壳层的
+  /// context）；其余页面的 [DateBar] 走组件内置的同一条实现。
+  Widget? _pinnedHeader(BuildContext context) {
     if (_nav != ShellHost.kTodayNavId) {
       return null;
     }
-    return const DateBar();
+    return DateBar(onPickDate: (date) => openDatePicker(context, date));
   }
 
   Widget _content() {

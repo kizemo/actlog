@@ -8324,5 +8324,41 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [ ] 47.1 W3 时间线 / W4 今天页与复盘 / W5 心态习惯优先级 / W6 录入对话框 / W7 结果待办池 / W8 关于页与探针
 - [ ] 47.3 `chip_row_visual_test` 定位方式重写 + `scale200_overflow_test` 英文变长溢出回归
 - [ ] 47.2 W9 全量 en 态 g1–g4 + verify、死 key 清理、基线定稿写 AGENTS §7、删 `@Deprecated`
-- [ ] R3 出货链：build → make_installer → 覆盖装机 → 双语真机取证 → R3 真源行更新
+- [x] R3 出货链：build → make_installer → 覆盖装机 → 双语真机取证 → R3 真源行更新
+- [ ] 台账同步 + commit + push
+
+## Task 49 · 顶部日期模块改版（2026-11-21，控制器登记）
+
+### 49.1 诉求（用户 2026-11-21 当轮原话）
+
+1. 页面顶部日期模块：**去除「昨日」「明日」**，仅保留 **日期、向左、向右**；**点击日期弹出日期卡片**进行日期点选；切换到**非今日**日期后**也不出现「今日」**按钮。
+2. **去除日期模块下面、多余的一行显示日期的行**。
+
+### 49.2 写集表（R1：控制器不得改 `apps\`/`packages\`；实现只经 worker 子会话）
+
+| 角色 | 文件 | 动作 |
+|---|---|---|
+| worker | `apps\desktop\lib\src\widgets\date_bar.dart` | **重写**：删「昨天/明天/今天」三按钮及其 key；只留 `‹` / 日期标题 / `›` + 只读徽标（补录模式/预排）；新增公开函数 `openDatePicker`（弹现成 `DatePickerSheet` → 写回 `selectedDateProvider`）；日期标题加 key `date-bar-title` 恒可点；保持 `Row`+`Flexible`+`FittedBox(scaleDown)` 单行不换行 |
+| worker | `apps\desktop\lib\src\widgets\timeline\day_grid.dart` | 删 `_headerStrip` 调用与方法整段（原 209-258，含 `day-grid-header-date`）；清掉因此未用的 `weekdayLabel` import；网格上沿发丝线与刻度列逻辑保留 |
+| worker | `apps\desktop\lib\src\app.dart` | **仅接线**：`_pinnedHeader()` 返回 `DateBar(onPickDate: (date) => openDatePicker(context, date))`；Task 47 的 `initialLanguage` 等改动**逐行未动** |
+| worker | `apps\desktop\test\task49_datebar_test.dart` | **新建** 5 例（删文本/key 消失、切非今日仍无「今天」、`‹`/`›` 前后挪一天、点标题弹卡片→选日→provider 变该日、day_grid 无 `day-grid-header-date` 且刻度列仍在） |
+| worker | `apps\desktop\test\date_bar_test.dart` | 改 1 处断言（改为左右箭头切日：`›`→11-08、`‹`→11-07） |
+| worker | `apps\desktop\test\timeline_day_grid_test.dart` | 改为「日期表头行已删、刻度列对齐未受影响」（保留刻度列宽度 52 与左缘断言，新增 `day-grid-header-date`=findsNothing） |
+| 控制器 | `reports\task49-datebar-report.md`、`reports\task49-gate.ps1`、`reports\task49-gate\`、本节、`docs\B1_验收记录.md`、`progress.md`、`handoff.md`、`AGENTS.md` | 报告 / 门禁 / 台账登记（**不碰 `apps\`/`packages\`**） |
+| — | `packages\**` | **零改动**（本波不涉及 core_data / core_db / core_domain） |
+
+### 49.3 取舍（控制器决定，未再询问用户）
+
+- 「补录模式/预排」**只读徽标保留** —— 它是状态读数不是按钮；用户只点名删「昨天/明天/今天」三个按钮。
+- 键盘 `Ctrl+T`「回到今天」**保留**（非 UI 按钮）。
+- 随单元格删除而无法保留的两条 `timeline_day_grid_test.dart` 断言（`accentWash` 底色 / 撞四态格底）已在 `reports\task49-datebar-report.md` 点名登记。
+
+### 49.4 复选框清单（**只有控制器能打勾；等长替换 `- [ ] ` → `- [x] `，字节数不变；未通过不许打勾**）
+
+- [x] 49.2 日期模块去「昨日/明日/今日」三按钮，保留 日期 + 向左 + 向右
+- [x] 49.2 点击日期弹出日期卡片点选，回写 `selectedDateProvider`
+- [x] 49.2 切到非今日日期不出现「今日」按钮
+- [x] 49.2 删除日期模块下方多余的一行（`day-grid-header-date`）
+- [x] 49.5 门禁：desktop 全量 **+580**（基线 575，Δ+5）/ core_data 204 / core_db 71 / core_domain 62；四包 analyze 逐字 `No issues found!`
+- [x] 49.6 出货链：build → makensis → 覆盖装机 → 真机验收 → R3 真源行更新
 - [ ] 台账同步 + commit + push

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +9,30 @@ import 'package:path/path.dart' as p;
 import 'src/app.dart';
 import 'src/app_paths.dart';
 import 'src/desktop_shell.dart';
+import 'src/l10n/app_localizations.dart';
 import 'src/providers.dart';
 import 'src/selftest.dart';
 import 'src/toast_probe.dart';
+
+/// 解析「首次 Show 之前」要用的界面语言：读 `settings` 表里的 `locale` 行。
+///
+/// 为什么必须在 [runApp] 之前解析：[setupDesktopShell] 会在窗口 show 之前推一次
+/// 窗口标题与任务栏按钮名，而 Windows shell 会拿第一次读到的名字做缓存。
+/// 启动时若一律按 zh 推 `知行日志 actlog`，en 态用户的任务栏就永远挂着中文前缀
+/// （Task 47 W1c-3 实测：三臂读数逐字相同 ⇒ 语言压根没进到这条链路）。
+///
+/// 解析口径与 `currentPreferencesProvider` 完全同源：同一张 `settings` 表、
+/// 同一行 `locale`、同一个 [AppLanguage.fromCode]，所以「首推」与「设置页显示」
+/// 不会各说各话。读库失败一律回落 zh —— 启动链路不能被偏好读取拖垮。
+Future<AppLanguage> resolveStartupLanguage(ActLogDatabase db) async {
+  try {
+    final String? code =
+        await ActLogRepositories(db).settings.get(settingsKeyLocale);
+    return AppLanguage.fromCode(code);
+  } catch (_) {
+    return AppLanguage.zh;
+  }
+}
 
 /// 应用入口：解析数据目录 → 打开 SQLite → 注入 Riverpod 作用域。
 ///
@@ -59,8 +81,12 @@ Future<void> main(List<String> args) async {
 
   final db = openActLogDatabase(dbFile);
 
+  // 首次 Show 之前先把持久化语言解析出来：标题 / 任务栏按钮名只在这一步推送一次
+  // （见 setupDesktopShell），推错就得等重启才会改。
+  final AppLanguage language = await resolveStartupLanguage(db);
+
   // 窗口与托盘（标题、关闭隐藏到托盘、托盘切换窗口）。
-  await setupDesktopShell(supportDir: dataDir);
+  await setupDesktopShell(supportDir: dataDir, language: language);
 
   runApp(
     ProviderScope(
@@ -68,6 +94,8 @@ Future<void> main(List<String> args) async {
       // 裁定 B：字号 200% 走环境变量，只在本进程的 MediaQuery 上层施加。
       child: ActLogApp(
         textScale: resolveTextScaleFromEnvironment(Platform.environment),
+        // 根组件拿同一个语言做初值，避免第一帧后再白推一次 zh→en 往返。
+        initialLanguage: language,
       ),
     ),
   );

@@ -34,6 +34,12 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
+# shell32: SHGetPropertyStoreForWindow. propsys: property store / PROPVARIANT
+# helpers used to set the taskbar display name.
+target_link_libraries(${BINARY_NAME} PRIVATE "shell32.lib" "propsys.lib")
+# advapi32: registry write for the AUMID display name
+# (RegCreateKeyExW / RegSetValueExW in main.cpp).
+target_link_libraries(${BINARY_NAME} PRIVATE "advapi32.lib")
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.

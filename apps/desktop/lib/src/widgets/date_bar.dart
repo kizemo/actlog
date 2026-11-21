@@ -6,13 +6,30 @@ import 'package:core_data/core_data.dart';
 import '../providers.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
+import 'date_picker_sheet.dart';
+
+/// 打开日期点选卡片；选中后把该日期写回 [selectedDateProvider]。
+///
+/// 宿主（`app.dart` 的吸顶头）与组件内置默认走**同一条**实现，避免两处各写
+/// 一遍「弹层 → 写选中日」。先取容器再 `await`：弹层关闭时调用方的 context
+/// 可能已经卸载，那时再取容器会抛。
+Future<void> openDatePicker(BuildContext context, String current) async {
+  final ProviderContainer container =
+      ProviderScope.containerOf(context, listen: false);
+  final String? picked = await DatePickerSheet.show(context, initial: current);
+  if (picked == null) {
+    return;
+  }
+  container.read(selectedDateProvider.notifier).state = picked;
+}
 
 /// 顶部日期定位条（今日页 / 日历页 / 待办池 / 习惯 / 项目共用）。
 ///
-/// 视觉口径（B2 需求 1，单行五件套）：
-/// `‹` · `昨天` · display 字族日期 + `▾` · `明天` · `›` · 状态徽标 · `今天`。
+/// 视觉口径（Task 49，单行三件套）：
+/// `‹` · 日期（点开日期卡片）· `›` · 只读状态徽标（过去 = 补录模式 / 未来 = 预排）。
 /// 顺序固定，**任何档位都不换行**（`Row` + 日期区 `Flexible`/`FittedBox`）。
-/// `‹` / `›` 相对**选中日**前后一天；`昨天` / `明天` 文案恒定、锚点是**今天**。
+/// `‹` / `›` 相对**选中日**前后一天；日期文字点开 [DatePickerSheet] 选日，
+/// 选中后立刻写回 [selectedDateProvider]。
 ///
 /// **[未覆盖] 原因**：原型还有 `[补录模式]` 与 `模式 ▾ 完整/极简` 两个
 /// **可切换**的 ghost 按钮。B1 的 `providers.dart` 里没有 day-mode /
@@ -24,7 +41,7 @@ class DateBar extends ConsumerWidget {
   /// 创建日期条。
   const DateBar({super.key, this.onPickDate});
 
-  /// 点标题时的回调（打开 [DatePickerSheet]）；null 表示不可点。
+  /// 点标题时的回调（打开 [DatePickerSheet]）；null ⇒ 走内置的同一条实现。
   final void Function(String date)? onPickDate;
 
   @override
@@ -37,7 +54,7 @@ class DateBar extends ConsumerWidget {
     final prevDate = shiftIsoDate(date, -1);
     final nextDate = shiftIsoDate(date, 1);
 
-    // 需求 1：**单行五件套** `‹` · `昨天` · 日期 · `明天` · `›`。
+    // 需求 1（Task 49）：单行三件套 `‹` · 日期 · `›`（+ 只读状态徽标）。
     //
     // 外层是 `Row`（不是 `Wrap`）⇒ 结构上不可能换行；宽度不够时只由日期区的
     // `Flexible` + `FittedBox(scaleDown)` 吸收，任何档位都不出 `RenderFlex overflow`。
@@ -60,31 +77,23 @@ class DateBar extends ConsumerWidget {
                 ref.read(selectedDateProvider.notifier).state = prevDate,
           ),
           const SizedBox(width: 6),
-          // `昨天` / `明天`：文案恒为相对日，锚点是**今天**（不是选中日）。
-          _GhostButton(
-            key: const ValueKey('date-bar-yesterday'),
-            tooltip: '跳到昨天',
-            label: '昨天',
-            onPressed: () => ref.read(selectedDateProvider.notifier).state =
-                shiftIsoDate(today, -1),
-          ),
-          const SizedBox(width: 10),
+          // 日期标题：点开日期卡片选日（Task 49 需求 2）。
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: _TitleButton(
+                key: const ValueKey('date-bar-title'),
                 title: dateTitle(date),
-                onPressed: onPickDate == null ? null : () => onPickDate!(date),
+                onPressed: () {
+                  final void Function(String date)? callback = onPickDate;
+                  if (callback != null) {
+                    callback(date);
+                  } else {
+                    openDatePicker(context, date);
+                  }
+                },
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          _GhostButton(
-            key: const ValueKey('date-bar-tomorrow'),
-            tooltip: '跳到明天',
-            label: '明天',
-            onPressed: () => ref.read(selectedDateProvider.notifier).state =
-                shiftIsoDate(today, 1),
           ),
           const SizedBox(width: 6),
           _GhostButton(
@@ -98,16 +107,6 @@ class DateBar extends ConsumerWidget {
           if (isPast || isFuture) ...<Widget>[
             const SizedBox(width: 8),
             _StateBadge(text: isPast ? '补录模式' : '预排'),
-          ],
-          if (date != today) ...<Widget>[
-            const SizedBox(width: 8),
-            _GhostButton(
-              key: const ValueKey('date-bar-today'),
-              tooltip: '回到今天',
-              label: '今天',
-              onPressed: () =>
-                  ref.read(selectedDateProvider.notifier).state = today,
-            ),
           ],
         ],
       ),
@@ -176,10 +175,14 @@ class _GhostButtonState extends State<_GhostButton> {
 
 /// 原型 `.dbtn-date`：display 字族日期 + `▾`，hover 给 ink 洗底。
 class _TitleButton extends StatefulWidget {
-  const _TitleButton({required this.title, required this.onPressed});
+  const _TitleButton({
+    super.key,
+    required this.title,
+    required this.onPressed,
+  });
 
   final String title;
-  final VoidCallback? onPressed;
+  final VoidCallback onPressed;
 
   @override
   State<_TitleButton> createState() => _TitleButtonState();
@@ -195,13 +198,9 @@ class _TitleButtonState extends State<_TitleButton> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      cursor: widget.onPressed == null
-          ? MouseCursor.defer
-          : SystemMouseCursors.click,
+      cursor: SystemMouseCursors.click,
       child: Material(
-        color: _hovered && widget.onPressed != null
-            ? t.inkWash
-            : Colors.transparent,
+        color: _hovered ? t.inkWash : Colors.transparent,
         borderRadius: BorderRadius.circular(3),
         child: InkWell(
           onTap: widget.onPressed,

@@ -11,12 +11,8 @@
 //   跨格」这件事变得表达不出来。
 // =============================================================================
 
-import 'package:core_data/core_data.dart' show weekdayLabel;
 import 'package:core_db/core_db.dart';
-// `core_data` 与 `core_domain` 都导出 `weekdayLabel`：前者收日期字符串
-// （`calendar.dart`），后者收 ISO 星期数（`recurring_task.dart`）。表头要的是
-// 「日期 → 周三」，所以留前者、隐掉后者。
-import 'package:core_domain/core_domain.dart' hide weekdayLabel;
+import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -176,10 +172,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            _headerStrip(axisWidth, axisGap, t),
-            const SizedBox(height: 6),
-            // 表头的「表格感」来自一条下沿发丝线，而不是多套一层容器：
-            // 线用 `hair`，与格子区边框同阶，不引入新色。
+            // Task 49：日期表头整行删除（日期只由顶部日期模块表达），
+            // 这里保留一条上沿发丝线把网格区与上方内容分开 —— 「表格感」
+            // 来自这条线，而不是多套一层容器：线用 `hair`，与格子区边框同阶，
+            // 不引入新色。
             Container(height: 1, color: t.hair),
             const SizedBox(height: 6),
             Row(
@@ -203,57 +199,6 @@ class _DayGridState extends ConsumerState<DayGrid> {
           ],
         );
       },
-    );
-  }
-
-  /// 表头带：日期落在最左单元格，右侧留给条目列。
-  ///
-  /// 为什么是「表头 + 复用同一套列宽」而不是 `Table`：`Table` 会把整棵子树的
-  /// 约束重算一遍，格子区那套 `Stack` + `Positioned` + 像素反算分钟的坐标体系
-  /// （见文件头）会跟着漂。这里只复用 body 的同一组列宽（[tlWidthFor] /
-  /// [tlGapFor]），表头第一列与刻度列天然同宽、同左缘。
-  ///
-  /// 为什么左缘不留任何边距：`_TodayBody`（`today_page.dart`）的各个 section 都
-  /// 是内容列的直接子节点、自己不设横向 padding，页面级左右内边距由外层
-  /// `LedgerPaper`（`ledger_paper.dart`）统一给。所以「与今日页主体左对齐」
-  /// 就等于从内容列 x=0 起画 —— 在这里再造一个近似 padding 只会把表头推歪。
-  Widget _headerStrip(double axisWidth, double axisGap, ThemeTokens t) {
-    final String weekday = weekdayLabel(widget.date);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: <Widget>[
-        // 最左单元格 = 日期。`minWidth` 与刻度列同源（轴宽 + 轴右间隙），所以它
-        // 落在「最左列」这一列宽体系内；日期文本按内容自然增长，但**绝不反向
-        // 压缩**刻度列（`_axis` 的宽度在调用点就是定值）。
-        ConstrainedBox(
-          constraints: BoxConstraints(minWidth: axisWidth + axisGap),
-          child: Container(
-            key: const ValueKey<String>('day-grid-header-date'),
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
-            decoration: BoxDecoration(
-              // 底色只用既有 token：`accentWash` 是纸面上唯一的暖色浅底，与四态
-              // 格底（slotPlan / slotHabit / slotBackfill / slotDone）明显不同。
-              // `slot_state.dart` 的赭石纪律只约束四态**前景色**，不约束表头底。
-              color: t.accentWash,
-              borderRadius: BorderRadius.circular(AppTokens.radius),
-              border: Border.all(color: t.hair),
-            ),
-            child: Text(
-              weekday.isEmpty ? widget.date : '${widget.date} $weekday',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                height: 1.25,
-                color: t.ink,
-              ),
-            ),
-          ),
-        ),
-        // 第二单元格留白：这里**不能**写字。四态状态词里 `plannedOpen` 的文案
-        // 就是「计划」，表头再写一遍会让域外测试的 `find.text('计划')` 命中两个。
-        const Expanded(child: SizedBox()),
-      ],
     );
   }
 

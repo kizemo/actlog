@@ -46,8 +46,70 @@ const String kTrayKeyHide = 'hide';
 /// 托盘菜单项：退出进程。
 const String kTrayKeyQuit = 'quit';
 
-/// 与 runner（C++）通信的通道：让 runner 把 WM_CLOSE 变成「隐藏到托盘」。
+/// 与 runner（C++）通信的通道：让 runner 把 WM_CLOSE 变成「隐藏到托盘」，
+/// 并把本地化标题写进任务栏按钮名。
 const MethodChannel kWindowChannel = MethodChannel('actlog/window');
+
+/// 把任务栏按钮名里「应用可控的那一半」写进窗口属性（产品决策 D-47-b）。
+///
+/// Windows 任务栏按钮默认显示 exe 名（`actlog`）；要让它随界面语言变成
+/// `知行日志 actlog`，必须写窗口属性
+/// `PKEY_AppUserModel_RelaunchDisplayNameResource`。这件事只能 runner 做
+/// （`windows/runner/main.cpp`，那里已经连着 `actlog/window` 通道）。
+///
+/// 身份由 runner 在开窗之前设成显式 AUMID（`com.actlog.actlog`），并在同一次调用里
+/// 写 `HKCU\Software\Classes\AppUserModelId\com.actlog.actlog\DisplayName`。
+/// 只送标签不换身份不够：Task 47 W1c-2c 的 A/B 实测证明，身份还是 exe 路径回退时，
+/// shell 永远优先用安装器快捷方式的静态标题。
+///
+/// 失败一律不冒泡 —— 任务栏名字写不进去，不能让启动链路或语言切换挂掉。
+/// 成败都落一行启动日志，且**必带 HRESULT 字段**：这是真机上唯一能分辨
+/// 「属性真的进了 store」和「shell 还在用 exe 名兜底」的证据。
+Future<void> applyTaskbarDisplayName(
+  String name, {
+  Directory? supportDir,
+}) async {
+  Object? raw;
+  try {
+    raw = await kWindowChannel.invokeMethod<Object?>(
+      'setTaskbarDisplayName',
+      name,
+    );
+  } catch (error) {
+    await _logStartup(supportDir, 'taskbar.display FAIL $error');
+    return;
+  }
+
+  final Map<Object?, Object?> fields =
+      raw is Map ? Map<Object?, Object?>.from(raw) : const <Object?, Object?>{};
+  final Object? hrStore = fields['hr_store'];
+  final Object? hrCmd = fields['hr_cmd'];
+  final Object? hrName = fields['hr_name'];
+  final Object? hrCommit = fields['hr_commit'];
+  final Object? hrRead = fields['hr_read'];
+  final Object? hrReg = fields['hr_reg'];
+  final Object? hrAumid = fields['hr_aumid'];
+  final Object? aumid = fields['aumid'];
+  final String hresults =
+      'hr_store=$hrStore hr_cmd=$hrCmd hr_name=$hrName '
+      'hr_commit=$hrCommit hr_read=$hrRead hr_reg=$hrReg hr_aumid=$hrAumid';
+  // 身份行先落：AUMID 是 runner 在开窗之前设好的，这里只把那次调用的 HRESULT 与
+  // id 回读出来。「名字对了」和「身份换了」是两件事，日志里必须分开陈述。
+  await _logStartup(
+    supportDir,
+    hrAumid == 0
+        ? 'taskbar.aumid ok hr_aumid=$hrAumid id=$aumid'
+        : 'taskbar.aumid FAIL hr_aumid=$hrAumid id=$aumid',
+  );
+  if (fields['readback_ok'] == true) {
+    await _logStartup(
+      supportDir,
+      'taskbar.display ok name=$name $hresults readback_ok=true',
+    );
+  } else {
+    await _logStartup(supportDir, 'taskbar.display FAIL $hresults');
+  }
+}
 
 /// 托盘是否已就绪。
 ///
@@ -123,6 +185,10 @@ Future<void> setupDesktopShell({
   } catch (error) {
     await _logStartup(supportDir, 'title FAIL $error');
   }
+
+  // 任务栏按钮名的应用可控前缀：和窗口标题同源，所以紧跟着写一次。
+  // 放在 try/catch 之外 —— 标题回写失败不该连带任务栏名字也放弃。
+  await applyTaskbarDisplayName(t.appTitle, supportDir: supportDir);
 
   windowManager.addListener(_ShellWindowListener());
 
@@ -308,6 +374,9 @@ Future<void> applyShellLanguage(AppLanguage language) async {
   } catch (_) {
     // 没有原生窗口：忽略。
   }
+  // 任务栏按钮名的前缀跟着语言走。这里没有 supportDir，日志由调用方看不看
+  // 都无所谓 —— `_logStartup` 在没有目录时直接丢弃。
+  await applyTaskbarDisplayName(t.appTitle);
   if (!_trayReady) {
     return;
   }
