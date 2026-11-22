@@ -1,0 +1,107 @@
+# actlog / PractiLog - repository-wide line-ending and binary policy.
+#
+# Why this file exists
+# --------------------
+# The dev machine has core.autocrlf=true, which rewrites line endings on every
+# checkout. With no attributes pinned, the same file comes back as LF or CRLF
+# depending on who cloned it and when. That silently breaks two hard rules in
+# AGENTS.md R2: PowerShell scripts must be CRLF, Dart sources must be LF.
+# During the Task 57 commit (0a7e752) git printed ~75 "LF will be replaced by
+# CRLF" warnings - every one of them was this missing policy showing up.
+#
+# Why adding this now is safe
+# ---------------------------
+# Measured 2026-11-22 against 413 tracked files: every text blob already stores
+# LF in the index (i/lf), the only exceptions being 27 binaries (i/-text). The
+# clean filter also normalises to LF, so declaring "text" here changes no blob
+# and produces no re-normalisation diff. Only the checkout direction is pinned.
+# Existing working-tree files are NOT rewritten by adding this file; the new
+# eol= takes effect on the next checkout of each file.
+#
+# Rules
+# -----
+# 1. eol= is spelled out only where a project rule or a toolchain cares.
+# 2. Windows-native build sources keep CRLF, matching the platform convention.
+# 3. Binary types are declared explicitly so git never converts or diffs them.
+
+# --- default: detect text, store LF in the index --------------------------
+* text=auto
+
+# --- must be LF (AGENTS.md R2 and cross-platform tooling) -----------------
+*.dart        text eol=lf
+*.sql         text eol=lf
+*.yaml        text eol=lf
+*.yml         text eol=lf
+*.json        text eol=lf
+*.toml        text eol=lf
+*.lock        text eol=lf
+*.md          text eol=lf
+*.txt         text eol=lf
+*.tsv         text eol=lf
+*.csv         text eol=lf
+*.py          text eol=lf
+*.sh          text eol=lf
+*.js          text eol=lf
+*.mjs         text eol=lf
+*.cjs         text eol=lf
+*.ts          text eol=lf
+*.css         text eol=lf
+*.html        text eol=lf
+*.xml         text eol=lf
+*.svg         text eol=lf
+*.cmake       text eol=lf
+*.iss         text eol=lf
+.gitignore    text eol=lf
+.gitattributes text eol=lf
+.metadata     text eol=lf
+pubspec.yaml  text eol=lf
+analysis_options.yaml text eol=lf
+
+# --- must be CRLF (AGENTS.md R2: PowerShell scripts) ----------------------
+*.ps1         text eol=crlf
+*.psm1        text eol=crlf
+*.psd1        text eol=crlf
+*.bat         text eol=crlf
+*.cmd         text eol=crlf
+
+# --- Windows-native build sources: platform convention is CRLF ------------
+*.cpp         text eol=crlf
+*.cc          text eol=crlf
+*.h           text eol=crlf
+*.hpp         text eol=crlf
+*.rc          text eol=crlf
+*.manifest    text eol=crlf
+
+# --- binary: never convert, never diff ------------------------------------
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.webp        binary
+*.bmp         binary
+*.ico         binary
+*.psd         binary
+*.ttf         binary
+*.otf         binary
+*.woff        binary
+*.woff2       binary
+*.zip         binary
+*.7z          binary
+*.gz          binary
+*.xz          binary
+*.exe         binary
+*.dll         binary
+*.pdb         binary
+*.lib         binary
+*.exp         binary
+*.ilk         binary
+*.obj         binary
+*.so          binary
+*.bin         binary
+*.db          binary
+*.sqlite      binary
+*.sqlite3     binary
+*.mp3         binary
+*.wav         binary
+*.mp4         binary
+*.pdf         binary
