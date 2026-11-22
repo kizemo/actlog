@@ -51,6 +51,9 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
   /// 正在捞取的待办 id（只禁用那一行的按钮，不冻整页）。
   String? _pullingId;
 
+  /// 正在加入主页计划的待办 id（只禁用那一行的按钮，不冻整页）。
+  String? _planningId;
+
   /// 行内错误横幅文案；`null` 表示无错误。
   String? _error;
 
@@ -263,7 +266,9 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
                   : '已排期 ${formatMinute(slotted[rows[i].id]!.startMinute)}',
               last: i == rows.length - 1,
               pulling: _pullingId == rows[i].id,
+              planning: _planningId == rows[i].id,
               onPull: () => _pull(rows[i]),
+              onPlan: () => _planToMain(rows[i]),
             ),
         ],
       ),
@@ -390,6 +395,33 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
       }
     }
   }
+
+  /// 把一条待办加入主页计划（Task 56 诉求 2 的终点）。
+  ///
+  /// 日期口径：待办自己的到期日（`due_date`）；没有到期日就进今天。
+  /// 只走 `pullToPlan`（建 `plan_item` + 写 `source_todo_id`）—— **不置 done**，
+  /// 待办本体仍留在池子里（待办池只查 `status='open'`）。
+  Future<void> _planToMain(Todo todo) async {
+    final String date = todo.dueDate ?? ref.read(todayProvider);
+    setState(() {
+      _planningId = todo.id;
+      _error = null;
+    });
+    try {
+      await ref.read(repositoriesProvider).todo.pullToPlan(todo.id, date);
+      ref.invalidate(todoPoolProvider);
+      ref.invalidate(slottedTodosProvider);
+    } on StateError catch (error) {
+      // 同一天已经捞过 ⇒ 仓储层抛 StateError，`message` 就是原因。
+      setState(() => _error = error.message);
+    } catch (error) {
+      setState(() => _error = '$error');
+    } finally {
+      if (mounted) {
+        setState(() => _planningId = null);
+      }
+    }
+  }
 }
 
 /// 列宽（与表头、行共用同一组常量）。
@@ -397,7 +429,8 @@ const double _wPriority = 72;
 const double _wEst = 72;
 const double _wQuadrant = 64;
 const double _wDue = 96;
-const double _wAction = 76;
+/// 动作列宽：装得下「捞入」+「加入主页计划」两个按钮（Task 56）。
+const double _wAction = 132;
 
 /// `H:mm` / `HH:mm` → 当日分钟数（0–1439）。格式非法或越界返回 `null`。
 int? _parseMinute(String text) {
@@ -452,7 +485,9 @@ class _TodoRow extends StatelessWidget {
     required this.todo,
     required this.last,
     required this.pulling,
+    required this.planning,
     required this.onPull,
+    required this.onPlan,
     required this.slottedLabel,
   });
 
@@ -462,7 +497,9 @@ class _TodoRow extends StatelessWidget {
   final String? slottedLabel;
   final bool last;
   final bool pulling;
+  final bool planning;
   final VoidCallback onPull;
+  final VoidCallback onPlan;
 
   @override
   Widget build(BuildContext context) {
@@ -524,11 +561,25 @@ class _TodoRow extends StatelessWidget {
             width: _wAction,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _PoolButton(
-                key: ValueKey<String>('todo-pull-${todo.id}'),
-                label: '捞入',
-                dense: true,
-                onPressed: pulling ? null : onPull,
+              // 两个动作并排放：大字号档下宁可换行，也不许把按钮挤出格子。
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: <Widget>[
+                  _PoolButton(
+                    key: ValueKey<String>('todo-pull-${todo.id}'),
+                    label: '捞入',
+                    dense: true,
+                    onPressed: pulling ? null : onPull,
+                  ),
+                  _PoolButton(
+                    key: ValueKey<String>('todo-plan-${todo.id}'),
+                    label: '加入主页计划',
+                    dense: true,
+                    onPressed: planning ? null : onPlan,
+                  ),
+                ],
               ),
             ),
           ),

@@ -28,6 +28,8 @@ import 'package:actlog/src/widgets/day_timeline.dart';
 import 'package:actlog/src/widgets/section_card.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 
 /// 复盘里保留的三段（顺序与 `review_section.dart:_fields` 一致）。
@@ -77,8 +79,10 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
-          home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+        child: l10nScope(
+          const MaterialApp(
+            home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+          ),
         ),
       ),
     );

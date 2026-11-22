@@ -22,6 +22,8 @@ import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/widgets/ledger_checkbox.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
 
+import 'l10n_harness.dart';
+
 const _date = '2026-11-07';
 
 /// 一天的日志 + 仓储，全部指向同一个内存库。
@@ -42,8 +44,10 @@ final class _Harness {
       todayProvider.overrideWithValue(_date),
     ],
     // W3 装配后 `TodayPage` 是内容体，宿主壳由 `LedgerShell` 提供。
-    child: const MaterialApp(
-      home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+    child: l10nScope(
+      const MaterialApp(
+        home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+      ),
     ),
   );
 

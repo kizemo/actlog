@@ -33,6 +33,8 @@ import 'package:actlog/src/widgets/quick_todo_dialog.dart';
 import 'package:actlog/src/widgets/timeline/day_grid.dart';
 import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 
 // 值级 key 一律从 `PriorityMark` 自己身上取（`kMarkImportantSpec.key` 等）。
@@ -82,10 +84,12 @@ final class _Harness {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: const Scaffold(
-            body: SingleChildScrollView(child: TodayPage()),
+        child: l10nScope(
+          MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: const Scaffold(
+              body: SingleChildScrollView(child: TodayPage()),
+            ),
           ),
         ),
       ),

@@ -49,9 +49,21 @@ const int kMaxLanesPerRow = 3;
 
 /// 内嵌小盒相对宿主段矩形的上下内缩量。
 ///
-/// 需求「B 完全落在 A 内时，B 画成 A 的内嵌小盒」：上下各缩 2px ⇒ 宿主 20px
-/// 的净高里 guest 占 16px，边框仍能分辨出「盒中有盒」而不会糊成一块。
+/// 需求「B 完全落在 A 内时，B 画成 A 的内嵌小盒」：上下各缩 2px ⇒ 宿主
+/// [kLaneContentHeight] 的净高里 guest 占 14px，边框仍能分辨出「盒中有盒」
+/// 而不会糊成一块。
 const double kContainedInset = 2.0;
+
+/// 段相对车道上下各留出的缝。
+const double kLaneContentInset = 2.0;
+
+/// 段净高：一条段在车道上实际占的高度，**与真实分钟跨度无关**。
+///
+/// Task 51 · 诉求 2：此前单车道段按真实跨度撑高（1 小时 = 44 − 2 = 42，几乎
+/// 占满整行 44），读者会把「任务占位」读成「整格就是这个任务」。现在一律
+/// 封顶在这里 —— `22 − 2 × 2 = 18`，比车道矮 4px、上下各露一条缝，「占位」
+/// 与「格子」从此视觉可分。
+const double kLaneContentHeight = kLaneHeight - 2 * kLaneContentInset;
 
 /// 一次**真实的**时间重叠：同一行、同一条车道里两条段盖住了同一段时间。
 ///
@@ -267,32 +279,45 @@ class SlotLayout {
     return window.startMinute + row * 60 + (frac * 60).round();
   }
 
-  /// 段顶部（相对网格顶部）。
+  /// 段顶部（相对网格顶部）—— **行内顶对齐**。
   ///
-  /// - 该行有 ≥2 条车道 ⇒ 段占满自己那一条车道（`lane * 22 + 1`，留 1px 缝）；
-  /// - 该行只有 1 条车道 ⇒ 段按**真实分钟跨度**落位，与并发之前的视觉一致。
+  /// Task 53 · 诉求 1「任务都请尽量从表格第一行开始排列」：段的纵向起点不再
+  /// 由起始分钟决定，一律贴**自己所在行**的行顶起排，即
+  /// `rowTops[row] + kLaneContentInset`（与 lane 0 的位置同源）。
+  ///
+  /// 为什么时间不进纵轴：时间已经在**横轴**表达（列 = 15 分钟格，见
+  /// [layoutSlots] 里的 `offsetStart ~/ kSlotMinutes`），纵轴只负责表达堆叠。
+  /// 按分钟下沉的实际副作用是：净高恒 [kLaneContentHeight] = 18 的芯片在 44px
+  /// 行里越靠后起点越低 —— 09:50 起排时 `169.67 + 18 = 187.67` 已越过本行
+  /// 行底 176，芯片掉进下一行的色带里。
+  ///
+  /// - 该行有 ≥2 条车道 ⇒ 段占满自己那一条车道（`lane * kLaneHeight +
+  ///   kLaneContentInset`，上下各留 [kLaneContentInset] 缝，与段净高
+  ///   [kLaneContentHeight] 配对）；
+  /// - 该行只有 1 条车道 ⇒ 与 lane 0 完全同一位置（贴行顶）。
+  ///
+  /// 「长任务占哪些行」不受影响：行位仍只由 `rowTops` / `rowHeights` 决定，
+  /// 而它们只由车道数决定 —— 顶对齐只改行内纵向偏移，不改段的行号。
   double segmentTop(SlotSegment segment) {
-    final double rowHeight = rowHeights[segment.row];
     if (laneCounts[segment.row] >= 2) {
-      return rowTops[segment.row] + segment.lane * kLaneHeight + 1;
+      return rowTops[segment.row] + segment.lane * kLaneHeight +
+          kLaneContentInset;
     }
-    final double frac = (segment.startMinute - segment.rowStartMinute) / 60;
-    return rowTops[segment.row] + frac * rowHeight + 1;
+    // 单车道：贴行顶，与上面 lane 0 的表达式等价。
+    return rowTops[segment.row] + kLaneContentInset;
   }
 
   /// 段高度。
   ///
-  /// 单车道段取「真实跨度」与 `kLaneHeight` 的**较大者** —— 15 分钟在 44px
-  /// 行里只有 11px，低于这个值的条目外壳连一行字都放不下，所以短段保底
-  /// 22px（与并发之前的 `clamp(22.0, ...)` 逐像素相同）。
+  /// Task 51 · 诉求 2：**一律** [kLaneContentHeight]（18），不再按真实分钟跨度
+  /// 撑高。此前单车道 1 小时段是 `44 − 2 = 42`，几乎等于整行高 44，看起来像
+  /// 「整个格子就是这个任务」；封顶之后段永远比车道矮 4px，上下各露一条缝，
+  /// 「任务占位」与「格子本身」在视觉上从此可分。
+  ///
+  /// [segment] 保留在签名里：调用点都按段取矩形，去掉参数会把「这段多高」的
+  /// 语境从 API 上抹掉，且下游测试按段断言。
   double segmentHeight(SlotSegment segment) {
-    final double rowHeight = rowHeights[segment.row];
-    if (laneCounts[segment.row] >= 2) {
-      return kLaneHeight - 2;
-    }
-    final double raw = segment.durationMinutes / 60 * rowHeight;
-    final double floor = raw < kLaneHeight ? kLaneHeight : raw;
-    return floor - 2;
+    return kLaneContentHeight;
   }
 
   /// 段的整块矩形（含横向列覆盖）。

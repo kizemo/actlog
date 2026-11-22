@@ -422,7 +422,7 @@ void main() {
   // 映射互换（例如 done 与 backfill 张冠李戴）只会让其中一条红，
   // 定位成本最低。数据全部用 `todayIso` / `nowMinute` 显式注入，不读真实时钟。
 
-  testWidgets('plannedOpen 态：○ + 「计划」，无删除线，左缘竖条 2px 主墨色', (tester) async {
+  testWidgets('plannedOpen 态：无尾部 ○、无删除线，左缘竖条 2px 主墨色', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _future);
     final String id = (await tester.runAsync(
@@ -444,7 +444,8 @@ void main() {
       planItemId: id,
       kind: SlotKind.plannedOpen,
       title: '预排：评审',
-      glyph: '\u25CB',
+      // Task 53 · 诉求 3：尾部 `○` 已删（完成度由前置勾选框表达）。
+      glyph: null,
     );
     // 反向对照：未完成态**不**划线，防止「到处都划线」也判绿。
     expect(_titleStyle(tester, id, '预排：评审').decoration, isNull);
@@ -452,7 +453,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('done 态：✓ + 「完成」，标题删除线，左缘竖条用完成态前景色', (tester) async {
+  testWidgets('done 态：无尾部 ✓、标题无删除线，左缘竖条用完成态前景色', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _future);
     final String id = (await tester.runAsync(
@@ -478,18 +479,19 @@ void main() {
       planItemId: id,
       kind: SlotKind.done,
       title: '已完成：写周报',
-      glyph: '\u2713',
+      // Task 53 · 诉求 3：尾部 `✓` 已删（用户原话「也不用显示后面的对号」）。
+      glyph: null,
     );
+    // Task 53 · 诉求 3：删除线同步删掉（用户原话「不要显示删除线」）。这条是
+    // **翻面**断言：以前要求「必须有删除线」，现在要求「必须没有」—— 谁把
+    // `decoration: TextDecoration.lineThrough` 加回去，这里立刻红。
     final TextStyle titleStyle = _titleStyle(tester, id, '已完成：写周报');
-    expect(titleStyle.decoration, isNotNull);
-    expect(titleStyle.decoration!.contains(TextDecoration.lineThrough), isTrue);
-    // 删除线颜色显式指定为该态前景色，不随 `color` 继承出别的色。
-    expect(titleStyle.decorationColor, foregroundOfSlotKind(SlotKind.done, ThemeTokens.light));
+    expect(titleStyle.decoration, isNull, reason: 'done 标题又画上删除线了');
 
     await _flushTimers(tester);
   });
 
-  testWidgets('backfill 态：▶ + 「回填」，左缘竖条用回填态前景色', (tester) async {
+  testWidgets('backfill 态：无尾部 ▶（Task 54），左缘竖条用回填态前景色', (tester) async {
     _useTallSurface(tester);
     final _Harness harness = _Harness.create(selected: _past);
     final String id = (await tester.runAsync(
@@ -511,7 +513,10 @@ void main() {
       planItemId: id,
       kind: SlotKind.backfill,
       title: '补记：排障',
-      glyph: '\u25B6',
+      // Task 54 · 诉求 1：尾部 `▶` 已删（用户原话「去除主界面中，任务标题
+      // 后面的三角形」）。这条是**翻面**断言：以前要求「必须有 ▶」，现在要求
+      // 「必须没有」—— 谁把回填态放回 `tailGlyph` 白名单，这里立刻红。
+      glyph: null,
     );
     // 回填态不是 done：删除线只在 `SlotKind.done` 上加。
     expect(_titleStyle(tester, id, '补记：排障').decoration, isNull);
@@ -560,7 +565,7 @@ void main() {
   // 为什么要单开一条：`desktop_shell.dart:111` 的 `minimumSize` 是 960×640，
   // 而上面四态用例都在 1400×3000 上跑（网格宽 1098）。窄档下右轨固定 240、
   // 时间轴列 52 + 列间距 10 之后，网格只剩 658 —— 条目行少掉 440px 横向余量，
-  // 而 15 分钟格净高只有 20px、`LedgerCheckbox` 自己就 22px。两个「最小」同时
+  // 而 15 分钟格净高只有 18px、`LedgerCheckbox` 自己就 22px。两个「最小」同时
   // 成立，才是 `RenderFlex overflowed` 最容易被顶出来的工况。
   //
   // 为什么不再把高度也压到 640：格高是常量（`slot_state.dart:42`
@@ -572,16 +577,15 @@ void main() {
   // 的日期**无条件** true，所以过去日永远拿不到 `done` / `plannedOpen`；未来日
   // 又拿不到 `backfill`。一次 mount 装不下四态，两次是唯一确定性的走法（同为
   // 过去日的 `habit` 与 `backfill` 共用第二屏）。
-  testWidgets('最小视口 + 最小格高：四态同屏、零溢出、字形互异', (tester) async {
+  testWidgets('最小视口 + 最小格高：四态同屏、零溢出、仅 habit 保留字形', (tester) async {
     _useNarrowSurface(tester);
 
-    // 15 分钟格交给内容的净高：`day_grid.dart:225-226` 先算
-    // `(kSlotMinutes / 60 × kHourRowHeight).clamp(22.0, kGridHeight)` = 22，
-    // `:228` 上移 1px、`:231` 再减 2px ⇒ 20。做成可失败断言，免得哪天格高
-    // 或钳位下限改了就悄悄退化成「舒适档空转」。
-    final double netTileHeight =
-        ((kSlotMinutes / 60) * kHourRowHeight).clamp(22.0, kGridHeight) - 2;
-    expect(netTileHeight, 20, reason: '最小格高不再是 20px，溢出判据失去意义');
+    // 15 分钟格交给内容的净高：Task 51 · 诉求 2 之后段高与真实跨度无关，
+    // 一律 `kLaneContentHeight` = 22 − 2 × 2 = 18（`slot_layout.dart` 的
+    // `segmentHeight` 已不再按 `kSlotMinutes / 60 × kHourRowHeight` 换算）。
+    // 做成可失败断言，免得哪天段高口径改了就悄悄退化成「舒适档空转」。
+    final double netTileHeight = kLaneContentHeight;
+    expect(netTileHeight, 18, reason: '最小格高不再是 18px，溢出判据失去意义');
 
     // ---- 第一屏：未来日 ⇒ plannedOpen + done ----
     final _Harness future = _Harness.create(selected: _future);
@@ -626,10 +630,15 @@ void main() {
       _expectMinTile(tester, planItemId: id, netTileHeight: netTileHeight);
     }
 
-    final String openGlyph = _renderedGlyph(tester, openId);
-    final String doneGlyph = _renderedGlyph(tester, doneId);
-    expect(openGlyph, '\u25CB', reason: 'plannedOpen 字形变了');
-    expect(doneGlyph, '\u2713', reason: 'done 字形变了');
+    // Task 53 · 诉求 3：plannedOpen / done 的尾部字形已删 —— 这两态在正文
+    // 字族通道里不得再出现任何单字符 `RichText`（勾选框的 `✓` 走 mono 通道，
+    // 不受这条影响，见 `_tailGlyphs` 的筛选口径）。
+    expect(
+      _tailGlyphs(tester, openId),
+      isEmpty,
+      reason: 'plannedOpen 仍有尾部字形',
+    );
+    expect(_tailGlyphs(tester, doneId), isEmpty, reason: 'done 仍有尾部字形');
     _expectNoChipText(tester, openId);
     _expectNoChipText(tester, doneId);
 
@@ -671,22 +680,18 @@ void main() {
       _expectMinTile(tester, planItemId: id, netTileHeight: netTileHeight);
     }
 
-    final String backfillGlyph = _renderedGlyph(tester, backfillId);
+    // Task 54 · 诉求 1：回填态尾部不再带 `▶`（用户原话「去除主界面中，任务
+    // 标题后面的三角形」）；习惯态的 `●` 是唯一保留的尾部字形。这段同样是
+    // 翻面断言：backfill 以前要求「有 ▶」，现在要求「一个字形都没有」。
+    expect(
+      _tailGlyphs(tester, backfillId),
+      isEmpty,
+      reason: 'backfill 仍有尾部字形（Task 54 已删 ▶）',
+    );
     final String habitGlyph = _renderedGlyph(tester, habitEntryId);
-    // 回填字形必须是 `▶` U+25B6；`▸` U+25B8 是本任务明令禁用的那个。
-    expect(backfillGlyph, '\u25B6', reason: 'backfill 字形变了');
     expect(habitGlyph, '\u25CF', reason: 'habit 字形变了');
     _expectNoChipText(tester, backfillId);
     _expectNoChipText(tester, habitEntryId);
-
-    // 四态字形互异：两屏各两个，合起来必须是 4 个不同字符。
-    final Set<String> seen = <String>{
-      openGlyph,
-      doneGlyph,
-      backfillGlyph,
-      habitGlyph,
-    };
-    expect(seen.length, 4, reason: '四态字形不互异：$seen');
 
     await _flushTimers(tester);
   });
@@ -842,8 +847,16 @@ void main() {
 
     final Rect ra = tester.getRect(first);
     final Rect rb = tester.getRect(second);
-    expect(ra.height, closeTo(kLaneHeight - 2, 0.01), reason: '车道高不是 22−2');
-    expect(rb.height, closeTo(kLaneHeight - 2, 0.01), reason: '车道高不是 22−2');
+    expect(
+      ra.height,
+      closeTo(kLaneContentHeight, 0.01),
+      reason: '车道净高不是 22−2×2',
+    );
+    expect(
+      rb.height,
+      closeTo(kLaneContentHeight, 0.01),
+      reason: '车道净高不是 22−2×2',
+    );
     // 纵向错开一个车道高：这才是「并排」，同 top 就是互相盖住。
     expect(
       (ra.top - rb.top).abs(),
@@ -854,11 +867,12 @@ void main() {
     expect(ra.left, closeTo(rb.left, 0.01));
     expect(ra.width, closeTo(rb.width, 0.01));
 
-    // 这两条都在第 9 行（grid 顶部起第 3 行），从行顶 +1 起排。
+    // 这两条都在第 9 行（grid 顶部起第 3 行），从行顶 +2 起排（Task 51：
+    // 段相对车道上下各留 `kLaneContentInset`）。
     // 再 +1 是 `day-grid` 自身 1px 边框：`Positioned.top` 相对 Stack，而
     // `getRect(day-grid)` 量的是含边框的外框。
     const double gridBorder = 1;
-    final double row9Top = gridBorder + 3 * kHourRowHeight + 1;
+    final double row9Top = gridBorder + 3 * kHourRowHeight + kLaneContentInset;
     final double topMin = ra.top < rb.top ? ra.top : rb.top;
     final double topMax = ra.top < rb.top ? rb.top : ra.top;
     expect(
@@ -903,10 +917,10 @@ void main() {
       final Rect rect = tester.getRect(
         find.byKey(ValueKey<String>('day-grid-entry-${plan.id}')),
       );
-      // 每条都完整占到一个车道高（不再挤成 11px 一条，看不清内容）。
+      // 每条都完整占到一个车道净高（不再挤成 11px 一条，看不清内容）。
       expect(
         rect.height,
-        closeTo(kLaneHeight - 2, 0.01),
+        closeTo(kLaneContentHeight, 0.01),
         reason: '条目 ${plan.id} 在 3 车道行里高度不对',
       );
       tops.add(rect.top - grid.top);
@@ -914,10 +928,11 @@ void main() {
     tops.sort();
     expect(tops[1] - tops[0], closeTo(kLaneHeight, 0.01));
     expect(tops[2] - tops[1], closeTo(kLaneHeight, 0.01));
-    // +1 是 `day-grid` 自身的 1px 边框（`getRect` 量外框，`Positioned` 相对内容区）。
+    // +1 是 `day-grid` 自身的 1px 边框（`getRect` 量外框，`Positioned` 相对内容区），
+    // +`kLaneContentInset` 是段相对车道顶的缝。
     expect(
       tops[0],
-      closeTo(1 + 3 * kHourRowHeight + 1, 0.01),
+      closeTo(1 + 3 * kHourRowHeight + kLaneContentInset, 0.01),
       reason: '第一条没落在 09:00 行顶',
     );
 
@@ -992,16 +1007,102 @@ void main() {
       reason: '9:45 的条目宽度没有收到 1 列',
     );
     // 纵向也仍是「按真实分钟落位」的既有行为，顺手钉住。
+    //
+    // Task 53 · 诉求 1（W1 契约变更，非 W2 实现）：段纵向改为**行内顶对齐** ——
+    // 起点不再由起始分钟按比例下沉，单车道与多车道 lane 0 同源，一律
+    // `rowTops[row] + kLaneContentInset`。旧断言写死了「0.75 行 + 1」，在新契约
+    // 下必红；这里改为由常量推出的表达式，不再写死魔数。
     expect(
       lateRect.top - grid.top,
-      closeTo(
-        gridBorder + 3 * kHourRowHeight + 0.75 * kHourRowHeight + 1,
-        0.01,
-      ),
-      reason: '单车道条目的纵向落位被改动',
+      closeTo(gridBorder + 3 * kHourRowHeight + kLaneContentInset, 0.01),
+      reason: '单车道条目的纵向落位被改动（应为行内顶对齐）',
     );
 
     _expectNoOverflow(tester, '起始分钟 → 列');
+    await _flushTimers(tester);
+  });
+
+  test('Task 51 · 诉求 4：向下接续箭头「先下再左」，不是「先上再左」', () {
+    final List<Offset> stem = continueArrowStem(false);
+    expect(stem, hasLength(3));
+    // 竖笔：起点在上，第二点在下 —— 这就是「先下」。旧走向是
+    // `(8.5, 18.5) → (8.5, 13.5)`，即自下而上，第一条断言在旧实现上必红。
+    expect(stem[1].dy, greaterThan(stem[0].dy));
+    expect(stem[0].dy, lessThan(stem[2].dy));
+    expect(stem[0].dx, stem[1].dx);
+    // 折笔：第三点在第二点左侧 —— 「再左」，y 不变。
+    expect(stem[2].dx, lessThan(stem[1].dx));
+    expect(stem[2].dy, stem[1].dy);
+    // 箭尖仍钉在折点上、仍朝左（本次只翻竖笔方向，不改箭尖）。
+    final List<Offset> head = continueArrowHead(false);
+    expect(head[1], stem[2]);
+    expect(head[0].dx, greaterThan(head[1].dx));
+    expect(head[2].dx, greaterThan(head[1].dx));
+  });
+
+  testWidgets('Task 51 · 诉求 4：跨小时段深色边从「每段左缘」移到「末段右缘」', (
+    tester,
+  ) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create(selected: _today);
+    // 09:50–10:20 横跨 10:00 整点 ⇒ 布局层切成两段（首段接下、末段接上）。
+    await TimelineStore(harness.repos).createTodoWithSlot(
+      date: _today,
+      title: '跨小时',
+      startMinute: 9 * 60 + 50,
+      endMinute: 10 * 60 + 20,
+    );
+    await harness.mount(tester, _today);
+    await _settle(tester);
+
+    final CustomPaint slotPaint = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .firstWhere(
+          (CustomPaint p) =>
+              p.painter != null &&
+              p.painter!.runtimeType.toString() == '_SlotPainter',
+        );
+    final dynamic painter = slotPaint.painter;
+    final SlotLayout layout = painter.layout as SlotLayout;
+    final List<SlotSegment> segs = layout.segments
+        .where((SlotSegment s) => s.entry.title == '跨小时')
+        .toList();
+    expect(segs, hasLength(2), reason: '09:50–10:20 没有被切成两段');
+    final String id = segs.first.entry.id;
+    expect(segs.first.isHead, isTrue);
+    expect(segs.first.continuesBelow, isTrue);
+    expect(segs.last.continuesAbove, isTrue);
+    expect(segs.last.continuesBelow, isFalse);
+
+    Border borderOf(String key) {
+      final Container box = tester.widget<Container>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      return (box.decoration! as BoxDecoration).border! as Border;
+    }
+
+    final Color ink = foregroundOfSlotKind(
+      segs.first.entry.kind,
+      ThemeTokens.light,
+    );
+    // 首段：左边框仍 2px 深色（「任务从这里起头」），右缘回落 1px hair。
+    final Border headBorder = borderOf('day-grid-entry-$id');
+    expect(headBorder.left.width, 2);
+    expect(headBorder.left.color, ink);
+    expect(headBorder.right.width, 1);
+    expect(headBorder.right.color, ThemeTokens.light.hair);
+
+    // 末段（接下来自上一行、但不再往下）：左缘回落 1px hair，
+    // 2px 深色改画在右缘 —— 跨行读起来才是一条连续的带子 + 一个收尾。
+    final Border tailBorder = borderOf(
+      'day-grid-entry-$id-seg-${segs.last.row}',
+    );
+    expect(tailBorder.left.width, 1);
+    expect(tailBorder.left.color, ThemeTokens.light.hair);
+    expect(tailBorder.right.width, 2);
+    expect(tailBorder.right.color, ink);
+
+    _expectNoOverflow(tester, '跨小时段的边框');
     await _flushTimers(tester);
   });
 }
@@ -1018,32 +1119,44 @@ void _expectDualChannel(
   required String planItemId,
   required SlotKind kind,
   required String title,
-  required String glyph,
+  required String? glyph,
 }) {
   final Finder entry = find.byKey(
     ValueKey<String>('day-grid-entry-$planItemId'),
   );
 
-  // 字形按「同一字符 + 显式正文字族」定位：条目里每个 `Text` 都会 build 出
-  // 一个 `RichText`，`LedgerCheckbox` 勾选时自己也画一个 `✓`（13px JetBrains
-  // Mono），只按字符找会命中两个。这条同时把硬约束 B（字形必须显式声明正文
-  // 字族 + 兜底列表）变成可失败的判据。
-  final List<RichText> glyphCandidates = tester
-      .widgetList<RichText>(
-        find.descendant(of: entry, matching: find.byType(RichText)),
-      )
-      .where(
-        (RichText rich) =>
-            rich.text.toPlainText() == glyph &&
-            rich.text.style?.fontFamily == AppFonts.body,
-      )
-      .toList();
-  expect(glyphCandidates, hasLength(1), reason: '$kind 缺字形');
-  final TextStyle glyphStyle = glyphCandidates.single.text.style!;
-  expect(glyphStyle.fontFamily, AppFonts.body);
-  expect(glyphStyle.fontFamilyFallback, AppFonts.bodyFallback);
-  expect(glyphStyle.color, foregroundOfSlotKind(kind, ThemeTokens.light));
-  expect(glyphStyle.fontSize, 11);
+  if (glyph == null) {
+    // Task 53 · 诉求 3：该态的尾部字形已删，判据翻面成「正文通道里一个单字符
+    // `RichText` 都不许剩」。只按 `fontFamily == AppFonts.body` + 单字符筛，
+    // 与 [_renderedGlyph] 同一口径：勾选框的 `✓` 是 `AppFonts.mono`，标题、
+    // 时间串是多字符，都不会被这条误判成「还有字形」。
+    expect(
+      _tailGlyphs(tester, planItemId),
+      isEmpty,
+      reason: '$kind 仍有尾部字形',
+    );
+  } else {
+    // 字形按「同一字符 + 显式正文字族」定位：条目里每个 `Text` 都会 build 出
+    // 一个 `RichText`，`LedgerCheckbox` 勾选时自己也画一个 `✓`（13px JetBrains
+    // Mono），只按字符找会命中两个。这条同时把硬约束 B（字形必须显式声明正文
+    // 字族 + 兜底列表）变成可失败的判据。
+    final List<RichText> glyphCandidates = tester
+        .widgetList<RichText>(
+          find.descendant(of: entry, matching: find.byType(RichText)),
+        )
+        .where(
+          (RichText rich) =>
+              rich.text.toPlainText() == glyph &&
+              rich.text.style?.fontFamily == AppFonts.body,
+        )
+        .toList();
+    expect(glyphCandidates, hasLength(1), reason: '$kind 缺字形');
+    final TextStyle glyphStyle = glyphCandidates.single.text.style!;
+    expect(glyphStyle.fontFamily, AppFonts.body);
+    expect(glyphStyle.fontFamilyFallback, AppFonts.bodyFallback);
+    expect(glyphStyle.color, foregroundOfSlotKind(kind, ThemeTokens.light));
+    expect(glyphStyle.fontSize, 11);
+  }
 
   // 标题仍在（既有元素不动）。
   expect(
@@ -1109,10 +1222,11 @@ void _expectNoOverflow(WidgetTester tester, String where) {
 
 /// 条目真的落在「最小格高」路径上，且内容自然高度确实超过壳内高。
 ///
-/// 两条都是可失败断言：前者钉住 20px 净高（`day_grid.dart:225-231`），后者钉住
-/// 「最坏工况成立」——壳内高只有 20 − 上下各 1px 边框 = 18，而内容（复选框
-/// 22px）自然高度更高，`day_grid.dart:274-280` 的 `ClipRect` + `OverflowBox`
-/// 守卫一旦被拿掉，就会当场 `RenderFlex overflowed`。
+/// 两条都是可失败断言：前者钉住 18px 净高（`slot_layout.dart` 的
+/// `segmentHeight` = `kLaneContentHeight`），后者钉住「最坏工况成立」——壳内高
+/// 只有 18 − 上下各 1px 边框 = 16，而内容（复选框 22px）自然高度更高，
+/// `day_grid.dart:274-280` 的 `ClipRect` + `OverflowBox` 守卫一旦被拿掉，
+/// 就会当场 `RenderFlex overflowed`。
 void _expectMinTile(
   WidgetTester tester, {
   required String planItemId,
@@ -1135,14 +1249,13 @@ void _expectMinTile(
   );
 }
 
-/// 条目里那一个字形 `RichText` 实际渲染出的字符。
+/// 条目正文里所有「正文字族 + 单字符」的 `RichText` 文本。
 ///
-/// 定位沿用 W1 已证成的双条件（`fontFamily == AppFonts.body` + 单字符），但
-/// **不预设期望值**：先读回真值、再交由调用方与期望比对，映射写错（例如 done
-/// 与 backfill 张冠李戴）才会被咬住。单字符条件顺带把状态词、时间、标题，以及
-/// `LedgerCheckbox` 自绘的 `✓`（JetBrains Mono）排除在外。
-String _renderedGlyph(WidgetTester tester, String planItemId) {
-  final List<RichText> hits = tester
+/// Task 53 删掉 `○` / `✓`、Task 54 再删掉回填的 `▶` 之后，只有 habit 恒为
+/// `●`，其余三态恒为空。把筛选口径抽出来，「还剩几个」与「剩下的必须是
+/// 哪一个」才能用同一把尺子量。
+List<String> _tailGlyphs(WidgetTester tester, String planItemId) {
+  return tester
       .widgetList<RichText>(
         find.descendant(
           of: find.byKey(ValueKey<String>('day-grid-entry-$planItemId')),
@@ -1154,9 +1267,20 @@ String _renderedGlyph(WidgetTester tester, String planItemId) {
             rich.text.style?.fontFamily == AppFonts.body &&
             rich.text.toPlainText().runes.length == 1,
       )
+      .map((RichText rich) => rich.text.toPlainText())
       .toList();
+}
+
+/// 条目里那一个字形 `RichText` 实际渲染出的字符。
+///
+/// 定位沿用 W1 已证成的双条件（`fontFamily == AppFonts.body` + 单字符），但
+/// **不预设期望值**：先读回真值、再交由调用方与期望比对，映射写错（例如 done
+/// 与 backfill 张冠李戴）才会被咬住。单字符条件顺带把状态词、时间、标题，以及
+/// `LedgerCheckbox` 自绘的 `✓`（JetBrains Mono）排除在外。
+String _renderedGlyph(WidgetTester tester, String planItemId) {
+  final List<String> hits = _tailGlyphs(tester, planItemId);
   expect(hits, hasLength(1), reason: '条目 $planItemId 里的字形不唯一');
-  return hits.single.text.toPlainText();
+  return hits.single;
 }
 
 /// 条目里的「未分级 / 状态词 / 删除」文字必须**一个都不剩**。

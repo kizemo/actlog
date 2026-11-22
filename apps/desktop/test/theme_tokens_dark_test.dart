@@ -8,6 +8,7 @@
 //
 // 对比度口径逐字取自 `lib/src/theme/contrast.dart`（WCAG 2.1 相对亮度）。
 import 'package:actlog/src/theme/contrast.dart';
+import 'package:actlog/src/theme/theme_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -30,7 +31,7 @@ abstract final class _D {
   static const Color accent = Color(0xFFC08A4E);
   static const Color accentInk = Color(0xFFD6A366);
   static const Color slotPlan = Color(0xFF241F19);
-  static const Color slotDone = Color(0xFF1D1A16);
+  static const Color slotDone = Color(0xFF383734);
   static const Color slotBackfill = Color(0xFF2A2318);
   static const Color slotHabit = Color(0xFF322A20);
   static const Color slotPlanInk = ink;
@@ -39,7 +40,7 @@ abstract final class _D {
   static const Color slotHabitInk = ink;
   static const Color gridSectionMorning = card;
   static const Color gridSectionNoon = paper;
-  static const Color gridSectionEvening = sunken;
+  static const Color gridSectionEvening = card;
   static const Color shadowTint = Color(0xFF0D0A07);
 }
 
@@ -61,17 +62,21 @@ abstract final class _L {
   static const Color hairStrong = Color(0xFF8A8170);
   static const Color accent = Color(0xFF8C5A2B);
   static const Color accentInk = Color(0xFF7A4E24);
-  static const Color slotPlan = Color(0xFFEBE5D8);
-  static const Color slotDone = Color(0xFFF1F2F0);
-  static const Color slotBackfill = Color(0xFFEDE4D6);
-  static const Color slotHabit = Color(0xFFE2DACB);
+  // Task 51 · 诉求 3：四态底整体变浅（向 card 线性靠拢 t≈0.45），
+  // 明次序仍是 done < habit < plan ≈ backfill，四值互不相同。
+  // Task 54：done 改为「暗一档 + 去彩度」（#EBEBE5），不再贴 paper 那一端，
+  // 因此它从明次序顶端落到最暗；plan / backfill / habit 三值未动。
+  static const Color slotPlan = Color(0xFFF2EEE6);
+  static const Color slotDone = Color(0xFFEBEBE5);
+  static const Color slotBackfill = Color(0xFFF3EEE4);
+  static const Color slotHabit = Color(0xFFEDE8DE);
   static const Color slotPlanInk = ink;
   static const Color slotDoneInk = meta;
   static const Color slotBackfillInk = ink;
   static const Color slotHabitInk = ink;
   static const Color gridSectionMorning = card;
   static const Color gridSectionNoon = paper;
-  static const Color gridSectionEvening = sunken;
+  static const Color gridSectionEvening = card;
   static const Color shadowTint = Color(0xFF322B23);
 }
 
@@ -322,5 +327,37 @@ void main() {
             'vs 浅最差 ${lightMin.toStringAsFixed(2)}',
       );
     }
+  });
+
+  // Task 51 · 诉求 3：上午段（06:00–12:00）与晚上段（18:00–24:00）逐字同值。
+  //
+  // 这条判据是**关系**而不是**取值**：断言两个 token 相等，不会替实现给自己的
+  // 色值判卷（值仍由 `_D` / `_L` 两组字面量与 `theme_tokens_test.dart` 钉住），
+  // 所以本文件破例引入 `ThemeTokens` 不违反「不引用 ThemeTokens.dark.*」的初衷。
+  test('判据 14（Task 51）：上午段与晚上段底色逐字同值，中间段仍可区分', () {
+    // 规格侧：字面量表自己先成立，否则实现再「对齐」也是对齐到错的规格。
+    expect(_L.gridSectionMorning, _L.gridSectionEvening);
+    expect(_D.gridSectionMorning, _D.gridSectionEvening);
+    // 中间段必须仍是另一个值 —— 否则三段会塌成一段，格子失去「上下午」提示。
+    expect(_L.gridSectionNoon, isNot(_L.gridSectionMorning));
+    expect(_D.gridSectionNoon, isNot(_D.gridSectionMorning));
+
+    // 实现侧：真实 token 逐档同值。
+    expect(
+      ThemeTokens.light.gridSectionMorning,
+      ThemeTokens.light.gridSectionEvening,
+    );
+    expect(
+      ThemeTokens.dark.gridSectionMorning,
+      ThemeTokens.dark.gridSectionEvening,
+    );
+    expect(
+      ThemeTokens.light.gridSectionNoon,
+      isNot(ThemeTokens.light.gridSectionMorning),
+    );
+    expect(
+      ThemeTokens.dark.gridSectionNoon,
+      isNot(ThemeTokens.dark.gridSectionMorning),
+    );
   });
 }

@@ -5,7 +5,7 @@
 // 判据表（brief §4）：
 // | 编号 | 断言 |
 // |---|---|
-// | N-1 | 底注文案含 `4`、不含 `6`（只宣称真实存在的 `Ctrl+1…4`） |
+// | N-1 | 底注文案含 `5`、不含 `6`（只宣称真实存在的 `Ctrl+1…5`） |
 // | N-2 | 底注字符总数 == 12 |
 // | N-3 | 100% 下零溢出（无 `RenderFlex overflowed` / 无黄黑条） |
 // | N-4 | 200% 下排成 3 行，且第 3 行非空 |
@@ -132,24 +132,24 @@ int _charsOf(List<Text> row) => row.fold<int>(
 );
 
 void main() {
-  testWidgets('N-1 底注只宣称 Ctrl+1…4：含 4 不含 6', (WidgetTester tester) async {
+  testWidgets('N-1 底注只宣称 Ctrl+1…5：含 5 不含 6', (WidgetTester tester) async {
     await _pumpNavScaled(tester, scale: 2);
 
     // 键帽：Ctrl / 1 / 4 在，6 不在。
     expect(find.widgetWithText(KeyCap, 'Ctrl'), findsOneWidget);
     expect(find.widgetWithText(KeyCap, '1'), findsOneWidget);
-    expect(find.widgetWithText(KeyCap, '4'), findsOneWidget);
+    expect(find.widgetWithText(KeyCap, '5'), findsOneWidget);
     expect(
       find.widgetWithText(KeyCap, '6'),
       findsNothing,
-      reason: '设置页虽有落点，但底注与快捷键只承诺 Ctrl+1…4 ⇒ 不得宣称「… 6」',
+      reason: '设置页虽有落点，但底注与快捷键只承诺 Ctrl+1…5 ⇒ 不得宣称「… 6」',
     );
 
-    // 文案顺序：页面切换 → Ctrl → + → 1 → … → 4。
+    // 文案顺序：页面切换 → Ctrl → + → 1 → … → 5。
     final List<Text> texts = _footTexts(_footWrap(tester));
     expect(
       texts.map((Text t) => t.data).toList(),
-      <String>['页面切换', 'Ctrl', '+', '1', '…', '4'],
+      <String>['页面切换', 'Ctrl', '+', '1', '…', '5'],
     );
   });
 
@@ -158,7 +158,7 @@ void main() {
 
     final List<Text> texts = _footTexts(_footWrap(tester));
     final String caption = texts.map((Text t) => t.data ?? '').join();
-    expect(caption, '页面切换Ctrl+1…4');
+    expect(caption, '页面切换Ctrl+1…5');
     expect(caption.runes.length, 12);
   });
 
@@ -168,7 +168,7 @@ void main() {
     await _pumpNavScaled(tester, scale: 1);
 
     // 100% 是恒等缩放 ⇒ 底注仍是「一行 Wrap」结构（原型形态）。
-    expect(find.widgetWithText(KeyCap, '4'), findsOneWidget);
+    expect(find.widgetWithText(KeyCap, '5'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -186,10 +186,10 @@ void main() {
     expect(rows, hasLength(3), reason: '200% 下底注应恰好 3 行，实测 ${rows.length}');
     // 第 3 行非空（不是「预留了行高但没内容」）。
     expect(_charsOf(rows[2]), greaterThan(0));
-    // 行内容逐行钉死：第 1 行「页面切换」、第 2 行「Ctrl + 1」、第 3 行「… 4」。
+    // 行内容逐行钉死：第 1 行「页面切换」、第 2 行「Ctrl + 1」、第 3 行「… 5」。
     expect(
       rows.map((List<Text> row) => row.map((Text t) => t.data ?? '').join()).toList(),
-      <String>['页面切换', 'Ctrl+1', '…4'],
+      <String>['页面切换', 'Ctrl+1', '…5'],
     );
     expect(tester.takeException(), isNull);
   });

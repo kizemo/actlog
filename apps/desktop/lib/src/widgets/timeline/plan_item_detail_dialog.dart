@@ -27,6 +27,13 @@
 //      `!_future` 守卫 —— 窗与调用方双保险，任一处被放开也不会写脏。
 //   标题 / 内容 / 级别 / 持续时间 / 删除对**未来日照常开放**：那是排期本身的
 //   编辑，不是「做完了」的事实；打卡 / 回填 / 复盘 / 心态仍只限今天与过去。
+//
+// Task 53 · W3（用户当轮需求 4）：「回填部分直接显示可选择的项，不要增加一次
+//   跳转」。此前回填的选项只藏在 `plan-detail-template` ⇒ `showSlotFillDialog`
+//   的第二层里，必须多跳一次才看得见「结论 / 原因 / 下一步」。本窗把这三组芯片
+//   **内联**进回填 section，点一下就写进回填文本框；模板按钮保留（完整 composer
+//   能力不删）。取值语义一字未改：落库仍是 `plan-detail-note` 那段纯文本，
+//   `_submit` 的结果类型也没动 —— 芯片只是这段文本的快捷写法。
 // =============================================================================
 
 import 'package:core_db/core_db.dart';
@@ -34,7 +41,9 @@ import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_tokens.dart';
+import '../chip_row.dart';
 import '../confirm_dialog.dart';
+import '../outcome_composer.dart';
 import '../priority_marks.dart';
 import 'slot_fill.dart';
 import 'slot_state.dart';
@@ -146,6 +155,22 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
   /// 级别当前值：`null` = 未分级（与 `plan_item.quadrant` 的 null 同构）。
   late Quadrant? _quadrant = Quadrant.fromCode(widget.item.quadrant);
 
+  /// 第二层（「成果 / 进展模板」合成器）是否正开着。
+  ///
+  /// 开着时收起内联可选项：两层同时摆一批同样的标签，用户分不清点的是哪一层。
+  bool _composing = false;
+
+  /// 内联可选项三组芯片条的 Key（测试按组定位标签，避免与「取消」按钮撞名）。
+  static const ValueKey<String> _kChipOutcome =
+      ValueKey<String>('plan-detail-chip-outcome');
+  static const ValueKey<String> _kChipReason =
+      ValueKey<String>('plan-detail-chip-reason');
+  static const ValueKey<String> _kChipNextStep =
+      ValueKey<String>('plan-detail-chip-next-step');
+
+  /// 标签之间的分隔（回填文本切片口径）。
+  static final RegExp _wordGap = RegExp(r'\s+');
+
   late int _start = _alignedStart();
   late int _end = _alignedEnd(_start);
 
@@ -184,6 +209,113 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Task 53 · W3：回填 section 的内联可选项（结论 / 原因 / 下一步）。
+  //
+  // 语义（**唯一的真源仍是回填文本框那段纯文本**）：
+  //   · 标签以「空白分隔」的形式写进 `plan-detail-note`，所以「已选」= 该标签
+  //     作为**整词**出现在文本里；用户在框里手打同一个词也算选中，不再另存一份
+  //     状态 —— 两处状态迟早会漂。
+  //   · 组内单选：点同组另一枚时先把该组其余标签从文本里摘掉，再写入新的一枚。
+  //   · 再点已选的一枚 = 取消：只摘掉这一枚（连同它前面那个分隔），其余文本原样。
+  //   · 组间可并存；写不进去的语义不存在（它就是文本框，`_submit` 照旧读它）。
+  // ---------------------------------------------------------------------------
+
+  /// 文本里出现过的词（按空白切）。
+  Set<String> _tokens(String text) => text
+      .split(_wordGap)
+      .where((String s) => s.isNotEmpty)
+      .toSet();
+
+  /// 追加一个标签：不动已有文本，只在末尾补一个分隔。
+  String _appendLabel(String text, String label) {
+    final String head = text.trimRight();
+    return head.isEmpty ? label : '$head $label';
+  }
+
+  /// 摘掉一个**整词**标签，连同一个相邻分隔，保留其余文本的原有形状。
+  String _removeLabel(String text, String label) {
+    final String escaped = RegExp.escape(label);
+    // ① 前面有分隔（最常见）：一起摘掉。
+    final RegExpMatch? lead =
+        RegExp(r'\s+' + escaped + r'(?=\s|$)').firstMatch(text);
+    if (lead != null) {
+      return text.replaceRange(lead.start, lead.end, '');
+    }
+    // ② 标签在文本开头：摘掉标签 + 紧随的分隔。
+    final RegExpMatch? tail = RegExp('^$escaped' r'\s+').firstMatch(text);
+    if (tail != null) {
+      return text.replaceRange(tail.start, tail.end, '');
+    }
+    // ③ 整个文本就这一个标签。
+    return text.replaceFirst(label, '');
+  }
+
+  /// 芯片被点：按「组内单选 + 再点取消」的语义改写回填文本。
+  ///
+  /// [group] 是该组的全部标签（来自 `outcome_composer.dart` 的常量），
+  /// [incoming] 是 `ChipRow` 多选态给出的「点完之后」的集合 —— 比当前少一位
+  /// 就说明点的是已选项。
+  void _applyChipTap(List<String> group, Set<String> incoming) {
+    final Set<String> current = _tokens(_note.text);
+    final Set<String> added = incoming.difference(current);
+    setState(() {
+      String text = _note.text;
+      // 先清同组其余标签（单选语义；点已选项时这一步正好就是「取消」）。
+      for (final String label in group) {
+        if (!added.contains(label) && _tokens(text).contains(label)) {
+          text = _removeLabel(text, label);
+        }
+      }
+      if (added.isNotEmpty) {
+        text = _appendLabel(text, added.first);
+      }
+      _note.text = text;
+    });
+  }
+
+  /// 一组内联芯片（组标题 + `ChipRow`）。
+  Widget _chipGroup(String title, Key rowKey, List<String> labels) {
+    final ThemeTokens t = context.tokens;
+    final Set<String> picked = _tokens(_note.text).intersection(
+      labels.toSet(),
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(title, style: TextStyle(fontSize: 10, color: t.meta)),
+        const SizedBox(height: 4),
+        ChipRow(
+          key: rowKey,
+          // `multi: true` 才能「再点已选 = 取消」；单选由 `_applyChipTap` 兜。
+          multi: true,
+          options: <ChipOption>[
+            for (final String label in labels)
+              ChipOption(key: label, label: label),
+          ],
+          selected: picked,
+          onChanged: (Set<String> next) => _applyChipTap(labels, next),
+        ),
+      ],
+    );
+  }
+
+  /// 回填 section 的三组可选项（用户需求 4：直接显示，不再多一跳）。
+  Widget _inlinePickers() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _chipGroup('结论', _kChipOutcome, OutcomeComposer.outcomeLabels),
+        const SizedBox(height: 6),
+        _chipGroup('原因', _kChipReason, OutcomeComposer.reasonLabels),
+        const SizedBox(height: 6),
+        _chipGroup('下一步', _kChipNextStep, OutcomeComposer.nextStepLabels),
+      ],
+    );
+  }
+
   /// 「成果 / 进展模板」：打开**既有**回填合成器，把结果串写进回填内容框。
   ///
   /// 只取 `note`、**不碰 status** —— 「完成」仍由 chip 的勾选框负责，
@@ -194,15 +326,23 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
     if (_future) {
       return;
     }
+    // 第二层开着时收起内联可选项（同一批标签摆两层，点谁都容易落空）。
+    setState(() => _composing = true);
     final SlotFillEdit? edit = await showSlotFillDialog(
       context,
       title: widget.item.title,
       initialNote: _note.text,
     );
-    if (!mounted || edit == null) {
+    if (!mounted) {
       return;
     }
-    _note.text = edit.note;
+    setState(() {
+      _composing = false;
+      if (edit != null) {
+        // 合成器返回的是 `[结论]…` 编码串；它就是这个文本框的值，直接覆盖。
+        _note.text = edit.note;
+      }
+    });
   }
 
   Future<void> _requestDelete() async {
@@ -320,6 +460,13 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
                   style: TextStyle(fontSize: 11.5, color: t.meta),
                 ),
               ),
+            // 用户需求 4：可选项就摆在回填框下面，不要多一跳。
+            // 未来日不渲染（回填整体不可用）；模板层开着时收起（同一批标签
+            // 摆两层既冗余，也会让 `find.text(...)` 撞车）。
+            if (!_future && !_composing) ...<Widget>[
+              const SizedBox(height: 6),
+              _inlinePickers(),
+            ],
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton(

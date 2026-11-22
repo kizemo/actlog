@@ -35,25 +35,25 @@ final List<_SlotCase> _cases = <_SlotCase>[
     name: '--slot-plan',
     background: ThemeTokens.light.slotPlan,
     foreground: ThemeTokens.light.ink,
-    measured: 11.11,
+    measured: 12.05,
   ),
   _SlotCase(
     name: '--slot-done',
     background: ThemeTokens.light.slotDone,
     foreground: ThemeTokens.light.meta,
-    measured: 6.27,
+    measured: 5.88,
   ),
   _SlotCase(
     name: '--slot-backfill',
     background: ThemeTokens.light.slotBackfill,
     foreground: ThemeTokens.light.ink,
-    measured: 11.07,
+    measured: 12.06,
   ),
   _SlotCase(
     name: '--slot-habit',
     background: ThemeTokens.light.slotHabit,
     foreground: ThemeTokens.light.ink,
-    measured: 10.05,
+    measured: 11.42,
   ),
 ];
 

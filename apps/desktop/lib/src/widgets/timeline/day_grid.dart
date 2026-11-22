@@ -46,6 +46,32 @@ Color colorOfSlotKind(SlotKind kind, ThemeTokens tokens) => switch (kind) {
   SlotKind.plannedOpen => tokens.slotPlan,
 };
 
+/// 条目该用哪个**底色**：类型轴（习惯）+ 完成轴叠加后的结果。
+///
+/// Task 54 · 诉求 2 的落点：用户打完勾，格子底色要退到去彩度的 `slotDone`，
+/// 没做完的才留在 `slotPlan` / `slotBackfill` 的暖色里 —— 未完成的因此更显眼。
+///
+/// 为什么不能只看 `kind`：四态判定顺序是铁律 `habit → backfill → done →
+/// plannedOpen`（见 `slot_state.dart` 文件头）。任何「计划起点已到」的条目
+/// `kind` 恒为 `SlotKind.backfill`，**打勾之后也还是 `backfill`** —— 完成态从
+/// `kind` 上根本读不出来。完成状态因此挂在 `GridEntry.completed`（显式位
+/// `isDone`）上，由这一层叠加到 `kind` 的底色之上。
+///
+/// [colorOfSlotKind] 的映射本身不动：它仍是「kind → 该 kind 的底色」，
+/// 既有逐值断言（`timeline_contrast_test.dart` / `task54_done_desaturate_test.dart`）
+/// 因此逐字不变。
+Color fillOfSlot(GridEntry entry, ThemeTokens tokens) {
+  // 习惯是**类型轴**，优先级最高、不受完成态影响：打卡条目的底色不随勾选变化。
+  if (entry.kind == SlotKind.habit) {
+    return tokens.slotHabit;
+  }
+  if (entry.completed) {
+    return tokens.slotDone;
+  }
+  // 未完成的回填仍是 `slotBackfill`，未完成的计划仍是 `slotPlan` —— 与改动前一致。
+  return colorOfSlotKind(entry.kind, tokens);
+}
+
 /// 条目正文的最小可排版宽度。
 ///
 /// 为什么需要它：条目宽度现在由「起始分钟 → 列」决定（`slot_layout.dart` 的
@@ -334,11 +360,10 @@ class _DayGridState extends ConsumerState<DayGrid> {
                 child: Stack(
                   key: _gridKey,
                   children: <Widget>[
-                    // 三段底色必须在**最底层**（Stack 第一子层）。
-                    // `_SlotPainter` 的绘制顺序是「先格填充、后网格线」；若把底色
-                    // 插在两者之间（brief 字面的「填充之下、线之上」），1px 网格线
-                    // 会被整片盖掉。放第一子层后：底色在格填充之下 ✅、网格线仍可见 ✅，
-                    // 且命中测试仍落在格填充上（底色不参与 hit-test）。
+                    // 三段底色必须在**最底层**（Stack 第一子层）：它是格子的
+                    // 本来底色，`_SlotPainter` 的网格线要画在它**之上**，否则
+                    // 1px 格线会被整片盖掉。放第一子层后：底色在最底 ✅、
+                    // 网格线仍可见 ✅，且色带不参与 hit-test（点选仍落在格子上）。
                     // 高度取布局总高（而不是 `Positioned.fill` 的内容区高度）：
                     // 色带与格线必须共用同一套 `rowTops` 坐标；差那 1px 边框就会
                     // 让色带边界与格线错开。多出的 1–2px 由 `Stack` 的硬裁切吃掉
@@ -356,7 +381,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
                     ),
                     Positioned.fill(
                       child: CustomPaint(
-                        painter: _SlotPainter(_entries, layout, t),
+                        painter: _SlotPainter(layout, t),
                       ),
                     ),
                     // 条目按**段**渲染（一条条目跨行时切成多段），不再整条满宽
@@ -515,7 +540,26 @@ class _DayGridState extends ConsumerState<DayGrid> {
                 child: tile,
               ),
             )
-          : tile,
+          // Task 53 · 诉求 2：续段**不画文字**，但它仍是同一条任务的一部分 ——
+          // 悬停要能看任务信息、左键要能进详情窗。这里只补交互、不补内容：
+          // `_chipShell` 的续段分支仍是空壳（`showBody: false`），所以
+          // 「续段里一个 `Text` 都没有」的判据不受影响。
+          //
+          // 为什么复用 [_hoverCardAround] 而不是再写一份 `SlotHoverCard`：
+          // 浮窗的锚点取 `SlotHoverCard` 内部 `MouseRegion` 自己的矩形，
+          // 包住续段外壳即锚在续段上（而不是锚在首段那一行）。
+          //
+          // 为什么不加 `Draggable` / `onDoubleTap`：拖动与「改起止时间」都
+          // 是**整条任务**的操作，入口留在首段即可；两个分支的命中区互不
+          // 重叠，不会和首段的 `GestureDetector` 抢同一次点击。
+          : _hoverCardAround(
+              entry,
+              InkWell(
+                onTap: () => _openDetail(entry),
+                canRequestFocus: false,
+                child: tile,
+              ),
+            ),
     );
   }
 
@@ -550,6 +594,14 @@ class _DayGridState extends ConsumerState<DayGrid> {
             hover: live,
           )
         : const SizedBox();
+    final Color kindInk = foregroundOfSlotKind(entry.kind, t);
+    // Task 51 · 诉求 4：跨小时的「接续段」不再每段都顶 2px 深色左边框 ——
+    // 那会让同一任务在跨行处看起来像「两个任务各自起头」。现在只有**首段**
+    // （不是从上一行接下来的）保留左边框，任务真正的末端（接下、但不再往下）
+    // 把 2px 深色画在**右缘**，读者顺着行读到的是一条连续的带子 + 一个收尾。
+    final bool continuesAbove = seg?.continuesAbove ?? false;
+    final bool continuesBelow = seg?.continuesBelow ?? false;
+    final bool tail = continuesAbove && !continuesBelow;
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppTokens.radius),
       child: Container(
@@ -557,14 +609,15 @@ class _DayGridState extends ConsumerState<DayGrid> {
         padding: const EdgeInsets.symmetric(horizontal: 4),
         alignment: Alignment.centerLeft,
         decoration: BoxDecoration(
-          color: colorOfSlotKind(entry.kind, t),
+          color: fillOfSlot(entry, t),
           border: Border(
-            left: BorderSide(
-              color: foregroundOfSlotKind(entry.kind, t),
-              width: 2,
-            ),
+            left: continuesAbove
+                ? BorderSide(color: t.hair)
+                : BorderSide(color: kindInk, width: 2),
             top: BorderSide(color: t.hair),
-            right: BorderSide(color: t.hair),
+            right: tail
+                ? BorderSide(color: kindInk, width: 2)
+                : BorderSide(color: t.hair),
             bottom: BorderSide(color: t.hair),
           ),
         ),
@@ -674,7 +727,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
     // 行里存的是码值字符串，渲染层自己解析；无法识别（未来 schema）就当作
     // 未分级 —— 不画标记，也不抛异常。
     final Quadrant? quadrant = Quadrant.fromCode(row?.quadrant);
-    final String note = row?.resultNote ?? '';
+    
     final Color ink = foregroundOfSlotKind(entry.kind, t);
     // 需求 g：被更高层的条目包含时，本条的标题必须让出「内嵌小盒左缘」之前
     // 的空间 —— 上限由布局层逐像素算出（宿主标题右缘 / 小盒左缘），这里只
@@ -699,12 +752,9 @@ class _DayGridState extends ConsumerState<DayGrid> {
       style: TextStyle(
         fontSize: 11,
         color: t.ink2,
-        // 完成态加删除线：第三重通道，不必依赖颜色感知。
-        // `decorationColor` 显式钉死该态前景色，避免继承出别的颜色。
-        decoration: entry.kind == SlotKind.done
-            ? TextDecoration.lineThrough
-            : null,
-        decorationColor: entry.kind == SlotKind.done ? ink : null,
+        // Task 53 · 诉求 3：完成态**不再**画删除线（用户原话「不要显示删除
+        // 线」）。「已完成」已由前置勾选框（第一重）与四态底色（第二重）表达，
+        // 删除线是同一件事的第三遍重复，代价却是标题本身变得难读。
       ),
     );
     final double? titleWidth = titleLimit == null ? null : titleLimit - chrome;
@@ -718,6 +768,11 @@ class _DayGridState extends ConsumerState<DayGrid> {
     } else {
       title = SizedBox(width: titleWidth, child: titleText);
     }
+    // Task 54 · 诉求 1：尾部字形只留给习惯态（用户原话「去除主界面中，任务
+    // 标题后面的三角形」—— 那个三角形是回填态的 `▶` U+25B6）。回填态不再带
+    // 任何标记；完成/计划的判定交给前置勾选框，不给尾部留重复信息。
+    final String? tailGlyph =
+        entry.kind == SlotKind.habit ? glyphOfSlotKind(entry.kind) : null;
     final Widget content = Row(
       children: <Widget>[
         // 账页行序（方向 A）：勾选框 → 四维标记 → 标题 → 四态字形 →
@@ -747,25 +802,29 @@ class _DayGridState extends ConsumerState<DayGrid> {
         // 标题：宽度未知（无宿主）时自己 `Flexible` 吃满剩余空间；有宿主时
         // 宽度已被 [titleWidth] 钉死，不再参与弹性分配。
         title,
-        // 故意用 `RichText` 而非 `Text`：字形字符（`\u25CB` `\u2713`
-        // `\u25B6` `\u25CF`）与 `LedgerCheckbox` 自绘的勾选符是同一批码位，
-        // 用 `Text` 会让既有的 `find.text('✓')` 精确计数从 1 变 2。
-        // `find.text` 不匹配 `RichText`（只认 `Text` / `EditableText`），
-        // 所以这里既保住了字形通道，也不污染既有断言。
-        RichText(
-          textDirection: TextDirection.ltr,
-          text: TextSpan(
-            text: glyphOfSlotKind(entry.kind),
-            style: TextStyle(
-              fontSize: 11,
-              color: ink,
-              // 四个字形都不在 Inter 里，只能靠 `Noto Sans SC` 兜底；
-              // 这里必须显式声明族，继承 `DefaultTextStyle` 会渲染成豆腐块。
-              fontFamily: AppFonts.body,
-              fontFamilyFallback: AppFonts.bodyFallback,
+        // 尾部字形只留给习惯态；回填态不带任何标记 —— Task 54 诉求①。
+        // 计划 `○` 与完成 `✓` 早在 Task 53 已由前置勾选框表达，尾部再画一遍
+        // 是重复 —— 用户原话「后面的圆圈可以去除 / 也不用显示后面的对号」。
+        //
+        // 仍然用 `RichText` 而非 `Text`：这个字形与 `LedgerCheckbox` 自绘的
+        // 勾选符是同一批码位，用 `Text` 会让既有的 `find.text('✓')` 精确计数
+        // 从 1 变 2。`find.text` 只认 `Text` / `EditableText`，不匹配
+        // `RichText`，所以这里既保住了字形通道，也不污染既有断言。
+        if (tailGlyph != null)
+          RichText(
+            textDirection: TextDirection.ltr,
+            text: TextSpan(
+              text: tailGlyph,
+              style: TextStyle(
+                fontSize: 11,
+                color: ink,
+                // 两个字形都不在 Inter 里，只能靠 `Noto Sans SC` 兜底；
+                // 这里必须显式声明族，继承 `DefaultTextStyle` 会渲染成豆腐块。
+                fontFamily: AppFonts.body,
+                fontFamilyFallback: AppFonts.bodyFallback,
+              ),
             ),
           ),
-        ),
         if (entry.kind == SlotKind.habit) ...<Widget>[
           const SizedBox(width: 6),
           Container(
@@ -789,18 +848,31 @@ class _DayGridState extends ConsumerState<DayGrid> {
       return content;
     }
     // 需求 h：起始时刻 / 标题 / 详情 / 进展 / 状态 / 级别都搬进悬停浮窗。
-    // 浮窗必须走 `OverlayPortal` —— 格子区外层是 `Clip.antiAlias`，普通
-    // `Overlay` 子树会被裁在这一格里。
+    return _hoverCardAround(entry, content);
+  }
+
+  /// 给一段条目外壳套上悬停浮窗。
+  ///
+  /// 抽出来是因为它有**两个**调用点：首段的正文（[_chipBody] 的 `hover`
+  /// 分支）与跨行续段（[_segmentTile] 的非 head 分支）。两处的浮窗内容必须
+  /// 逐字段相同 —— 用户看到的「同一条任务」，不该因为悬停在第二行就少几个
+  /// 字段。
+  ///
+  /// 浮窗必须走 `OverlayPortal`（`SlotHoverCard` 内部）：格子区外层是
+  /// `Clip.antiAlias`，普通 `Overlay` 子树会被裁在这一格里。
+  Widget _hoverCardAround(GridEntry entry, Widget child) {
+    final PlanItemData? row = _rowOf(entry.id);
+    final Quadrant? quadrant = Quadrant.fromCode(row?.quadrant);
     return SlotHoverCard(
       title: entry.title,
       startMinute: entry.startMinute,
       endMinute: entry.endMinute,
       detail: _minimal ? '' : (row?.detail ?? ''),
-      note: note,
+      note: row?.resultNote ?? '',
       stateLabel: stateLabelOfSlotKind(entry.kind),
       levelLabel: quadrant == null ? '未分级' : QuadrantStyle.of(quadrant).label,
       showNote: !_minimal,
-      child: content,
+      child: child,
     );
   }
 
@@ -1250,11 +1322,15 @@ class _TitleDialogState extends State<_TitleDialog> {
   }
 }
 
-/// 格子底色 + 网格线。
+/// 网格线 + 重叠叠色。
+///
+/// Task 51 · 追加诉求：这里**不再**给格子铺条目四态底色。用户判据是「没有任务的
+/// 位置显示单元格原本的背景色」，而原先按「条目与整格相交」铺色，会连格内没有
+/// 任务的分钟也铺满整行高（行高 44，条目芯片只有 18 逻辑高），把三段分区底色
+/// 整片吃掉 —— 视觉上就成了「空白格也有底色」。条目色由芯片自己承载
+/// （`_chipShell`），格底只留三段色带（`_sectionTintChildren`）+ 本类的网格线。
 class _SlotPainter extends CustomPainter {
-  _SlotPainter(this.entries, this.layout, this.tokens);
-
-  final List<GridEntry> entries;
+  _SlotPainter(this.layout, this.tokens);
 
   /// 行高表与车道几何的唯一真源（见 `slot_layout.dart`）。
   final SlotLayout layout;
@@ -1266,36 +1342,18 @@ class _SlotPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final double cellWidth = size.width / kGridCols;
     final DayWindow window = layout.window;
-    final Paint fill = Paint();
-
-    for (int row = 0; row < window.rows; row++) {
-      final double top = layout.rowTops[row];
-      final double rowHeight = layout.rowHeights[row];
-      for (int col = 0; col < kGridCols; col++) {
-        final int cellStart =
-            window.startMinute + row * 60 + col * kSlotMinutes;
-        final int cellEnd = cellStart + kSlotMinutes;
-        for (final GridEntry entry in entries) {
-          if (entry.startMinute < cellEnd && entry.endMinute > cellStart) {
-            fill.color = colorOfSlotKind(entry.kind, tokens);
-            canvas.drawRect(
-              Rect.fromLTWH(col * cellWidth, top, cellWidth, rowHeight),
-              fill,
-            );
-            break;
-          }
-        }
-      }
-    }
 
     // 需求 f：三条带都换不出空位时，重叠处**格底加深**（数据层已在
     // `LaneConflict` 里记下区间），提示读者「这里叠了两条」。
     //
     // 加深一律用 `ink` 叠色，不用 `accent` / `accentWash` —— 方格区是中性
-    // 账页，赭石只归「当前/强调」。透明度 0.08 是既有底色之上的最浅一档：
+    // 账页，赭石只归「当前/强调」。透明度 0.05 是既有底色之上的最浅一档：
     // 能看出差别，又不至于把四态底色本身染脏。
+    //
+    // Task 51 · 诉求 3：从 0.08 降到 0.05 —— 四态底色整体变浅之后，0.08 的
+    // `ink` 叠色会在浅底上显出一块明显发灰的方块，读起来像「脏」而不是「挤」。
     final Paint conflictFill = Paint()
-      ..color = tokens.ink.withValues(alpha: 0.08);
+      ..color = tokens.ink.withValues(alpha: 0.05);
     for (final LaneConflict conflict in layout.conflicts) {
       final int rowStart = window.startMinute + conflict.row * 60;
       final int colStart = ((conflict.startMinute - rowStart) ~/ kSlotMinutes)
@@ -1329,9 +1387,7 @@ class _SlotPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SlotPainter oldDelegate) =>
-      oldDelegate.entries != entries ||
-      oldDelegate.layout != layout ||
-      oldDelegate.tokens != tokens;
+      oldDelegate.layout != layout || oldDelegate.tokens != tokens;
 }
 
 /// 跨行弯折箭头（需求 e）：一条任务在未完成的小时结束处 / 下一小时开始处
@@ -1344,6 +1400,24 @@ class _SlotPainter extends CustomPainter {
 ///
 /// 线宽 1.2 + 圆头圆角：落在 20px 高的条目里既不糊成一团，也比 1px 更像
 /// 「方向」而非「边框」。
+/// 跨行箭头的「竖笔 + 折笔」两个折点序列（`up:true` 指向上方）。
+///
+/// Task 51 · 诉求 4：`up:false` 的走向由「先上再左」改成「先下再左」——竖笔
+/// 从上方起点**往下**画到折点，再折向左，箭尖仍朝左。原先竖笔自下而上，读者
+/// 顺着笔画读到的方向是「往上一小时」，与「接续到下一行」的语义相反。
+///
+/// 只翻竖笔方向、保留折点与箭尖位置：箭头挂在 `Positioned(right: 2,
+/// bottom: 0)` 的 20px 底部盒里，整幅上下镜像会把箭头从条目底部搬到顶部，
+/// 那样既改方向又改位置，超出「视觉方向」这一诉求。
+List<Offset> continueArrowStem(bool up) => up
+    ? const <Offset>[Offset(3.5, 1.5), Offset(3.5, 6.5), Offset(9.5, 6.5)]
+    : const <Offset>[Offset(8.5, 6.5), Offset(8.5, 13.5), Offset(2.5, 13.5)];
+
+/// 跨行箭头的箭尖（两条短线，从折点张开）。
+List<Offset> continueArrowHead(bool up) => up
+    ? const <Offset>[Offset(6.8, 3.8), Offset(9.5, 6.5), Offset(6.8, 9.2)]
+    : const <Offset>[Offset(5.2, 10.8), Offset(2.5, 13.5), Offset(5.2, 16.2)];
+
 class _ContinueArrowPainter extends CustomPainter {
   const _ContinueArrowPainter({required this.up, required this.color});
 
@@ -1361,28 +1435,19 @@ class _ContinueArrowPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     final Path path = Path();
-    if (up) {
-      // 竖线自上而下，然后折向右；箭尖在折点处朝右。
-      path
-        ..moveTo(3.5, 1.5)
-        ..lineTo(3.5, 6.5)
-        ..lineTo(9.5, 6.5);
-      path
-        ..moveTo(6.8, 3.8)
-        ..lineTo(9.5, 6.5)
-        ..lineTo(6.8, 9.2);
-    } else {
-      // 竖线自下而上，然后折向左；箭尖朝左。
-      path
-        ..moveTo(8.5, 18.5)
-        ..lineTo(8.5, 13.5)
-        ..lineTo(2.5, 13.5);
-      path
-        ..moveTo(5.2, 10.8)
-        ..lineTo(2.5, 13.5)
-        ..lineTo(5.2, 16.2);
-    }
+    _addPolyline(path, continueArrowStem(up));
+    _addPolyline(path, continueArrowHead(up));
     canvas.drawPath(path, stroke);
+  }
+
+  static void _addPolyline(Path path, List<Offset> points) {
+    if (points.isEmpty) {
+      return;
+    }
+    path.moveTo(points.first.dx, points.first.dy);
+    for (int i = 1; i < points.length; i++) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
   }
 
   @override

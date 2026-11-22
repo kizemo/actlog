@@ -321,6 +321,7 @@ class GridEntry {
     required this.startMinute,
     required this.endMinute,
     required this.kind,
+    this.isDone,
   });
 
   /// `plan_item.id`（拖动与改起止都按这个 id 定位，**不新建行**）。
@@ -337,6 +338,21 @@ class GridEntry {
 
   /// 四态。
   final SlotKind kind;
+
+  /// 显式完成位：`plan_item.status == 'done'` 的原样投影。
+  ///
+  /// 为什么必须**显式传**，不能从 [kind] 反推：[kind] 的判定顺序是
+  /// `habit → backfill → done → plannedOpen`（见 [slotKindOf]，铁律写在文件头）。
+  /// 任何「计划起点已到」的条目 —— 也就是用户最常打勾的那批 —— [kind] 恒为
+  /// [SlotKind.backfill]，即便 `status` 已经是 `done`。完成态从 [kind] 上**看不出来**，
+  /// 所以「打勾后底色退到 `slotDone`」只能靠这个独立位。
+  ///
+  /// `null` 表示按旧语义由 [kind] 推断（`kind == SlotKind.done` ⇒ 已完成），
+  /// 因此不传它的既有调用点行为逐字不变；生产路径（[gridEntriesOf]）必须传。
+  final bool? isDone;
+
+  /// 该条目是否已完成 —— 底色按它取 `slotDone`（见 `day_grid.dart` 的 `fillOfSlot`）。
+  bool get completed => isDone ?? kind == SlotKind.done;
 
   /// 持续分钟数。
   int get durationMinutes => endMinute - startMinute;
@@ -380,6 +396,9 @@ List<GridEntry> gridEntriesOf(
             nowMinute: nowMinute,
           ),
         ),
+        // 完成态单独走一条通道：`kind` 里它已经被 `backfill` 抢先吞掉了
+        // （见 [GridEntry.isDone]）。
+        isDone: item.status == PlanStatus.done.code,
       ),
     );
   }

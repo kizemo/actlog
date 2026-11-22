@@ -121,6 +121,11 @@ class ThemeTokens extends ThemeExtension<ThemeTokens> {
   /// 四态 · 计划已完成（`status='done'` 且非回填）。
   ///
   /// 有意退居背景：若前景仍用 [ink]，完成态会比未完成态更抢眼 —— 语义就反了。
+  /// 退后的手段是**去彩度**而不是「贴近格底色」：Task 54 之前取 `#F6F6F3`，
+  /// 与中午段底色 [gridSectionNoon]（= [paper]）只差 1.5% 对比度，打勾后整块
+  /// 直接融进格底、看起来像空格。现在明档取 `#EBEBE5`、暗档取 `#383734`，
+  /// 彩度降到 [slotPlan] 的 41% / 21%，同时拉出 0.03 / 0.024 的相对亮度差，
+  /// 于是「已完成」是安静的灰块，「未完成」仍带暖黄彩度、先被看见。
   final Color slotDone;
 
   /// 四态 · 回填（计划起点已过，或整日已成过去）。
@@ -217,7 +222,7 @@ class ThemeTokens extends ThemeExtension<ThemeTokens> {
     accent: Color(0xFFC08A4E),
     accentInk: Color(0xFFD6A366),
     slotPlan: Color(0xFF241F19),
-    slotDone: Color(0xFF1D1A16),
+    slotDone: Color(0xFF383734),
     slotBackfill: Color(0xFF2A2318),
     slotHabit: Color(0xFF322A20),
     slotPlanInk: _darkInk,
@@ -226,7 +231,7 @@ class ThemeTokens extends ThemeExtension<ThemeTokens> {
     slotHabitInk: _darkInk,
     gridSectionMorning: _darkCard,
     gridSectionNoon: _darkPaper,
-    gridSectionEvening: _darkSunken,
+    gridSectionEvening: _darkCard,
     shadowTint: Color(0xFF0D0A07),
   );
 
@@ -415,16 +420,23 @@ abstract final class LightPalette {
   static const Color accentInk = Color(0xFF7A4E24);
 
   /// 四态底 · 已排未做。
-  static const Color slotPlan = Color(0xFFEBE5D8);
+  ///
+  /// Task 51 · 诉求 3：四态整体变浅，向 [card] 线性靠拢（t≈0.45），避免条目
+  /// 在格子里糊成一块深色补丁；[slotHabit] 仍是最深的一档，四值互不相同。
+  static const Color slotPlan = Color(0xFFF2EEE6);
 
-  /// 四态底 · 计划已完成。
-  static const Color slotDone = Color(0xFFF1F2F0);
+  /// 四态底 · 计划已完成（Task 54：去彩度 + 与 [slotPlan] 拉开亮度差）。
+  ///
+  /// 相对亮度 `Y≈0.8274`，比 [slotPlan]（`Y≈0.8574`）暗 0.030；HSL 饱和度
+  /// `13.0%` —— 只有 [slotPlan]（`31.6%`）的 41%。对 [slotDoneInk]（[meta]）
+  /// 5.88:1，对中午段 [paper] 1.09:1（旧值 `#F6F6F3` 只有 1.02:1）。
+  static const Color slotDone = Color(0xFFEBEBE5);
 
   /// 四态底 · 回填。
-  static const Color slotBackfill = Color(0xFFEDE4D6);
+  static const Color slotBackfill = Color(0xFFF3EEE4);
 
-  /// 四态底 · 习惯入格。
-  static const Color slotHabit = Color(0xFFE2DACB);
+  /// 四态底 · 习惯入格（四态中最深，优先级最高）。
+  static const Color slotHabit = Color(0xFFEDE8DE);
 
   /// 四态前景 · 已排未做（= [ink]）。
   static const Color slotPlanInk = ink;
@@ -444,8 +456,12 @@ abstract final class LightPalette {
   /// 三段底色 · 12:00–18:00（= [paper]）。
   static const Color gridSectionNoon = paper;
 
-  /// 三段底色 · 18:00–24:00（= [sunken]）。
-  static const Color gridSectionEvening = sunken;
+  /// 三段底色 · 18:00–24:00（= [card]，与 [gridSectionMorning] 逐字同值）。
+  ///
+  /// Task 51 · 诉求 3：上午段与晚上段此前一个是 [card]、一个是 [sunken]，
+  /// 在浅色下能看出「早晚两个调子」；用户要求两段底色完全一致，故晚上回落
+  /// 到 [card]。中间段仍是 [paper]，三段仍可区分。
+  static const Color gridSectionEvening = card;
 
   /// 硬投影色。
   static const Color shadowTint = Color(0xFF322B23);

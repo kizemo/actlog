@@ -42,7 +42,7 @@ Future<void> _pumpKeyBar(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('渲染 7 条真实快捷键，键帽与文案都成立', (WidgetTester tester) async {
+  testWidgets('渲染 8 条真实快捷键，键帽与文案都成立', (WidgetTester tester) async {
     await _pumpKeyBar(tester);
 
     const List<String> keys = <String>[
@@ -52,7 +52,8 @@ void main() {
       'Space',
       'Enter',
       'Esc',
-      'Ctrl+1…3',
+      'Ctrl+1…4',
+      'Ctrl+5',
     ];
     for (final String key in keys) {
       expect(find.text(key), findsOneWidget, reason: '缺少键帽 $key');
@@ -65,24 +66,28 @@ void main() {
       '展开回填',
       '关闭弹层',
       '切页',
+      '切到项目',
     ]) {
       expect(find.text(label), findsOneWidget, reason: '缺少说明 $label');
     }
 
-    // 顺序：第一条是 Ctrl+N，最后一条是 Ctrl+1…3（Task 20 / K2）。
+    // 顺序：第一条是 Ctrl+N，倒数第二条是 Ctrl+1…4，最后一条是 Ctrl+5（Task 56）。
     final List<KeyCap> caps = tester.widgetList<KeyCap>(find.byType(KeyCap)).toList();
-    expect(caps.length, 7);
+    expect(caps.length, 8);
     expect(caps.first.label, 'Ctrl+N');
-    expect(caps.last.label, 'Ctrl+1…3');
+    expect(caps[6].label, 'Ctrl+1…4');
+    expect(caps.last.label, 'Ctrl+5');
     // Task 20：`Space` / `Enter` 已补上真实绑定，可以留在键条上；
     // 但原型那种「把这一行加进 / 拿出今日计划」的说法不许回来（K3 / A11）。
     expect(find.text('Space'), findsOneWidget);
     expect(find.text('Enter'), findsOneWidget);
     expect(find.text('排入 / 移出今日'), findsNothing);
-    // A11：只宣称到 `Ctrl+1…3` —— 习惯 / 项目两项无落点（设置页 Task 39 起有
-    // 落点，但键条未扩位），键条渲染出 `Ctrl+1…6` 就是假提示。
+    // A11：只宣称到 `Ctrl+1…4` + `Ctrl+5` —— 每一项都有真实落点；`Ctrl+6`
+    // 仍无绑定，键条渲染出 `Ctrl+1…6` 就是假提示。
     expect(find.text('Ctrl+1…6'), findsNothing);
-    expect(find.text('Ctrl+1…3'), findsOneWidget);
+    expect(find.text('Ctrl+1…3'), findsNothing);
+    expect(find.text('Ctrl+1…4'), findsOneWidget);
+    expect(find.text('Ctrl+5'), findsOneWidget);
   });
 
   testWidgets('快捷键条底板 = keybg + 上边 hair', (WidgetTester tester) async {

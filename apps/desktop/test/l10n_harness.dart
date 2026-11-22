@@ -4,7 +4,7 @@
 // 为什么这些放在 test\ 而不是 lib\：它只为测试服务，进 lib 就是又造一层生产代码
 // 里的转发（本项目明令不要 `AppStrings.xxx => t.xxx` 那种壳）。
 //
-// `l10nAccessors` 是**测试数据**：把 89 条 getter 一条一条列成「键 → 取值闭包」
+// `l10nAccessors` 是**测试数据**：把 117 条 getter 一条一条列成「键 → 取值闭包」
 // （列表型 2 条在 `l10nListAccessors`）。
 // 有了它，测试才能不看 getter 名地遍历全部文案（校验非空、校验中英不同、校验
 // 键数与条数一致）。新增 getter 时两侧都要加一行 —— 少了就会在
@@ -24,7 +24,7 @@ import 'package:actlog/src/l10n/l10n_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 89 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
+/// 117 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
 final Map<String, String Function(AppLocalizations)> l10nAccessors =
     <String, String Function(AppLocalizations)>{
   // 设置页 35 条
@@ -136,6 +136,48 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.domainAbcCLabel: (AppLocalizations t) => t.abcCLabel,
   L10nKeys.domainPriorityUnsetLabel: (AppLocalizations t) =>
       t.priorityUnsetLabel,
+  // 项目页 28 条（Task 56 新增 17 条 + Task 57 新增 11 条）
+  L10nKeys.projectsTitle: (AppLocalizations t) => t.projectsTitle,
+  L10nKeys.projectsSubtitle: (AppLocalizations t) => t.projectsSubtitle,
+  L10nKeys.projectsEmpty: (AppLocalizations t) => t.projectsEmpty,
+  L10nKeys.projectsNewProjectAction: (AppLocalizations t) =>
+      t.projectsNewProjectAction,
+  L10nKeys.projectsNameHint: (AppLocalizations t) => t.projectsNameHint,
+  L10nKeys.projectsGoalHint: (AppLocalizations t) => t.projectsGoalHint,
+  L10nKeys.projectsStartHint: (AppLocalizations t) => t.projectsStartHint,
+  L10nKeys.projectsEndHint: (AppLocalizations t) => t.projectsEndHint,
+  L10nKeys.projectsTaskTitleHint: (AppLocalizations t) => t.projectsTaskTitleHint,
+  L10nKeys.projectsTargetDateHint: (AppLocalizations t) =>
+      t.projectsTargetDateHint,
+  L10nKeys.projectsAddTaskAction: (AppLocalizations t) => t.projectsAddTaskAction,
+  L10nKeys.projectsRescheduleAction: (AppLocalizations t) =>
+      t.projectsRescheduleAction,
+  L10nKeys.projectsUnscheduled: (AppLocalizations t) => t.projectsUnscheduled,
+  L10nKeys.projectsNoTask: (AppLocalizations t) => t.projectsNoTask,
+  L10nKeys.projectsNoDateRange: (AppLocalizations t) => t.projectsNoDateRange,
+  L10nKeys.projectsEmptyChart: (AppLocalizations t) => t.projectsEmptyChart,
+  L10nKeys.projectsLoadFailed: (AppLocalizations t) => t.projectsLoadFailed,
+  L10nKeys.projectsScheduleTodayAction: (AppLocalizations t) =>
+      t.projectsScheduleTodayAction,
+  L10nKeys.projectsScheduledOn: (AppLocalizations t) => t.projectsScheduledOn,
+  L10nKeys.projectsIncrementTitle: (AppLocalizations t) =>
+      t.projectsIncrementTitle,
+  L10nKeys.projectsIncrementEmptyAction: (AppLocalizations t) =>
+      t.projectsIncrementEmptyAction,
+  L10nKeys.projectsIncrementProgressHint: (AppLocalizations t) =>
+      t.projectsIncrementProgressHint,
+  L10nKeys.projectsIncrementBlockersHint: (AppLocalizations t) =>
+      t.projectsIncrementBlockersHint,
+  L10nKeys.projectsIncrementNextStepHint: (AppLocalizations t) =>
+      t.projectsIncrementNextStepHint,
+  L10nKeys.projectsIncrementAddAction: (AppLocalizations t) =>
+      t.projectsIncrementAddAction,
+  L10nKeys.projectsIncrementToTodayAction: (AppLocalizations t) =>
+      t.projectsIncrementToTodayAction,
+  L10nKeys.projectsIncrementAppendOnly: (AppLocalizations t) =>
+      t.projectsIncrementAppendOnly,
+  L10nKeys.projectsMilestoneOverdue: (AppLocalizations t) =>
+      t.projectsMilestoneOverdue,
 };
 
 /// 列表型 getter（`List<String>`）的访问器表（2 条）。

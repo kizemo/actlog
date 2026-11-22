@@ -17,6 +17,8 @@ import 'package:actlog/src/pages/today_page.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 
 final class _Harness {
@@ -44,8 +46,10 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
-          home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+        child: l10nScope(
+          const MaterialApp(
+            home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+          ),
         ),
       ),
     );

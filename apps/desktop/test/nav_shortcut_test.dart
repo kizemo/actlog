@@ -1,10 +1,9 @@
 // apps/desktop/test/nav_shortcut_test.dart
 //
-// Task 20（裁定 K7 / K8）+ B2（2026-11-12 T10）守 `Ctrl+1…4` 切页：
+// Task 20（裁定 K7 / K8）+ B2（2026-11-12 T10）+ Task 56 守切页快捷键：
 //  - `Ctrl+1` 今日 / `Ctrl+2` 待办池 / `Ctrl+3` 习惯 / `Ctrl+4` 日历（A8）；
-//  - `Ctrl+5/6` **零效果**（不切页、不报错）——Task 39 起「设置」有真实落点、
-//    只有「项目」仍是 `enabled: false`；但键条与快捷键只承诺 `Ctrl+1…4`，
-//    把 5/6 也接了反而是假提示（A9）；
+//  - `Ctrl+5` 项目页（Task 56 起「项目」不再是 `enabled: false`，有真实落点）；
+//  - `Ctrl+6` **零效果**（不切页、不报错）—— 仍无绑定，接上才是假提示（A9）；
 //  - 在待办池页按 `Ctrl+1` 回到今日页（A10）。
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
@@ -17,10 +16,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/app.dart';
 import 'package:actlog/src/pages/calendar_page.dart';
 import 'package:actlog/src/pages/habits_page.dart';
+import 'package:actlog/src/pages/projects_page.dart';
 import 'package:actlog/src/pages/today_page.dart';
 import 'package:actlog/src/pages/todo_pool_page.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
+
+import 'l10n_harness.dart';
 
 const String _today = '2026-11-09';
 
@@ -51,7 +53,7 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: ShellHost()),
+        child: l10nScope(const MaterialApp(home: ShellHost())),
       ),
     );
   }
@@ -145,7 +147,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('A9：Ctrl+5 / Ctrl+6 零效果（不切页、不报错）', (
+  testWidgets('A9：Ctrl+5 切到项目页；Ctrl+6 零效果（不切页、不报错）', (
     tester,
   ) async {
     _useTallSurface(tester);
@@ -156,17 +158,22 @@ void main() {
     _shellFocusNode(tester).requestFocus();
     await tester.pump();
 
-    for (final LogicalKeyboardKey key in <LogicalKeyboardKey>[
-      LogicalKeyboardKey.digit5,
-      LogicalKeyboardKey.digit6,
-    ]) {
-      await _sendCtrl(tester, key);
-      expect(find.byType(TodayPage), findsOneWidget, reason: '$key 不许切页');
-      expect(find.byType(TodoPoolPage), findsNothing);
-      expect(find.byType(HabitsPage), findsNothing);
-      expect(find.byType(CalendarPage), findsNothing);
-      expect(tester.takeException(), isNull, reason: '$key 不许抛异常');
-    }
+    // Task 56 起「项目」有真实落点 ⇒ `Ctrl+5` 切到项目页。
+    await _sendCtrl(tester, LogicalKeyboardKey.digit5);
+    expect(find.byType(ProjectsPage), findsOneWidget);
+    expect(find.byType(TodayPage), findsNothing);
+    expect(find.byType(TodoPoolPage), findsNothing);
+    expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(CalendarPage), findsNothing);
+    expect(tester.takeException(), isNull, reason: 'Ctrl+5 不许抛异常');
+
+    // `Ctrl+6` 仍无绑定：不切页、不报错（键条也没承诺它）。
+    await _sendCtrl(tester, LogicalKeyboardKey.digit6);
+    expect(find.byType(ProjectsPage), findsOneWidget, reason: 'Ctrl+6 不许切页');
+    expect(find.byType(TodoPoolPage), findsNothing);
+    expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(CalendarPage), findsNothing);
+    expect(tester.takeException(), isNull, reason: 'Ctrl+6 不许抛异常');
 
     await _flushTimers(tester);
   });

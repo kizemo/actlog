@@ -24,6 +24,8 @@ import 'package:actlog/src/widgets/habit_checkin_strip.dart';
 import 'package:actlog/src/widgets/ledger_checkbox.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 const String _past = '2026-11-05';
 const String _future = '2026-11-12';
@@ -57,17 +59,19 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
-          home: LedgerShell(
-            // Task 39 指令 ①：日期条从 `TodayPage` 正文搬到壳的吸顶槽位，真实产品
-            // 路径由 `app.dart:_pinnedHeader()` 注入 `const DateBar()`。装置必须跟上
-            // 同一接法 —— 不传 `pinnedHeader` 时树里根本没有 `DateBar`，
-            // 「补录模式」徽标（全库只渲在 `date_bar.dart`）自然找不到。
-            pinnedHeader: DateBar(),
-            content: TodayPage(),
-            currentNavId: 'today',
-            // 打卡条已从壳层整体移除（打卡入口搬到习惯页）⇒ 这里不再传 `dock`，
-            // 与真机壳层一致，下面各例据此断言「条真的不在了」。
+        child: l10nScope(
+          const MaterialApp(
+            home: LedgerShell(
+              // Task 39 指令 ①：日期条从 `TodayPage` 正文搬到壳的吸顶槽位，真实产品
+              // 路径由 `app.dart:_pinnedHeader()` 注入 `const DateBar()`。装置必须跟上
+              // 同一接法 —— 不传 `pinnedHeader` 时树里根本没有 `DateBar`，
+              // 「补录模式」徽标（全库只渲在 `date_bar.dart`）自然找不到。
+              pinnedHeader: DateBar(),
+              content: TodayPage(),
+              currentNavId: 'today',
+              // 打卡条已从壳层整体移除（打卡入口搬到习惯页）⇒ 这里不再传 `dock`，
+              // 与真机壳层一致，下面各例据此断言「条真的不在了」。
+            ),
           ),
         ),
       ),
@@ -79,7 +83,7 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: ShellHost()),
+        child: l10nScope(const MaterialApp(home: ShellHost())),
       ),
     );
   }

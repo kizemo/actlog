@@ -5,7 +5,9 @@ import 'package:core_db/core_db.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/project_store.dart';
 import '../providers.dart';
+import '../theme/app_tokens.dart';
 import 'section_card.dart';
 
 /// 一条复盘的编辑字段。
@@ -66,6 +68,16 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
   /// 所以在还活着的时候把要用的东西抓进字段，卸载时只用字段。
   DayLogRepository? _repo;
 
+  /// 项目列表（`Future` 只建一次 —— 每次 build 都重建会把 FutureBuilder 打回
+  /// waiting 态，按钮跟着闪）。
+  Future<List<ProjectRow>>? _projects;
+
+  /// 「记到项目」正在写库。
+  bool _busy = false;
+
+  /// 行内弱化提示（成功 / 失败都走这里，不弹 SnackBar）。
+  String? _notice;
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -120,6 +132,150 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
     }
   }
 
+  /// 取第一句并截断到 40 字。
+  ///
+  /// 增量的 `progress` 是流水里的一行，不该把整段复盘原封搬进去；用户真要把
+  /// 原文留全，复制粘贴就行，但默认不该是他「点一下」就产生的结果。
+  static String _excerpt(String raw) {
+    final String text = raw.trim();
+    if (text.isEmpty) {
+      return '';
+    }
+    final RegExpMatch? match = RegExp(r'[。！？!?；;\n]').firstMatch(text);
+    final String head = (match == null ? text : text.substring(0, match.start))
+        .trim();
+    return head.length <= 40 ? head : '${head.substring(0, 40)}…';
+  }
+
+  /// 把这次复盘追加成一条增量（`project_increment`，只 INSERT）。
+  ///
+  /// 字段映射（源码只有三列，见 `_fields`）：
+  ///  - `progress` = 「做得好」+「学到了什么」，以「；」连接（哪段空就只留另一段）
+  ///  - `next_step` = 「待改进」
+  ///  - `blockers` = `''` —— 源码里没有「卡在哪」这一栏，不替用户编造
+  ///  - `date` = 当日日志的日期；`plan_item_id` 由仓储自动派生
+  Future<void> _toProject(List<ProjectRow> active, DayLogData log) async {
+    if (_busy) {
+      return;
+    }
+    final String progress = <String>[
+      _excerpt(_controllers[1].text),
+      _excerpt(_controllers[0].text),
+    ].where((String part) => part.isNotEmpty).join('；');
+    final String nextStep = _excerpt(_controllers[2].text);
+    if (progress.isEmpty && nextStep.isEmpty) {
+      setState(() => _notice = '三段都还空着，先写一句再记');
+      return;
+    }
+
+    ProjectRow? target;
+    if (active.length == 1) {
+      target = active.first;
+    } else {
+      target = await _pickProject(active);
+    }
+    if (target == null || !mounted) {
+      return;
+    }
+    final ProjectRow chosen = target;
+
+    setState(() {
+      _busy = true;
+      _notice = null;
+    });
+    try {
+      await ProjectStore(ref.read(repositoriesProvider)).appendIncrement(
+        projectId: chosen.id,
+        date: log.date,
+        progress: progress,
+        nextStep: nextStep,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _busy = false;
+        _notice = '已记到「${chosen.name}」';
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _busy = false;
+        _notice = '$error';
+      });
+    }
+  }
+
+  /// 项目多于一个时让用户挑；取消返回 `null`。
+  Future<ProjectRow?> _pickProject(List<ProjectRow> active) async {
+    final String? id = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) => SimpleDialog(
+        title: const Text('记到哪个项目'),
+        children: <Widget>[
+          for (final ProjectRow project in active)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(project.id),
+              child: Text(project.name),
+            ),
+        ],
+      ),
+    );
+    if (id == null) {
+      return null;
+    }
+    for (final ProjectRow project in active) {
+      if (project.id == id) {
+        return project;
+      }
+    }
+    return null;
+  }
+
+  /// 「→ 记到项目」：**只有存在 active 项目时才出现**，没有项目就整块不渲染。
+  Widget _buildToProject(BuildContext context, DayLogData log) {
+    final Future<List<ProjectRow>> future =
+        _projects ??= ProjectStore(ref.read(repositoriesProvider))
+            .listProjects();
+    return FutureBuilder<List<ProjectRow>>(
+      future: future,
+      builder: (BuildContext context, AsyncSnapshot<List<ProjectRow>> snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox.shrink();
+        }
+        final List<ProjectRow> active = (snapshot.data ?? const <ProjectRow>[])
+            .where((ProjectRow project) => project.status == 'active')
+            .toList(growable: false);
+        if (active.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final String? notice = _notice;
+        return Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              TextButton(
+                key: const ValueKey<String>('review-increment-to-project'),
+                onPressed: _busy ? null : () => _toProject(active, log),
+                child: const Text('→ 记到项目'),
+              ),
+              if (notice != null)
+                Text(
+                  notice,
+                  style: TextStyle(fontSize: 11, color: context.tokens.faint),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -163,6 +319,7 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
                     ),
                   ),
                 ),
+              _buildToProject(context, log),
             ],
           );
         },

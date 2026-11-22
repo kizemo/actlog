@@ -27,14 +27,12 @@ class ShellNavItem {
 
 /// 原型固定的 6 项主导航。
 ///
-/// 「日志 / 待办池 / 习惯 / 日历 / 设置」五项有真实落点；项目本轮没有页面，
-/// 一律禁用而不是做成假按钮（点击无落点等于骗用户）。
+/// 六项都有真实落点（Task 56 起「项目」页落地，不再是禁用项）。
 const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   ShellNavItem(id: 'today', label: '日志'),
   ShellNavItem(id: 'inbox', label: '待办池'),
   ShellNavItem(id: 'habits', label: '习惯'),
-  // [未覆盖] 原因：计划 Task 19 未实现该页面
-  ShellNavItem(id: 'projects', label: '项目', enabled: false),
+  ShellNavItem(id: 'projects', label: '项目'),
   ShellNavItem(id: 'calendar', label: '日历'),
   ShellNavItem(id: 'settings', label: '设置'),
 ];
@@ -345,16 +343,16 @@ class _NavRowState extends State<_NavRow> {
   static String _pad2(int value) => value < 10 ? '0$value' : '$value';
 }
 
-/// 导航底注（`.nav-foot`）：页面切换 Ctrl + 1 … 4。
+/// 导航底注（`.nav-foot`）：页面切换 Ctrl + 1 … 5。
 ///
-/// 口径（Task 20 · N1 / B2）：只宣称**真实存在**的 `Ctrl+1`–`Ctrl+4`
-/// （今日 / 待办池 / 习惯 / 日历）。导航第 5/6 项是禁用项、没有落点 ⇒ 写「… 6」
-/// 就是假提示。字符总数仍为 12（`页面切换`4 + `Ctrl`4 + `+`1 + `1`1 + `…`1 + `4`1）。
+/// 口径（Task 20 · N1 / B2 + Task 56）：只宣称**真实存在**的 `Ctrl+1`–`Ctrl+5`
+/// （今日 / 待办池 / 习惯 / 日历 / 项目）。`Ctrl+6` 没有落点 ⇒ 写「… 6」
+/// 就是假提示。字符总数仍为 12（`页面切换`4 + `Ctrl`4 + `+`1 + `1`1 + `…`1 + `5`1）。
 ///
 /// 排版分两档：
-/// * 常规档：一个 `Wrap`，与原型一致（「页面切换 Ctrl + 1 … 4」排成一行）。
+/// * 常规档：一个 `Wrap`，与原型一致（「页面切换 Ctrl + 1 … 5」排成一行）。
 /// * 大字号档（缩放 ≥ 1.5×，如 `ACTLOG_TEXT_SCALE=2`）：三行堆叠 ——
-///   「页面切换」/「Ctrl + 1」/「… 4」，第 3 行**必须有内容**。
+///   「页面切换」/「Ctrl + 1」/「… 5」，第 3 行**必须有内容**。
 ///
 /// 换行点由**结构**保证，不靠像素宽度碰运气：复合单位用
 /// `Row(mainAxisSize: max)` 撑满整行，外层 `Wrap` 必然让它独占一行。
@@ -394,7 +392,7 @@ class _NavFoot extends StatelessWidget {
       ],
     );
     final Widget keyRun = _NavKeyRun(
-      children: <Widget>[Text('…', style: textStyle), const KeyCap('4')],
+      children: <Widget>[Text('…', style: textStyle), const KeyCap('5')],
     );
 
     return Container(
@@ -417,7 +415,7 @@ class _NavFoot extends StatelessWidget {
           else
             keyGroup,
           if (largeText)
-            // 同理，第 3 行「… 3」独占一行且非空。
+            // 同理，第 3 行「… 5」独占一行且非空。
             Row(mainAxisSize: MainAxisSize.max, children: <Widget>[keyRun])
           else
             keyRun,

@@ -12,6 +12,7 @@
 //   parts\timeline.dart      方格时间轴（W4）
 //   parts\habit.dart         习惯打卡（W5）
 //   parts\dialog.dart        对话框（W6）
+//   parts\projects.dart      项目页（Task 56）
 //
 // 为什么拆：一次波次只搬一个模块的文案，八波并行时各自只碰自己那一个 part，
 // 不会再在同一个大文件里互相撞写。拆分**不改变**任何一条 getter 的名字、签名与
@@ -35,6 +36,7 @@ import 'parts/common.dart';
 import 'parts/dialog.dart';
 import 'parts/domain.dart';
 import 'parts/habit.dart';
+import 'parts/projects.dart';
 import 'parts/settings.dart';
 import 'parts/timeline.dart';
 import 'parts/today.dart';
@@ -74,7 +76,8 @@ abstract class AppLocalizations
         CalendarL10n,
         TimelineL10n,
         HabitL10n,
-        DialogL10n {
+        DialogL10n,
+        ProjectsL10n {
   /// 子类构造。
   const AppLocalizations();
 
@@ -94,9 +97,10 @@ abstract class AppLocalizations
   /// 内部、测试里的纯数据校验）；[of] 给「只有 context」的地方用（对话框、深层行
   /// 内组件）。缺失 [L10nScope] 时抛错而不是回落中文，理由见 `l10n_scope.dart`。
   static AppLocalizations of(BuildContext context) => L10nScope.of(context);
+  AppLanguage get language;
 }
 
-/// 简体中文文案表：把 9 个 zh mixin 拼起来。
+/// 简体中文文案表：把 10 个 zh mixin 拼起来。
 class _AppLocalizationsZh extends AppLocalizations
     with
         SettingsZhL10n,
@@ -107,11 +111,13 @@ class _AppLocalizationsZh extends AppLocalizations
         CalendarZhL10n,
         TimelineZhL10n,
         HabitZhL10n,
-        DialogZhL10n {
+        DialogZhL10n,
+        ProjectsZhL10n {
   const _AppLocalizationsZh();
+  @override AppLanguage get language => AppLanguage.zh;
 }
 
-/// English 文案表：把 9 个 en mixin 拼起来。
+/// English 文案表：把 10 个 en mixin 拼起来。
 class _AppLocalizationsEn extends AppLocalizations
     with
         SettingsEnL10n,
@@ -122,6 +128,8 @@ class _AppLocalizationsEn extends AppLocalizations
         CalendarEnL10n,
         TimelineEnL10n,
         HabitEnL10n,
-        DialogEnL10n {
+        DialogEnL10n,
+        ProjectsEnL10n {
   const _AppLocalizationsEn();
+  @override AppLanguage get language => AppLanguage.en;
 }

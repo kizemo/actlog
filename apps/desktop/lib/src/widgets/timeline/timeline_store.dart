@@ -335,6 +335,50 @@ class TimelineStore {
     return todoId;
   }
 
+  /// 项目侧排期：把「项目 / 增量」的一件事写成指定日的计划行。
+  ///
+  /// [sourceType] 只接受 `'project'` 或 `'increment'`（`plan_item.source_type` 的
+  /// CHECK 里就这两个 + manual / todo / habit），[sourceId] 分别指向 `project.id`
+  /// 或 `project_increment.id`。
+  ///
+  /// 为什么开这个公开口子：`plan_item` 的落库路径（`writeWithOplog` 账本 +
+  /// `uuidV7` + `rev`）只能有**一份**。项目页若在 `project_store.dart` 里另写一段
+  /// INSERT，就会长出「一边改了另一边没跟上」的静默分叉。
+  ///
+  /// 与 [createManual] 的两点差别：
+  ///  * `source_type` / `source_id` 由调用方给（项目与增量各指向自己的行）；
+  ///  * **不做**「回填默认打勾」判定 —— 项目侧排期的语义是「把这件事排到那一天」，
+  ///    不是「补记已经做过的事」，所以一律写 `pending`。
+  ///
+  /// `source_todo_id` 钉死为 NULL：那是待办专用列，借它会让待办与项目在统计里
+  /// 互相污染。
+  Future<String> createFromProject({
+    required String date,
+    required String title,
+    required String sourceType,
+    required String sourceId,
+    required int startMinute,
+    required int endMinute,
+    String detail = '',
+  }) {
+    final String trimmed = title.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError.value(title, 'title', '标题不能为空');
+    }
+    return _insertPlanItem(
+      date: date,
+      title: trimmed,
+      detail: detail,
+      startMinute: startMinute,
+      endMinute: endMinute,
+      sourceType: sourceType,
+      sourceId: sourceId,
+      sourceTodoId: null,
+      isHabitRef: 0,
+      status: PlanStatus.pending.code,
+    );
+  }
+
   Future<PlanItemData?> _rowOf(String id) {
     return (_db.select(_db.planItem)..where((t) => t.id.equals(id)))
         .getSingleOrNull();

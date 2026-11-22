@@ -27,6 +27,8 @@ import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/density_profile.dart';
 import 'package:actlog/src/widgets/quick_todo_dialog.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 const String _future = '2026-11-12';
 
@@ -66,10 +68,12 @@ final class _Harness {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: const Scaffold(
-            body: SingleChildScrollView(child: TodayPage()),
+        child: l10nScope(
+          MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: const Scaffold(
+              body: SingleChildScrollView(child: TodayPage()),
+            ),
           ),
         ),
       ),

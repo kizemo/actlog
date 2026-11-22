@@ -30,6 +30,8 @@ import 'package:actlog/src/widgets/date_picker_sheet.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
 import 'package:actlog/src/widgets/timeline/slot_state.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 
 /// 手写条的目标日：与"今天"不同的另一天，才证明日期真的被用上。
@@ -85,8 +87,10 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
-          home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+        child: l10nScope(
+          const MaterialApp(
+            home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+          ),
         ),
       ),
     );

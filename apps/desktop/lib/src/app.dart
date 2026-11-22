@@ -10,6 +10,7 @@ import 'l10n/l10n_scope.dart';
 import 'pages/about_page.dart';
 import 'pages/calendar_page.dart';
 import 'pages/habits_page.dart';
+import 'pages/projects_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/today_page.dart';
 import 'pages/todo_pool_page.dart';
@@ -232,7 +233,7 @@ class _ShellHostState extends State<ShellHost> {
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
-      // 键条最后一条「切页」的真身：只认四个有落点的导航项。
+      // 键条最后两条「切页」的真身：只认有落点的导航项。
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.digit1, control: true):
             _NavIntent(ShellHost.kTodayNavId),
@@ -242,6 +243,8 @@ class _ShellHostState extends State<ShellHost> {
             _NavIntent('habits'),
         SingleActivator(LogicalKeyboardKey.digit4, control: true):
             _NavIntent('calendar'),
+        SingleActivator(LogicalKeyboardKey.digit5, control: true):
+            _NavIntent('projects'),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -334,9 +337,7 @@ class _ShellHostState extends State<ShellHost> {
         onDayPicked: () => setState(() => _nav = ShellHost.kTodayNavId),
       ),
       'settings' => const SettingsPage(),
-      // 项目：[未覆盖] 原因：本轮未实现该项目页面。该项在 `kShellNavItems`
-      // 里 `enabled: false`，用户点不到，也不会走到这个分支；此处保留今日页
-      // 作为唯一合法兜底。
+      'projects' => const ProjectsPage(),
       _ => const TodayPage(),
     };
   }
@@ -345,22 +346,19 @@ class _ShellHostState extends State<ShellHost> {
     if (id == _nav) {
       return;
     }
-    // 今日 / 待办池 / 习惯 / 日历 / 设置五项有真实落点；只有「项目」在
-    // `kShellNavItems` 里仍是 `enabled: false`（无 InkWell、不可 Tab），
-    // 因此永远不会进入本回调 —— 这里不为它造假落点。
+    // 今日 / 待办池 / 习惯 / 项目 / 日历 / 设置六项都有真实落点。
     setState(() => _nav = id);
   }
 }
 
-/// 「切页」意图（`Ctrl+1…4`，键条最后一条）。
+/// 「切页」意图（`Ctrl+1…5`，键条最后两条）。
 ///
-/// 只认四个有落点的导航项：今日 / 待办池 / 习惯 / 日历。设置页虽有落点，
-/// 但键条与快捷键只承诺这四条 ⇒ 不实现 `Ctrl+5`（留没实现的提示就是假提示）；
-/// 「项目」在 `kShellNavItems` 里更是 `enabled: false`（无落点）。
+/// 只认有落点的导航项：今日 / 待办池 / 习惯 / 日历 / 项目。设置页虽有落点，
+/// 但键条与快捷键只承诺这五条 ⇒ 不实现 `Ctrl+6`（留没实现的提示就是假提示）。
 class _NavIntent extends Intent {
   const _NavIntent(this.navId);
 
-  /// 目标导航项 id（`today` / `inbox` / `habits` / `calendar`）。
+  /// 目标导航项 id（`today` / `inbox` / `habits` / `calendar` / `projects`）。
   final String navId;
 }
 

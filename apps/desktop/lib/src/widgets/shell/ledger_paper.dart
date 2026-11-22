@@ -1,46 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/theme_tokens.dart';
-
-/// 账页横线绘制器（等价原型 `.ledger` 的 CSS 背景）。
-///
-/// 原型 `design-demos/v2-ledger.html`：
-/// `repeating-linear-gradient(to bottom, transparent 0 31px, rgba(122,110,88,.055) 31px 32px)`
-/// —— 每 [LedgerPaper.ruleHeight] 像素在格子底部画一条 1px 横线。
-///
-/// 用 [CustomPainter] 自绘而不是 `Divider` / `ListView.separated`：
-/// 横线必须铺满**滚动视口**（不随内容高度增长、不参与布局、不接收点击）。
-/// 颜色由调用方按当前主题注入（浅色取 `meta`），本层再叠 0.055 alpha，
-/// 等价原型那条极淡暖灰线，同时满足「颜色只来自 token、不写死 hex」的口径。
-class LedgerRulePainter extends CustomPainter {
-  /// 创建横线绘制器。
-  ///
-  /// [color] 是横线基色，由 [LedgerPaper] 从 `context.tokens.meta` 取；
-  /// 深色档换色时绘制器跟着重建，见 [shouldRepaint]。
-  const LedgerRulePainter(this.color);
-
-  /// 横线基色（实际绘制时叠 0.055 alpha）。
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()..color = color.withValues(alpha: 0.055);
-    for (double top = LedgerPaper.ruleHeight - 1;
-        top < size.height;
-        top += LedgerPaper.ruleHeight) {
-      canvas.drawRect(Rect.fromLTWH(0, top, size.width, 1), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant LedgerRulePainter oldDelegate) =>
-      oldDelegate.color != color;
-}
-
 /// 账页（B 版「墨径 · 账页流」正文卷）。
 ///
+/// 原型 `design-demos/v2-ledger.html` 的 `.ledger` 曾用
+/// `repeating-linear-gradient(to bottom, transparent 0 31px, rgba(122,110,88,.055) 31px 32px)`
+/// 在纸面铺 32px 一档的 1px 规则横线，本组件早期用 `LedgerRulePainter` 等价复刻。
+/// **Task 54 诉求③按用户要求把这层背景横线移除了**：真机取帧判定 `J5=LEDGER_RULES_ONLY`
+/// 证明整屏只剩这一种线、且 21 条等距线（间距 56 设备 px = 32 逻辑 px × 1.75）全部来自它，
+/// 证据见 `reports/task54-accept/j5-base.log`。现存纸面只有底色，不再画横线。
+///
 /// 结构等价原型 `div.ledger > div.ledger-pad`：
-/// - 外层 [CustomPaint] 负责横线底（铺满滚动视口）；
 /// - [SingleChildScrollView] 负责滚动（等价 `.ledger{overflow:auto}`）；
 /// - [Center] + [ConstrainedBox] 限宽（标准 770 / 宽屏 860），等价 `.ledger-pad{max-width:770px;margin:0 auto}`；
 /// - [SizedBox.width.infinity] 让正文按列宽撑满，等价 block 元素的默认行为。
@@ -60,9 +29,6 @@ class LedgerPaper extends StatelessWidget {
   /// `>= 1920` 视口账页限宽（`.ledger-pad{max-width:860px}`）。
   static const double wideMaxWidth = 860;
 
-  /// 横线间距（原型 32px 一档）。
-  static const double ruleHeight = 32;
-
   /// 限宽盒子的固定 Key，供版式测试断言 `maxWidth`。
   static const Key bodyKey = Key('shell-paper-body');
 
@@ -80,8 +46,7 @@ class LedgerPaper extends StatelessWidget {
   /// `null`（默认）时整棵子树与引入本参数之前**逐字一致** —— 不加包裹层、
   /// 不改内边距，既有版式断言（`shell-paper-body` 的 `maxWidth`）不受影响。
   ///
-  /// 非 `null` 时结构变成 `Column[ 头部行, Expanded(横线底 + 滚动区) ]`：
-  /// 横线底只铺**滚动区**，头部行本身不画账页横线（它是页签，不是纸面）。
+  /// 非 `null` 时结构变成 `Column[ 头部行, Expanded(滚动区) ]`：
   /// 头部行与正文共用同一套左右内边距 + 同一 `maxWidth`，所以吸顶头与
   /// 正文列左右对齐，不会一宽一窄。
   final Widget? pinnedHeader;
@@ -112,10 +77,7 @@ class LedgerPaper extends StatelessWidget {
 
     final Widget? header = pinnedHeader;
     if (header == null) {
-      return CustomPaint(
-        painter: LedgerRulePainter(context.tokens.meta),
-        child: paperBody(resolved.top),
-      );
+      return paperBody(resolved.top);
     }
 
     return Column(
@@ -137,14 +99,7 @@ class LedgerPaper extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(
-          // 横线底包住滚动区而不是整张纸：否则吸顶头底下也会有一条横线，
-          // 随正文滚动时看起来像「头部在动」。
-          child: CustomPaint(
-            painter: LedgerRulePainter(context.tokens.meta),
-            child: paperBody(0),
-          ),
-        ),
+        Expanded(child: paperBody(0)),
       ],
     );
   }

@@ -8444,3 +8444,625 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 50.5 门禁：desktop 全量 **+580→N**（N = 580 + W2 新增用例数）/ core_data 204 / core_db 71 / core_domain 62；四包 analyze 逐字 `No issues found!`
 - [x] 50.6 出货链：build → makensis → 覆盖装机 → 真机像素验收 → R3 真源行更新
 - [x] 50.7 台账同步 + commit + push
+
+## Task 51: 时间轴第四轮优化 —— 悬停卡跟随光标 + 占位高度封顶 + 上午/晚上同底色 + 接续箭头与边框（2026-11-21）
+
+### 51.1 诉求（用户当轮原话，2026-11-21 第三轮反馈）
+
+1. 鼠标悬停任务，显示的悬浮信息窗口，要显示在光标左下角或右下角，保持一定距离，不要遮掩当条任务，避免左键和右键点击失效；
+2. 每条任务的占位高度（边框、背景色），高度不要撑满单元格高度，应该稍低于单元格的 1/2 或 1/3（根据显示几行任务确定）；
+3. 上午和晚上的表格背景色保持一致。任务背景色再调整浅一点，避免重叠任务的背景色过深。
+4. 跨小时的任务，上一行的箭头，保持位置不变，箭头方向改为向下，再向左。接续的任务开始位置不要添加深色左边框，而在结束位置添加右边框。
+
+### 51.2 落点取证（控制器实测 file:line，worker 不得自行扩大范围）
+
+**诉求 1 —— `apps/desktop/lib/src/widgets/timeline/slot_hover_card.dart`（328 行，本轮 W1 独占）**
+
+- `:197-204` chip 侧 `MouseRegion` **只有 `onEnter`/`onExit`，全文件不存在任何指针坐标跟踪** ⇒ 卡片永远锚在 chip 自身几何上。
+- `:209-238 _buildOverlay`：`CompositedTransformFollower`，`targetAnchor`/`followerAnchor` = `topLeft`（翻边时 `topRight`），`offset: Offset(_flipLeft ? -8 : 8, 0)` ⇒ **卡片与 chip 处于同一水平带、右侧并排**，卡片宽 `260`（`:32 kSlotHoverCardWidth`）。当 chip 靠近列右缘时，卡片正好盖住 chip 右半段 ⇒ 左键/右键打到浮窗本体（卡片自带 `Focus` + `MouseRegion`，`:220-235`）。**这就是「左键和右键点击失效」的确切机制。**
+- `:140-155 _openCard`：打开即 `_cardFocus.requestFocus()` —— 第二条嫌疑成因（抢焦点）。
+- `:107 / :174-183 _shouldFlipLeft`：`context.findRenderObject()!.localToGlobal(Offset.zero)` + `MediaQuery.sizeOf(context)` 判越界；`:38 _kHideDelayMs = 200` 延迟隐藏。
+- `:278-299` 卡片本体：`width 260` / `padding (10,8,10,9)` / `border Border.all(t.ink)` / `BoxShadow offset(6,6)`。
+- `:190-194` 关闭态必须 `SizedBox.shrink()`（零文本纪律：`find.byKey(slotHoverCardTitleKey)` 在关闭态须 `findsNothing`）。
+- 挂载点 `day_grid.dart:794` —— **本轮不改挂载**，故 W1 禁碰 `day_grid.dart`。
+
+**诉求 2 —— `apps/desktop/lib/src/widgets/timeline/slot_layout.dart`**
+
+- `:41 kLaneHeight = 22` / `:48 kMaxLanesPerRow = 3` / `:54 kContainedInset = 2.0`；`:20` 行高 = `max(kHourRowHeight=44, 车道数 × kLaneHeight)` ⇒ 2 车道 44、3 车道 66。
+- `:288-296 segmentHeight()`：≥2 车道 → `kLaneHeight - 2` = **20**；**单车道 → `max(duration/60*rowHeight, kLaneHeight)` ⇒ 1 小时的单车道任务拿到 44px = 撑满整个小时单元格**（用户投诉的确切来源）。
+- `:274-282 segmentTop()`：≥2 车道 `rowTops[r] + lane*kLaneHeight + 1`；单车道 `rowTops[r] + frac*rowHeight + 1`。
+- `:307-327 tileRect()`：内嵌 guest 盒 `inset = hostHeight > 6 ? 2 : 0`。
+- 常量真源 `slot_state.dart`：`:21 kSlotMinutes = 15` / `:33 kGridCols = 4` / `:39 kHourRowHeight = 44`（本轮**不改** `slot_state.dart`）。
+
+**诉求 3 —— `apps/desktop/lib/src/theme/theme_tokens.dart`（三段底色真源，不是 `app_tokens.dart`）**
+
+- `:442 gridSectionMorning = card(#FBFAF6)` / `:445 Noon = paper(#F6F4EF)` / `:448 Evening = sunken(#F0EDE5)` ⇒ **上午 ≠ 晚上**。
+- 深色分支 `:227-229` = `_darkCard(#221E1A)` / `_darkPaper(#1A1714)` / `_darkSunken(#141210)`。
+- 消费侧 `day_grid.dart:286-303 _segmentTintsOf()`（切分点 `:290 _kSegmentStartHours = [6,12,18]`）、`:411-419` 色带矩形。
+- **重叠加深唯一落点** `day_grid.dart:1297-1298`：`Paint()..color = tokens.ink.withValues(alpha: 0.08)`，遍历 `layout.conflicts` 画矩形（`_SlotPainter.paint :1254-1315`）。全库 `withValues` 扫描已跑完：**`day_grid.dart` 内只有这一处**，早先推测的「内嵌 guest 0.10 叠色」**不成立，已订正**。
+- 四态格底 `theme_tokens.dart:418 slotPlan #EBE5D8` / `:421 slotDone #F1F2F0` / `:424 slotBackfill #EDE4D6` / `:427 slotHabit #E2DACB`（`slotHabit` 最深）。映射 `day_grid.dart:42-47 colorOfSlotKind`；前景 `slot_state.dart:299-310 foregroundOfSlotKind`（赭石纪律：不得返回 accent）。
+
+**诉求 4 —— `apps/desktop/lib/src/widgets/timeline/day_grid.dart`**
+
+- `:1337-1391 _ContinueArrowPainter`（`strokeWidth 1.2`、圆头圆角）：`up:false` 现状 = `moveTo(8.5,18.5) → lineTo(8.5,13.5) → lineTo(2.5,13.5)` + 箭尖 `(5.2,10.8)/(2.5,13.5)/(5.2,16.2)` ⇒ **先向上再向左**；挂载 `:477-489 Positioned(right:2, bottom:0, width:12, height:20)` + key `day-grid-continue-down-<id>-<row>`。
+- `:522-595 _chipShell` 的 `Border(left: 2px foregroundOfSlotKind, top/right/bottom: 1px t.hair)`（`:561-569`）= 深色左边框唯一落点。
+- 接续段为箭头让开 12px 的三处：`:693`（跨小时主段）/ `:730`（单行任务的内嵌槽）/ `:785`（普通内嵌）。
+
+**受影响的既有测试断言（W2 必须同步，只可改数值、不得删用例）**
+
+- `task50_timeline_lines_test.dart:165`（`rowHeights == kMaxLanesPerRow*kLaneHeight`）/ `:173`（`segmentHeight == 20`）/ `:385,:388,:390`（`ink.withValues(alpha: 0.08)`）
+- `timeline_slot_layout_test.dart:78,:114,:115,:118,:135,:330,:342`
+- `timeline_day_grid_test.dart:845,:846,:850,:871,:909,:915,:916`
+- `theme_tokens_dark_test.dart:42,:74`（影子色板 `_D/_L.gridSectionEvening = sunken`）+ `:106,:113,:137`（镜像映射表）+ `:188-212`（判据 2 `faint/meta × {sunken,...} >= 4.5`）
+- **不受影响**（本轮只改 `gridSectionEvening` 别名、不动 `sunken` 本体）：`app_theme_test.dart:59-60`、`app_top_bar_test.dart:393,414`、`calendar_month_view_test.dart:180,207,270`、`dark_color_scheme_test.dart:15,67,69`、`theme_tokens_test.dart:11`
+- `slot-hover-card` 相关断言**只**在 `task50_timeline_lines_test.dart:535/550/558/567`，经逐处核实全为**纯内容/存在性断言**（无 Esc、无锚点几何）⇒ W1 无需改该文件。
+
+### 51.2b 控制器裁决（口径冲突以本段为准）
+
+1. **浮窗锚点 = 鼠标指针**（不再锚 chip）。默认「右下」：`cardLeft = cursor.dx + 12`、`cardTop = cursor.dy + 14`；`cursor.dx` 右侧放不下 260 宽时翻「左下」：`cardRight = cursor.dx - 12`（`followerAnchor = topRight`）；左也放不下则 clamp 进屏。**硬约束 `cardTop ≥ chipRect.bottom + 8`** —— 卡片顶边永不低于当条 chip 下缘 8px，这是「不遮掩当条任务」的可验判据。底部越界时整体翻到光标上方（`bottomLeft`/`bottomRight`），同时该情形下改为 `cardBottom ≤ chipRect.top - 8`。
+2. **点击失效修复**：删除「打开即 `_cardFocus.requestFocus()`」，改为**指针进入卡片本体**时才请求焦点（`:101 _cardFocus`、`:171 _returnFocus` 归还逻辑保留）。`_kHideDelayMs = 200` 保留（新几何下 chip 下缘到卡片仅 ≥8px 死区，延迟隐藏正好作穿过死区的缓冲）。**验收判据**：悬停出卡后，左键打开任务详情面板、右键打开上下文菜单都必须命中。
+3. **占位高度封顶**：新增 `kLaneContentHeight = 18.0` + `kLaneContentInset = 2.0`（18+2+2 = 22 = `kLaneHeight`）。`segmentHeight()` **两种车道情形统一返回 18**：多车道由 `kLaneHeight-2`=20 改 18；单车道**取消**「按时长比例拉高」，一律 18。`segmentTop()` 多车道 `+1` 改 `+2`（车道内居中）；**单车道 `rowTops[r] + frac*rowHeight` 保持不动**（Task 49 纵向分钟比例语义不推翻，本轮只封顶高度）。行高 44/66、`kMaxLanesPerRow`、`kHourRowHeight` 全部不动。判据：任务块高 18 ≤ 单元格 44 的 1/2（22）且 ≤ 22 车道的 1/2（11）? —— 以「**不撑满单元格、明显低于行高的一半**」为准，18/44 ≈ 0.41 满足诉求 2。
+4. **配色**：`:448 gridSectionEvening` → `card`（浅色）、`:229` 深色 → `_darkCard` ⇒ 上午与晚上**逐字同值**。四态格底整体上移变浅（向 `card #FBFAF6`/`paper #F6F4EF` 靠拢，最深的 `slotHabit` 优先浅化）；重叠加深 `alpha 0.08 → 0.05`。**本条取代 §50.2 (f) 的 alpha 0.08、以及 §50.2b 第 2 条「无并发时逐像素不变」的色板数值部分** —— §50 登记的重叠实测色 `(224,217,202)` 与 `alpha=0.08` 作废，以 §51 新包重测为准。对比度只增不减（底色变浅 ⇒ `meta`/`ink` 对比升高）。
+5. **接续标记**：`_ContinueArrowPainter(up:false)` 路径**纵向镜像**（`y' = 20 - y`）⇒ 先向下再向左；`Positioned(right:2, bottom:0, 12×20)` **挂载位置逐字不动**（「保持位置不变」）。`_chipShell` 边框条件化：`continuesAbove` 段的左缘 2px 深色**回落为 1px `t.hair`**；`continuesAbove && !continuesBelow` 的**末段**右缘加 `2px foregroundOfSlotKind` 深色；单行普通任务与首段（`!continuesAbove`）维持现状。`:693/:730/:785` 的 12px 让位保留。
+6. **沿用既有裁决**：每小时带数封顶 3、横轴仍为小时内刻钟四列 `kGridCols = 4`、`⊆` 包含语义、赭石纪律（`foregroundOfSlotKind` 不得返回 accent）、跨小时标记必须 `CustomPainter` 绘路径（禁用 U+21B3/U+21B0 字符 —— 字体缺字实坑）、关闭态零文本纪律。
+
+### 51.3 写集表（R1：独占路径，worker 只写自己那一行）
+
+| ID | 独占路径 | 覆盖 |
+|---|---|---|
+| W1 | `apps/desktop/lib/src/widgets/timeline/slot_hover_card.dart`；新建 `apps/desktop/test/task51_hover_anchor_test.dart` | 诉求 1（跟随光标 + 不遮当条 + 左/右键不复失效） |
+| W2 | `apps/desktop/lib/src/widgets/timeline/day_grid.dart`；`.../slot_layout.dart`；`apps/desktop/lib/src/theme/theme_tokens.dart`；既有测试 `task50_timeline_lines_test.dart`、`timeline_slot_layout_test.dart`、`timeline_day_grid_test.dart`、`theme_tokens_dark_test.dart` | 诉求 2 / 3 / 4 |
+| W3（收口补 · 控制器事后追认，先例 Task 21） | `apps/desktop/test/timeline_contrast_test.dart`（同步 4 处硬编码 `measured:` 实测对比度值，子会话 `bg_b4108ec6`）；`apps/desktop/lib/src/widgets/timeline/day_grid.dart`（Task 52 空白格修复：删除 `_SlotPainter.paint` 的整格四态底色 pass，子会话 `bg_36c7a4d8`）；新建 `apps/desktop/test/task51_blank_cell_test.dart`（3 用例）；`reports/task51-blankcell-fix.md`、`reports/task51-blankcell-probe.ps1`、`reports/task52-*` | 诉求 5「没有任务的位置，请显示单元格原本的背景色」 |
+
+W1 与 W2 写集互不重叠 ⇒ **并行派工**。W1 **禁碰** `day_grid.dart` 与 `task50_timeline_lines_test.dart`（hover 挂载点无需改动）。
+
+### 51.4 复选框清单（只有控制器能打勾，R6 等长替换）
+
+- [x] 51.4a W1 交付：`slot_hover_card.dart` 跟随光标 + 焦点策略改；新测试文件 `flutter test` 绿；`flutter analyze` 逐字 `No issues found!`
+- [x] 51.4b W2 交付：`slot_layout.dart` 高度封顶 18；`theme_tokens.dart` evening→card + 四态浅化；`day_grid.dart` alpha 0.05 + 箭头纵向镜像 + 边框条件化；4 个既有测试同步数值；逐包 analyze 干净
+- [x] 51.4c 门禁：挪 `build/test_cache/build` → desktop analyze 逐字 `No issues found!` + desktop test 通过数 ≥ 596 零回退 + `core_data` 204 + `core_db` 71 + `core_domain` 62 + 越界 `VIOLATIONS=0`
+- [x] 51.4d 出货：`flutter build windows --release` → makensis → 覆盖装机；`app.so` sha16 必须变化
+- [ ] 51.4e 真机像素验收 4 项（`reports/task51-accept/`）：① 悬停卡锚点相对光标 + 不遮当条 + 左/右键命中；② 任务块高 ≤18 且不撑满行；③ 上午段 == 晚上段逐像素同色 + 重叠色比 §50 更浅；④ 下行箭头先下再左 + 接续起始无深色左边框 + 末段有深色右边框 ｜ **Task 52 收口登记（2026-11-21，R5）**：① 悬停卡锚点相对光标 + 不遮当条 + 左/右键命中 = PASS（真机截屏独立复核，残差 0）；② 任务块高 ≤18 且不撑满行 = PASS；④ = PASS；③ 分两段 —— ③-A「上午段 == 晚上段逐像素同色」= PASS；③-B「重叠色比 §50 更浅」= **方向成立但精确值未判定**（实测新重叠主色 `#E1DBCE` 比 §50 实测 `(224,217,202)` 浅；「是否恰为规范 5%」被芯片/纹理遮挡不可观测）；另 Task 52 派生的「plan↔backfill 底纹带区分」判据 = **未判定**（Task 52 删除整格四态填充后原判据坐标失效，且 `seed_plan.json` 12 条全为计划态、无 backfill 样本，底纹带与填充同色在像素层不可分离）⇒ 本项按 R5 保持未打勾，待造 backfill 样本 + 补源码级 `conflictFill` alpha 断言后闭合
+- [x] 51.4f 台账同步：`handoff.md` §54、`docs/B1_验收记录.md`、`progress.md`、`AGENTS.md` R3 真源行 + `:125` 计数 + §7 快照
+- [x] 51.4g **浮窗坐标语义须真机截屏独立复核**（风险登记）：`CompositedTransformFollower` 子节点上 `localToGlobal` / `tester.getRect` 返回的是**跟随后**还是**未加偏移的原始坐标**，W1 首发未定论即被取消；测试按「跟随后」写精确断言并跑绿**只证明测试自洽，不证明运行时语义** ⇒ 必须由 51.4e 真机截屏独立复核，复核前 51.4a 只能登记「用例绿 + 真机待核」，不得宣称已修
+- [x] 51.4h 写集归属裁决（控制器 2026-11-21 记）：`slot_hover_card.dart` 实现主体由 **W1 首发** `mvs_ed3e460a888b41b4989bd50c26c8aafa` 写成（`+236 -54`、mtime 13:09:04），非「未落一行」；重派 W1 `mvs_d471c1da518a4e2baee73e4d8e1206e7` 承担核查 + 新增 `test/task51_hover_anchor_test.dart` 并修该文件 `:207` 的 `const_eval_property_access`。控制器**接受首发实现、不重做不抢写**（R1）。交接卡 13:30:31 版属另一项目（sigma-file-manager batch33）且「代码尚无任何一行改动落地」与磁盘不符 ⇒ 按 R7 忽略其内容
+## Task 53 · 时间轴任务展示四项优化 —— 起始行排布 + 跨行悬停与编辑 + 去末尾圆圈/对号删除线 + 回填项直选（2026-11-21，控制器登记）
+
+### 52.1 诉求（用户 2026-11-21 当轮原话，四条；除「请继续任务」外全文照录）
+
+> 1. 任务都请尽量从表格第一行开始排列，长任务则和之前所占的行保持一致；
+> 2. 长任务在后续的行中，没有文字，但悬停也要悬浮显示任务信息，左键点击可以对任务进行编辑；
+> 3. 任务的前面已经有了点击可以勾选代表完成的选择框，后面的圆圈可以去除。已经勾选完成的任务，也不用显示后面的对号，不要显示删除线。
+> 4. 左键点击任务，弹出的对话框中，回填部分直接显示可选择的项，不要增加一次跳转。
+
+控制器解读（不改用户原话；作用对象以 §52.2 落点取证结论为准）：
+
+| # | 诉求拆解 | 可验收判据（草案，待落点取证后定稿） |
+|---|---|---|
+| 1 | 任务从「表格第一行」开始排列；长任务所占行与改动前保持一致 | 任务块起始行 == 所在表格的首个可排位置；编辑前后同一长任务不换行 |
+| 2 | 长任务跨行时，后续行无文字，但悬停出任务信息、左键可编辑 | 跨行第 2..N 行 hover 出现任务信息浮层；左键打开编辑对话框 |
+| 3 | 去掉任务末尾圆圈；已完成任务不再显示对号、不显示删除线 | 任务块右端无圆形装饰；完成态无 `lineThrough`、无对号图标 |
+| 4 | 编辑对话框的「回填」段直接给出可选项，不多一次跳转 | 打开对话框即见回填可选项，无需二次点击/切页/再展开 |
+
+约束提醒（控制器）：① 诉求 3 明确「前置勾选框已能表达完成」⇒ 去掉末尾圆圈与对号/删除线**不得**丢失完成态的可判别性，完成态以勾选框自身表达；② 诉求 4 只压缩交互层级，**不得**改动回填字段的取值语义与持久化结构；③ 诉求 1 的「保持一致」是**稳定性约束**，不是「一律贴首行」——长任务行位不得因本轮改动漂移。
+### 52.2 落点取证（侦察实测 file:line，2026-11-21）
+
+**诉求 1（任务从表格第一行开始排列 / 长任务所占行不变）**
+
+- `apps\desktop\lib\src\widgets\timeline\slot_layout.dart:288-296` | `segmentTop`：单车道（`laneCounts < 2`）时纵向**按真实分钟下沉**（`:294-295` `frac * rowHeight + 1`），**不贴行顶** ⇒ 芯片起点随分钟下沉，18px 芯片在 44px 行内可越出本行色带；多车道走车道堆叠（lane 0 即行顶）。
+- `slot_layout.dart:403-405` | `firstRow/lastRow` 由分钟反算；`:405` 起**按行把跨小时条目切成多段**（`:120` 注释：一条 09:50–10:20 产生第 9、10 两段）。
+- `slot_layout.dart:417-422` | 列由该段起点分钟换算（`offsetStart ~/ kSlotMinutes`，`colEnd` 向上取整到列边界）⇒ **时间在横轴表达，纵轴只表达堆叠**。
+- `slot_layout.dart:307` | `segmentHeight` 恒 18（`kLaneHeight 22 − 2×2`），段高与跨度无关。
+- `slot_layout.dart:446-488` | 行内装箱：逐行贪心 interval partitioning（`:465` `laneEnds`、`:467-479` 落位、`:480-488` 车道封顶 3 后叠最小重叠带）；`:552` 行高 = `max(44, laneCount×22)`。
+- `slot_state.dart:316-339` | `GridEntry` 只有 `id/title/startMinute/endMinute/kind`，**无 startRow/lane 字段**；`:342` `durationMinutes`。
+- `day_grid.dart:491` | 每段各自 `Positioned`，矩形来自 `slot_layout.dart:320 tileRect`。
+
+**诉求 2（长任务后续行：悬停出信息 + 左键可编辑）**
+
+- `day_grid.dart:445-454` | `showBody: seg.isHead`、`live: seg.isHead` ⇒ **交互只挂首段**。
+- `day_grid.dart:542-551` | 续段 `showBody:false` ⇒ body = `SizedBox()`，**无文字**（与用户描述一致）。
+- `day_grid.dart:596` | `live=false` ⇒ 续段无 `InkWell`/`MouseRegion`/`Focus`；`:802-812` `SlotHoverCard(hover: live)`，`:796-798` `hover=false` 直接返回 content ⇒ 续段既不悬停也不可点。
+- 左键编辑链：`:645-649` `InkWell(onTap: () => _openDetail(entry))` → `:874-919` `_openDetail` → `plan_item_detail_dialog.dart:87-103 showPlanItemDetailDialog` → `:241-243 AlertDialog` → `:226-238 _submit`。
+- 已知挂账缺陷：`:513-515` 双击 `_editRange` 与 `:646-647` 单击 `_openDetail` 两路手势叠同一命中区 ⇒ 多车道叠加区 A 点点击被吞（**本轮不得恶化**）。
+
+**诉求 3（去末尾圆圈 / 去完成对号 / 去删除线）**
+
+- `slot_state.dart:261-272` | 尾部字形唯一来源 `glyphOfSlotKind`：habit `●`(U+25CF)、backfill `▶`(U+25B6)、done `✓`(U+2713)、plannedOpen `○`(U+25CB)；渲染于 `day_grid.dart:763-776` 的 `RichText`（fontSize 11、ink 色）。
+- `day_grid.dart:712-715` | 删除线 inline 判定 `entry.kind == SlotKind.done ? TextDecoration.lineThrough : null` + `decorationColor`。
+- `day_grid.dart:739-743` + `ledger_checkbox.dart:17-127` | 前置勾选框 = 自绘 `LedgerCheckbox`（22×22；`:111-120` 选中 `'✓'`、未选 `'○'`），取值 `row.status`（`day_grid.dart:681`）；尾部字形取值 `entry.kind`（`slot_state.dart:235-250`）⇒ **两套独立通道、两套取值源**。
+- `slot_state.dart:291-293` | 注释：四态前景色由字形/状态词/左缘竖条/完成态删除线共用 ⇒ 去掉 done 字形后完成态须由勾选框 + 前景色继续表达。
+- 会变红的既有断言：`apps\desktop\test\timeline_day_grid_test.dart:425`（plannedOpen 态 `○` + 「计划」，无删除线）、`:455`（done 态 `✓` + 「完成」，标题删除线）；`day_grid.dart:758-762` 注释（`RichText` 而非 `Text` 的理由与 `find.text('✓')` 精确计数有关）。
+
+**诉求 4（回填段直接给可选项，不多一次跳转）**
+
+- `plan_item_detail_dialog.dart:301-313` | 回填本体 = `TextField(key 'plan-detail-note')`（labelText「回填内容」）；`:314-322` 未来日锁定态。
+- `plan_item_detail_dialog.dart:323-330` | 唯一可选项入口 = `TextButton(key 'plan-detail-template')`「成果 / 进展模板」→ `:191-206 _openTemplate` → `slot_fill.dart:33-71 showSlotFillDialog`（**第二个 AlertDialog**）→ `outcome_composer.dart:13 OutcomeComposer`；其 `:137-164` 还有 `!_note.parsed && !_restructured` 门槛 ⇒ **两层跳转**。
+- 可选项本体已存在：`outcome_composer.dart:26-56` 三组标签常量（结论/原因/下一步）+ `:172-207` 三组 `ChipRow`；仓库既有范式 `chip_row.dart:32-87 ChipRow`、且 `priority_marks.dart:286-340 PriorityMarkPicker` **已内嵌**详情窗（`plan_item_detail_dialog.dart:287-297` 级别段）。
+- 回填取值本体 = `plan-detail-note` 纯文本 ⇒ 内联化**不需要**改持久化结构。
+
+### 52.2b 控制器裁决（与派工书冲突处，以本段为准）
+
+1. **诉求 1 = 行内顶对齐**（解读：任务从其所在小时行的第一行开始排），**不是**改行数/改行位。`firstRow/lastRow`（`slot_layout.dart:403-405`）与车道装箱（`:446-488`）**一字不动** ⇒ 长任务所占行与改动前完全一致。改动只落在 `segmentTop` 单车道分支（`:294-295`）：由「分钟比例下沉」改为「贴行顶」。多车道分支保持车道堆叠不变。
+2. **诉求 2 = 续段保留无文字**（`showBody` 语义不动），但**必须**补齐两件事：① 悬停出任务信息浮窗；② 左键打开编辑对话框。续段浮窗锚点必须是**续段自身**矩形；续段**不新增**拖拽（`Draggable` 仍只在首段）；续段点击**不得**与双击 `_editRange` 抢同一命中区。
+3. **诉求 3 = 删三样**：尾部 `plannedOpen` 的 `○`（U+25CB，与前置勾选框未选态重复）、尾部 `done` 的 `✓`（U+2713，与前置勾选框选中态重复）、done 标题删除线。**保留** habit `●` 与 backfill `▶`（表达任务类型而非完成态；Task 50 §(h) 明写保留「四态字形 / 习惯回填徽标」）。勾选框自身的 `○/✓` 字形（`ledger_checkbox.dart:111-120`）**不动**。
+4. **诉求 4 = 回填段内联三组可选项**（结论/原因/下一步），点击即把标签写入 `plan-detail-note` 文本框（取值语义与持久化结构**一字不改**）；组内单选（沿用 `ChipRow` 既有用法），组间可并存，再点已选取消。`plan-detail-template` 按钮**保留**（完整 composer 能力不删），但默认**不再需要**点它才能看到可选项。
+5. **测试纪律**：每个 worker 先写判别性测试（文件头逐字引用用户原话）看到红，再改实现；既有测试**只**同步被本轮改动直接推翻的断言，用例**不得删减**。
+6. **门禁期望值**：desktop 基线 **606**（Task 52 收口实测），期望 = 606 + 本轮新增用例数，由控制器在门禁时按实际新增数给 `-ExpectDesktopTests`；worker **不得**自行跑全量门禁或出货。
+
+### 52.3 写集表（R1：独占路径，worker 只写自己那一行）
+
+| worker | 可写文件 | 诉求 |
+|---|---|---|
+| W1 | `apps\desktop\lib\src\widgets\timeline\slot_layout.dart`；`apps\desktop\test\timeline_slot_layout_test.dart`；新建 `apps\desktop\test\task53_slot_anchor_test.dart`；`reports\task53-w1-report.md` | 诉求 1 |
+| W2 | `apps\desktop\lib\src\widgets\timeline\day_grid.dart`；`apps\desktop\lib\src\widgets\timeline\slot_state.dart`；`apps\desktop\lib\src\widgets\timeline\slot_hover_card.dart`（仅必要时）；`apps\desktop\test\timeline_day_grid_test.dart`；新建 `apps\desktop\test\task53_continuation_hit_test.dart`；新建 `apps\desktop\test\task53_chip_glyph_test.dart`；`reports\task53-w2-report.md` | 诉求 2 + 诉求 3 |
+| W3 | `apps\desktop\lib\src\widgets\timeline\plan_item_detail_dialog.dart`；`apps\desktop\test\timeline_plan_detail_test.dart`；新建 `apps\desktop\test\task53_backfill_inline_test.dart`；`reports\task53-w3-report.md` | 诉求 4 |
+
+W1/W2/W3 三者写集互不重叠 ⇒ 可并行。**W1 禁碰** `day_grid.dart` 与 `slot_state.dart`；**W2 禁碰** `slot_layout.dart` 与 `plan_item_detail_dialog.dart`；**W3 禁碰** `day_grid.dart`、`slot_state.dart`、`slot_layout.dart`、`outcome_composer.dart`（只可 import 其标签常量）。三者**一律禁碰** `AGENTS.md`、`handoff.md`、`progress.md`、`docs\**`、`packages\**`、计划文件、`reports\task5*-*`（除自己那一行报告）。
+
+### 52.4 复选框清单（只有控制器能打勾，R6 等长替换）
+
+- [x] 53.4a W1 交付：诉求 1 落地（`segmentTop` 单车道分支贴行顶；行位/车道装箱未动）+ `task53_slot_anchor_test.dart` 绿 + `timeline_slot_layout_test.dart` 同步
+- [x] 53.4b W2 交付：诉求 2（续段悬停出卡片 + 左键开编辑）+ 诉求 3（去尾部 `○`/`✓`/删除线，保留 `●`/`▶`）+ 两个新测试绿 + `timeline_day_grid_test.dart` 既有断言同步
+- [x] 53.4c W3 交付：诉求 4（回填段内联三组可选项、点击写入 `plan-detail-note`、无溢出）+ `task53_backfill_inline_test.dart` 绿
+- [x] 53.4d 门禁：desktop analyze 逐字 `No issues found!` + desktop test ≥ 606+新增数零回退 + core_data 204 / core_db 71 / core_domain 62 + `VIOLATIONS=0` + `OUT_OF_SET=0`
+- [x] 53.4e 出货：`flutter build windows --release` → makensis → 覆盖装机；`app.so` sha16 必须变化；`release\` exe 计数 +1；旧包作废口径同步
+- [x] 53.4f 真机复验 4 条：① 芯片贴行顶、不越本行色带 ② 长任务续段悬停出卡片、左键可编辑 ③ 无尾部圆圈/对号/删除线 ④ 回填段直接可见可选项
+- [x] 53.4g 台账同步：`handoff.md` §56、`progress.md`、`docs\B1_验收记录.md`、`AGENTS.md` R3 真源行 + `:125` 计数 + §7 快照
+- [x] 53.4h 写集归属裁决（控制器收口补记）
+### 52.5 写集归属裁决（控制器收口补记 · 2026-11-21）
+
+本轮 `git status --porcelain -- apps packages` 实测 **16 行**，逐项归属如下（`M` = 修改 / `??` = 新增）：
+
+| 文件 | 归属 | 归属理由 |
+|---|---|---|
+| `apps/desktop/lib/src/widgets/timeline/slot_layout.dart` | W1 | 诉求 1 落点（`segmentTop` 单车道分支贴行顶） |
+| `apps/desktop/test/timeline_slot_layout_test.dart` | W1 | W1 既有断言同步 |
+| `apps/desktop/test/task53_slot_anchor_test.dart` | W1 | W1 新建判别性用例（7 条） |
+| `apps/desktop/lib/src/widgets/timeline/day_grid.dart` | W2 | 诉求 2/3 落点（续段浮窗 + `InkWell` / `tailGlyph` 白名单 / 删删除线） |
+| `apps/desktop/test/timeline_day_grid_test.dart` | W2 | W2 既有断言同步（含 `:1008-1018` 纵向断言改写） |
+| `apps/desktop/test/task53_continuation_hit_test.dart` | W2 | W2 新建（3 条） |
+| `apps/desktop/test/task53_chip_glyph_test.dart` | W2 | W2 新建（3 条） |
+| `apps/desktop/lib/src/widgets/timeline/plan_item_detail_dialog.dart` | W3 | 诉求 4 落点（`_inlinePickers()`） |
+| `apps/desktop/test/task53_backfill_inline_test.dart` | W3 | W3 新建（6 条） |
+| `apps/desktop/lib/src/theme/theme_tokens.dart` | Task 41/42 遗留 | 非本轮改动 |
+| `apps/desktop/lib/src/widgets/timeline/slot_hover_card.dart` | Task 51 遗留 | 非本轮改动 |
+| `apps/desktop/test/task50_timeline_lines_test.dart` | Task 50 遗留 | 非本轮改动 |
+| `apps/desktop/test/theme_tokens_dark_test.dart` | Task 41 遗留 | 非本轮改动 |
+| `apps/desktop/test/timeline_contrast_test.dart` | Task 41 遗留 | 非本轮改动 |
+| `apps/desktop/test/task51_blank_cell_test.dart` | Task 52 遗留 | 非本轮改动 |
+| `apps/desktop/test/task51_hover_anchor_test.dart` | Task 51 遗留 | 非本轮改动 |
+
+**控制器本轮写集**（**未改** `apps\` / `packages\` 任何文件，由门禁 `OUT_OF_SET=0` 佐证）：计划文件、`handoff.md` §56、`progress.md`、`docs\B1_验收记录.md`、`AGENTS.md`（R3 真源行 + `:126` 计数 + §7 快照）、`reports\task53-*`（派工书 / 三个 worker 报告 / 真机复验装置与报告 / 台账片段 / 无效包留证）、`reports\task51-gate.ps1`（**allowlist 追加 2 条**：只放行 Task 53 写集，**判定逻辑一字未改**，8897 B → 9008 B，仍 CRLF / 无 BOM / 纯 ASCII；R1 留档）。
+
+**门禁期望值核定**：desktop = 606（Task 52 基线）+ 新增 **19**（W1 7 + W2 6 + W3 6）= **625**；实测 `DESKTOP_TESTS=625` / `DESKTOP_EXPECTED=625` ⇒ 一致。
+
+**出货漏步自查（可复用）**：`reports\task51-ship.ps1` 的 `-Stage ship` **只做 makensis + 安装，不含编译**（编译在 `-Stage build`）。本轮首轮只跑 ship ⇒ 产出包与 Task 52 包**逐字节相同**（sha16 `458C54FC42A6522A`），Task 53 改动未进产物；该无效包已按 R4 `Move-Item` 挪至 `reports\task53-invalid-pkg\` 留证，补跑 `-Stage build` 后 `app.so` sha16 变为 `FF091E825B6DEA4F`（≠ Task 52 的 `26721E6ADC01A4B9`）才算真正进产物。判据口诀：**新包 sha16 与上轮相同 ⇒ 先查构建树 `app.so` 的 mtime/sha16**。
+
+---
+
+## §54 Task 54 —— 验收口径订正（54.A）+ 界面三条诉求（54.B）
+
+**立项时间**：2026-11-21（Task 53 收口后另行立项；Task 53 本体**不重跑**）。**分两节**：54.A 由控制器独做（**不进** `apps\` / `packages\` 写集）；54.B **必须**派 worker（R1）。
+
+**用户原话（54.B 三条诉求，按提出顺序逐字引用）**：
+
+1. 「去除主界面中，任务标题后面的三角形」
+2. 「已完成的任务，在打勾后，任务背景色降低饱和度，和未完成任务形成区分，让未完成任务更明显」
+3. 「去除页面背景中的浅灰色横线」
+
+---
+
+### 54.1 54.A 验收报告口径偏差（两处，控制器独做）
+
+改动对象只有一份台账：`reports\task53-accept-report.md`。**不重跑** Task 53 的真机取证，用既有帧重算。
+
+#### 54.1a 偏差 1 —— §2.3 悬停卡片定位（`j2`）
+
+**旧口径**：「差分块与卡片相邻（gap ≤ tol）」。
+**为何必须废**：在本项目真帧上**必然空过**。实测最近差分块落在**卡片内部字形**（`NEAREST_IS_INSIDE_CARD=YES`）⇒ gap 恒 0 ⇒ 卡片根本没出现也能判 PASS，无判别力。
+
+**新口径**：三条可证伪断言（方向 above/below/side 与 gap 只 `[RECORD ONLY]`，不参与判词）
+
+- `CARD_AREA >= 8000`
+- `CARD_SHARE <= 12%`
+- `CARD_INSIDE_FRAME`
+
+**判别力自证**（装置 `reports\task54-accept\probe54.py j2`，三控制组）：
+
+| 控制组 | 输入 | 实测读数 | 判定 |
+|---|---|---|---|
+| 正控（卡片出现） | `53-hover-1300_p1.png` vs `53-base-1468.png` | `DIFF_PX=38712`(1.046%) · `CARD_BBOX x=1618..2082 y=609..879 w=465 h=271` · `CARD_AREA=34759` · `CARD_SHARE=3.41%` | 旧规则 FAIL / 新规则 PASS ⇒ `J2=CARD_OK` |
+| 负控 1（同帧自比） | 同帧 vs 自身 | `DIFF_PX=0` | `J2=NO_CHANGE` |
+| 负控 2（整屏重绘） | `53-tpl2.png` vs `53-click-1300b.png` | `DIFF_PX=2995090`(80.962%) · `CARD_SHARE=97.16%` | `J2=CARD_TOO_LARGE` + `CARD_CLIPPED_BY_FRAME` |
+
+**明确不做**：不改产品把卡片挪到下方（那是为迁就坏判据改实现，方向错误）。
+
+#### 54.1b 偏差 2 —— §4.4 chip 条数（`j4`）
+
+**旧口径**：像素侧数出条数 `7 / 8 / 6`、`CHIP_GROUPS=3`。
+**为何废**：三种像素计数法在真帧上都到不了 7/8/6，反证完整：
+
+| 算法 | `53-click-1300b.png` | `53-tpl2.png` |
+|---|---|---|
+| 旧 `nseg//2` | 5 | 7 / 6 |
+| `cmd_j4` 连通域 | 5 组 `[1,1,1,1,1]` | 4 组 `[4,1,2,4]` |
+| `probe54.py j4c`（独立复刻自证） | 5 组 `[1,1,1,1,1]` | 4 组 `[4,1,2,4]` |
+
+`j4` 与 `j4c` 结果完全一致 ⇒ 复刻无 bug，**是旧口径本身不成立**。失败下界已定位：芯片分隔线 `w=728 h=2`、文字笔画 `h=4`、环 `ring=1.00`（连通域在同色底上退化）。
+**`CHIP_GROUPS=3` 在 `53-click-1300b.png` 上复现不出来**（本帧实测 5 组），报告不得沿用旧数字。
+
+**新口径**：
+
+1. chip 条数以**源码标签**为唯一真值 —— `outcome_composer.dart` 的 `OutcomeComposer.*Labels` 三组 **7 / 8 / 6**。
+2. 像素侧只判**三组存在**，以标题文字指纹宽度 **35 / 34 / 51 px**（结论 / 原因 / 下一步）为准。
+3. 报告必须写入「换算法也不成立」的实测下界，作为该判据的边界声明。
+
+**54.A 收尾判据**：§2.3 与 §4.4 按新口径改写完毕，且两节内不再出现「gap ≤ tol」与「7/8/6 由像素数出」两类表述。
+
+---
+
+### 54.2 54.B 现状与落点（控制器实读源码，非转述）
+
+**诉求 1（去标题尾部三角形）**
+
+- `day_grid.dart:763-776` 尾部字形由 `RichText` 渲染（fontSize 11、ink 色），唯一来源 `slot_state.dart:261-272 glyphOfSlotKind`：habit `●`(U+25CF)、backfill `▶`(U+25B6)、done `✓`(U+2713)、plannedOpen `○`(U+25CB)。
+- **不得改 `glyphOfSlotKind` 本体** —— `apps\desktop\test\timeline_slot_state_test.dart:257-267` 逐码位钉死。
+- 裁决：**收窄渲染层白名单**（沿用 Task 53 W2 手法）—— 只让 `SlotKind.habit` 取字形（保留 `●`），`backfill` 返回 `null` ⇒ `▶`（U+25B6，用户说的「三角形」）消失。前置勾选框 `ledger_checkbox.dart:111-120` 的 `○/✓` **不动**。
+
+**诉求 2（已完成降饱和）**
+
+- 四态 token 落点：明色 `theme_tokens.dart:424`、暗色 `:220` 的 `slotDone`。
+- 只改 `slotDone`，**不动** `slotPlan` / `slotBackfill` / `slotHabit`；改后对比度仍须 ≥ 4.5:1（WCAG AA）并报出实测比值。
+- **先取证再改色**：Task 53 报告 §3 实测「已完成」芯片填充为 `#F3EEE4`（= `slotBackfill`）而非 `#F6F6F3`（= `slotDone`）⇒ 打勾后是否真取 `slotDone` 必须先坐实；若链路根本不取，须修链路或明确登记「未做 + 原因」，**不得以「已经很灰」交白卷**。
+
+**诉求 3（去浅灰横线）**
+
+- 对象已由像素侧坐实为 `LedgerPaper` 的 32px 规则线：`ledger_paper.dart:15-38 LedgerRulePainter`（`color.withValues(alpha: 0.055)`、`for (double top = LedgerPaper.ruleHeight - 1; top < size.height; top += LedgerPaper.ruleHeight)`），`ruleHeight = 32`（`:64`），两处包裹 `:115-118`（无头）/ `:143-146`（有头）。
+- 实测（`probe54.py j5`，`53-base-1468.png` 2520×1468，STRIP x=453..2318，BEST_X=465）：`LINE_ROWS=87` / `LINE_BANDS=23`，其中 band0..band20 共 **21 条严格等距** `y=233,289,…,1353`、间距 **56 设备 px = 32 逻辑 px × 1.75**、色 `#EDECE6`、`dev=9`；末尾 band21/22 属底部区域非规则线。`BANDS_STRONG=0` / `BANDS_FAINT=23` ⇒ **`J5=LEDGER_RULES_ONLY`**：网格小时线完全不可见，用户看到的浅灰横线就是这批规则线。
+- 实现取向：删 `LedgerRulePainter` 类 + `ruleHeight` 常量 + 两处 `CustomPaint` 包裹；版面（`padding` `:52`、`maxWidth` `:58/:61`、`bodyKey` `:67`、`pinnedHeader`、滚动结构）**逐字不变**。
+- `shell_ledger_shell_test.dart:56-62` 现断言「横线必须是 `CustomPaint` + `painter is LedgerRulePainter` ⇒ `findsOneWidget`」，须改写为「此类规则线绘制器不存在」（`findsNothing`，用 `runtimeType.toString()` 以免引用已删类型），**不删用例**。
+- **不列为修改对象**：day grid 网格/小时线、`hair` spine（已实测不可见/非本诉求语义）。
+
+---
+
+### 54.3 54.B 写集表（R1：独占路径，worker 只写自己那一行）
+
+| worker | 可写文件 | 诉求 |
+|---|---|---|
+| W4-A | `apps\desktop\lib\src\widgets\timeline\day_grid.dart`（仅 `tailGlyph` 白名单收窄 + 紧邻注释，约 `:780-787`）；`apps\desktop\test\timeline_day_grid_test.dart`；新建 `apps\desktop\test\task54_no_tail_triangle_test.dart` | 诉求 1 |
+| W4-B | `apps\desktop\lib\src\theme\theme_tokens.dart`（明 `:424` / 暗 `:220` 的 `slotDone`）；`apps\desktop\test\theme_tokens_dark_test.dart`；`apps\desktop\test\timeline_contrast_test.dart`；`apps\desktop\test\task51_blank_cell_test.dart`；新建 `apps\desktop\test\task54_done_desaturate_test.dart` | 诉求 2 |
+| W4-C | `apps\desktop\lib\src\widgets\shell\ledger_paper.dart`；`apps\desktop\test\shell_ledger_shell_test.dart` | 诉求 3 |
+
+三者写集互不重叠 ⇒ 可并行。**W4-A 禁碰** `slot_state.dart` / `theme_tokens.dart` / `ledger_paper.dart` / `packages\**`；**W4-B 禁碰** `day_grid.dart` / `ledger_paper.dart` / `packages\**`；**W4-C 禁碰** `today_pinned_date_bar_test.dart`（若变红只报原文，由控制器补 allowlist 或另判）。三者一律禁碰 `AGENTS.md`、`handoff.md`、`progress.md`、`docs\**`、计划文件。
+
+**控制器写集（54.A + 收口）**：`reports\task53-accept-report.md`、`reports\task54-accept-report.md`、`reports\task54-accept\**`（装置与日志）、`reports\task51-gate.ps1`（allowlist，判定逻辑一字不改）、计划文件、`handoff.md` §57、`progress.md`、`docs\B1_验收记录.md`、`AGENTS.md`。
+
+**门禁白名单已补 3 条**（`reports\task51-gate.ps1`）：`apps/desktop/lib/src/widgets/shell/ledger_paper.dart`、`apps/desktop/test/shell_ledger_shell_test.dart`、`apps/desktop/test/task54_*.dart`。实测 `9008 B → 9158 B`（+150 = 3×50 B）、`CRLF=218`、`LFONLY=0`、`LINECOUNT=219`、无 BOM。
+
+**54.3 实测补记（2026-11-21，控制器；上表是派工时的计划，本节是落地后的真实写集）**
+
+- **W4-A 实际未新建 `task54_no_tail_triangle_test.dart`**：就地改写 `apps\desktop\test\timeline_day_grid_test.dart`（`:494` 用例名、`:516-519` `glyph: null`、`:683-692` 互异断言 → `_tailGlyphs(backfillId)` `isEmpty` + habit `●` 正向仍绿）。理由：同一断言只该跑一次，新建文件会与既有用例重复覆盖。该文件用例数 `+19` 不变。
+- **W4-D 追加派工**（翻 Task 53 反向断言，原「`▶` 必须保留」已因需求变更失效）：写集 `apps\desktop\test\task53_chip_glyph_test.dart`，仅 `:219` 用例名、`:256` `contains` → `isNot(contains)`、`:257` reason；改前改后 `BYTES=10239` 同尺寸、`+3` 全绿。
+- **W4-E 追加派工**（诉求 2 链路缺口，由 W4-B 自报引出）：写集 `apps\desktop\lib\src\widgets\timeline\slot_state.dart`（`GridEntry.isDone` 可选命名参数 / `completed` getter / `gridEntriesOf` 传 `isDone:`）、`apps\desktop\lib\src\widgets\timeline\day_grid.dart`（新增纯函数 `fillOfSlot` + `:612` 渲染点换用）、`apps\desktop\test\task54_done_desaturate_test.dart`（扩到 `+8`）。红/绿双向自证：把 `:612` 临时退回 `colorOfSlotKind` ⇒ 判别用例红（`Expected #EBEBE5` / `Actual #F3EEE4`），恢复后全绿。
+- **门禁白名单因此再补 1 条** `apps/desktop/lib/src/widgets/timeline/slot_state.dart`：`reports\task51-gate.ps1` 实测 `9158 B → 9218 B`（+60 = 1 行 58 字符 + CRLF 2）、`CRLF=219`、`LFONLY=0`、`LINECOUNT=220`（无尾换行）、`SLOT_HITS=1`、静态解析 `PARSE_ERRORS=0`、无 BOM；**判定逻辑一字未改**。
+- **写集归属复核**：`git status --porcelain` 共 23 条路径，`packages/` 命中 **0**；`apps/` 与台账路径逐条落在白名单内 ⇒ 预期 `VIOLATIONS=0` / `OUT_OF_SET=0`。
+
+---
+
+### 54.4 复选框清单（只有控制器能打勾，R6 等长替换）
+
+- [x] 54.4a 54.A 偏差 1 落盘：§2.3 改三条断言 + 三控制组判别力自证
+- [x] 54.4b 54.A 偏差 2 落盘：§4.4 chip 条数据源码标签为真值 + 三种算法失败下界
+- [x] 54.4c W4-A 交付：诉求 1（尾部 `▶` 消失、`●` 保留、`glyphOfSlotKind` 未改）+ 新测试绿
+- [x] 54.4d W4-B 交付：诉求 2（`slotDone` 降饱和、链路已取证、对比度 ≥ 4.5）+ 新测试绿
+- [x] 54.4e W4-C 交付：诉求 3（规则线消失、版面逐字不变）+ `shell_ledger_shell_test.dart` 改写
+- [x] 54.4f 门禁：desktop analyze 逐字 `No issues found!` + desktop test = 625 + 本轮新增用例数（不增不减）+ core_data 204 / core_db 71 / core_domain 62 + `VIOLATIONS=0` + `OUT_OF_SET=0`
+- [x] 54.4g 出货：`-Stage build`（**不是** ship）→ makensis → 覆盖装机；`app.so` sha16 必须变化；`release\` exe 计数 43 → 44；旧包作废口径同步
+- [x] 54.4h 真机复验 3 条：① 标题尾部无 `▶` ② 已完成填充色 = 降饱和后的 `slotDone` 且与未完成可区分 ③ `J5=NONE`（规则线消失）
+- [x] 54.4i 台账同步：`handoff.md` §57、`progress.md`、`docs\B1_验收记录.md`、`AGENTS.md` R3 真源行 + 计数 + §7 快照
+
+---
+
+### 54.5 收口顺序（硬顺序，不得跳步）
+
+1. 三个 worker 回后**逐个**核 `git status --porcelain -- apps packages` 与测试结果，确认写集归属、无越界。
+2. 控制器合账 → `reports\task54-accept-report.md`（含 54.A 两节改写）。
+3. 全量门禁：**先** `Move-Item` 挪走 `apps\desktop\build\test_cache\build`（否则 OS Error 183 挂死）。
+4. 出货：`reports\task51-ship.ps1 -Stage build` → 再 `-Stage ship`（**ship 不含编译**，Task 53 已踩出假包）。
+5. 装机 → 真机取帧：先跑 `reports\task29-desktop-check.ps1` 得 `VERDICT=ON_DEFAULT_DESKTOP`；窗口按进程过滤 + **面积降序取最大**；`PrintWindow(hwnd,hdc,2)`。
+6. 台账三件 + 计划复选框（等长替换 + 重测 sha16）。
+
+---
+
+## Task 55 · 中英对照警句库 + 日期条下方随机一句
+
+### 55.1 诉求（用户 2026-11-21 当轮原话，两条；除指名项目路径的引导段外全文照录）
+
+> 1. 建立一个名人警句、谚语的数据库，数量超过400条，要求有意义，和提升能力、境界相关，或你来制作和success相关的警句。要求中英文对照。
+> 2. 在主页面的日期页下，随机显示一句，句子居中显示，右侧有一个刷新按钮，点击可以随机另外显示一条。在中文语言下，显示中英文对照；在英语环境下，只显示英文。如句子较长，一行无法完整显示，则从右向左滚动显示。
+
+### 55.2 落点与设计裁决（控制器实读源码，非转述）
+
+**插入点**
+
+- `apps\desktop\lib\src\pages\today_page.dart:119-178` 是 `_TodayBody.build` 的唯一 `Column`。日期条**不在**本列：它是壳的吸顶头（`widgets\shell\ledger_shell.dart` 的 `pinnedHeader`，坐在滚动区之外），`today_page.dart:123-125` 的既有注释已把这件事写明。⇒ 用户说的「日期页下」= **本列第一位**，不是「`DayGrid` 之后」。
+- 落法（新增两行 + 一处注释改写）：
+
+  ```text
+  SizedBox(gapCard)  →  QuoteBanner()  →  [notice banner 若有]  →  SizedBox(gapCard)  →  DayGrid(...)
+  ```
+
+- 其余 children 顺序**逐字不动**（`UnscheduledStrip` / `_HandwrittenDivider` / `_AddPlanItemBar` / `ReviewSection` / `MoodSection` 一律不碰）。
+- `today_page.dart:114` 既注释「横幅贴在日期条下方」——警句插到它上面后该说法失真，**只改这一行注释**，notice 逻辑与 provider 一字不动。
+
+**语言从哪里读**
+
+- 唯一真源是 `L10nScope.of(context)`（`l10n\l10n_scope.dart:34`，缺失即抛错、不回落中文）。
+- 但 `AppLocalizations`（`l10n\app_localizations.dart:67-97`）现在**不暴露语言**，widget 拿不到「现在是中文还是英文」。裁决：给抽象类加 `AppLanguage get language;`，由 `_AppLocalizationsZh` / `_AppLocalizationsEn` 各实现一行。
+- **不动** 9 个 `parts\*.dart` mixin、**不动** `l10n_keys.dart`、**不动** `test\l10n_harness.dart` ⇒ 不触发 `test\l10n_base_test.dart` 的「条数与 getter 数一致」用例。
+
+**数据落点与形态**
+
+- 新目录 `apps\desktop\lib\src\data\`。`quote.dart` 只放值类型：
+
+  ```dart
+  class Quote {
+    const Quote({required this.en, required this.zh});
+    final String en;
+    final String zh;
+  }
+  ```
+
+- 数据按主题拆成 3 个文件（便于并行生成 + 便于审计分类计数），`quotes.dart` 只做聚合：
+  `const List<Quote> kQuotes = <Quote>[...kQuotesMastery, ...kQuotesCharacter, ...kQuotesSuccess];`
+- 目标 **450 条**（下限 400）。**不显示作者**：本轮没有归属校验装置，把作者名摆上界面等于把「可能伪造的归属」当事实交付；用户要的是句子本身。（作者信息一律不入库，避免「存了但没校验」的无主数据。）
+- 主题分配（互斥，降低重复率）：A = 能力 / 技艺 / 刻意练习 / 学习求知；B = 境界 / 心性 / 格局 / 取舍 / 价值观；C = 成功 / 坚持 / 行动 / 失败复盘 / 专注与时间。
+- 硬约束（由 `task55_quotes_data_test.dart` 逐条钉死）：`en`、`zh` 均非空且 `trim` 后非空；`en` 不含 CJK 字符；`zh` 至少含 1 个 CJK 字符；`en` 去重、`zh` 去重（大小写 + 空白归一后比较）；单条 `en` ≤ 200 字符、`zh` ≤ 80 字符；总数 ≥ 400，且每个主题文件 ≥ 120。
+- 语体要求：真谚语 / 真名言 / 公版格言，中英互译忠实；**不收录**断章取义、需要上下文才成立的句子；宁可少一条，不要凑一条重复的。
+
+**组件形态**
+
+- 新建 `widgets\marquee_line.dart` → `class MarqueeLine`（**public**，测试用 `find.byType` 直取）：
+  - `LayoutBuilder` 取 `constraints.maxWidth`；`TextPainter` 按传入 `style` + `MediaQuery.textScalerOf(context)` 量宽（本项目有 `ACTLOG_TEXT_SCALE` 证据口径，量宽必须走真实 textScaler）。
+  - `measured <= maxWidth` ⇒ 居中静态 `Text`，**单副本、无动画**。
+  - `measured > maxWidth` ⇒ `ClipRect` + `AnimationController.repeat()` + `Transform.translate`；内容 = **两副本 + 48 逻辑 px 间隔**，位移右→左，速度 **40 逻辑 px/s**（`duration = (measured + 48) / 40` 秒）⇒ 首尾无缝。
+  - `MediaQuery.disableAnimations == true` ⇒ 走静态分支（裁剪不滚），`didChangeDependencies` 重判。
+  - 文本或宽度变化 ⇒ 停旧控制器、重算、重开（不得复用旧 duration 造成跳帧）。
+- 新建 `widgets\quote_banner.dart` → `QuoteBanner({List<Quote>? quotes, int? initialIndex, Random? random})`：
+  - `quotes` 缺省 `kQuotes`；`initState` 定 `_index = initialIndex ?? random.nextInt(n)`；纯 `StatefulWidget`（**不读 provider**）⇒ 页面其它 provider 变化不会重掷。
+  - 刷新：`n > 1` 时取 `(i + 1 + rnd.nextInt(n - 1)) % n`（数学上**保证换到不同条目**）；`n == 1` 时不动。
+  - 中文态 = 两行（en 上、zh 下），两行各自独立判溢出；英文态 = 一行 en。
+  - 版面：`Stack` —— 底为 `Padding(horizontal: 36)` 内的居中列，右侧 28×28 刷新钮（`Icons.refresh`，hover 提亮）。**无卡片底、无分隔线**（Task 54 刚按用户诉求删掉 32px 规则线，不得再引入任何横向浅灰线）。颜色一律 `context.tokens`（`ink2` / `meta` / `faint`），**禁写静态色值**。
+  - **不新增 l10n key**；若 `l10n_keys.dart` 已有 refresh 语义键则复用为 tooltip，否则不加 tooltip（在报告里记一行）。
+
+**测试（新增用例是门禁基线上的净增量，不许改旧用例的期望）**
+
+- `test\task55_quotes_data_test.dart`：总数 ≥400 / `en` 非空 / `zh` 非空 / `en` 唯一 / `zh` 唯一 / `en` 无 CJK / `zh` 含 CJK / 长度上限 / 三主题各 ≥120。
+- `test\task55_marquee_line_test.dart`：短文本 ⇒ 单副本 + 无动画；长文本 ⇒ 双副本 + 动画在跑；`disableAnimations` ⇒ 静止。
+- `test\task55_quote_banner_test.dart`：中文态 en+zh 同现；英文态中文串 `findsNothing`；点刷新后文本变化且不等于旧值；`initialIndex` 定初值。
+- 合计预期 `+15` 左右；**门禁期望值 = 633 + 实测新增数**（由 worker 报数、闸门实测复核），**不允许低于 633**。
+
+### 55.3 写集表（R1：独占路径，worker 只写自己那一行）
+
+| worker | 可写文件 | 交付 |
+|---|---|---|
+| W55-0 | `apps\desktop\lib\src\data\quote.dart`（新建） | `Quote` 值类型 = 数据契约，先落地供三路数据 worker 编译 |
+| W55-A | `apps\desktop\lib\src\data\quote_set_mastery.dart`（新建） | ≥140 条：能力 / 技艺 / 练习 / 学习 |
+| W55-B | `apps\desktop\lib\src\data\quote_set_character.dart`（新建） | ≥140 条：境界 / 心性 / 格局 / 取舍 |
+| W55-C | `apps\desktop\lib\src\data\quote_set_success.dart`（新建） | ≥140 条：成功 / 坚持 / 行动 / 复盘 / 专注 |
+| W55-D | `apps\desktop\lib\src\data\quotes.dart`（新建，纯聚合）；`apps\desktop\lib\src\widgets\marquee_line.dart`（新建）；`apps\desktop\lib\src\widgets\quote_banner.dart`（新建）；`apps\desktop\test\task55_marquee_line_test.dart`（新建）；`apps\desktop\test\task55_quote_banner_test.dart`（新建） | 数据聚合 + 两个组件 + 两份测试 |
+| W55-E | `apps\desktop\lib\src\l10n\app_localizations.dart`（仅加 `language` getter 3 处）；`apps\desktop\lib\src\pages\today_page.dart`（仅 import + children 插入 + notice 注释一行）；`apps\desktop\test\task55_quotes_data_test.dart`（新建） | 语言出口 + 页面集成 + 数据完整性测试 |
+
+- **顺序硬约束**：`W55-0 → (W55-A ‖ W55-B ‖ W55-C 并行) → W55-D → W55-E`。理由：D 的 `quotes.dart` 要聚合三个集合文件；E 的页面集成要 `QuoteBanner` 存在。**A/B/C 之间互不引用**，因此可真并行。
+- A/B/C **禁止**跑 `flutter test` 与 `flutter analyze`（三路并发会抢 `.dart_tool` 缓存与 `build\test_cache`，本项目已多次踩 OS Error 183）；只允许对自己那一个文件跑 **一次** `dart analyze <该文件>`，失败原文照报、不重试第二轮。全量 analyze 与全量 test 由 D/E 单线执行。
+- 全体禁碰：`packages\**`、`apps\desktop\lib\src\widgets\timeline\**`、`theme\theme_tokens.dart`、`widgets\shell\ledger_paper.dart`、`l10n\parts\**`、`l10n\l10n_keys.dart`、`test\l10n_harness.dart`、`test\l10n_base_test.dart`、`AGENTS.md`、`handoff.md`、`progress.md`、`docs\**`、计划文件、`reports\**`。
+- **控制器写集**：`reports\task55-*`（审计脚本 / 取帧装置 / 报告）、`reports\task51-gate.ps1`（只补 allowlist 行，判定逻辑一字不改）、计划文件、`handoff.md`、`progress.md`、`docs\B1_验收记录.md`、`AGENTS.md`。
+
+### 55.4 复选框清单（只有控制器能打勾，R6 等长替换）
+
+- [x] 55.4a W55-0 交付：`quote.dart` 的 `Quote` 契约（含 `///` 文档注释）落地
+- [x] 55.4b W55-A/B/C 交付：三主题合计 ≥400（目标 450）条双语警句，去重与长度约束自查通过
+- [x] 55.4c W55-D 交付：`kQuotes` 聚合 + `MarqueeLine`（短句静、长句右→左滚）+ `QuoteBanner`（中英双行 / 英文单行 / 刷新必换）+ 两份新测试绿
+- [x] 55.4d W55-E 交付：`AppLocalizations.language` + `today_page.dart` 日期条下方首块集成 + 数据完整性测试绿
+- [x] 55.4e 控制器审计：`reports\task55-quote-audit.ps1` 实测条数 / 去重 / 分类计数 / 长度上界，结论落 `reports\task55-accept-report.md`
+- [x] 55.4f 门禁：四包 analyze 逐字 `No issues found!` + desktop = 633 + 本轮新增（不增不减）+ core_data 204 / core_db 71 / core_domain 62 + `VIOLATIONS=0` + `OUT_OF_SET=0`
+- [x] 55.4g 出货：`reports\task51-ship.ps1 -Stage build` → `-Stage ship`；`data\app.so` sha16 变化；`release\` exe 计数 44 → 45
+- [x] 55.4h 真机：日期条下方居中警句可见（中英双行）+ 点刷新换句（两帧文本不同）+ 长句右→左滚动（两帧位移差实测）
+- [x] 55.4i 台账同步：`handoff.md` §58、`progress.md`、`docs\B1_验收记录.md`、`AGENTS.md` R3 真源行 + 计数 + §7 快照
+
+### 55.5 收口顺序（硬顺序，不得跳步）
+
+1. 每路 worker 回后**逐个**核 `git status --porcelain -- apps packages`：写集必须与本表逐行对齐，`packages/` 命中必须为 0。
+2. 控制器跑数据审计脚本（条数 / 唯一性 / 分类计数 / 超长条目点名），不合规就打回对应 worker 补数据，**不自行改 `apps\**`**。
+3. 门禁前**先** `Move-Item` 挪走 `apps\desktop\build\test_cache\build`（否则 OS Error 183 挂死）。
+4. 出货：`-Stage build` → 再 `-Stage ship`（**ship 不含编译**，Task 53 已踩出假包）；判重编看 `data\app.so` 的 mtime + sha16，**不看** `actlog.exe` mtime。
+5. 装机 → 取帧：先 `reports\task29-desktop-check.ps1` 得 `VERDICT=ON_DEFAULT_DESKTOP`；`Stop-Process` 掉安装器留下的托盘进程；按进程过滤 + 面积降序取最大窗；`PrintWindow(hwnd,hdc,2)`；回读 PNG 尺寸。取两帧（刷新前后）判「换句」，长句另取两帧判位移。
+6. 台账三件 + 计划复选框（等长替换 + 重测 sha16）。
+
+---
+
+## Task 56 · 项目页（多项目 / 多任务 / 甘特图）+ 排期自动入待办 + 去掉底部重复快捷键条
+
+### 56.1 诉求（用户 2026-11-22 当轮，三条；照录要点）
+
+1. 完善项目页面：可添加**多个项目**；每个项目下可添加 **1~多个任务**；添加后以**甘特图**形式显示。
+2. 项目任务按对应日期**排期**时，**自动进入待办事项列表**，并可**添加到主页面计划**。
+3. 去除页面**底部重复**的快捷键列表（**右侧栏那份保留**）。
+
+### 56.2 口径裁决与落点（控制器实读源码，非转述）
+
+**A. 甘特图口径 = 零 schema 变更（裁决已定，不新增表）**
+
+- `packages\core_db\lib\src\tables.dart:615-670` 的 `project` 表**已有 `start_date` / `end_date`**（`docs\schema_v1.sql:302-303` 一致）⇒ **项目横条是真实起止区间**，不需要新表。
+- `tables.dart:675-724` 的 `project_milestone` 有 `project_id` / `title` / `target_date` ⇒ **任务按「对应日期」单日排期**，与用户原话逐字吻合；用户未要求任务自身有起止区间。
+- ⇒ 结论：**项目条 = `project.start_date..project.end_date`（真实区间）**；**任务块 = `project_milestone.target_date` 当天**。
+- 为什么不改 schema：① `packages\**` 任何改动都被 `reports\task51-gate.ps1:179` 判 `PACKAGES_TOUCHED` 失败；② 新表须同步改 `packages\core_db\test\schema_consistency_test.dart:51/58-63`、`tools\gates\g3_schema_check.mjs:33-37/61`、`tools\gates\g3_migration.ps1:169-173/290` + drift codegen（`connection.g.dart`），成本与收益不成比例；③ `docs\schema_v1.sql` 已 FROZEN。
+- **本条取代 2026-11-22 发出的「甘特图口径」问卷**（单日排期 / 新表存真实起止 / 自动铺排三选项）—— 证据已足以定案，不再等回复。
+
+**B. 数据访问层 = 桌面层直写 drift 表（零 `packages\` 改动）**
+
+- 既有先例：`apps\desktop\lib\src\data\timeline_store.dart:36-41` 已持 `ActLogRepositories`，并用 `repos.db` + `repos.oplog.writeWithOplog` 直写 `plan_item` / `todo` / `habit_checkin`。
+- `oplog_writer.dart:37-50` 的同步白名单**已含** `project` / `project_milestone` / `project_increment` ⇒ 新写这三张表天然可同步，不需改白名单。
+- ⇒ 新建 `apps\desktop\lib\src\data\project_store.dart`：`listProjects()` / `listMilestones(projectId)` / `createProject(...)` / `createMilestone(...)` / `setMilestoneTargetDate(...)`；写入口一律走 `repos.oplog.writeWithOplog`；id / 时间戳 / `originDeviceId` / `rev` 复用桌面层既有助手，**不得另造一套 ID 规则**。
+
+**C. 诉求 2 链路（排期 ⇒ 待办池 ⇒ 主页计划）**
+
+- `Todo.projectId` FK 已存在（`packages\core_domain\lib\src\entities.dart:494`）⇒ 排期后写一条 `todo`：`status='open'` / `due_date = milestone.target_date` / `project_id = <projectId>` / `title = milestone.title`。
+- 待办池取数 = `repos.todo.listOpen()`（`apps\desktop\lib\src\data\repositories.dart:777-788`；provider `providers_p1.dart:81-83`），**只按 `status='open'`、不按日期过滤** ⇒ 新写入的 open todo **自动出现**，不需改取数逻辑。
+- 「添加到主页面计划」= `repos.todo.pullToPlan(todo.id, date)`（`repositories.dart:871-927`）⇒ 写 `plan_item` + `source_todo_id` + 字段快照；主页计划本体 = `today_page.dart:141` 的 `DayGrid` + `:143` 的 `UnscheduledStrip`。
+- 注意：**两条入计划路径语义不一致**（`createFromTodo` 会把 todo 置 done，`pullToPlan` 不置）—— 本轮**只走 `pullToPlan`**，不改 `createFromTodo`。
+
+**D. 甘特图组件**
+
+- 新建 `apps\desktop\lib\src\widgets\gantt_chart.dart`（纯 `CustomPaint` / `Row` + `Container`，**零新依赖**，遵守 `docs\task40\项目页规划.md` 的零依赖纪律）。
+- 横轴 = 日期列（可视区间取项目 `start_date..end_date` 与任务 `target_date` 的并集）；纵轴 = 项目行（每项目一条横条 + 其任务块）。
+- 任务块落在 `target_date` 所在列；`target_date` 为 null 的任务**不画块**（不臆造日期），在项目行内以「未排期」计数占位显示。
+- 颜色一律取 `context.tokens`，**禁写静态色值**；深浅色主题都要可用。
+
+**E. 项目页落点与接线**
+
+- 新建 `apps\desktop\lib\src\pages\projects_page.dart`（`class ProjectsPage`）：**不自建 `Scaffold` / `AppBar`**；根 `mainAxisSize: min` 的 `Column`（参照 `pages\about_page.dart:89-95`）。
+- 导航接线：`widgets\shell\nav_rail.dart:37` 的 `projects` 项 `enabled: false → true`；`app.dart:337-340` 的 `_content()` 增 `'projects' => const ProjectsPage()`。
+- 快捷键：`app.dart:237-244` 现有 `Ctrl+1..4`，新增 `Ctrl+5` → 项目页；`widgets\shell\key_bar.dart:39-47` 的 `kShellKeyHints` 同步补 `Ctrl+5`。
+- **顺手修既有文案 bug**：`key_bar.dart:46` 写的是 `Ctrl+1…3`，而实际绑定是 `Ctrl+1…4`（`app.dart:237-244`）⇒ 一并改正为 `Ctrl+1…4`，`test\shell_key_hints_test.dart:67` 同步（该用例锁死了旧文案）。
+
+**F. 诉求 3 落点（底部重复快捷键条）**
+
+- 底部快捷键列表 = `KeyBar`（定义 `widgets\shell\key_bar.dart:98-129`；装配 `widgets\shell\ledger_shell.dart:137` 窄屏 / `:182` 宽屏）。
+- 右侧栏那份 = `KeyHintList`（`key_bar.dart:167-212`；装配 `ledger_shell.dart:93-97`，标题「快捷键」）⇒ **保留不动**。
+- 两者共用 `kShellKeyHints`（`key_bar.dart:39-47`）⇒ 删底部装配即可；`key_bar.dart` 里的类与常量**不删**（右轨与左导航底注仍在用），**但该文件的文案修正属 W56-B 写集**。
+- 连带测试：`test\ledger_dock_test.dart:130/137/160/170` 与 `test\shell_ledger_shell_test.dart:73/82`（`find.text('Ctrl+N')` 期望 2 → 改 1）随删除同步。
+- 连带真机判据：`AGENTS.md:193` 的「键条 7 条真机帧」原为**底部键条**取证（`reports\task25-keybar-frame.ps1` / `task25-keybar-judge.ps1`，期望 `LABELS_OK=7/7`）⇒ 删底部后必须重定 ROI 到右轨 `KeyHintList`（控制器只改取帧 ROI，不改判据语义）。
+
+### 56.3 写集表（R1：独占路径，worker 只写自己那一行）
+
+| worker | 可写文件 | 交付 |
+|---|---|---|
+| W56-A | `apps\desktop\lib\src\widgets\shell\ledger_shell.dart`（**仅**删底部 `KeyBar` 装配 2 处：`:137` / `:182`）；`apps\desktop\test\ledger_dock_test.dart`；`apps\desktop\test\shell_ledger_shell_test.dart` | 诉求 3：底部快捷键条去除，右侧栏 `KeyHintList` 原样保留 |
+| W56-B | `apps\desktop\lib\src\data\project_store.dart`（新建）；`apps\desktop\lib\src\pages\projects_page.dart`（新建）；`apps\desktop\lib\src\widgets\gantt_chart.dart`（新建）；`apps\desktop\lib\src\l10n\parts\projects.dart`（新建）；`apps\desktop\lib\src\l10n\app_localizations.dart`；`apps\desktop\lib\src\l10n\l10n_keys.dart`；`apps\desktop\lib\src\app.dart`；`apps\desktop\lib\src\widgets\shell\nav_rail.dart`；`apps\desktop\lib\src\widgets\shell\key_bar.dart`；`apps\desktop\lib\src\pages\todo_pool_page.dart`；`apps\desktop\test\task56_projects_test.dart`（新建）；`apps\desktop\test\task56_gantt_test.dart`（新建）；`apps\desktop\test\shell_key_hints_test.dart` | 诉求 1 + 2：项目页 / 甘特图 / 排期自动入待办 / 加入主页计划 / 导航与 `Ctrl+5` 接线 |
+| W56-C | `reports\task56-realrun-capture.ps1`（新建）；`reports\task56-realrun\**`（PNG / OCR dump / 播种回读 / 日志） | 真机取证：装机产物取今日页帧 + 项目页帧（`Ctrl+5`）+ OCR dump + 沙盒播种（直读 drift 表）；**禁碰 `apps\**` / `packages\**` / 任何既有源码 / 计划文件 / 台账** |
+
+- W56-A 与 W56-B **可并行**（写集零交集）；但**均禁止**跑全量 `flutter test` / `flutter analyze`（并发抢 `.dart_tool` 与 `build\test_cache`，本项目已多次踩 OS Error 183）；各自只允许对自己那一组文件跑一次 `dart analyze`（失败原文照报、不重试第二轮）。全量 analyze 与全量 test 由控制器单线执行。
+- **追加写集（控制器 2026-11-22 裁决，W56-B 独占）**：`apps\desktop\test\l10n_base_test.dart`、`apps\desktop\test\l10n_harness.dart`、`apps\desktop\test\shell_key_bar_test.dart`、`apps\desktop\test\nav_shortcut_test.dart`、`apps\desktop\test\shell_nav_rail_test.dart`。理由：新增 17 条 l10n getter（`byGetter` 89 → 106）、键条 7 → 8 条、新增 `Ctrl+5`、项目导航启用 —— 四项语义变更必然波及这些既有断言；**改断言，不许删用例、不许放宽断言**。W56-B 首轮**没有**擅自改这 5 个文件（守住了写集纪律），由控制器裁决后追加，判据为「既有断言必须跟随语义更新」，不是「为了变绿而放松」。
+- **全体禁碰**：`packages\**`、`apps\desktop\lib\src\widgets\timeline\**`、`apps\desktop\lib\src\theme\theme_tokens.dart`、`apps\desktop\lib\src\widgets\shell\ledger_paper.dart`、`apps\desktop\lib\src\l10n\parts\**`（**W56-B 除外**：独占 `parts\projects.dart`）、`apps\desktop\lib\src\l10n\l10n_keys.dart`（**W56-B 除外**）、`apps\desktop\lib\src\data\repositories.dart`、`apps\desktop\test\l10n_harness.dart`（**W56-B 除外**：见上）、`apps\desktop\test\l10n_base_test.dart`（**W56-B 除外**：见上）、`AGENTS.md`、`handoff.md`、`progress.md`、`docs\**`、计划文件、`reports\**`、`tools\**`。
+- **控制器写集**：`reports\task56-*`（**W56-C 除外**：独占 `reports\task56-realrun*`）、`reports\task51-gate.ps1`（只补 allowlist 行，判定逻辑一字不改）、`reports\task25-keybar-judge.ps1` / `reports\task25-keybar-frame.ps1`（如需把键条 ROI 重定到右轨）、计划文件、`handoff.md`、`progress.md`、`docs\B1_验收记录.md`、`docs\task40\项目页规划.md`、`AGENTS.md`。
+
+### 56.4 复选框清单（只有控制器能打勾，R6 等长替换）
+
+- [x] 56.4a W56-A 交付：底部 `KeyBar` 装配两处删除 + 两个测试文件期望同步（`find.text('Ctrl+N')` 2 → 1）
+- [x] 56.4b W56-B 交付：`project_store.dart` 读写全部走 `repos.oplog.writeWithOplog`（不直插裸 SQL）
+- [x] 56.4c W56-B 交付：`projects_page.dart` + `gantt_chart.dart`（零新依赖、`context.tokens` 取色）
+- [x] 56.4d W56-B 交付：排期写 `todo`（`status='open'` + `due_date` + `project_id`）⇒ 待办池自动可见
+- [x] 56.4e W56-B 交付：待办池「加入主页计划」→ `pullToPlan` → `plan_item` → `DayGrid` 可见
+- [x] 56.4f W56-B 交付：`nav_rail` `enabled: true` + `app.dart` 路由 + `Ctrl+5` 接线 + 键条文案 `Ctrl+1…4` 修正 + l10n 三处登记（`parts\projects.dart` + `l10n_keys.dart` 含 `byGetter` + mixin 注册）
+- [x] 56.4g 门禁：逐包 analyze 逐字 `No issues found!` + desktop = 649 + 本轮新增（不增不减）+ core_data 204 / core_db 71 / core_domain 62 + `VIOLATIONS=0` + `OUT_OF_SET=0`
+- [x] 56.4h 出货：`reports\task51-ship.ps1 -Stage build` → `-Stage ship`；`data\app.so` sha16 变化；R3 唯一可分发包更新（`release\` 其余 exe 禁分发）
+- [x] 56.4i 真机：项目页可见多项目 + 甘特图块 + 排期后待办池出现 + 加入计划后主页出现 + 底部键条消失（重定 ROI 到右轨后 `LABELS_OK=8/8`）
+  - **56.4i（真机帧判读）= 已判定 PASS（五项全通）**：锁屏解除后重做真机取证，五项逐条拿到像素级证据。① **项目页可见多项目 + 甘特图块**：run8 `reports\task56-gantt-pixels-run8.txt` ⇒ `DB_PROJECTS=2` / `BLOCKS_PASS=5 BLOCKS_TOTAL=5` / `VERDICT=GANTT_BLOCKS_MATCH_DB`；run9 严格聚类判 `FAIL_GANTT_BLOCKS` 属「相邻两天两块像素连成 84px 单簇」的聚类口径局限，补写 `reports\task56-gantt-adjacent-check.py` 逐期望块覆盖核验 ⇒ `EXPECTED_BLOCKS=5 COVERED=5` / `VERDICT=ALL_EXPECTED_BLOCKS_COVERED`（任务A/测试待办被 796..879 单簇覆盖，任务B 933..970、任务C 1069..1107、任务D 1297..1334）。② **排期后待办池出现**：realrun8 池页帧实测「1 条 待捞」+「测 试 待 办」行。③ **加入主页计划后主页出现**：realrun9c `reports\task56-home-plan-judge.txt` ⇒ `TITLE_MID_ITEM=537,572 137x18 ratio=0.75 | 氵 则 试 待 办 未 分 级`（中栏 x=537 < 1990，命中未排期带标题芯片）+ 同帧 `HOME_MARK_ITEM=1141,320 ratio=1.0` + `PLAN_ROW_OK=1 TODO_ROW_OK=1 LINK_OK=1` ⇒ `VERDICT=PLAN_ITEM_VISIBLE_ON_HOME`；右轨 `x=2055` 同名 todo 单独统计不计入。④ **底部重复快捷键条消失**：`reports\task56-keybar-judge-run9.txt` ⇒ `RAIL_LABELS_OK=8/8` / `BOTTOM_BAND_LABEL_HITS=0` / `FRAME_MAX_BOTTOM=1426` / `BOTTOM_BAND_TOP=1386` / `BOTTOM_BAND_ITEMS=2`（底部只剩 `.nav-foot`「页面切换 Ctrl+1…5」）⇒ `VERDICT=KEYBAR_ONLY_IN_RIGHT_RAIL`。⑤ **收口前缺陷已修**：`apps\desktop\lib\src\pages\projects_page.dart` 排期/改期成功后未 `ref.invalidate(todoPoolProvider)` ⇒ 同会话待办池不刷新（「加入主页计划」按钮不存在）；worker 补 `:116` / `:134` 两处 invalidate + 新增 `apps\desktop\test\task56_todo_pool_refresh_test.dart`（2 例），判别性实证：注释掉两处 ⇒ `+0 -2` 双红、恢复 ⇒ `+2` 全绿。**取证前提（如实登记）**：为让未排期带芯片进入首屏视口，仅在**沙盒**改产品自带设置 `daily_start_hour=6` / `daily_end_hour=9`（`reports\task56-realrun9c-settings.py` ⇒ `WINDOW_KEYS_OK=2/2` / `VERDICT=WINDOW_SET`），未改产品代码、未写用户真实库；默认 06:00–24:00 窗口下未排期带位于 20:00 之下（y>1400），需滚动可见。realrun9 的 `home2/home3` 滚动帧误切到「习惯」页，**作废**不计证据。帧源 `reports\task56-realrun9c\home{,2,3}.png`（2520×1468），桌面守卫 `VERDICT=ON_DEFAULT_DESKTOP`。
+
+- [x] 56.4j 台账同步：`handoff.md` §59、`progress.md`、`docs\B1_验收记录.md`、`docs\task40\项目页规划.md`（作废「甘特图 / 依赖图 = 明确不做」）、`AGENTS.md` §7 快照
+
+### 56.5 收口顺序（硬顺序，不得跳步）
+
+1. worker 回后**逐个**核 `git status --porcelain -- apps packages`：写集必须与 56.3 表逐行对齐，`packages/` 命中必须为 0。
+2. 门禁前**先** `Move-Item` 挪走 `apps\desktop\build\test_cache\build`（否则 OS Error 183 挂死）。
+3. 出货：`-Stage build` → 再 `-Stage ship`（**ship 不含编译**，Task 53 已踩出假包）；判重编看 `data\app.so` 的 mtime + sha16，**不看** `actlog.exe` mtime。
+4. 装机 → 取帧：先 `reports\task29-desktop-check.ps1` 得 `VERDICT=ON_DEFAULT_DESKTOP`；按进程过滤 + 面积降序取最大窗；`PrintWindow(hwnd,hdc,2)`；回读 PNG 尺寸。
+5. 键条判据：`AGENTS.md:194` 的「键条 7 条真机帧」改为对**右轨**取证后仍须 `LABELS_OK=8/8`（控制器只改 ROI / 取帧脚本，不改判据语义；Task 56 收口实测 `RAIL_LABELS_OK=8/8` / `BOTTOM_BAND_LABEL_HITS=0`）。
+6. 台账三件 + 计划复选框（等长替换 + 重测 sha16）。
+---
+
+## §57 Task 57 · 项目页 P1 批次（L1 排期联动 + L3 推进联动 + 里程碑到期标记）
+
+### 57.0 用户当轮决定与范围
+
+2026-11-22 用户拍板：Task 57 = `docs\task40\项目页规划.md` §7 的 **P1 批次**，共三项：
+
+1. **L1 排期联动**（规划 §4.1）—— 项目详情写「下一步动作」直接成为指定日 `plan_item`，写 `source_type='project'` + `source_id=<project.id>`；来源为某条增量时写 `source_type='increment'` + `source_id=<increment.id>`。**不得**借用 `source_todo_id`。
+2. **L3 推进联动**（规划 §4.3）—— 复盘 → `project_increment` **只追加**一条；连续 3 天无增量在今日页右轨 `LoopHintPanel` 给**温和**停滞提示（不得红色警告，关闭按日期粒度抑制）；若当日 `plan_item` 已指向该项目则同时写 `project_increment.plan_item_id`。
+3. **里程碑到期标记**（规划 §7 P1 第二条）—— `target_date` 到期未达成时，在清单行给一天不显眼的标记，**不弹窗**。
+
+作废的其余三选项（本轮问卷已被上述回答关闭）：B 挂账清理轮 / C 未排期带视口修补 / D `plan_item.project_id` 强关联（D 触及 `packages\` schema，须独立立项）。
+
+**硬约束**：零 schema 变更；`packages\**` 改动数必须为 **0**（`reports\task51-gate.ps1:199` 判 `PACKAGES_TOUCHED`）；`docs\schema_v1.sql` 保持 FROZEN。
+
+### 57.1 控制器预检实测事实（2026-11-22 当场回读，非文档转述）
+
+| 事实 | 证据 |
+|---|---|
+| `PlanSourceType` 已含 `project('project')` / `increment('increment')` ⇒ L1 无需改 `packages\` | `packages\core_domain\lib\src\*.dart`（Task 56 轮实测） |
+| `project_increment` 三列 `progress`/`blockers`/`next_step` 为 NOT NULL DEFAULT ''；`plan_item_id` FK **ON DELETE SET NULL**；索引 `idx_project_increment_project_date` / `_date` | `docs\schema_v1.sql:343-362` |
+| **`project_increment` 在 `apps\desktop\lib` 下 0 命中** ⇒ 无现成仓储，增量读写本轮新建 | 本轮 `grep 'project_increment\|ProjectIncrement\|addIncrement'` on `apps\desktop\lib` = `No matches found` |
+| `LoopHintPanel` 已存在且已装配 ⇒ 停滞提示**不新建面板** | `apps\desktop\lib\src\pages\today_page.dart:903`；`apps\desktop\lib\src\app.dart:405` |
+| **项目内无 `SharedPreferences` / 偏好存储机制** ⇒ L3 抑制态不得引入新依赖、不得建表 | 本轮 `Select-String 'SharedPreferences\|shared_preferences\|SettingsStore\|app_prefs\|localStorage'` on `apps\desktop\lib\src\**\*.dart` = 空 |
+| 既有 `onDismiss:` 唯一命中在 `today_page.dart:133` ⇒ 若该处已是「按日期抑制」实现，L3 **必须复用**，不另造第二套 | 本轮 `Select-String 'dismiss\|suppress\|hintClosed\|closedDate'` |
+| `reports/` 被 gitignore ⇒ 改 `reports\task51-gate.ps1` 不进 git status、不触发 `OUT_OF_SET` | 本轮 `git check-ignore -v reports/task51-gate.ps1` → `.gitignore:46:reports/` |
+| 复盘 `_fields` 实为 **3 项**（学到了什么 / 做得好 / 待改进），规划 §4.3 所称「6 个字段」与源码不符 ⇒ **以源码为准**，映射见 57.2 裁决③ | `apps\desktop\lib\src\widgets\review_section.dart:12-17,37-40` |
+| `l10n\parts\` 现有 10 个分片：about/calendar/common/dialog/domain/habit/projects/settings/timeline/today | 本轮 `Get-ChildItem apps\desktop\lib\src\l10n\parts` |
+| `lib\src\data\` 现有 6 个文件：project_store / quote_set_character / quote_set_mastery / quote_set_success / quote / quotes | 本轮 `Get-ChildItem apps\desktop\lib\src\data` |
+
+### 57.2 控制器口径裁决（优先级：用户当轮决定 > 本节 > 规划文档正文）
+
+**① L3 抑制态不跨重启持久（已知边界，必须如实登记）。** 零 schema 变更 + 项目内无偏好存储机制 ⇒ 关闭态只能存进程内存（`Set<String>`，元素形如 `'$projectId|$yyyy-MM-dd'`）。这**满足**规划 §4.3 判据字面（「关闭后当日不再出现，按日期粒度抑制，不是永久关闭」），但**不满足跨重启**。收口时必须写进 `docs\B1_验收记录.md` 与 handoff 的「未判定 / 已知边界」段，**不得**写成「已持久化」。
+
+**② 增量仓储落在 `project_store.dart`，不新建 data 文件。** 理由：写集最小化；且 `project_increment.plan_item_id` 的关联写需要与 `plan_item` 同视角，拆文件会引入跨文件耦合。
+
+**③ 复盘 → 增量字段映射（以源码 3 字段为准）。**
+- `progress` ← 「做得好」+「学到了什么」拼接后的**派生摘要**（各取首句或前 N 字），UI 必须标注这是「摘录」，原文仍在 `day_log`；
+- `blockers` ← 「待改进」中不可控的部分；无法判别时写空串（列 NOT NULL DEFAULT ''，空串合法）；
+- `next_step` ← 「待改进」中可控的下一步动作；同上。
+
+规划 §4.3 引用的「不可控的事 / 下一步可控动作」两个字段**在源码 `_fields` 里不存在** ⇒ **不得**为此改 `review_section.dart` 的 `_fields` 结构（那会动既有 UI 契约与测试）。若 worker 实读发现 `_fields` 实含更多字段，以实读为准并在交付报告写明 `file:line`。
+
+**④ L1 的 `plan_item` 插入必须复用既有唯一路径**，不得在 `project_store.dart` 里另写一套 INSERT。参照 `apps\desktop\lib\src\widgets\timeline\timeline_store.dart:349`（`required String sourceType`）、`:373`（`'source_type': sourceType`）、`:381`（`sourceType: Value(sourceType)`）。
+
+**⑤ 两处入计划入口共用同一函数**（规划 §4.2 风险条）：项目详情头部 `＋ 排进今天`（`source_type='project'`）与增量行 `→ 今天`（`source_type='increment'`）必须走**同一个** store 方法，只 `sourceType` / `sourceId` 两个入参不同。分叉实现 = 不合格。
+
+**⑥ `source_id` 是裸文本、无 FK 约束** ⇒ 项目删除一律**软删**（`deleted_at`），读取时 join 过滤 `deleted_at IS NULL`（规划 §4.1 风险条）。
+
+**⑦ 里程碑到期标记「不显眼」的硬口径**：只用 `context.tokens` 里既有的弱化色（次级文本色 / 边框色），**不新增色值**、**不用红色**、**不弹窗**、**不加动画**。逾期判定 = `target_date < today && 未达成`；**当天到期不算逾期**（与规划「给一天不显眼的标记」一致）。
+
+**⑧ 颜色纪律**：一律取 `context.tokens`，禁写静态色值，不新增色值。
+
+**⑨ 壳纪律不破例**：项目详情仍走壳内二级状态 `_selectedProjectId`，**不新增** `MaterialApp.routes` 分支（`app.dart:150-160`）；页面不自建 `Scaffold` / `AppBar`，根是 `mainAxisSize: min` 的 `Column`。
+
+**⑩ 增量不可编辑**：写错只能追加更正记录，不提供编辑入口（规划 §6.2）。
+
+**⑪ 空态必须是动作**：无增量时给「写第一条增量」，不写「暂无数据」（规划 §6.4）。
+
+### 57.3 写集表（Task 57 独占路径 · 与 Task 56 及历轮写集不重叠冲突）
+
+| # | 路径 | 归属 | 允许的改动 |
+|---|---|---|---|
+| W1 | `apps\desktop\lib\src\data\project_store.dart` | worker | L1 排期写入方法（共用唯一入口）+ `listByProject(projectId)`（封装 `source_type IN ('project','increment')` 的 SQL，只写一次）+ 增量 append/list + 停滞项目派生查询 + 里程碑逾期派生 |
+| W2 | `apps\desktop\lib\src\pages\projects_page.dart` | worker | 项目详情头部 `＋ 排进今天`、增量流每行 `→ 今天`、增量录入表单（空态为动作）、里程碑清单行逾期标记 |
+| W3 | `apps\desktop\lib\src\widgets\review_section.dart` | worker | 复盘区底部 `→ 记到项目`（仅有 active 项目时出现）；**不改 `_fields` 结构** |
+| W4 | `apps\desktop\lib\src\pages\today_page.dart` | worker | `LoopHintPanel`（`:903`）内承载温和停滞提示 + 按日期粒度抑制；优先复用 `:133` 既有 `onDismiss` 机制 |
+| W5 | `apps\desktop\lib\src\widgets\timeline\timeline_store.dart` | worker | 仅为复用 `plan_item` 插入路径所需的最小改动（若可零改动复用则不改） |
+| W6 | `apps\desktop\lib\src\l10n\parts\projects.dart` / `...\parts\today.dart` / `...\l10n_keys.dart` | worker | 新增文案 getter；**只增不改既有键**（改既有键会连锁打破 `l10n_base_test.dart` 的计数锁定） |
+| W7 | `apps\desktop\test\task57_*.dart` | worker | 新增测试（见 57.4 判据） |
+| W8 | `apps\desktop\test\` 既有文件 | worker | **仅**当新增 l10n getter 导致锁定计数变化时才改（`l10n_base_test.dart` / `l10n_harness.dart` / `today_loop_hint_panel_test.dart` / `today_review_layout_test.dart` / `task56_projects_test.dart`）；改动只能是计数/期望值同步，**不得删断言** |
+| W9 | `reports\task57-*` | worker + 控制器 | 证据、门禁日志、真机帧、交付报告（gitignored） |
+| C1 | `reports\task51-gate.ps1` | **控制器** | 追加 Task 57 allowlist 条目（gitignored，不进 status） |
+| C2 | `docs\superpowers\plans\2026-11-07-b1-flutter-implementation.md` | **控制器** | 本节 §57 + 收口后等长打勾 |
+| C3 | `docs\B1_验收记录.md` / `.superpowers\sdd\...\handoff.md` / `...\progress.md` / `AGENTS.md` / `docs\task40\项目页规划.md` | **控制器** | 台账六件 |
+
+**worker 不得触碰**：`packages\**`（任何一行）、`docs\schema_v1.sql`、`release\**`、C1–C3 全部台账、以及 W1–W9 之外的任何文件。若实现确实需要写集外文件，**必须停下并在交付报告里写明「需要追加：<路径> + 理由」**，由控制器显式追加一行后留档，**不得擅自改**。
+
+### 57.4 验收判据（复选框清单 · 只有控制器能打勾，等长替换 `- [ ] ` → `- [x] `）
+
+- [x] **57.4a L1 写对指针**：点 `＋ 排进今天` 后 `plan_item` 新增一行，`source_type` 逐字 `'project'`、`source_id` == `project.id`；点增量行 `→ 今天` 后 `source_type` 逐字 `'increment'`、`source_id` == `increment.id`；两者 `source_todo_id` 均为 NULL。
+- [x] **57.4b L1 单一入口**：两条入口经同一 store 方法（测试断言函数级，或代码走查给出 `file:line`）；今日页 `DayGrid` 里条目正常出现（key 形如 `day-grid-entry-${entry.id}`）。
+- [x] **57.4c L1 删除不级联**：从方格删除该条目后，`project` 与 `project_increment` 的行**均未被删**（指针单向）。
+- [x] **57.4d L3 只追加**：任意操作路径下 `project_increment` 既有行 `updated_at` 不变；无编辑入口。
+- [x] **57.4e L3 停滞判定**：`today - max(increment.date) >= 3` 时提示出现，`< 3` 时不出现；提示**非红色警告**、文案温和；关闭后当日不再出现（按日期粒度抑制）。
+- [x] **57.4f L3 关联写**：当日已有指向该项目的 `plan_item` 时，新增增量行的 `plan_item_id` 被正确写入；无则写 NULL。
+- [ ] **57.4g L3 摘要有标注**：增量存的是派生摘要，UI 明确标注「摘录」，可点回 `day_log` 原文。
+- [x] **57.4h 里程碑逾期标记**：`target_date < today && 未达成` 时清单行出现不显眼标记；当天到期不标；已达成不标；**无弹窗、无红色、无新增色值**。
+- [x] **57.4i 门禁**：`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0`；四包 `ANALYZE=VERBATIM`（逐字 `No issues found!`）；desktop 测试数 == 新基线（666 + 本轮新增），core_data 204 / core_db 71 / core_domain 62 不变。
+- [ ] **57.4j 出货 + 真机**：`-Stage build`（`BUILD_EXIT=0`）→ `-Stage ship`（`SHIP_VERDICT=PASS` / `INSTALL_EXIT=0`）两阶段；新包 sha16 **不同于** `921B99F73EC52BC3`；装机 `data\app.so` 的 mtime/sha16 == 构建树 `app.so`；真机帧坐实三项 UI 落点（项目详情两枚按钮 / 复盘 `→ 记到项目` / `LoopHintPanel` 停滞提示）。取帧前先过 `task29-desktop-check.ps1` 与 `LogonUI` 检查。
+- [x] **57.4k 台账闭合**：`docs\B1_验收记录.md` + `handoff.md` §62 + `progress.md` + `AGENTS.md` §7 快照 + `docs\task40\项目页规划.md` §7 P1 标为已落地；已知边界①（抑制态不跨重启）如实登记；独立 verifier（≠ 实现者会话）复核。
+
+### 57.5 收口顺序（硬顺序，不得跳步）
+
+1. 控制器实读源码预检（**已完成**，见 57.1）→ 2. 写本节 §57（**已完成**）→ 3. 控制器改 `reports\task51-gate.ps1` 追加 allowlist → 4. 拼派工书 `reports\task57-dispatch.md` → 5. 派 worker（单 worker 串行：L1 → L3 → 里程碑标记，因三者共用 `project_store.dart`，写集重叠**不可并行**）→ 6. worker 自跑 `flutter analyze` + `flutter test` 至绿 → 7. 控制器亲跑门禁单轮全量（**跑前必须先 `Move-Item` 挪走 `apps\desktop\build\test_cache\build`**，否则 OS Error 183 挂死）→ 8. 出货两阶段 → 9. 装机 + 真机取帧判据 → 10. 台账六件 + 等长打勾 → 11. 独立 verifier 复核 → 12. 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。

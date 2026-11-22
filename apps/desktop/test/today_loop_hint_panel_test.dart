@@ -27,6 +27,8 @@ import 'package:actlog/src/theme/app_tokens.dart';
 import 'package:actlog/src/widgets/loop_progress_ring.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 
 /// 与 `loop_progress_ring_ridge_test.dart` 同口径：5px 轨道。
@@ -95,12 +97,14 @@ final class _Harness {
         container: container,
         // 面板清单必须显式注入：`LedgerShell.railPanels` 默认空列表，
         // 不传的话右轨只剩「快捷键」，本用例会假红。
-        child: MaterialApp(
-          home: Builder(
-            builder: (BuildContext context) => LedgerShell(
-              content: const TodayPage(),
-              currentNavId: 'today',
-              railPanels: todayRailPanels(context),
+        child: l10nScope(
+          MaterialApp(
+            home: Builder(
+              builder: (BuildContext context) => LedgerShell(
+                content: const TodayPage(),
+                currentNavId: 'today',
+                railPanels: todayRailPanels(context),
+              ),
             ),
           ),
         ),

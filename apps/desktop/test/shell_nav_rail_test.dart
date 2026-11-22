@@ -113,14 +113,13 @@ void main() {
     expect(find.text('页面切换'), findsOneWidget);
   });
 
-  testWidgets('只有「项目」是禁用态：今日 / 待办池 / 习惯 / 日历 / 设置五项都可点',
+  testWidgets('六项都可点：「项目」不再是禁用态（Task 56 起有真实落点）',
       (WidgetTester tester) async {
     final List<String> tapped = <String>[];
     await _pumpNav(tester, onSelected: tapped.add);
 
-    // Task 39 指令 7 起「设置」启用 ⇒ 5 个可点项各一个 InkWell；
-    // 禁用项不渲染任何点击控件。
-    expect(find.byType(InkWell), findsNWidgets(5));
+    // Task 56 起「项目」也启用 ⇒ 6 个可点项各一个 InkWell。
+    expect(find.byType(InkWell), findsNWidgets(6));
 
     await tester.tap(find.text('待办池'));
     await tester.pump();
@@ -139,19 +138,18 @@ void main() {
     await tester.pump();
     expect(tapped, <String>['inbox', 'habits', 'calendar', 'settings']);
 
-    for (final String disabled in <String>['项目']) {
-      await tester.tap(find.text(disabled));
-      await tester.pump();
-    }
+    // 项目页现在也有真实落点（Task 56）。
+    await tester.tap(find.text('项目'));
+    await tester.pump();
     expect(
       tapped,
-      <String>['inbox', 'habits', 'calendar', 'settings'],
-      reason: '唯一仍禁用的「项目」不得触发选中',
+      <String>['inbox', 'habits', 'calendar', 'settings', 'projects'],
+      reason: '「项目」已启用，必须触发选中',
     );
 
-    // 禁用项用弱文字色，不用 ink；「习惯」已是可点项，非当前页走 meta。
-    final Text disabledLabel = tester.widget<Text>(find.text('项目'));
-    expect(disabledLabel.style?.color, ThemeTokens.light.faint);
+    // 可点项（非当前页）走 meta 色，不再是禁用态的 faint。
+    final Text projectsLabel = tester.widget<Text>(find.text('项目'));
+    expect(projectsLabel.style?.color, ThemeTokens.light.meta);
     final Text habitsLabel = tester.widget<Text>(find.text('习惯'));
     expect(habitsLabel.style?.color, ThemeTokens.light.meta);
   });
@@ -248,9 +246,9 @@ void main() {
     expect(find.text('页面切换'), findsOneWidget);
     expect(find.widgetWithText(KeyCap, 'Ctrl'), findsOneWidget);
     expect(find.widgetWithText(KeyCap, '1'), findsOneWidget);
-    // B2（2026-11-12 T10）：习惯页落地后 `Ctrl+1…4` 全有落点；
-    // 导航只剩项目 / 设置两项禁用 ⇒ 键帽由 '3' 同步为 '4'。
-    expect(find.widgetWithText(KeyCap, '4'), findsOneWidget);
+    // B2（2026-11-12 T10）：习惯页落地后 `Ctrl+1…4` 全有落点，键帽由 '3' 同步为 '4'；
+    // Task 56 起「项目」也落地（`Ctrl+5`），底注随之同步为 `Ctrl+1…5`。
+    expect(find.widgetWithText(KeyCap, '5'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // 底注外层是一个 `Wrap`；组内还有嵌套 `Wrap`，所以按「直接子项里有

@@ -10,10 +10,13 @@ import 'tool_rail.dart';
 ///
 /// 结构（标准 / 宽屏，`>= 1280`）：
 /// ```
-/// Row[ 导航 214, Expanded( Column[ Expanded( Row[ 账页, 右轨 290, (宽屏) 第三栏 286 ] ), (可选) dock 行, 快捷键条 ] ) ]
+/// Row[ 导航 214, Expanded( Column[ Expanded( Row[ 账页, 右轨 290, (宽屏) 第三栏 286 ] ), (可选) dock 行 ] ) ]
 /// ```
-/// 底线：底部快捷键条与 `dock` 行都是**列里的兄弟**，不是浮层 —— 严禁
-/// `Stack` + `Positioned` 叠在正文上，否则正文最后一行会被条压住。
+/// 快捷键清单只有一份：渲染在右轨的「快捷键」面板里（`KeyHintList`）。
+/// 底部快捷键条已按 Task 56 诉求③删除，壳层底部不再有第二份重复提示。
+///
+/// 底线：`dock` 行是**列里的兄弟**，不是浮层 —— 严禁 `Stack` + `Positioned`
+/// 叠在正文上，否则正文最后一行会被行压住。
 ///
 /// 窄屏（`< 1280`）：导航折叠成顶栏横排，右轨落到账页下方、与正文同一滚动区。
 ///
@@ -67,12 +70,16 @@ class LedgerShell extends StatelessWidget {
   /// 宽屏第三栏面板；为空时宽屏也不渲染第三栏（不占位空栏）。
   final List<ShellRailPanel> secondaryRailPanels;
 
-  /// 底部快捷键条内容。
+  /// 快捷键清单内容：渲染在右轨的「快捷键」面板里（`KeyHintList`）。
+  ///
+  /// 底部快捷键条已按 Task 56 诉求③删除，这份清单不再在壳层底部出现第二份。
   final List<ShellKeyHint> keyHints;
 
-  /// 快捷键条之上的全宽独立布局行（今日页放习惯打卡条）。
+  /// 壳层最底部的全宽独立布局行（今日页放习惯打卡条）。
   ///
-  /// 与快捷键条同级、同在滚动区之外：结构上不可能遮挡正文最后一行。
+  /// 与账页同一列、同在滚动区之外：结构上不可能遮挡正文最后一行。
+  /// 底部快捷键条已按 Task 56 诉求③删除：快捷键清单只在右轨的「快捷键」面板
+  /// （`KeyHintList`）里出现一份，壳层底部不再有第二份全宽提示行。
   /// 为 `null` 时整行不渲染（不占位、不留空白），例如待办池与日历页。
   final Widget? dock;
 
@@ -134,7 +141,6 @@ class LedgerShell extends StatelessWidget {
           ),
         ),
         ?dock,
-        KeyBar(key: const Key('shell-keybar'), hints: keyHints),
       ],
     );
   }
@@ -179,7 +185,6 @@ class LedgerShell extends StatelessWidget {
                 ),
               ),
               ?dock,
-              KeyBar(key: const Key('shell-keybar'), hints: keyHints),
             ],
           ),
         ),

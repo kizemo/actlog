@@ -5,7 +5,8 @@
 // 打卡入口整体搬到「习惯」页（`lib/src/pages/habits_page.dart`）。
 //
 // 本文件因此从「守住那一行的几何」改为守住三件事：
-// ① 壳层底部只剩快捷键条一行：键条贴视口底边，它下面不再有第二个布局行；
+// ① 壳层底部**不再有**快捷键条那一行（Task 56 诉求③：底部那份删掉、右轨那份保留）：
+//    账页下沿直接贴住视口底边，它下面不再有第二个布局行；
 // ② 任何页面（今日 / 待办池 / 日历 / 未来日）都不再挂 `HabitCheckinStrip`；
 // ③ 打卡能力没丢：习惯页的复选框仍走真库（`upsertCheckin` / `deleteCheckin`），
 //    不放内存假态。
@@ -23,6 +24,8 @@ import 'package:actlog/src/widgets/habit_checkin_strip.dart';
 import 'package:actlog/src/widgets/ledger_checkbox.dart';
 import 'package:actlog/src/widgets/shell/key_bar.dart';
 import 'package:actlog/src/widgets/shell/nav_rail.dart';
+
+import 'l10n_harness.dart';
 
 const String _today = '2026-11-09';
 const String _future = '2026-11-12';
@@ -56,7 +59,7 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: ShellHost()),
+        child: l10nScope(const MaterialApp(home: ShellHost())),
       ),
     );
   }
@@ -113,7 +116,7 @@ Finder _navItem(String label) => find.descendant(
 );
 
 void main() {
-  testWidgets('壳层底部只有快捷键条一行：键条贴视口底边，打卡条不在', (tester) async {
+  testWidgets('壳层底部没有快捷键条那一行：账页贴视口底边，打卡条不在', (tester) async {
     _useWideSurface(tester);
     final harness = _Harness.create();
     await harness.addDailyHabit('晨间写作');
@@ -124,18 +127,28 @@ void main() {
     expect(find.byType(HabitCheckinStrip), findsNothing);
     expect(find.text(HabitCheckinStrip.headTitle), findsNothing);
 
-    // ② 键条就是列的最后一行：下沿落在视口底边，下面没有任何布局行。
-    final Rect keyBarRect = tester.getRect(find.byType(KeyBar));
+    // ② Task 56 诉求③：底部快捷键条已删除 —— 壳层列里不再有那一行，
+    // 账页下沿直接落到视口底边（下面没有任何布局行）。
     expect(
-      keyBarRect.bottom,
-      moreOrLessEquals(_viewportBottom(tester), epsilon: 0.5),
-      reason: '键条没有贴住视口底边 ⇒ 它下面还压着一行（`dock` 槽位没清干净）',
-    );
-    expect(
-      find.ancestor(of: find.byType(KeyBar), matching: find.byType(Scrollable)),
+      find.byType(KeyBar),
       findsNothing,
-      reason: '键条必须在滚动区之外，否则滚正文时它会跟着走',
+      reason: '底部快捷键条必须删除（快捷键清单只在右轨出现）',
     );
+    expect(
+      find.byKey(const Key('shell-keybar')),
+      findsNothing,
+      reason: '壳层不得再装配底部键条（`shell-keybar`）',
+    );
+    expect(
+      tester.getRect(find.byKey(const Key('shell-ledger-paper'))).bottom,
+      moreOrLessEquals(_viewportBottom(tester), epsilon: 0.5),
+      reason: '键条删除后账页下沿必须贴住视口底边 ⇒ 它下面没有多出一行',
+    );
+
+    // ③ 右轨那份「快捷键」清单必须保留：底部删了，右轨还在。
+    expect(find.byType(KeyHintList), findsOneWidget);
+    expect(find.text('快捷键'), findsOneWidget);
+    expect(find.text('Ctrl+N'), findsOneWidget);
 
     await _flushTimers(tester);
   });
@@ -155,9 +168,14 @@ void main() {
     expect(find.byType(HabitCheckinStrip), findsNothing);
     expect(find.text(HabitCheckinStrip.headTitle), findsNothing);
     expect(
-      tester.getRect(find.byType(KeyBar)).bottom,
-      moreOrLessEquals(_viewportBottom(tester), epsilon: 0.5),
-      reason: '待办池页的键条同样必须贴底',
+      find.byType(KeyBar),
+      findsNothing,
+      reason: '待办池页同样不得出现底部快捷键条',
+    );
+    expect(
+      find.byType(KeyHintList),
+      findsOneWidget,
+      reason: '待办池页右轨仍须保留「快捷键」清单',
     );
 
     await tester.tap(_navItem('日历'));
@@ -165,9 +183,14 @@ void main() {
 
     expect(find.byType(HabitCheckinStrip), findsNothing);
     expect(
-      tester.getRect(find.byType(KeyBar)).bottom,
-      moreOrLessEquals(_viewportBottom(tester), epsilon: 0.5),
-      reason: '日历页的键条同样必须贴底',
+      find.byType(KeyBar),
+      findsNothing,
+      reason: '日历页同样不得出现底部快捷键条',
+    );
+    expect(
+      find.byType(KeyHintList),
+      findsOneWidget,
+      reason: '日历页右轨仍须保留「快捷键」清单',
     );
 
     await _flushTimers(tester);

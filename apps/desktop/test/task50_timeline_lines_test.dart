@@ -169,8 +169,8 @@ void main() {
         1,
         2,
       });
-      // 三段占满三条带后，每段净高 20（22 − 2px 缝），一屏一天仍读得完。
-      expect(three.segmentHeight(three.segments.first), closeTo(20, 1e-9));
+      // 三段占满三条带后，每段净高 18（22 − 2 × 2px 缝），一屏一天仍读得完。
+      expect(three.segmentHeight(three.segments.first), closeTo(18, 1e-9));
 
       final SlotLayout two = layoutSlots(_win, <GridEntry>[
         _entry('a', 9 * 60, 9 * 60 + 30),
@@ -382,12 +382,13 @@ void main() {
       expect(conflict.durationMinutes, 5);
       expect(conflict.containment, isFalse);
 
-      // 加深色是 ink 叠色（`day_grid.dart` 的 `_SlotPainter` 里 alpha 0.08），
+      // 加深色是 ink 叠色（`day_grid.dart` 的 `_SlotPainter` 里 alpha 0.05），
       // 方格区禁用赭石 —— 这里钉死「叠出来的颜色不等于 accent」。
+      // Task 51 · 诉求 3：四态底色整体变浅，叠色从 0.08 降到 0.05。
       final ThemeTokens tokens = painter.tokens as ThemeTokens;
-      final Color deep = tokens.ink.withValues(alpha: 0.08);
+      final Color deep = tokens.ink.withValues(alpha: 0.05);
       expect(deep, isNot(tokens.accent));
-      expect(deep.a, closeTo(0.08, 1e-6));
+      expect(deep.a, closeTo(0.05, 1e-6));
 
       await _flushTimers(tester);
     });

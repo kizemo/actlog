@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「89 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「106 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -341,10 +341,106 @@ abstract final class L10nKeys {
   static const String domainPriorityUnsetLabel = 'domain-priority-unset-label';
 
   // ---------------------------------------------------------------------------
+  // 项目页（parts\projects.dart，17 条）
+  // ---------------------------------------------------------------------------
+
+  /// 项目页标题。
+  static const String projectsTitle = 'projects-title';
+
+  /// 项目页副标题。
+  static const String projectsSubtitle = 'projects-subtitle';
+
+  /// 项目页空态。
+  static const String projectsEmpty = 'projects-empty';
+
+  /// 新建项目。
+  static const String projectsNewProjectAction = 'projects-new-project-action';
+
+  /// 项目名称提示。
+  static const String projectsNameHint = 'projects-name-hint';
+
+  /// 项目目标提示。
+  static const String projectsGoalHint = 'projects-goal-hint';
+
+  /// 开始日期提示。
+  static const String projectsStartHint = 'projects-start-hint';
+
+  /// 结束日期提示。
+  static const String projectsEndHint = 'projects-end-hint';
+
+  /// 任务标题提示。
+  static const String projectsTaskTitleHint = 'projects-task-title-hint';
+
+  /// 目标日期提示。
+  static const String projectsTargetDateHint = 'projects-target-date-hint';
+
+  /// 添加任务。
+  static const String projectsAddTaskAction = 'projects-add-task-action';
+
+  /// 改期。
+  static const String projectsRescheduleAction = 'projects-reschedule-action';
+
+  /// 未排期条数（`{n}` 占位符）。
+  static const String projectsUnscheduled = 'projects-unscheduled';
+
+  /// 项目下没有任务。
+  static const String projectsNoTask = 'projects-no-task';
+
+  /// 项目未设定起止日期。
+  static const String projectsNoDateRange = 'projects-no-date-range';
+
+  /// 甘特图无可排期日期。
+  static const String projectsEmptyChart = 'projects-empty-chart';
+
+  /// 项目页加载失败。
+  static const String projectsLoadFailed = 'projects-load-failed';
+
+  /// 项目整体排进今天（Task 57）。
+  static const String projectsScheduleTodayAction =
+      'projects-schedule-today-action';
+
+  /// 已排到某一天。
+  static const String projectsScheduledOn = 'projects-scheduled-on';
+
+  /// 增量区块标题。
+  static const String projectsIncrementTitle = 'projects-increment-title';
+
+  /// 无增量时的提交按钮。
+  static const String projectsIncrementEmptyAction =
+      'projects-increment-empty-action';
+
+  /// 增量「进展」提示。
+  static const String projectsIncrementProgressHint =
+      'projects-increment-progress-hint';
+
+  /// 增量「阻塞项」提示。
+  static const String projectsIncrementBlockersHint =
+      'projects-increment-blockers-hint';
+
+  /// 增量「下一步」提示。
+  static const String projectsIncrementNextStepHint =
+      'projects-increment-next-step-hint';
+
+  /// 追加增量按钮。
+  static const String projectsIncrementAddAction =
+      'projects-increment-add-action';
+
+  /// 把一条增量排进今天。
+  static const String projectsIncrementToTodayAction =
+      'projects-increment-to-today-action';
+
+  /// 增量只能追加。
+  static const String projectsIncrementAppendOnly =
+      'projects-increment-append-only';
+
+  /// 里程碑逾期标记。
+  static const String projectsMilestoneOverdue = 'projects-milestone-overdue';
+
+  // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（89 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// getter 名 → 键（117 条，覆盖 `AppLocalizations` 全部无参 String getter；
   /// 另有 2 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
@@ -444,6 +540,35 @@ abstract final class L10nKeys {
     'trayShow': shellTrayShow,
     'trayHide': shellTrayHide,
     'trayQuit': shellTrayQuit,
+    // 项目页 28 条（Task 56 的 17 条 + Task 57 的 11 条）
+    'projectsTitle': projectsTitle,
+    'projectsSubtitle': projectsSubtitle,
+    'projectsEmpty': projectsEmpty,
+    'projectsNewProjectAction': projectsNewProjectAction,
+    'projectsNameHint': projectsNameHint,
+    'projectsGoalHint': projectsGoalHint,
+    'projectsStartHint': projectsStartHint,
+    'projectsEndHint': projectsEndHint,
+    'projectsTaskTitleHint': projectsTaskTitleHint,
+    'projectsTargetDateHint': projectsTargetDateHint,
+    'projectsAddTaskAction': projectsAddTaskAction,
+    'projectsRescheduleAction': projectsRescheduleAction,
+    'projectsUnscheduled': projectsUnscheduled,
+    'projectsNoTask': projectsNoTask,
+    'projectsNoDateRange': projectsNoDateRange,
+    'projectsEmptyChart': projectsEmptyChart,
+    'projectsLoadFailed': projectsLoadFailed,
+    'projectsScheduleTodayAction': projectsScheduleTodayAction,
+    'projectsScheduledOn': projectsScheduledOn,
+    'projectsIncrementTitle': projectsIncrementTitle,
+    'projectsIncrementEmptyAction': projectsIncrementEmptyAction,
+    'projectsIncrementProgressHint': projectsIncrementProgressHint,
+    'projectsIncrementBlockersHint': projectsIncrementBlockersHint,
+    'projectsIncrementNextStepHint': projectsIncrementNextStepHint,
+    'projectsIncrementAddAction': projectsIncrementAddAction,
+    'projectsIncrementToTodayAction': projectsIncrementToTodayAction,
+    'projectsIncrementAppendOnly': projectsIncrementAppendOnly,
+    'projectsMilestoneOverdue': projectsMilestoneOverdue,
   };
 
   /// 列表型 getter 名 → 键（2 条；`byGetter` 只收 String getter）。

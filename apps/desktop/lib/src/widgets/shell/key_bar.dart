@@ -22,7 +22,7 @@ class ShellKeyHint {
 /// 口径（C7 / K1 / K2）：**每一条都必须有真实绑定，且行为与文案一致**——
 /// 留一条没有落点的提示就是假承诺，不允许。
 ///
-/// 7 条的绑定位置：
+/// 8 条的绑定位置：
 /// - `Ctrl+N` → 今日页的 `Shortcuts`（手写一条弹层）；
 /// - `Ctrl+D` → 同处（打卡第一条未打习惯）；
 /// - `←→` → 同处 `_ShiftDayIntent`（输入态自动让位给光标移动）；
@@ -30,7 +30,8 @@ class ShellKeyHint {
 /// - `Enter` → 今日计划**行级**焦点：打开「成果 / 进展」回填弹层；
 /// - `Esc` → Flutter 框架 `WidgetsApp` 默认快捷键 `escape → DismissIntent`，
 ///   弹层由 `ModalRoute` 处理 `DismissIntent` 关闭；
-/// - `Ctrl+1…3` → 壳宿主（`ShellHost`）的 `Shortcuts`：今日 / 待办池 / 日历。
+/// - `Ctrl+1…4` → 壳宿主（`ShellHost`）的 `Shortcuts`：今日 / 待办池 / 习惯 / 日历；
+/// - `Ctrl+5` → 同一处：项目页（Task 56 起有真实落点）。
 ///
 /// 文案口径（Task 20 / K3）：`Space` 写「勾选 / 取消勾选」，不写原型那种
 /// 「把这一行加进 / 拿出今日计划」的说法——本应用里这一行本来就在今日计划里，
@@ -43,7 +44,8 @@ const List<ShellKeyHint> kShellKeyHints = <ShellKeyHint>[
   ShellKeyHint(keys: <String>['Space'], label: '勾选 / 取消勾选'),
   ShellKeyHint(keys: <String>['Enter'], label: '展开回填'),
   ShellKeyHint(keys: <String>['Esc'], label: '关闭弹层'),
-  ShellKeyHint(keys: <String>['Ctrl+1…3'], label: '切页'),
+  ShellKeyHint(keys: <String>['Ctrl+1…4'], label: '切页'),
+  ShellKeyHint(keys: <String>['Ctrl+5'], label: '切到项目'),
 ];
 
 /// 键帽（等价原型 `kbd`）。

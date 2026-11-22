@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `StateProvider` 在 3.5.0 起只在 legacy.dart 导出（与 `providers.dart` 同口径）。
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../data/project_store.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
@@ -20,6 +21,7 @@ import '../widgets/loop_progress_ring.dart';
 import '../widgets/mood_section.dart';
 import '../widgets/priority_marks.dart';
 import '../widgets/quick_todo_dialog.dart';
+import '../widgets/quote_banner.dart';
 import '../widgets/review_section.dart';
 import '../widgets/section_card.dart';
 
@@ -111,7 +113,7 @@ class _TodayBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final minimal = log.mode == dayModeMinimal;
-    // 快捷键造成的状态变化要有可见回落（不许静默）：横幅贴在日期条下方。
+    // 快捷键造成的状态变化要有可见回落（不许静默）：警句横幅贴在日期条下方，其后是提示横幅。
     final notice = ref.watch(_todayNoticeProvider);
     // 未来日只可预排：打卡 / 回填 / 复盘 / 心态一律不开放（spec §H-1）。
     final future = date.compareTo(ref.watch(todayProvider)) > 0;
@@ -123,6 +125,8 @@ class _TodayBody extends ConsumerWidget {
         // 日期条**不在这里**：它是壳的吸顶头（`LedgerShell.pinnedHeader`），
         // 坐在滚动区之外。原先放在本列第一行 = 坐在滚动区里，往下一翻方格
         // 时间轴就跟着滚走，用户失去「现在看的是哪一天」这个锚点。
+        const SizedBox(height: AppTokens.gapCard),
+        const QuoteBanner(),
         if (notice != null) ...<Widget>[
           const SizedBox(height: 8),
           _NoticeBanner(
@@ -948,6 +952,108 @@ class LoopHintPanel extends ConsumerWidget {
           ),
         // 整块面板共用的一条刻度轴：只渲染一次，仍覆盖 0—100 全量程。
         const LoopTickAxis(key: axisKey),
+        // 停滞提示接在刻度轴下方：同属右轨「闭环提示」，但它是**项目侧**的
+        // 温和提醒，没有项目在停滞时整块不渲染（见 `_StallHints`）。
+        const _StallHints(),
+      ],
+    );
+  }
+}
+
+/// 停滞项目（连续 ≥3 天没有增量的 active 项目）。
+///
+/// 口径在 [ProjectStore.stalledProjects] 里，这里只做取数与失效。
+final FutureProvider<List<ProjectStall>> _stalledProjectsProvider =
+    FutureProvider.autoDispose<List<ProjectStall>>((ref) {
+      final String todayIso = ref.watch(todayProvider);
+      final repos = ref.watch(repositoriesProvider);
+      return ProjectStore(repos).stalledProjects(todayIso: todayIso);
+    });
+
+/// 今日已关闭的停滞提示，键 = `projectId|today`。
+///
+/// **只存进程内存**：`StateProvider` 的初值就是空集，不写库、不落盘 ⇒ 重启后
+/// 会重新提示。这是刻意的 —— 抑制只该管「今天别烦我」，不该变成永久静音。
+final StateProvider<Set<String>> _stallDismissedProvider =
+    StateProvider<Set<String>>((ref) => const <String>{});
+
+/// 右轨停滞提示（`LoopHintPanel` 尾部那一小段）。
+///
+/// 措辞走「想起它的时候再推一步」——温和提示，不是催办；关闭按**日期粒度**
+/// 抑制（`projectId|today`），第二天自动重新出现。
+class _StallHints extends ConsumerWidget {
+  const _StallHints();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final List<ProjectStall> rows =
+        ref.watch(_stalledProjectsProvider).asData?.value ??
+        const <ProjectStall>[];
+    if (rows.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final String todayIso = ref.watch(todayProvider);
+    final Set<String> dismissed = ref.watch(_stallDismissedProvider);
+    final List<ProjectStall> visible = rows
+        .where(
+          (ProjectStall stall) =>
+              !dismissed.contains('${stall.projectId}|$todayIso'),
+        )
+        .toList(growable: false);
+    if (visible.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final ThemeTokens tokens = context.tokens;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        const SizedBox(height: 10),
+        for (final ProjectStall stall in visible)
+          Padding(
+            key: ValueKey<String>('loop-hint-stall-${stall.projectId}'),
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  '「${stall.name}」${stall.daysSinceIncrement} 天没有增量了，'
+                  '想起它的时候再推一步。',
+                  style: _bodyStyle(
+                    size: 11.5,
+                    color: tokens.meta,
+                    tokens: tokens,
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    key: ValueKey<String>(
+                      'loop-hint-stall-dismiss-${stall.projectId}',
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () {
+                      ref.read(_stallDismissedProvider.notifier).state =
+                          <String>{...dismissed, '${stall.projectId}|$todayIso'};
+                    },
+                    child: Text(
+                      '今天不再提',
+                      style: _bodyStyle(
+                        size: 11,
+                        color: tokens.faint,
+                        tokens: tokens,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

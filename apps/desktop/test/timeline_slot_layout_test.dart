@@ -59,7 +59,7 @@ void main() {
       expect(layout.totalHeight, 792);
     });
 
-    test('单条 09:15 ⇒ 单车道，段顶按真实分钟落位（不吸附到行顶）', () {
+    test('单条 09:15 ⇒ 单车道，段顶贴行顶（Task 53 顶对齐，不再按分钟下沉）', () {
       final SlotLayout layout = layoutSlots(win, <GridEntry>[
         _entry('a', 9 * 60 + 15, 9 * 60 + 30),
       ]);
@@ -71,11 +71,35 @@ void main() {
       final SlotSegment seg = layout.segments.single;
       expect(seg.row, _row9);
       expect(seg.startMinute, 9 * 60 + 15);
-      // 15 分钟 = 0.25 行 = 11px；+1 与并发之前的 `clamp(22.0, ...)` 同源。
-      expect(layout.segmentTop(seg), closeTo(3 * 44 + 0.25 * 44 + 1, 1e-9));
-      expect(layout.segmentTop(seg), closeTo(144, 1e-9));
-      // 短段保底 22 再减 2px 缝 ⇒ 20（既有 `_expectMinTile` 的净高判据）。
-      expect(layout.segmentHeight(seg), closeTo(20, 1e-9));
+      // 纵向不再参与「起点分钟」的换算：段顶恒为行顶 + `kLaneContentInset`，
+      // 与多车道分支 lane 0 同源（Task 53 · 诉求 1）。
+      expect(
+        layout.segmentTop(seg),
+        closeTo(3 * 44 + kLaneContentInset, 1e-9),
+      );
+      expect(layout.segmentTop(seg), closeTo(134, 1e-9));
+      // 短段也一律封顶在车道净高 18（Task 51 · 诉求 2），不再保底 20。
+      expect(layout.segmentHeight(seg), closeTo(18, 1e-9));
+    });
+
+    test('Task 51 · 诉求 2：1 小时单车道段高一律 18，不再撑满整行 44', () {
+      final SlotLayout layout = layoutSlots(win, <GridEntry>[
+        _entry('a', 9 * 60, 10 * 60),
+      ]);
+
+      expect(layout.laneCounts[_row9], 1);
+      final SlotSegment seg = layout.segments.single;
+      // 行高仍是 44：格子本身没缩，只有「任务占位」被压矮。
+      expect(layout.rowHeights[_row9], kHourRowHeight);
+      expect(layout.totalHeight, kGridHeight);
+      expect(layout.segmentHeight(seg), 18);
+      expect(layout.segmentHeight(seg), kLaneContentHeight);
+      // 18 = 22 − 2 × 2：段比车道矮 4px，上下各露一条缝。
+      expect(layout.segmentHeight(seg), kLaneHeight - 2 * kLaneContentInset);
+      // 仍小于此前的 42（1 小时按真实跨度撑高）—— 这是本诉求的判别式。
+      expect(layout.segmentHeight(seg), lessThan(42));
+      // 封顶只改高度，起点仍贴行顶（Task 53 · 诉求 1：行内顶对齐）。
+      expect(layout.segmentTop(seg), closeTo(3 * 44 + kLaneContentInset, 1e-9));
     });
 
     test('yOfMinute / minuteAt 在等行高窗口里可逆', () {
@@ -110,9 +134,9 @@ void main() {
       // 两条必须落在**不同**车道，否则还是一层盖一层。
       expect(a.lane, isNot(b.lane));
       expect(<int>{a.lane, b.lane}, <int>{0, 1});
-      // 车道高 22、上下各留 1px 缝 ⇒ 段高 20、上下错开 22。
-      expect(layout.segmentHeight(a), closeTo(20, 1e-9));
-      expect(layout.segmentHeight(b), closeTo(20, 1e-9));
+      // 车道高 22、上下各留 2px 缝 ⇒ 段高 18、上下错开 22。
+      expect(layout.segmentHeight(a), closeTo(18, 1e-9));
+      expect(layout.segmentHeight(b), closeTo(18, 1e-9));
       expect(
         (layout.segmentTop(b) - layout.segmentTop(a)).abs(),
         closeTo(kLaneHeight, 1e-9),
@@ -218,8 +242,8 @@ void main() {
       // 宽度 = 覆盖列宽 − 左右各 2px 缝（沿用并发之前的 `left/right: 2`）。
       expect(earlyRect.width, closeTo(cell - 4, 1e-9));
       expect(lateRect.width, closeTo(cell - 4, 1e-9));
-      // 短条目不因窄而抬高度：15 分钟仍是净高 20。
-      expect(lateRect.height, closeTo(20, 1e-9));
+      // 短条目不因窄而抬高度：15 分钟仍是净高 18（Task 51 · 诉求 2：一律封顶）。
+      expect(lateRect.height, closeTo(18, 1e-9));
     });
   });
 
@@ -339,7 +363,7 @@ void main() {
       expect(d.isOverflow, isTrue);
       // 三条带的重叠分钟数都是 30 ⇒ 平局取编号最小的带，等价于「向上换带」。
       expect(d.lane, 0);
-      expect(layout.segmentHeight(d), closeTo(20, 1e-9));
+      expect(layout.segmentHeight(d), closeTo(18, 1e-9));
 
       // 需求 f：冲突有记录，且只记 guest 侧（a 不是 guest）。
       expect(layout.conflicts, hasLength(1));
