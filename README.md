@@ -1,92 +1,104 @@
-# 知行日志 · actlog
+[![English](https://img.shields.io/badge/Language-English-0078D4?logo=github)](README.md) [![中文](https://img.shields.io/badge/Language-%E4%B8%AD%E6%96%87-8A6D3B?logo=github)](README.zh-CN.md)
 
-> 把「目标 — 计划 — 执行 — 复盘」变成**每天可记录、事后可追溯**的日常数据。
+# Actlog · 知行日志
+
+> Turn "goal — plan — execute — review" into **daily data you can record today and trace back later.**
 
 [![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?logo=windows&logoColor=white)](#)
 [![Flutter](https://img.shields.io/badge/Flutter-3.47.9-02569B?logo=flutter&logoColor=white)](#)
 [![Dart](https://img.shields.io/badge/Dart-3.13.7-0175C2?logo=dart&logoColor=white)](#)
 [![CI](https://github.com/kizemo/actlog/actions/workflows/ci.yml/badge.svg)](https://github.com/kizemo/actlog/actions/workflows/ci.yml)
 
-**知行日志（actlog）** 是一个面向个人的 Windows 桌面效能工具。它以《高绩效人士的五项管理》为信息架构骨架，把「今天打算做什么、实际做了什么、事后复盘出什么」这三段事实**逐条落库**，让周复盘、月回看有数据可查，而不是凭记忆。
+**Actlog (知行日志)** is a personal Windows desktop productivity tool. It uses *The Five Management Disciplines* as its information-architecture backbone and stores three kinds of facts as **individual rows in a local database**: what you planned to do today, what you actually did, and what you concluded when reviewing the day. Weekly reviews and monthly look-backs then have data to read instead of memory to trust.
 
-**它不是又一个任务清单。** 任务清单只回答「做完没做完」；知行日志还要回答「占用了哪段时间」「结果写成什么」「心态在哪几个维度上失守」。
+**It is not yet another to-do list.** A to-do list only answers "did it get done?". Actlog also answers "which hours did it consume", "what was written down as the outcome", and "on which dimensions did my state of mind slip".
 
-- 本地 SQLite 是**唯一真相源**，离线是常态而不是降级；
-- **没有账号体系**，不需要注册、不上传、不联网也能用全部功能；
-- 同步按记录级 `oplog` 增量设计（写入层已就位，同步引擎属后续里程碑）。
+- The local SQLite database is the **single source of truth**; being offline is the normal case, not a degraded mode;
+- **No account system** — no sign-up, no upload, and every feature works with the network unplugged;
+- Sync is designed as a **record-level `oplog` delta** (the write layer is already in place; the sync engine is a later milestone).
 
-> 本文档只描述仓库里**真实存在**的形态。没有实现的功能一律标「未开始」，没有可引用的截图就写「待补」——不写规划稿当成已完成。
-
----
-
-## 目录
-
-- [核心特性](#核心特性)
-- [界面截图](#界面截图)
-- [架构](#架构)
-- [目录结构](#目录结构)
-- [开发与构建](#开发与构建)
-- [打包与分发](#打包与分发)
-- [测试与门禁](#测试与门禁)
-- [数据主权与隐私](#数据主权与隐私)
-- [路线图](#路线图)
-- [贡献](#贡献)
-- [许可证](#许可证)
-- [致谢](#致谢)
+> This document describes only what **actually exists** in the repository. Anything unimplemented is marked "not started", and anything without a citable screenshot is marked "to be added" — planning notes are never presented as finished work.
 
 ---
 
-## 核心特性
+## Table of contents
 
-### 今日页：方格网格（计划表格化）
+- [Core features](#core-features)
+- [Screenshots](#screenshots)
+- [Architecture](#architecture)
+- [Repository layout](#repository-layout)
+- [Development and build](#development-and-build)
+- [Packaging and distribution](#packaging-and-distribution)
+- [Testing and gates](#testing-and-gates)
+- [Data ownership and privacy](#data-ownership-and-privacy)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
 
-今日页的主体是**方格网格**（`day-grid`）：一天按时间格铺开，条目占住具体一段时间，拖动即可排期。网格上方是表头行，**最左单元格放日期**、时间刻度作为最左列，表头 / 刻度 / 条目层三者的左边缘对齐——它读起来是一张**表格**，而不是一圈散落的卡片。
+---
 
-没排期的条目落在网格下方的**未排期带**（`unscheduled-strip`）：数据不丢，随时可以拖进格子。
+## Core features
 
-### 手写条：一个输入框 + 一个合并按钮
+### Today page: the cell grid (planning turned into a table)
 
-新增条目只有一行：输入框 + `+ 手写一条`。**日期与时刻合并成一个按钮**（`add-plan-datetime-button`，内部是日期 / 时刻两枚子芯片，可单独清除时刻），与**重要 / 紧急**芯片同一行——一行读下来就是三个判断：写在哪天几点、有多重要、有多紧急。
+The body of the Today page is a **cell grid** (`day-grid`): the day is laid out in time cells, each entry occupies a concrete span of time, and dragging schedules it. Above the grid sits a header row whose **leftmost cell holds the date**, with the time scale as the leftmost column, so the left edges of the header, the scale, and the entries all line up — it reads as a **table**, not as a ring of scattered cards.
 
-### 优先级：同轴同图标，只分填充 / 空心
+Unscheduled entries fall into the **unscheduled strip** below the grid: nothing is lost, and they can be dragged into a cell at any time.
 
-- 重要性轴 → 星：**重要** = `Icons.star`（实心）、**不重要** = `Icons.star_border`（空心）；
-- 紧急度轴 → 铃：**紧急** = `Icons.notifications`（实心）、**不紧急** = `Icons.notifications_none`（空心）。
+### The quick-entry bar: one field, one merged button
 
-同一条轴上的两个状态共用**同一个字形轮廓**，只有填充与否的区别，扫一眼就知道是哪一轴、取哪一值。未分级的条目不渲染标记、也不留空位，不污染排版。
+Adding an entry takes a single row: a text field plus `+ 手写一条`. **Date and time are merged into one button** (`add-plan-datetime-button`, which internally holds two sub-chips for date and time, and the time chip can be cleared on its own), sitting on the same row as the **important / urgent** chips — one line, three decisions: which day and hour, how important, how urgent.
 
-### 删除一律二次确认
+### Priority: one glyph per axis, filled versus hollow
 
-计划条目、循环任务规则的删除都先弹共享确认框（`confirm-dialog-cancel` / `confirm-dialog-confirm`）：**取消 ⇒ 一行都不动**，确认后才落软删。软删写的是墓碑，不物理删行。
+- Importance axis → star: **important** = `Icons.star` (filled), **not important** = `Icons.star_border` (hollow);
+- Urgency axis → bell: **urgent** = `Icons.notifications` (filled), **not urgent** = `Icons.notifications_none` (hollow).
 
-### 循环任务：只留规则区，不再重复列「今日」
+The two states of one axis share **the same glyph outline**, differing only in fill, so a glance tells you which axis you are reading and which value was taken. Unrated entries render no marker and reserve no space, so they never pollute the layout.
 
-右栏「循环任务」模块只展示**规则**（含已停用的）与规则数计数（`recurring-rules-count`）。到日子自动把当天实例填进计划，物化是幂等的。
+### Every delete asks twice
 
-此前这里会把已删除的条目又列一遍 —— 根因是查询 occurrence 时没有过滤 `deletedAt`，且删除 `plan_item` 不联动 occurrence。现在**过滤软删 + 删除计划项时联动软删 occurrence**，重复展示已消除，「今日」列表整段移除（计划项只在计划区出现，不重复）。
+Deleting a planned entry or a recurring-task rule always pops the shared confirmation dialog (`confirm-dialog-cancel` / `confirm-dialog-confirm`): **cancel ⇒ not a single row changes**; only after confirming does a soft delete land. Soft delete writes a tombstone, it does not physically remove rows.
 
-### 复盘：内容左对齐，只留三问
+### Recurring tasks: rules only, no duplicate "Today" list
 
-复盘段不再套左栏包装，内容直接左对齐、与正文同一条基线；去掉「已闭合」「晚 · 复盘与心态」这类阶段性标签，也不再出现「今日失守」行与「可控 / 不可控 / 下一步可控动作」三段输入。留下的是**学到了什么 / 做得好 / 待改进**三问，与结果笔记一起进库、进日历回看。
+The right-rail "Recurring tasks" module shows **rules only** (including deactivated ones) plus a rule count (`recurring-rules-count`). When a day comes, that day's instance is materialised into the plan, and materialisation is idempotent.
 
-### 心态：豆包 3+2
+This panel used to list deleted entries a second time — the root cause was that the occurrence query did not filter `deletedAt`, and deleting a `plan_item` did not cascade to its occurrences. Now it **filters soft deletes and soft-deletes occurrences along with the plan item**, the duplicate listing is gone, and the "Today" list was removed entirely (planned items appear only in the planning area).
 
-心态不再是一个模糊的「今天心情如何」，而是按日 / 周两个粒度拆开：
+### Projects page: projects / schedule / milestones / increments
 
-- **日 3 项**：履约负责、高效高质、积极思维；
-- **周 2 项**：自我效能、利他贡献。
+The "Projects" entry in the left rail (`Ctrl+5`) opens the projects page. Projects carry a start–end range, and the detail view renders it as a **Gantt chart** with range bars and single-day milestone blocks (no new dependency, drawn with `CustomPaint`).
 
-五项**映射到既有的 8 个 legacy 列**（老数据零丢失，不是新表），「明日改进点」写入 `next_action` 列。落库口径由数据层统一，界面只负责选。
+The project detail and each increment row carry a "schedule into today" button, and both go through the same write path to become a `plan_item` on the chosen day (`source_type='project'|'increment'` plus `source_id`). The review section can "record into the project", which **only appends** an increment (a mistake can be corrected by appending a correction, there is no edit entry point). When a project has seen no increment for three days, the Today page shows one **gentle** stall hint in the right rail (not red, no dialog, dismissible).
 
-### 日历：突出今天、区分非工作日
+### Review: left-aligned content, three questions only
 
-月视图用上此前算好却没用到的 `isWeekend` 判定：**今天**用 ≥2 个信号（边框 + 底色 / 标签，另有 ValueKey）标出，**非工作日**做可判别的弱化。今天恰逢周末时两个信号叠加不冲突。
+The review section no longer wraps its content in a left column; it is left-aligned and shares the text baseline. The stage labels ("closed", "evening · review and state of mind") are gone, as are the "today's slip-ups" row and the three separate inputs (controllable / uncontrollable / next controllable action). What remains is three questions — **what I learned / what went well / what to improve** — stored together with the outcome note and carried into the calendar look-back.
 
-### 主题：暖褐灰，去掉了所有蓝调
+### State of mind: the "3 + 2" model
 
-原主色是钢蓝系（`#2E4057` / `#3D5170` / `#E7EAEF` …），与「账本纸」的暖白底不协调。现在统一改成暖褐灰：
+State of mind is no longer a vague "how was today". It is split into two granularities:
 
-| 令牌 | 旧值 | 现值 |
+- **Daily 3 items**: keeping commitments, working with high efficiency and quality, positive thinking;
+- **Weekly 2 items**: self-efficacy, contribution to others.
+
+The five items **map onto the 8 existing legacy columns** (no data loss, no new table), and "tomorrow's improvement" is written into the `next_action` column. The data layer owns the mapping; the UI only chooses.
+
+### Quote banner: one random line, bilingual
+
+Below the date bar on the home page, a random famous quote or proverb appears (three themes — capability,境界, success — 450 bilingual entries in total), centred, with a refresh button on the right to swap it. Chinese locales show the Chinese and English lines, English locales show English only, and over-long lines scroll from right to left.
+
+### Calendar: today stands out, non-working days recede
+
+The month view now uses the `isWeekend` flag that had been computed but unused: **today** is marked with at least two signals (border plus background/label, plus a distinct ValueKey), and **non-working days** are weakened in a recognisable way. When today happens to be a weekend, the two signals stack without conflict.
+
+### Theme: warm brown-grey, all the blue removed
+
+The original primary palette was steel blue (`#2E4057` / `#3D5170` / `#E7EAEF` …), which clashed with the warm off-white of "ledger paper". It is now uniformly warm brown-grey:
+
+| Token | Old value | Current value |
 |---|---|---|
 | `ink` | `#2E4057` | `#322B23` |
 | `ink2` | `#3D5170` | `#4A4036` |
@@ -94,300 +106,305 @@
 | `slotPlan` | `#E8ECF1` | `#EBE5D8` |
 | `slotHabit` | `#DCE4EC` | `#E2DACB` |
 
-强调色仍是赭石系，未改动。色板真源与推导记录见 [`design-demos/TOKENS.md`](design-demos/TOKENS.md)。
+The accent colour is still in the ochre family and was not changed. The palette source of truth and its derivation notes live in `design-demos/TOKENS.md` (a local development directory, not shipped with the public repository).
 
-### 习惯
+### Habits
 
-习惯打卡条、习惯速览面板（右栏）、习惯快捷创建对话框。习惯与「计划」是两种不同实体：计划有具体时间占用，习惯有连续性与断点，混在一起会同时毁掉两边。删除习惯回填行只写 `plan_item` 墓碑，**不触碰打卡记录**。
+The habit check-in strip, the habit quick-look panel in the right rail, and the quick habit creation dialog. A habit and a "plan" are two different entities: a plan occupies concrete time, a habit has continuity and breaks — mixing them ruins both. Deleting a habit's backfill row writes a `plan_item` tombstone and **never touches the check-in records**.
 
-### 桌面端
+### Desktop shell
 
-- **账本纸视觉语言**：暖白底、细分隔线、克制的分组卡片，接近纸质手账，而不是仪表盘；
-- **系统托盘**：关窗即隐藏到托盘（不是退出），左键切换窗口、右键菜单可把窗口拉回桌面；
-- **`--selftest` 自检开关**：无界面交互即可自证核心链路（迁移 / 读写 / 软删隔离 / 设置往返）；
-- 字号（文本缩放）与密度档位可调。
+- **Ledger-paper visual language**: warm off-white ground, thin separators, restrained grouping cards — closer to a paper notebook than to a dashboard;
+- **System tray**: closing the window hides it to the tray (it does not quit); left click toggles the window, right click brings it back to the desktop;
+- **`--selftest` switch**: proves the core chains (migration / read-write / soft-delete isolation / settings round-trip) with no UI interaction;
+- Text scale and density level are adjustable.
 
-### 规划与设计文档
+### Planning and design documents
 
-仓库里有三份 Task 40 产出的设计/规划文档，都是**文档形态**、尚未实施：
+The repository holds three design/planning documents produced in Task 40. All are **documents only**, nothing implemented:
 
-- [`docs/task40/模块优化建议.md`](docs/task40/模块优化建议.md) —— 逐模块「问题 → 建议 → 依据 → 优先级 → 预估改动面」；
-- [`docs/task40/项目页规划.md`](docs/task40/项目页规划.md) —— 项目页信息架构、≥2 种与计划主页的整合模型、schema 评估与 P0/P1/P2 路线（**本轮不实施**，`nav_rail` 的「项目」入口仍保持禁用）；
-- [`docs/task40/关于页设计.md`](docs/task40/关于页设计.md) —— 关于页规格 + 当前实现与规格的差距清单（本轮不改代码）。
-
----
-
-## 界面截图
-
-以下截图取自 **Task 40 release 产物的真机运行画面**（`release\actlog-Setup-1.0.0_20261118-163228.exe` 覆盖安装后启动），在**默认桌面**会话中经 `PrintWindow` 取帧，并按「目标进程 = `actlog.exe`、宽高 ≥ 400×300、回读 PNG 尺寸」三重过滤校验后才采信。
-
-### 今日页（首屏）
-
-![今日页首屏](docs/task40/screenshots/today-overview.png)
-
-### 今日页（下半屏：手写条 / 复盘 / 心态）
-
-![今日页下半屏](docs/task40/screenshots/today-detail.png)
-
-手写条的「日期 · 时间」已合并为**一个按钮**，与重要、紧急同行；重要 / 不重要用**同一个星形图标**（实心 / 空心区分），紧急 / 不紧急用**同一个铃形图标**（实心 / 空心区分）：
-
-![手写条特写](docs/task40/screenshots/today-handwrite-closeup.png)
-
-### 日历页（今天描边 + 非工作日底色）
-
-![日历页](docs/task40/screenshots/calendar-page.png)
-
-![日历页特写](docs/task40/screenshots/calendar-detail.png)
-
-> `design-demos/` 下是 v1 / v2 的**设计原型**，与现在的网格化实现差距明显，因此**没有**拿原型充当现状截图。
+- [`docs/task40/模块优化建议.md`](docs/task40/模块优化建议.md) — per module: problem → suggestion → evidence → priority → estimated change surface;
+- [`docs/task40/项目页规划.md`](docs/task40/项目页规划.md) — projects-page information architecture, two-plus integration models with the planning home page, schema assessment, and the P0/P1/P2 roadmap (**P0 and P1 shipped with Task 56 / 57**; P2's "project statistics aggregated by domain" is still unimplemented);
+- [`docs/task40/关于页设计.md`](docs/task40/关于页设计.md) — about-page specification plus the gap list against the current implementation (no code changed here).
 
 ---
 
-## 架构
+## Screenshots
 
-四层，依赖方向单向向下：
+The screenshots below come from **a real machine running the Task 40 release build** (`release\actlog-Setup-1.0.0_20261118-163228.exe`, installed over the top and launched), captured with `PrintWindow` in a **default desktop** session, and accepted only after three filters: target process is `actlog.exe`, width and height ≥ 400×300, and the written-back PNG dimensions match.
+
+### Today page (first screen)
+
+![Today page overview](docs/task40/screenshots/today-overview.png)
+
+### Today page (lower half: quick entry / review / state of mind)
+
+![Today page detail](docs/task40/screenshots/today-detail.png)
+
+The quick-entry bar's "date · time" has been merged into **one button**, on the same row as important and urgent; important / not important use **the same star glyph** (filled vs hollow), and urgent / not urgent use **the same bell glyph** (filled vs hollow):
+
+![Quick-entry close-up](docs/task40/screenshots/today-handwrite-closeup.png)
+
+### Calendar page (today outlined + non-working-day shading)
+
+![Calendar page](docs/task40/screenshots/calendar-page.png)
+
+![Calendar close-up](docs/task40/screenshots/calendar-detail.png)
+
+> `design-demos/` holds **design prototypes** (v1 / v2) that differ noticeably from today's grid implementation, so they are **not** used as screenshots of the current product. The projects page and the quote banner have **no screenshot yet (to be added)**.
+
+---
+
+## Architecture
+
+Four layers, dependencies pointing strictly downward:
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  apps/desktop          Flutter (Windows) 壳 + 全部界面      │
-│                        今日页 / 方格网格 / 右栏 / 日历      │
+│  apps/desktop          Flutter (Windows) shell + all UI     │
+│                        Today / grid / right rail / calendar │
 └──────────────────────────┬─────────────────────────────────┘
-                           │ 只依赖下面三个纯 Dart 包
+                           │ depends only on the three pure Dart packages below
 ┌──────────────────────────▼─────────────────────────────────┐
-│  core_data    仓储与业务逻辑：计划 / 习惯 / 循环 / 心态      │
-│               无 UI 依赖                                    │
+│  core_data    repositories and business logic: plans /       │
+│               habits / recurring / state of mind             │
+│               no UI dependency                              │
 ├────────────────────────────────────────────────────────────┤
-│  core_db      drift 表定义 / 迁移 / oplog 写入层             │
-│               含约束「有牙」测试与 schema 一致性测试          │
+│  core_db      drift table definitions / migrations / oplog   │
+│               write layer, with "teeth" constraint tests     │
+│               and schema-consistency tests                  │
 ├────────────────────────────────────────────────────────────┤
-│  core_domain  纯 Dart 领域模型：实体 / 枚举 / 不变量          │
-│               零 IO 依赖                                    │
+│  core_domain  pure Dart domain model: entities / enums /    │
+│               invariants, zero IO dependency                │
 └────────────────────────────────────────────────────────────┘
 ```
 
-| 决策 | 内容 | 理由 |
+| Decision | Choice | Reason |
 |---|---|---|
-| 客户端 | Flutter 3.47.9 / Dart 3.13.7 | 一套代码覆盖 Windows（Android 属 P6） |
-| 数据库 | drift + SQLite | 类型安全、迁移可版本化；生成的 `*.g.dart` 是 schema 的类型级镜像 |
-| 状态管理 | Riverpod | 依赖注入 + 测试友好，适配「本地库 + 同步引擎」双数据源 |
-| 数据真相源 | **本地 SQLite 唯一权威** | 服务端只做中继与备份，断网必须完全可用 |
-| 同步 | **记录级 oplog 增量** | 每次写留痕（upsert / delete + lamport + 设备标识）；必须在建库时就埋好 |
-| 账号体系 | **不做** | 个人场景；同步走局域网直连 / WebDAV |
-| Schema | v1 **FROZEN**（[`docs/schema_v1.sql`](docs/schema_v1.sql)） | 14 张表；改表需要显式迁移，不许顺手改 |
+| Client | Flutter 3.47.9 / Dart 3.13.7 | One codebase covers Windows (Android is P6) |
+| Database | drift + SQLite | Type-safe, versionable migrations; the generated `*.g.dart` is a type-level mirror of the schema |
+| State management | Riverpod | Dependency injection and test friendliness, fitting the "local database + sync engine" dual data source |
+| Source of truth | **local SQLite, sole authority** | The server only relays and backs up; offline must be fully usable |
+| Sync | **record-level oplog delta** | Every write leaves a trace (upsert / delete + lamport + device id); it has to be built in from day one |
+| Accounts | **none** | Personal tool; sync goes over LAN direct connection or your own WebDAV |
+| Schema | v1 **FROZEN** ([`docs/schema_v1.sql`](docs/schema_v1.sql)) | 14 tables; changing them needs an explicit migration, no casual edits |
 
-**为什么领域层要单独成包**：双端一致的唯一可靠实现是「只有一份领域逻辑」。两端各写一遍实体和枚举，迟早在某个边界值上分歧；而这类 bug 在同步场景里表现为**静默的数据损坏**，不是崩溃。
+**Why the domain layer is a separate package**: the only reliable way to keep two clients consistent is to have "exactly one copy of the domain logic". Writing the entities and enums twice diverges at some boundary value sooner or later, and in a sync scenario that kind of bug shows up as **silent data corruption**, not a crash.
 
 ---
 
-## 目录结构
+## Repository layout
 
 ```
 actlog/
 ├── apps/
-│   └── desktop/                     # 正式 Windows 桌面应用（Flutter）
-│       ├── lib/src/pages/           # 今日 / 待办池 / 习惯 / 日历 / 关于 / 设置
-│       ├── lib/src/widgets/         # 方格网格 / 优先级标记 / 右栏面板 / 确认框
+│   └── desktop/                     # the shipping Windows desktop app (Flutter)
+│       ├── lib/src/pages/           # today / todo pool / habits / calendar / about / settings
+│       ├── lib/src/widgets/         # cell grid / priority marks / right-rail panels / confirm dialog
 │       │   └── timeline/            # day_grid / day_timeline / slot_state / timeline_store
-│       ├── lib/src/theme/           # 设计令牌 / 字体 / 密度档位
-│       ├── lib/src/selftest.dart    # --selftest 自检链路
-│       └── test/                    # widget / 回归 / 端到端用例
+│       ├── lib/src/theme/           # design tokens / fonts / density levels
+│       ├── lib/src/selftest.dart    # the --selftest chain
+│       └── test/                    # widget / regression / end-to-end cases
 ├── packages/
-│   ├── core_domain/                 # 纯 Dart 领域模型（零 IO）
-│   ├── core_db/                     # drift schema + 迁移 + oplog 写入层
-│   ├── core_data/                   # 仓储与业务逻辑
-│   ├── core_sync/                   # oplog 同步协议（未开始）
-│   ├── core_backup/                 # 快照 / 导出 / 导入（未开始）
-│   └── core_ui/                     # 共享 UI 组件（未开始）
+│   ├── core_domain/                 # pure Dart domain model (zero IO)
+│   ├── core_db/                     # drift schema + migrations + oplog write layer
+│   ├── core_data/                   # repositories and business logic
+│   ├── core_sync/                   # oplog sync protocol (not started)
+│   ├── core_backup/                 # snapshot / export / import (not started)
+│   └── core_ui/                     # shared UI components (not started)
 ├── tools/
-│   ├── bootstrap.ps1                # 幂等环境准备（找 SDK / 设镜像 / pub get）
-│   ├── gates/                       # 质量门禁 G1–G3
-│   │   ├── g1_analyze.ps1           # 静态分析（逐字 No issues found!）
-│   │   ├── g2_unittest.ps1          # 单元测试
-│   │   ├── g3_migration.ps1         # 迁移 + schema 自检（含「故意破坏」有牙测试）
-│   │   ├── g3_schema_check.mjs      # schema 校验器（node:sqlite 实跑）
-│   │   └── bad-fixtures/            # 故意破坏的坏数据样例与自检
-│   ├── build/make_installer.ps1     # NSIS 安装包构建
-│   ├── icons/make_brand_icon.py     # 程序化生成图标（PNG + 多尺寸 ICO）
-│   └── verify/                      # 真机证据脚本（托盘 / 冒烟 / 装机核对 / 取帧）
-├── docs/                            # 计划 / schema / 验收记录 / Task 40 设计文档
-├── design-demos/                    # 设计原型与令牌真源（TOKENS.md）
-├── reports/                         # 门禁与真机证据脚本、产物
-├── .github/workflows/ci.yml         # CI：G1 / G2 / G3
-├── pubspec.yaml                     # Dart pub workspace 根
-└── analysis_options.yaml            # 静态分析规则（unused_* 提升为 error）
+│   ├── bootstrap.ps1                # idempotent environment setup (find SDK / set mirrors / pub get)
+│   ├── gates/                       # quality gates G1–G3
+│   │   ├── g1_analyze.ps1           # static analysis (verbatim "No issues found!")
+│   │   ├── g2_unittest.ps1          # unit tests
+│   │   ├── g3_migration.ps1         # migration + schema self-check (with deliberate-breakage "teeth" test)
+│   │   ├── g3_schema_check.mjs      # schema checker (really runs on node:sqlite)
+│   │   └── bad-fixtures/            # deliberately broken data samples and self-checks
+│   ├── build/make_installer.ps1     # NSIS installer build
+│   ├── icons/make_brand_icon.py     # programmatic icon generation (PNG + multi-size ICO)
+│   └── verify/                      # on-machine evidence scripts (tray / smoke / install check / frame capture)
+├── docs/                            # plans / schema / acceptance record / Task 40 design documents
+├── design-demos/                    # design prototypes and palette source (TOKENS.md; local, not committed)
+├── reports/                         # gate and on-machine evidence scripts and artifacts (local, not committed)
+├── .github/workflows/ci.yml         # CI: G1 / G2 / G3
+├── pubspec.yaml                     # Dart pub workspace root
+└── analysis_options.yaml            # static analysis rules (unused_* promoted to error)
 ```
 
 ---
 
-## 开发与构建
+## Development and build
 
-**依赖**：Flutter 3.47.9（自带 Dart 3.13.7）、Node ≥ 22.5（G3 用 `node:sqlite` 实跑 SQLite）。
+**Dependencies**: Flutter 3.47.9 (ships Dart 3.13.7), Node ≥ 22.5 (G3 really runs SQLite through `node:sqlite`).
 
-**国内镜像必须在当前进程内设置**（子进程不会继承已经 export 过的值，每次开新终端都要重设）：
+**The China mirror must be set inside the current process** (child processes do not inherit values that were already exported, so it must be set again in every new terminal):
 
 ```powershell
 $env:PUB_HOSTED_URL='https://pub.flutter-io.cn'
 $env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
 ```
 
-一键准备（幂等，可重复运行）：
+One-step setup (idempotent, safe to re-run):
 
 ```powershell
 pwsh -File tools/bootstrap.ps1
 ```
 
-脚本会：定位 Flutter / Dart（找不到就打印中文安装指引并以退出码 2 结束）→ 仅当前进程设置镜像 → `flutter doctor`（仅提示，不阻断）→ `flutter pub get`。
+The script locates Flutter / Dart (if missing it prints installation guidance in Chinese and exits with code 2) → sets the mirrors for the current process only → runs `flutter doctor` (hint only, never blocks) → runs `flutter pub get`.
 
-**静态分析与测试**（`apps/desktop` 是 Flutter 壳，不进 Dart workspace，必须在这里单独跑）：
+**Static analysis and tests** (`apps/desktop` is a Flutter shell and is not part of the Dart workspace, so it must be run on its own here):
 
 ```powershell
 $env:PUB_HOSTED_URL='https://pub.flutter-io.cn'; $env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
-& 'F:\soft\flutter\flutter\bin\flutter.bat' analyze      # 期望逐字 No issues found!
+& 'F:\soft\flutter\flutter\bin\flutter.bat' analyze      # expect the verbatim string: No issues found!
 & 'F:\soft\flutter\flutter\bin\flutter.bat' test --reporter compact
 ```
 
-**跑全量之前先把上一轮的测试缓存改名挪走**（`Move-Item`，不要删）。留在原地会让测试进程撞 `OS Error 183` 并挂死：
+**Move the previous run's test cache out of the way before a full run** (`Move-Item`, do not delete). Leaving it in place makes the test process hit `OS Error 183` and hang:
 
 ```powershell
 Move-Item .\apps\desktop\build\test_cache\build .\apps\desktop\build\test_cache\build.bak
 ```
 
-> 并发跑多个 worker 时不要跑全量，只跑自己改动到的那个测试文件（`flutter test test/xxx_test.dart --reporter compact`），全量由单一入口统一跑。
+> When several workers run in parallel, do not run the full suite; run only the test files you touched (`flutter test test/xxx_test.dart --reporter compact`). The full run is driven by a single entry point.
 
-跑门禁（退出码 0 = 通过，非 0 = 阻断）：
+Run the gates (exit code 0 = pass, non-zero = blocked):
 
 ```powershell
-pwsh -File tools/gates/g1_analyze.ps1     # 静态分析：逐字 No issues found!
-pwsh -File tools/gates/g2_unittest.ps1    # 单元测试：输出通过 / 失败用例数
-pwsh -File tools/gates/g3_migration.ps1   # 迁移 + schema 自检 + 有牙测试
+pwsh -File tools/gates/g1_analyze.ps1     # static analysis: verbatim "No issues found!"
+pwsh -File tools/gates/g2_unittest.ps1    # unit tests: prints passed / failed counts
+pwsh -File tools/gates/g3_migration.ps1   # migration + schema self-check + teeth test
 
-# 单跑 schema 校验 / 坏数据自检（Node，不依赖 Dart）
+# run the schema check / bad-data self-check alone (Node, no Dart needed)
 node tools/gates/g3_schema_check.mjs
 node tools/gates/bad-fixtures/self_test.mjs
 ```
 
-门禁脚本兼容 Windows PowerShell 5.1 与 PowerShell 7，也可在 Linux 上用 `pwsh` 直接跑（CI 即如此）。
+The gate scripts run on Windows PowerShell 5.1 and PowerShell 7, and also run directly under `pwsh` on Linux (which is what CI does).
 
 ---
 
-## 打包与分发
+## Packaging and distribution
 
-安装包由 NSIS 生成，双击即装、免管理员，装到 `%PROGRAMFILES%\actlog`，建开始菜单与桌面快捷方式；中文显示名保留「知行日志」。
+The installer is produced with NSIS: double-click to install, no administrator rights required, installs into `%PROGRAMFILES%\actlog`, and creates Start menu and desktop shortcuts; the Chinese display name 「知行日志」 is kept.
 
 ```powershell
 pwsh -File tools/build/make_installer.ps1
 ```
 
-**当前唯一可分发包**：
+**The one package that may be distributed right now**:
 
 ```
-release\actlog-Setup-1.0.0_20261120-100448.exe     22,586,905 B
+release\actlog-Setup-1.0.0_20261123-094229.exe     22,697,357 B
+sha16 (first 16 hex digits) = 4FBE6775A3C43132
 ```
 
-> `release` 下其余历史包**全部失效，不得分发**。其中包括 `..._20261119-231728.exe`（Task 45）与 `..._20261119-000839.exe`（Task 41）—— 它们已被上面这个包取代（该包含 Task 46 的随包 CJK 衬线、版本 1.0.0、未来日预排条目可编辑与关于页 G2/G4，以及 Task 48 的品牌图标换新：9 档 32bpp `app_icon.ico`、`icon.png`、托盘与顶栏亮/暗两版品牌位），仅供回溯，**不可再分发**。其中 `..._20261120-083714.exe` 是 Task 46 收口包，被 Task 48 包取代。
+> `release\` now holds **49 executables; only this one may be distributed — the other 48 must not be**. The previous truth source `..._20261120-100448.exe` (Task 48 close-out build) has been superseded and **must no longer be distributed**.
 
-装机核对的判据不是「装完能点开」，而是**二进制一致**：装机目录 `app\data\app.so` 与 `actlog.exe` 的 sha16 必须等于构建产物，且 8 个用户数据文件逐一哈希一致（零丢失）。脚本见 `tools/verify/`，流水记录见 [`docs/B1_验收记录.md`](docs/B1_验收记录.md)。
+The install check is not "it opens after installing" but **binary identity**: the sha16 of `data\app.so` in the install directory must equal the build artifact's, and every user data file must hash identically (zero loss). The scripts live in `tools/verify/`, and the running record is [`docs/B1_验收记录.md`](docs/B1_验收记录.md).
 
-**发布 GitHub Release 不在仓库流程内自动执行**，需要项目所有者单独确认。
+**Publishing a GitHub Release is not part of the automated repository flow**; it requires the project owner to confirm separately.
 
 ---
 
-## 测试与门禁
+## Testing and gates
 
-| 门禁 | 内容 | 判断标准 |
+| Gate | Content | Pass criterion |
 |---|---|---|
-| G1 | 静态分析 | **逐字** `No issues found!`（error / warning / info 全 0） |
-| G2 | 单元测试 | 全绿，用例数**只增不减** |
-| G3 | 空库 → v1 迁移 + schema 一致性 + 约束有牙 | 迁移成功 **且** 中和约束后必须失败 |
+| G1 | Static analysis | **verbatim** `No issues found!` (zero error / warning / info) |
+| G2 | Unit tests | All green, and the case count may only **grow** |
+| G3 | Empty database → v1 migration + schema consistency + constraints have teeth | Migration succeeds **and** it must fail once the constraints are neutralised |
 
-**用例数基线**（新增用例只许往上加，不许为了让流水绿而删用例或放宽断言）：
+**Test count baselines** (new cases may only be added; never delete cases or loosen assertions to make the pipeline green):
 
-| 目标 | 基线 |
+| Target | Baseline |
 |---|---|
-| `apps/desktop`（`flutter test`） | `+432` |
-| `packages/core_data`（`dart test`） | `+197` |
+| `apps/desktop` (`flutter test`) | `+686` |
+| `packages/core_data` (`dart test`) | `+204` |
 | `packages/core_db` | `+71` |
 | `packages/core_domain` | `+62` |
 
-三条硬规矩：
+Three hard rules:
 
-1. **门禁必须先证明自己「有牙」**。G3 会把 `schema_v1.sql` 里的 `CHECK` 约束全部中和成 `CHECK (1=1)` 再跑一遍冒烟测试，**这时候必须失败**；如果反而通过，门禁判定自己无效并以失败退出。详见 [`tools/gates/bad-fixtures/README.md`](tools/gates/bad-fixtures/README.md)。
-2. **判据不接受关键词计数**。`No issues found!` 是逐字比较，不是「grep 一下没有 error 就算过」。
-3. **拿不到证据就写「未做」**。验收记录里明确区分「已验证 / 推断 / 未验证」，没跑过的一律不写成跑过。
+1. **A gate must first prove that it has teeth.** G3 rewrites every `CHECK` constraint in `schema_v1.sql` into `CHECK (1=1)` and then re-runs the smoke test — and **that run must fail**. If it passes anyway, the gate declares itself invalid and exits with failure. See [`tools/gates/bad-fixtures/README.md`](tools/gates/bad-fixtures/README.md).
+2. **Criteria do not accept keyword counting.** `No issues found!` is compared verbatim, not "grepped for the absence of error".
+3. **Without evidence, write "not done".** The acceptance record explicitly separates "verified / inferred / unverified"; anything that was never run is never written up as run.
 
-CI（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）在 push / PR 到 `main` 时以矩阵方式跑 G1、G2、G3，三个门禁全绿才算通过。
-
----
-
-## 数据主权与隐私
-
-- **默认零网络**：不注册、不上传、不采集。断网机器上功能完整。
-- **账本在你自己的磁盘上**：一个 SQLite 文件，用任何工具都能打开、备份、迁移。
-- **同步目标由你指定**：局域网直连或你自己的 WebDAV，不存在「必须信任我们的服务器」。
-- **升级不覆盖账本**：安装器就地 `Rename` 安装目录，`userdata` 原地保留；旧 `userdata` 与旧库名保留兼容读取，迁移过程打印 `ACTLOG_MIGRATE=RENAME_OK` 作为「迁移成功」的证据。
-
-关于产品改名（`practilog` → `actlog`）：这是**就地改名而非重建**——安装目录 `Rename`、不删不建，账本原样保留。改名路径见 [`docs/B1_验收记录.md`](docs/B1_验收记录.md)。
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs G1, G2 and G3 as a matrix on pushes and pull requests to `main`; the change is only green when all three gates pass.
 
 ---
 
-## 路线图
+## Data ownership and privacy
 
-| 事项 | 状态 | 说明 |
+- **Zero network by default**: no sign-up, no upload, no telemetry. Every feature works on a machine with the network cut.
+- **The ledger lives on your own disk**: one SQLite file that any tool can open, back up, or migrate.
+- **You choose the sync target**: a LAN direct connection or your own WebDAV. There is no "you must trust our server".
+- **Upgrades never overwrite the ledger**: the installer renames the install directory in place and keeps `userdata` where it is; old `userdata` and old database names stay readable, and the migration prints `ACTLOG_MIGRATE=RENAME_OK` as evidence that the migration succeeded.
+
+On the product rename (`practilog` → `actlog`): this was an **in-place rename, not a rebuild** — the install directory is renamed, nothing is deleted or created, and the ledger is preserved as is. The rename path is documented in [`docs/B1_验收记录.md`](docs/B1_验收记录.md).
+
+---
+
+## Roadmap
+
+| Item | Status | Notes |
 |---|---|---|
-| Task 40 的 13 项产品改造 | 本轮交付 | 计划表格化 / 手写条合并 / 优先级同图标 / 复盘重排 / 主题去蓝 / 心态 3+2 / 循环去重 / 删除确认 / 日历今天与非工作日 / 三份设计文档 / README |
-| **Task 41 深色主题** | 下一轮 | 架构级 token 改造：需要第二套 token 组 + 41 个文件约 **724 处** `AppTokens.*` 引用改造；`timeline_contrast_test.dart` 以 epsilon 0.005 钉死四态色值，混轮做必然半深半浅，所以独立排期、不并入本轮 |
-| 深色主题之外的视觉细节 | 未开始 | 见 [`docs/task40/模块优化建议.md`](docs/task40/模块优化建议.md) 的 P1 / P2 |
-| 项目页 | 规划完成、未实施 | 见 [`docs/task40/项目页规划.md`](docs/task40/项目页规划.md)；「项目」导航入口仍禁用 |
-| `apps/android` | 未开始 | P6；领域层与 schema 已按双端一致设计 |
-| `core_sync` / `core_backup` | 未开始 | P5（同步协议）/ P4（快照导出导入） |
-| G4–G8 门禁 | 未开始 | 导出等价 / 同步幂等 / 双端一致 / 离线可用 / 快照可恢复 |
-| 覆盖率阈值 | 未硬性强制 | 计划 ≥ 70%，需要 `coverage` 包 |
+| The 13 product changes of Task 40 | Delivered | Table-like planning / merged quick entry / one glyph per priority axis / review rework / theme without blue / 3+2 state of mind / de-duplicated recurring tasks / delete confirmation / today and non-working days on the calendar / three design documents |
+| Projects page P0 (projects / Gantt / scheduling link) | Delivered (Task 56) | Multiple projects and tasks per project, Gantt chart, scheduling drops entries into the todo pool, redundant bottom key bar removed; zero schema change |
+| Projects page P1 (L1 scheduling / L3 progress / milestone marks) | Delivered (Task 57) | Project and increment entries share one write path, review only appends increments, a gentle hint after three idle days, a small overdue mark on milestones |
+| Projects page P2 "project statistics aggregated by domain" | **Not started** | The plan file has no corresponding section yet; it needs a new task and a from-scratch implementation |
+| **Task 41 dark theme** | Next round | Architecture-level token work: a second token set plus roughly **724** `AppTokens.*` reference changes across 41 files; `timeline_contrast_test.dart` pins the four state colours with an epsilon of 0.005, so mixing it into another round would leave half-dark, half-light UI — it is therefore scheduled on its own |
+| Visual details beyond the dark theme | Not started | See P1 / P2 in [`docs/task40/模块优化建议.md`](docs/task40/模块优化建议.md) |
+| `apps/android` | Not started | P6; the domain layer and schema are already designed for two-client consistency |
+| `core_sync` / `core_backup` | Not started | P5 (sync protocol) / P4 (snapshot, export, import) |
+| G4–G8 gates | Not started | Export equivalence / sync idempotence / two-client consistency / offline usability / snapshot recoverability |
+| Coverage threshold | Not enforced | Planned at ≥ 70%; requires the `coverage` package |
 
-**已知但不影响使用的事项**：
+**Known issues that do not affect usage**:
 
-1. `apps/desktop` 刻意不进 Dart workspace（Flutter 壳通过 path 依赖指向三个纯 Dart 包），所以它的 analyze / test 必须在 `apps/desktop` 目录内单独用 `flutter` 跑。
-2. `window_manager` / `tray_manager` 仍用 legacy 桥接 API（官方标记 deprecated），原生 API 迁移留到后续。
-3. 托盘图标只在进程存活期存在；任务栏 `^` 里看不到图标时，第一嫌疑是**进程没在跑**，判据用 `tools/verify/tray_alive_check.ps1`。
-4. 高 DPI：125% / 100% 显示缩放下的真机取帧尚未完成，目前只覆盖 150%。
-5. Android 端未开始，「双端一致」目前只有领域模型与数据库契约层面的保证，还没有第二端实测。
+1. `apps/desktop` is deliberately kept out of the Dart workspace (the Flutter shell points at the three pure Dart packages through path dependencies), so its analyze / test must be run with `flutter` inside `apps/desktop`.
+2. `window_manager` / `tray_manager` still use the legacy bridge API (officially marked deprecated); the native API migration is left for later.
+3. The tray icon only exists while the process is alive; if you cannot see it under the taskbar `^`, the first suspect is that **the process is not running** — check with `tools/verify/tray_alive_check.ps1`.
+4. High DPI: real-machine frame capture at 125% / 100% display scaling is not finished yet; only 150% is covered.
+5. The Android client has not started, so "two-client consistency" is currently guaranteed only at the level of the domain model and the database contract, with no second client measured.
 
 ---
 
-## 贡献
+## Contributing
 
-1. 改动前先读 [`AGENTS.md`](AGENTS.md)（工程铁律）与 [`docs/开发计划.md`](docs/开发计划.md)（里程碑与判据）；两者冲突时以当轮派工契约为准。
-2. **`docs/schema_v1.sql` 是 FROZEN 的**：不新增表、不改列、不改约束。确实需要改表，先落迁移脚本与迁移测试。
-3. **不新增依赖**，除非能说明现有依赖无法胜任。
-4. 提交前至少跑一次：
+1. Read [`AGENTS.md`](AGENTS.md) (the engineering rules) and [`docs/开发计划.md`](docs/开发计划.md) (milestones and criteria) before changing anything; when they conflict, the assignment contract of the current round wins.
+2. **`docs/schema_v1.sql` is FROZEN**: no new tables, no changed columns, no changed constraints. If a table really must change, land a migration script and a migration test first.
+3. **No new dependencies** unless you can show that the existing ones cannot do the job.
+4. Run at least this before committing:
 
    ```powershell
    $env:PUB_HOSTED_URL='https://pub.flutter-io.cn'; $env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
    & 'F:\soft\flutter\flutter\bin\flutter.bat' analyze
    ```
 
-   期望逐字 `No issues found!`。
-5. **断言只许改强**：修 bug 时不许删用例、不许放宽阈值、不许用 `warnIfMissed: false` 之类的手法让断言「看起来通过」。
-6. 证据优先：报「已修复」要附实测输出（逐字计数行 / 退出码），没有证据就写「未验证」。
+   Expect the verbatim string `No issues found!`.
+5. **Assertions may only be strengthened**: when fixing a bug, do not delete cases, do not loosen thresholds, and do not use tricks like `warnIfMissed: false` to make an assertion merely *look* like it passes.
+6. Evidence first: a report of "fixed" must come with the measured output (verbatim count lines / exit codes); without evidence, write "unverified".
 
 ---
 
-## 许可证
+## License
 
-**本仓库未声明开源许可证。**
+**This repository declares no open-source license.**
 
-- 仓库根目录没有 `LICENSE` / `COPYING` 文件；
-- 5 个 `pubspec.yaml` 均未声明 `license` 字段。
+- There is no `LICENSE` / `COPYING` file in the repository root;
+- None of the 5 `pubspec.yaml` files declares a `license` field.
 
-按默认版权规则，**保留所有权利**（All rights reserved）：未经项目所有者书面许可，不得复制、分发、修改或用于商业用途。若将来要开源，需要先补 `LICENSE` 文件并在此处同步声明——在补上之前，请不要把本仓库当作可自由使用的开源项目。
+Under default copyright rules, **all rights are reserved**: copying, redistributing, modifying, or commercial use requires the project owner's written permission. If the project is opened up later, a `LICENSE` file has to be added first and the declaration here updated — until then, please do not treat this repository as a freely usable open-source project.
 
 ---
 
-## 致谢
+## Acknowledgements
 
-- [Flutter](https://flutter.dev/) / [drift](https://drift.simonbinder.eu/) / [Riverpod](https://riverpod.dev/) —— 客户端、数据库与状态管理的基座。
-- [NSIS](https://nsis.sourceforge.io/) —— Windows 安装包。
-- 《高绩效人士的五项管理》：本项目以其方法论为**信息架构骨架**，做的是工程化实现，不是原书复刻。需要说清楚的两点：
-  - **ABC 优先级**（A 类 = Q1 + Q2 = 重要且紧急）沿用原书体系；
-  - **四象限（Q1–Q4）来自艾森豪威尔矩阵**，在本项目中是辅助的分类视图，**不得宣称来自该书原书**；「站会三段」「复盘」「心态 3+2」同样是工程化实现。
-  - 仓库**不包含**原书正文。
-- 所有把「测试通过」当证据而不是当口号的实践者。
+- [Flutter](https://flutter.dev/) / [drift](https://drift.simonbinder.eu/) / [Riverpod](https://riverpod.dev/) — the base of the client, the database, and state management.
+- [NSIS](https://nsis.sourceforge.io/) — the Windows installer.
+- *The Five Management Disciplines*: this project uses its methodology as the **information-architecture backbone** and implements it in engineering terms; it is not a reproduction of the book. Two things need to be spelled out:
+  - **ABC priority** (A class = Q1 + Q2 = important and urgent) follows the book's system;
+  - the **four quadrants (Q1–Q4) come from the Eisenhower matrix** and are, in this project, a supporting classification view — **they must not be claimed to come from the book**; the "three stand-up sections", "review", and "3+2 state of mind" are likewise engineering implementations.
+  - The repository **does not contain** the text of the book.
+- Everyone who treats "the tests pass" as evidence rather than as a slogan.

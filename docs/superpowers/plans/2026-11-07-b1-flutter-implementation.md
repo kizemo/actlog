@@ -9074,3 +9074,58 @@ W1/W2/W3 三者写集互不重叠 ⇒ 可并行。**W1 禁碰** `day_grid.dart` 
 14. **Task 57 收口补轮二（闭合 `57.4b` 的 DayGrid 渲染一致性断言缺口，硬顺序，不得跳步）**：本轮定性为**纯测试轮** —— 只动 `apps\desktop\test\`，零 schema 变更、零新增依赖、不改 `lib/` ⇒ 不重编译、不重打包、**R3 分发真源行不变**（装机件与当前源码同源，见下）。① 控制器预检：`git diff e6c8f7d..HEAD -- apps/desktop/lib` 为空（`lib/` 自上轮出货未变）+ `Get-Process LogonUI` 不存在（未锁屏）→ 跑门禁前先 `Rename-Item` 挪走 `apps\desktop\build\test_cache\build`（否则 OS Error 183 挂死）② 写派工书 `reports\task57-dispatch-h.md`（写集白名单只含 `apps\desktop\test\task57_daygrid_render_test.dart`；**不改 §57.3 写集表**，因 W7 `apps\desktop\test\task57_*.dart` 已覆盖）③ 派 **单 worker**（model `custom_provider:provider-aa5659/deepseek-v4.1-flash-1017` + `effort=high`）写新测试文件（4 个 `testWidgets`）并自跑 analyze + test + 相关回归 ④ 控制器亲跑门禁单轮全量（`-ExpectDesktopTests 686`）⇒ `GATE_VERDICT=PASS` / `DESKTOP_TESTS=686` / 四包 `ANALYZE=VERBATIM` / `VIOLATIONS=0` / `OUT_OF_SET=0` ⑤ 真机取帧：沙箱库种入两行 L1 形状 `plan_item`（`source_type='project'` + `source_todo_id` NULL + 起止分钟非空 + `status='pending'`），由**装机件**渲染 ⇒ 种子前后两帧 A/B（负控 = 网格渲染正常但零条目；正控 = 网格内命中 ASCII 探针标题；CJK 标题在帧上目视可见）⑥ 台账六件 + `57.4b` 复选框**已是 `[x]` ⇒ 本轮只补证据、不触发 R6 等长打勾** ⑦ 独立 verifier（≠ 实现者会话）复核 ⑧ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。**装机件同源论证**：装机 `data\app.so` sha16 `D82C3FBD9448FB1A` 与分发真源 `release\payload_20261123-094229\data\app.so` **逐字相同**；而 `e6c8f7d`（装机之后）只改 `app.dart` / `l10n\l10n_keys.dart` / `l10n\parts\projects.dart` / `pages\projects_page.dart`，**未触及** `day_grid.dart` / `slot_state.dart` / `today_page.dart` / `providers.dart` ⇒ 装机件的 DayGrid 渲染路径 ≡ 当前源码。
 
 15. **Task 57 收口补轮三 · 遗留盲区收口（门禁补 `.ps1` 纯 ASCII 判据 + `57.4e` E4 承重断言单跑复核，硬顺序，不得跳步）**：本轮定性为**纯控制器轮** —— 零 `apps\**` 改动、零 `packages\**` 改动、零 schema 变更、零新增依赖、`lib/` 与 `test/` 零改动 ⇒ **不重编译、不重打包、R3 分发真源行不变**（`release\actlog-Setup-1.0.0_20261123-094229.exe` / 22697357 B / `4FBE6775A3C43132`）。① 控制器预检：工作树 dirty 恰为补轮二台账六件中的 5 件（`handoff.md` / `progress.md` 落在 `.superpowers\`，被 `.gitignore` 排除故不进 `git status`），5 条全部命中门禁 allowlist ⇒ 预期 `OUT_OF_SET=0`；`Get-Process LogonUI` 不存在（本轮不取帧）② **E4 承重断言单跑复核（遗留项①）**：`flutter test test\task57_stall_test.dart --plain-name 'E4'` ⇒ `+1: All tests passed!`（EXIT=0）⇒ `57.4e` 的 E4 负控**独立成立**，不依赖「改坏版本」下随 E3 级联红的那次跑法 ③ **门禁补 `.ps1` 纯 ASCII 判据（遗留项②③）**：新建 `reports\task57-ps1-ascii-scan.ps1`（纯 ASCII / CRLF / 无 BOM，PS 5.1 与 pwsh 7 双兼容）+ 基线清单 `reports\task57-ps1-ascii-baseline.txt`；扫描面 = `reports\**\*.ps1` + `tools\**\*.ps1`（`tools\` 25 个脚本实测 0 个含非 ASCII；`reports\` 存量含非 ASCII 者属**已登记的历史证据脚本**，不判红）；判据 = **新增** .ps1 含非 ASCII ⇒ 红、**既有** ASCII 脚本被改脏 ⇒ 红、历史存量保持非 ASCII ⇒ 不红（允许逐步修好，`PS1_RESOLVED` 只记数）；**判据有牙的负控**：`reports\task57-ascii-negctl\` 下三段实测 —— 基线一致态 `PS1_ASCII_VIOLATIONS=0`（EXIT=0）→ 新增含非 ASCII 的 `bad2.ps1` ⇒ `PS1_NEW_NON_ASCII=1` / `VIOLATIONS=1`（EXIT=1）→ 把 `ok.ps1` 改成含非 ASCII ⇒ `PS1_ASCII_FLIPPED=1` / `VIOLATIONS=2`（EXIT=1）；由 `reports\task51-gate.ps1` 调用（§57.3 **C4** 行留档）⇒ `PS1_ASCII_VIOLATIONS > 0` 进 `GATE_FAILURES`（= 0 才判绿） ④ 控制器亲跑门禁单轮全量（`-ExpectDesktopTests 686`）⇒ 期望 `GATE_VERDICT=PASS` / `DESKTOP_TESTS=686` / 四包 `ANALYZE=VERBATIM` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0` ⑤ 独立 verifier（只读、≠ 控制器）复核 ⑥ 台账六件同步（`docs\B1_验收记录.md` / `AGENTS.md` §2 基线注记 + §7 / `handoff.md` §64 / `progress.md` / 计划本节第 15 条 / `docs\task40\项目页规划.md` §7 P. 落地状态块）⑦ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。**用户当轮授权后已 commit + push**（落库 commit `f2e6914`，`05956fb..f2e6914 main -> main`，补轮二 + 补轮三全部改动一并入库，落库后工作树干净）。**实测回填（2026-11-23 夜）**：E4 承重断言单跑 `+1: All tests passed!`（`E4_EXIT=0`，证据 `reports\task57-e4-singlerun.txt`）；门禁首跑 `RUN_AT=2026-11-23 19:47:44` 判 `GATE_VERDICT=FAIL` / `FAIL_ITEM=PS1_ASCII_VIOLATIONS=5`，根因 = 负控夹具目录 `reports\task57-ascii-negctl\v-newascii\` 与 `v-restore\` 在基线生成之后才创建 ⇒ 被「新增非 ASCII」判据正确命中（**非产品缺陷**：判据逻辑与既有计数基线常量未动）⇒ 按 `Baseline` 登记语义重生成基线（`PS1_BASELINE_SHA16` `B9CCD3A0B15D6218` → `9A4E2EE4D8FB36CA`）⇒ 重跑 `RUN_AT=2026-11-23 20:02:21` 判 **`GATE_VERDICT=PASS` / `GATE_FAILURES=0`** / `DESKTOP_TESTS=686` / core_data 204 / core_db 71 / core_domain 62 / 四包 `ANALYZE=VERBATIM` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`（`PS1_SCANNED=480` / `PS1_NON_ASCII_TOTAL=62` / `PS1_ASCII_CLEAN=418`；**verifier 复核后再次重建干净基线 = 480 行 / sha16 `5247D49A400CC3F9`**）。**流程纪律**：新增负控夹具目录后必须重跑 `-Mode Baseline` 重新登记，否则门禁会把夹具判成「新增非 ASCII」。**修复后独立复验（收尾）**：report4 六项缺陷均由控制器自修自记账、修复后无第三方确认 ⇒ 补派独立 verifier 会话 `bg_8890d400`（只读，13 项判据），总判 **`PASS`**（高 0 / 中 2 / 低 4 / 未判定 0）、零写入自证；**新发现·中 1**（基线不可钉 / 重建不可审计：`task51-gate.ps1:253-254` 不对 `PS1_MISSING_FROM_BASELINE` 与基线 sha 判红，且 `reports/` 被 `.gitignore:46` 排除）与**中 2**（存量豁免路径可被任意写入：62 条存量漂移只记 `PS1_CHANGED_SAME_FLAG` 不进门禁）**如实登记为已知残余，本轮不改门禁逻辑** ⇒ **归档文字不得写成「ASCII 盲区已完全闭合」**；计数订正：report4 六项处置实况 = 3 中 + 2 低已修 + 低 6 已登记。全文 `reports\task57-verifier-report5.md`。
+
+---
+
+## 58. Task 58 · 文档国际化轮（README 英文版 + 中文版 + 顶部语言标签）（2026-11-23 夜，控制器）
+
+### 58.1 背景与目标
+
+Task 57 收口补轮三收尾并经独立复验 PASS 后，用户当轮提出三条诉求：① **推送到 GitHub**（把上轮未入库的台账四件落库）② **README 改为英文**，并**在 Readme 页面顶部建立语言标签**，点击可查看中文 README ③ 用**非技术语言**描述下一阶段任务的目标与内容。
+
+本轮定性 = **纯文档轮**：零 `apps\**` 改动、零 `packages\**` 改动、零 schema 变更、零新增依赖、`lib/` 与 `test/` 零改动 ⇒ **不重编译、不重打包、R3 分发真源行不变**（`release\actlog-Setup-1.0.0_20261123-094229.exe` / 22697357 B / `4FBE6775A3C43132`）。
+
+### 58.2 控制器口径裁决
+
+**① README 主体语言 = 英文，中文版另存 `README.zh-CN.md`**（GitHub 约定：英文为主文件 + `README.<lang>.md` 旁挂）。两文件**首行各有一枚可点击的语言标签**（shields.io badge + 相对链接）互相切换：英文版首行指向 `README.zh-CN.md`，中文版首行指向 `README.md` ⇒ 满足「在 Readme 页面顶部建立标签，点击可以查看中文 Readme」。
+
+**② 只做「如实翻译 + 事实订正」，不做内容删改。** 翻译期间发现三处**与仓库现状不符**的旧数字，按 R3 / 门禁真源订正（**两个语言版本同步订正**，不留下「中文版数字旧、英文版数字新」的错位）：
+
+- 可分发包：旧写 `release\actlog-Setup-1.0.0_20261120-100448.exe`（Task 48 口径）⇒ 订正为 `release\actlog-Setup-1.0.0_20261123-094229.exe`（22697357 B / sha16 `4FBE6775A3C43132`），并补「`release\` 共 49 个 exe、仅此 1 个可分发、其余 48 个严禁分发」；
+- 用例数基线：旧写 desktop `+432` / core_data `+197` ⇒ 订正为 `+686` / `+204`（core_db `+71` / core_domain `+62` 不变）；
+- 路线图：旧写「项目页 = 规划完成、未实施」「Task 41 = 下一轮」⇒ 订正为 Task 56 / 57 已落地、P2「按 `domain` 汇总的项目统计」未开始。
+
+**③ 补齐两个「真实存在但 README 未写」的功能段落**（README 自身的原则是「只描述仓库里真实存在的形态」）：**项目页**（甘特图 / 排期联动 / 增量只追加 / 3 天停滞温和提示）、**警句横幅**（450 条中英对照 / 居中 / 刷新钮 / 超长右→左滚动）。截图缺口如实标注「项目页与警句横幅暂无截图（待补）」，**不拿设计原型冒充现状截图**。
+
+**④ `design-demos/` 与 `reports/` 被 `.gitignore` 排除** ⇒ 原文里指向 `design-demos/TOKENS.md` 的链接对公开仓库访客是死链 ⇒ 保留链接但**注明该目录为本地研发材料、不随公开仓库分发**。
+
+**⑤ 门禁 allowlist 必须追加两条 README 路径**（`reports\task51-gate.ps1` 的 `$patterns`）：否则下一轮门禁的 `OUT_OF_SET` 会把本轮两个 README 判成越界改动 ⇒ 红。追加位置 = Task 57 段之后（控制器行 **C1**；该文件 gitignored、不进 status）。
+
+**⑥ 网络实况写进流程纪律**：本机代理 `127.0.0.1:7897` 本轮**整体失效**（经代理访问任意站点 TLS 握手即断、明文返回 502）⇒ 判据不是「GitHub 特例」而是「代理自身挂了」；直连当时也不通，**恢复后直连推送成功**（详见 handoff §66）。
+
+### 58.3 写集表（Task 58 独占路径）
+
+| # | 路径 | 归属 | 允许的改动 |
+|---|---|---|---|
+| W1 | `README.md` | 控制器 | 全文英译 + 首行语言标签 + 三处事实订正 + 两个功能段落 |
+| W2 | `README.zh-CN.md` | 控制器 | 新建：原中文 README 全文（含首行语言标签）+ 与 W1 **同步**的三处事实订正 + 两个功能段落 |
+| C1 | `reports\task51-gate.ps1` | 控制器 | `$patterns` 追加 `'README.md'` / `'README.zh-CN.md'`（纯 ASCII / CRLF / 无 BOM） |
+| C2 | `docs\superpowers\plans\2026-11-07-b1-flutter-implementation.md` | 控制器 | 本节 §58 + 收口后等长打勾 |
+| C3 | `AGENTS.md` / `.superpowers\sdd\...\handoff.md` / `...\progress.md` / `docs\task40\项目页规划.md` | 控制器 | 台账四件（§7 快照 / §66 / 本轮条目 / P2 落地状态块里的任务号顺延） |
+
+**本轮零 worker 派工**（纯文档轮，无实现面）：`packages\**` 与 `apps\**` 一行未动。
+
+### 58.4 验收判据（复选框清单 · 只有控制器能打勾，等长替换 `- [ ] ` → `- [x] `）
+
+- [x] **58.4a 英文主文件**：`README.md` 全文为英文（除产品名「知行日志」、代码标识符、引用文件名外），结构与中文版逐节对应。
+- [x] **58.4b 中文副文件**：`README.zh-CN.md` 存在且为中文原文 + 同步订正，与 `README.md` 逐节对应。
+- [x] **58.4c 顶部语言标签**：两个文件**首行**各有可点击语言标签，英文版指向 `README.zh-CN.md`、中文版指向 `README.md`（相对路径，GitHub 可跳转）。
+- [x] **58.4d 事实一致**：两版本「可分发包 / 用例数基线 / 路线图」三处数字**逐字一致**，且与 `AGENTS.md` R3 真源行 + 门禁基线一致。
+- [x] **58.4e 链接可达**：README 内所有仓库内相对链接指向的文件**实际存在**。
+- [x] **58.4f 编码**：两文件 UTF-8 无 BOM、LF（`.gitattributes` 的 `*.md text eol=lf`）。
+- [x] **58.4g 门禁 allowlist**：`reports\task51-gate.ps1` 的 `$patterns` 含两条 README 路径 ⇒ 下一轮门禁 `OUT_OF_SET=0` 不被本轮误伤。
+- [ ] **58.4h 落库**：两文件 + 台账四件 commit + push 成功，`AHEAD=0` / `BEHIND=0`。
+
+### 58.5 收口顺序（硬顺序，不得跳步）
+
+1. 控制器预检：工作树 dirty 恰为上轮未入库的台账四件 ⇒ 先 commit + push（**用户当轮明示「推送到 GitHub」**）② 写本节 §58 ③ 改 `reports\task51-gate.ps1` 追加 allowlist ④ 写 `README.zh-CN.md`（中文版 + 标签 + 订正）⑤ 重写 `README.md`（英文版 + 标签 + 订正）⑥ allowlist 自查（`$patterns` 命中两路径）⑦ 台账四件同步 ⑧ 等长打勾 §58.4 ⑨ commit + push ⑩ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。
