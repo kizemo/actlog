@@ -9189,7 +9189,7 @@ Task 57 收口补轮三收尾并经独立复验 PASS 后，用户当轮提出三
 - [x] **59.4f 门禁**：四包 `analyze` 逐字 `No issues found!`；desktop 全量用例数 ≥ **686 + 8**、零回退；core_data 204 / core_db 71 / core_domain 62；`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`。
 - [x] **59.4g 出货与装机**：`reports\task51-ship.ps1 -Stage build` → `-Stage ship` 两阶段 ⇒ `SHIP_VERDICT=PASS`；装机 `data\app.so` 与构建树三项逐字相同 ⇒ **R3 分发真源行更新**。
 - [x] **59.4h 独立复验**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记，不得写「已闭合」）。
-- [ ] **59.4i 台账与落库**：计划 §59 勾选 + `AGENTS.md` §2 R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §67 + `progress.md` + `docs\B1_验收记录.md` + `docs\task40\项目页规划.md` P2 落地状态 + README 两语言同步；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
+- [x] **59.4i 台账与落库**：计划 §59 勾选 + `AGENTS.md` §2 R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §67 + `progress.md` + `docs\B1_验收记录.md` + `docs\task40\项目页规划.md` P2 落地状态 + README 两语言同步；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
 
 ### 59.5 收口顺序（硬顺序，不得跳步）
 
