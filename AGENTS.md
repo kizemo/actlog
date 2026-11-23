@@ -54,6 +54,7 @@ $env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
 
 - **门禁重定向必须写在 `.ps1` 内部**：`Set-Location` 之后向新文件重定向会被本地硬安全策略拦。
 - 门禁红灯且报错点**不在本任务文件**时，先查**并发写入**（mtime 稳定 ≥30s + sha16 未变）再怀疑自己的代码。
+- **门禁对 desktop 用例数是精确等值比较**：`reports\task51-gate.ps1` 的 `-ExpectDesktopTests` 传什么就比什么 ⇒ 任何一轮新增/删除用例后，复跑门禁**必须带当轮的新用例数**（沿用旧数直接判红）；脚本内建 `$baseline=596` 是历史常量，其输出的 `DESKTOP_DELTA` **不是**本轮增量，台账只写「本轮真实新增 N 例」。
 
 ### R3 · 分发禁令
 
