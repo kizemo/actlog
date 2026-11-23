@@ -74,6 +74,7 @@ class ProjectRow {
     required this.endDate,
     required this.status,
     required this.milestones,
+    this.domain = '',
   });
 
   /// `project.id`。
@@ -96,6 +97,12 @@ class ProjectRow {
 
   /// 该项目的全部任务（按目标日升序，未排期的排在最后）。
   final List<MilestoneRow> milestones;
+
+  /// 所属领域（`project.domain`）：稳定的英文小写 key，例如 `career`。
+  ///
+  /// **空串 = 未分类**（Task 59 之前的项目、以及新建时没选领域的项目都落在
+  /// 这一桶）。显示文案不走本字段，由界面层按 key 本地化。
+  final String domain;
 }
 
 /// 一条增量（`project_increment` 的一行）。
@@ -245,6 +252,7 @@ class ProjectStore {
             status: row.status,
             milestones:
                 grouped[row.id] ?? const <MilestoneRow>[],
+            domain: row.domain,
           ),
         )
         .toList(growable: false);
@@ -255,11 +263,16 @@ class ProjectStore {
   /// [startDate] / [endDate] 留 `null` 表示「未定」（列存 NULL，不写空串占位）；
   /// 给了就必须是真实日历日（`Validate.calendarDate`），否则抛
   /// `DomainValidationException` 且**不留下任何写入**。
+  ///
+  /// [domain] 是稳定的英文小写领域 key（`career` / `wealth` / `family` /
+  /// `learning` / `social` / `health`）；留空串 = 未分类。列上**没有** CHECK
+  /// 约束（自由文本），所以这里不校验取值域 —— 同步进来的历史 key 照样能存。
   Future<String> createProject({
     required String name,
     String goal = '',
     String? startDate,
     String? endDate,
+    String domain = '',
   }) async {
     final String trimmed = name.trim();
     if (trimmed.isEmpty) {
@@ -284,6 +297,7 @@ class ProjectStore {
         'goal': goal,
         'start_date': startDate,
         'end_date': endDate,
+        'domain': domain,
         'status': 'active',
       },
       write: () => _db.into(_db.project).insert(
@@ -293,6 +307,7 @@ class ProjectStore {
               goal: Value<String>(goal),
               startDate: Value<String?>(startDate),
               endDate: Value<String?>(endDate),
+              domain: Value<String>(domain),
               createdAt: ts,
               updatedAt: ts,
               originDeviceId: deviceId,

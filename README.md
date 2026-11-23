@@ -73,6 +73,8 @@ The "Projects" entry in the left rail (`Ctrl+5`) opens the projects page. Projec
 
 The project detail and each increment row carry a "schedule into today" button, and both go through the same write path to become a `plan_item` on the chosen day (`source_type='project'|'increment'` plus `source_id`). The review section can "record into the project", which **only appends** an increment (a mistake can be corrected by appending a correction, there is no edit entry point). When a project has seen no increment for three days, the Today page shows one **gentle** stall hint in the right rail (not red, no dialog, dismissible).
 
+A project also carries a **domain** (career / wealth / family / learning / social / health): you pick one when you create the project, and the projects page gains a **"By domain"** panel — one row per domain with the project count and a bar whose length follows that domain's share. The domain is stored as a stable key and the label is translated, so an English interface never shows Chinese labels. Projects created before this feature have no domain and fall into an **"Uncategorized"** bucket, which always sorts last.
+
 ### Review: left-aligned content, three questions only
 
 The review section no longer wraps its content in a left column; it is left-aligned and shares the text baseline. The stage labels ("closed", "evening · review and state of mind") are gone, as are the "today's slip-ups" row and the three separate inputs (controllable / uncontrollable / next controllable action). What remains is three questions — **what I learned / what went well / what to improve** — stored together with the outcome note and carried into the calendar look-back.

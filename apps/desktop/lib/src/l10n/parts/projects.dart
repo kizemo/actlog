@@ -1,8 +1,9 @@
 // =============================================================================
 // l10n part：项目页（Task 56）
 // =============================================================================
-// 17 条，全部是无参 String getter（不新增插值方法 ⇒ `byMethod` 仍是 4 条）。
-// 带数量的那一条（「未排期 {n} 条」）用 `{n}` 占位符，由页面侧 `replaceAll` 插值。
+// 42 条，全部是无参 String getter（不新增插值方法 ⇒ `byMethod` 仍是 4 条）。
+// 带数量的两条（「未排期 {n} 条」/「{n} 个项目」）用 `{n}` 占位符，由页面侧
+// `replaceAll` 插值。
 //
 // 键前缀统一 `projects-`（与 `settings-` / `about-` / `common-` / `shell-` /
 // `domain-` 同一套规矩）。键登记在 `l10n_keys.dart` 的 `byGetter` 里。
@@ -102,6 +103,39 @@ abstract class ProjectsL10n {
 
   /// 打开该条增量对应的当天日志原文。
   String get projectsIncrementOpenOriginalAction;
+
+  /// 「按领域汇总的项目分布」面板标题。
+  String get projectsDomainStatsTitle;
+
+  /// 没有填所属领域的项目归到这一类。
+  String get projectsDomainStatsUncategorized;
+
+  /// 某个领域下的项目数（`{n}` 由 UI 层插值）。
+  String get projectsDomainStatsCount;
+
+  /// 新建项目表单里的「所属领域」字段标签。
+  String get projectsDomainFieldLabel;
+
+  /// 所属领域未选时的占位。
+  String get projectsDomainUnset;
+
+  /// 领域：事业。
+  String get projectsDomainCareer;
+
+  /// 领域：财富。
+  String get projectsDomainWealth;
+
+  /// 领域：家庭。
+  String get projectsDomainFamily;
+
+  /// 领域：学习。
+  String get projectsDomainLearning;
+
+  /// 领域：人际。
+  String get projectsDomainSocial;
+
+  /// 领域：健康。
+  String get projectsDomainHealth;
 }
 
 /// 项目页文案：简体中文。
@@ -198,6 +232,39 @@ mixin ProjectsZhL10n implements ProjectsL10n {
 
   @override
   String get projectsIncrementOpenOriginalAction => '查看原文';
+
+  @override
+  String get projectsDomainStatsTitle => '领域分布';
+
+  @override
+  String get projectsDomainStatsUncategorized => '未分类';
+
+  @override
+  String get projectsDomainStatsCount => '{n} 个项目';
+
+  @override
+  String get projectsDomainFieldLabel => '所属领域';
+
+  @override
+  String get projectsDomainUnset => '未设置';
+
+  @override
+  String get projectsDomainCareer => '事业';
+
+  @override
+  String get projectsDomainWealth => '财富';
+
+  @override
+  String get projectsDomainFamily => '家庭';
+
+  @override
+  String get projectsDomainLearning => '学习';
+
+  @override
+  String get projectsDomainSocial => '人际';
+
+  @override
+  String get projectsDomainHealth => '健康';
 }
 
 /// 项目页文案：English。
@@ -298,4 +365,37 @@ mixin ProjectsEnL10n implements ProjectsL10n {
 
   @override
   String get projectsIncrementOpenOriginalAction => 'Open original';
+
+  @override
+  String get projectsDomainStatsTitle => 'By domain';
+
+  @override
+  String get projectsDomainStatsUncategorized => 'Uncategorized';
+
+  @override
+  String get projectsDomainStatsCount => '{n} projects';
+
+  @override
+  String get projectsDomainFieldLabel => 'Domain';
+
+  @override
+  String get projectsDomainUnset => 'Not set';
+
+  @override
+  String get projectsDomainCareer => 'Career';
+
+  @override
+  String get projectsDomainWealth => 'Wealth';
+
+  @override
+  String get projectsDomainFamily => 'Family';
+
+  @override
+  String get projectsDomainLearning => 'Learning';
+
+  @override
+  String get projectsDomainSocial => 'Social';
+
+  @override
+  String get projectsDomainHealth => 'Health';
 }

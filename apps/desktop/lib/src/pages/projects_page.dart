@@ -19,13 +19,16 @@ import 'package:core_domain/core_domain.dart' show PlanSourceType;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/project_domain_stats.dart';
 import '../data/project_store.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/chip_row.dart';
 import '../widgets/gantt_chart.dart';
+import '../widgets/project_domain_stats_panel.dart';
 
 /// 项目页：多项目 / 每项目多任务 / 自绘甘特图。
 class ProjectsPage extends ConsumerStatefulWidget {
@@ -53,6 +56,12 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
 
   /// 已读到的项目（含各自的任务）。
   List<ProjectRow> _projects = const <ProjectRow>[];
+
+  /// 项目按 `project.domain` 分桶的分布（随 [_reload] 重算）。
+  ///
+  /// 统计口径全在 `data/project_domain_stats.dart`，页面只存结果 —— 否则
+  /// 「排序 / 未分类沉底」这类规则会散进 build 里，没法被单测钉住。
+  List<ProjectDomainStat> _domainStats = const <ProjectDomainStat>[];
 
   /// 首屏还没读完。
   bool _loading = true;
@@ -97,6 +106,9 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       }
       setState(() {
         _projects = rows;
+        // 领域分布只依赖 `rows`（纯函数）：放在 setState 里算一次，不放进
+        // build 里 —— 每帧重算会随项目数线性增长，且没法在页面外单测。
+        _domainStats = projectDomainStats(rows);
         _increments = increments;
         _scheduled = scheduled;
         _loading = false;
@@ -119,6 +131,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     String goal,
     String? startDate,
     String? endDate,
+    String domain,
   ) async {
     try {
       await _store.createProject(
@@ -126,6 +139,8 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
         goal: goal,
         startDate: startDate,
         endDate: endDate,
+        // 空串 = 未分类（表单的「未设置」就是它），与库里的既有行同一语义。
+        domain: domain,
       );
       await _reload();
       return null;
@@ -335,6 +350,14 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
           goalHint: t.projectsGoalHint,
           startHint: t.projectsStartHint,
           endHint: t.projectsEndHint,
+          // 7 枚：未设置（存库空串）+ 6 个固定领域 key。未知 key 不在选项里
+          // （用户新建时只能选固定领域，历史 key 照样能被统计面板显示）。
+          domainLabel: t.projectsDomainFieldLabel,
+          domainOptions: <ChipOption>[
+            ChipOption(key: '', label: t.projectsDomainUnset),
+            for (final String key in projectDomainKeys)
+              ChipOption(key: key, label: _domainLabel(t, key)),
+          ],
           onSubmit: _createProject,
         ),
         const SizedBox(height: AppTokens.gapCard),
@@ -352,6 +375,17 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
         else if (_projects.isEmpty)
           _EmptyHint(text: t.projectsEmpty)
         else ...<Widget>[
+          // 领域分布排在甘特图之前：它是「这一屏项目的整体形状」的一句话
+          // 摘要，先看分布再看逐条排期。空列表（含未加载）不占位。
+          if (_domainStats.isNotEmpty) ...<Widget>[
+            ProjectDomainStatsPanel(
+              title: t.projectsDomainStatsTitle,
+              stats: _domainStats,
+              labelOf: (String key) => _domainLabel(t, key),
+              countText: t.projectsDomainStatsCount,
+            ),
+            const SizedBox(height: AppTokens.gapCard),
+          ],
           GanttChart(
             projects: _ganttProjects,
             headerLabel: t.projectsTitle,
@@ -387,6 +421,34 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
   }
 }
 
+/// 领域 key ⇒ 本地化标签。
+///
+/// key 是存库的稳定英文小写值（见 `projectDomainKeys`）：
+///  - 六个固定 key 走 l10n 译名；
+///  - 空串 = 未分类，用 `projectsDomainStatsUncategorized`（与统计面板同一句）；
+///  - **未知 key 原样返回**（库里没有 CHECK 约束，同步进来的历史 key 不能被
+///    吞成「未分类」或空字，那样等于凭空丢信息）。
+String _domainLabel(AppLocalizations t, String key) {
+  switch (key) {
+    case 'career':
+      return t.projectsDomainCareer;
+    case 'wealth':
+      return t.projectsDomainWealth;
+    case 'family':
+      return t.projectsDomainFamily;
+    case 'learning':
+      return t.projectsDomainLearning;
+    case 'social':
+      return t.projectsDomainSocial;
+    case 'health':
+      return t.projectsDomainHealth;
+    case '':
+      return t.projectsDomainStatsUncategorized;
+    default:
+      return key;
+  }
+}
+
 /// 新建项目表单。
 class _NewProjectForm extends StatefulWidget {
   const _NewProjectForm({
@@ -395,6 +457,8 @@ class _NewProjectForm extends StatefulWidget {
     required this.goalHint,
     required this.startHint,
     required this.endHint,
+    required this.domainLabel,
+    required this.domainOptions,
     required this.onSubmit,
   });
 
@@ -404,12 +468,19 @@ class _NewProjectForm extends StatefulWidget {
   final String startHint;
   final String endHint;
 
+  /// 领域选择器的字段标签（「所属领域」）。
+  final String domainLabel;
+
+  /// 领域选项（7 枚：未设置 + 6 个固定 key；`key` 即写库值）。
+  final List<ChipOption> domainOptions;
+
   /// 提交；返回 `null` = 成功，非空 = 错误文案。
   final Future<String?> Function(
     String name,
     String goal,
     String? startDate,
     String? endDate,
+    String domain,
   )
   onSubmit;
 
@@ -422,6 +493,12 @@ class _NewProjectFormState extends State<_NewProjectForm> {
   final TextEditingController _goal = TextEditingController();
   final TextEditingController _start = TextEditingController();
   final TextEditingController _end = TextEditingController();
+
+  /// 选中的领域 key；空串 = 未设置（默认）。
+  ///
+  /// 直接把「未设置」的 key 定成空串：`ChipOption.key` 只是 `String`，用空串
+  /// 省掉一层哨兵 → 空串的映射，提交时零转换、写库口径与老项目一致。
+  String _domain = '';
 
   bool _busy = false;
   String? _error;
@@ -454,6 +531,7 @@ class _NewProjectFormState extends State<_NewProjectForm> {
         _goal.text.trim(),
         _start.text.trim().isEmpty ? null : _start.text.trim(),
         _end.text.trim().isEmpty ? null : _end.text.trim(),
+        _domain,
       );
       if (!mounted) {
         return;
@@ -463,6 +541,9 @@ class _NewProjectFormState extends State<_NewProjectForm> {
         _goal.clear();
         _start.clear();
         _end.clear();
+        // 与其它字段一样清空：下一张表单从「未设置」起步，不让上一个项目的
+        // 领域偷偷粘到下一个项目上。
+        _domain = '';
       }
       setState(() => _error = error);
     } finally {
@@ -470,6 +551,12 @@ class _NewProjectFormState extends State<_NewProjectForm> {
         setState(() => _busy = false);
       }
     }
+  }
+
+  /// 领域单选：`ChipRow` 单选模式下 `next` 恒只有一枚（再点已选中的那枚也
+  /// 是写回同一枚），所以取首元素即可；空集合按「未设置」兜底。
+  void _selectDomain(Set<String> next) {
+    setState(() => _domain = next.isEmpty ? '' : next.first);
   }
 
   @override
@@ -519,13 +606,27 @@ class _NewProjectFormState extends State<_NewProjectForm> {
                   decoration: _fieldDecoration(tokens: tokens, hint: widget.endHint),
                 ),
               ),
-              _GhostButton(
-                label: widget.newProjectAction,
-                primary: true,
-                busy: _busy,
-                onPressed: _submit,
-              ),
             ],
+          ),
+          const SizedBox(height: 8),
+          // 领域选择独立成行：7 枚芯片塞进上面那行 `Wrap` 会把「新建项目」
+          // 按钮挤到远处，也让字段与选项混成一串。
+          Text(
+            widget.domainLabel,
+            style: TextStyle(fontSize: 11.5, color: tokens.meta),
+          ),
+          const SizedBox(height: 4),
+          ChipRow(
+            options: widget.domainOptions,
+            selected: <String>{_domain},
+            onChanged: _selectDomain,
+          ),
+          const SizedBox(height: 8),
+          _GhostButton(
+            label: widget.newProjectAction,
+            primary: true,
+            busy: _busy,
+            onPressed: _submit,
           ),
           if (_error != null) ...<Widget>[
             const SizedBox(height: 8),

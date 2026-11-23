@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「106 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「131 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -341,7 +341,7 @@ abstract final class L10nKeys {
   static const String domainPriorityUnsetLabel = 'domain-priority-unset-label';
 
   // ---------------------------------------------------------------------------
-  // 项目页（parts\projects.dart，17 条）
+  // 项目页（parts\projects.dart，42 条）
   // ---------------------------------------------------------------------------
 
   /// 项目页标题。
@@ -450,11 +450,47 @@ abstract final class L10nKeys {
   static const String projectsIncrementOpenOriginalAction =
       'projects-increment-open-original-action';
 
+  // Task 59：按领域汇总的项目分布 + 新建项目的「所属领域」字段。
+
+  /// 领域分布面板标题。
+  static const String projectsDomainStatsTitle = 'projects-domain-stats-title';
+
+  /// 没有所属领域的项目归到这一类。
+  static const String projectsDomainStatsUncategorized =
+      'projects-domain-stats-uncategorized';
+
+  /// 某个领域下的项目数（`{n}` 占位符）。
+  static const String projectsDomainStatsCount = 'projects-domain-stats-count';
+
+  /// 「所属领域」字段标签。
+  static const String projectsDomainFieldLabel = 'projects-domain-field-label';
+
+  /// 所属领域未选时的占位。
+  static const String projectsDomainUnset = 'projects-domain-unset';
+
+  /// 领域：事业。
+  static const String projectsDomainCareer = 'projects-domain-career';
+
+  /// 领域：财富。
+  static const String projectsDomainWealth = 'projects-domain-wealth';
+
+  /// 领域：家庭。
+  static const String projectsDomainFamily = 'projects-domain-family';
+
+  /// 领域：学习。
+  static const String projectsDomainLearning = 'projects-domain-learning';
+
+  /// 领域：人际。
+  static const String projectsDomainSocial = 'projects-domain-social';
+
+  /// 领域：健康。
+  static const String projectsDomainHealth = 'projects-domain-health';
+
   // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（120 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// getter 名 → 键（131 条，覆盖 `AppLocalizations` 全部无参 String getter；
   /// 另有 2 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
@@ -554,7 +590,8 @@ abstract final class L10nKeys {
     'trayShow': shellTrayShow,
     'trayHide': shellTrayHide,
     'trayQuit': shellTrayQuit,
-    // 项目页 28 条（Task 56 的 17 条 + Task 57 的 11 条）
+    // 项目页 42 条（Task 56 的 17 条 + Task 57 的 11 条 + 补轮 3 条 +
+    // Task 59 的 11 条）
     'projectsTitle': projectsTitle,
     'projectsSubtitle': projectsSubtitle,
     'projectsEmpty': projectsEmpty,
@@ -587,6 +624,18 @@ abstract final class L10nKeys {
     'projectsIncrementExcerptTag': projectsIncrementExcerptTag,
     'projectsIncrementExcerptHint': projectsIncrementExcerptHint,
     'projectsIncrementOpenOriginalAction': projectsIncrementOpenOriginalAction,
+    // Task 59 共 11 条（领域分布面板 + 所属领域字段）
+    'projectsDomainStatsTitle': projectsDomainStatsTitle,
+    'projectsDomainStatsUncategorized': projectsDomainStatsUncategorized,
+    'projectsDomainStatsCount': projectsDomainStatsCount,
+    'projectsDomainFieldLabel': projectsDomainFieldLabel,
+    'projectsDomainUnset': projectsDomainUnset,
+    'projectsDomainCareer': projectsDomainCareer,
+    'projectsDomainWealth': projectsDomainWealth,
+    'projectsDomainFamily': projectsDomainFamily,
+    'projectsDomainLearning': projectsDomainLearning,
+    'projectsDomainSocial': projectsDomainSocial,
+    'projectsDomainHealth': projectsDomainHealth,
   };
 
   /// 列表型 getter 名 → 键（2 条；`byGetter` 只收 String getter）。

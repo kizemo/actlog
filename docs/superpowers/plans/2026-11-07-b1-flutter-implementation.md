@@ -9129,3 +9129,75 @@ Task 57 收口补轮三收尾并经独立复验 PASS 后，用户当轮提出三
 ### 58.5 收口顺序（硬顺序，不得跳步）
 
 1. 控制器预检：工作树 dirty 恰为上轮未入库的台账四件 ⇒ 先 commit + push（**用户当轮明示「推送到 GitHub」**）② 写本节 §58 ③ 改 `reports\task51-gate.ps1` 追加 allowlist ④ 写 `README.zh-CN.md`（中文版 + 标签 + 订正）⑤ 重写 `README.md`（英文版 + 标签 + 订正）⑥ allowlist 自查（`$patterns` 命中两路径）⑦ 台账四件同步 ⑧ 等长打勾 §58.4 ⑨ commit + push ⑩ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。
+
+---
+
+## 59. Task 59 · 项目维度统计（按 `domain` 汇总）+ 新建项目可选领域（2026-11-23 夜，控制器）
+
+### 59.1 背景与目标
+
+`docs\task40\项目页规划.md` §7 **P2 第二项**「项目维度统计（按 `domain` 汇总，复用 `PriorityDistributionPanel` 的呈现手法）」自 Task 40 设计轮起挂账至今 —— P2 第一项（导航项翻 `enabled: true` + `Ctrl+5` + `kShellKeyHints` 同步）已随 **Task 56** 落地，Task 58 已用于 README 国际化轮 ⇒ 本轮立 **Task 59** 收口该挂账项。
+
+**侦察坐实的两个前提（决定本轮口径，`reports\task59-recon.md`）**：
+
+1. **`PriorityDistributionPanel` 已不存在** —— `apps\desktop\lib\` 全仓 grep `PriorityDistribution` / `DistributionPanel` **零命中**；`AGENTS.md:413` 记 Task 45（2026-11-19）已删该组件；`docs\task40\模块优化建议.md:133` 仍在引用它 ⇒ **该文档已过期**。⇒ 规划文档「复用其呈现手法」一句**必须改写**为可执行口径：**参照 `apps\desktop\lib\src\widgets\calendar_month_view.dart:114-129` 的比例洗底范式（`tokens.inkWash.withValues(alpha: ratio)` 叠 `tokens.sunken`）+ `priority_chips.dart:127` 的描边格子形态**，**不新增任何色值**（`AppTokens` 纪律；与 `项目页规划.md:134`「用 domain 派生色相……或干脆不配色 —— 不新增色值」一致 ⇒ **本轮不配色**，靠标签 + 数量 + 条长区分）。
+2. **`project.domain` 列存在，但从未被写入过** —— `docs\schema_v1.sql:304` `domain TEXT NOT NULL DEFAULT ''`（**无 CHECK** ⇒ 自由文本）；`packages\core_db\lib\src\tables.dart:640` 该列已在；**但** app 侧 `createProject` 无该参数、`changedFields` 无该键、`ProjectRow` 无该字段、新建项目表单无任何领域控件 ⇒ 真实库里 `domain` **恒为空串**。⇒ **只做读侧统计会得到「只有一个桶」的空图** ⇒ 本轮**必须同时补齐写侧链路**（列早已存在 ⇒ 仍是**零 schema 变更**）。
+
+**本轮目标（两件，缺一不可）**：
+
+- **① 写侧**：新建项目时可选「所属领域」（6 个固定领域：事业 / 财富 / 家庭 / 学习 / 人际 / 健康），值落 `project.domain`；
+- **② 读侧**：项目页新增「领域分布」面板，按 `domain` 汇总项目数，以比例条呈现。
+
+### 59.2 控制器口径裁决
+
+- **① 领域值 = 稳定英文 key 存库，界面显示 = 本地化文案**（库里不存展示文案，英文界面不出现中文标签）。固定 6 个 key：`career` / `wealth` / `family` / `learning` / `social` / `health`；**空串 = 未分类**。
+- **② 既有 6 枚中文常量不作为取值域**：`apps\desktop\lib\src\widgets\domain_chips.dart:16-23` 的 `DomainChips.domains`（事业/财富/家庭/学习/人际/健康）是 `plan_item.domain` 的旧设计遗留、全仓无引用、标签硬编码中文 ⇒ 本轮**不改它**（R4 不删文件、不改无关文件）；新建项目表单的领域选择用 `apps\desktop\lib\src\widgets\chip_row.dart` 的 `ChipRow` **在 `projects_page.dart` 内自建**，标签走 l10n。
+- **③ 既有项目不改领域**（本轮**不**给项目详情页加领域编辑控件）⇒ 老项目落「未分类」桶；该边界**如实登记**，不假装老项目被归类了。
+- **④ 面板只读、零 schema 变更、零新增依赖、零 `packages\**` 改动。**
+- **⑤ 比例条**：轨道 `tokens.sunken`；填充 `Color.alphaBlend(tokens.inkWash.withValues(alpha: ratio), tokens.sunken)`；条长 = `ratio * 轨道宽`；圆角 `AppTokens.radius`（抄 `calendar_month_view.dart:114-129`）⇒ **不新增色值**。
+- **⑥ 未知领域 key**（同步进来的历史数据）：**单独成桶、显示原样 key**，不崩、不丢、不猜译名。
+- **⑦ 排序**：项目数降序 → 数量相同按 key 字典序 → **「未分类」恒排最后**。
+- **⑧ 面板落点**：项目页 `build()` 的「已加载且非空」分支内，**排在 `GanttChart` 之前**（摘要先于明细）；无项目时不渲染面板。
+
+### 59.3 写集表（Task 59 独占路径 · worker 只能写自己那一行）
+
+| # | 路径 | 归属 | 允许的改动 |
+|---|---|---|---|
+| W1 | `apps\desktop\lib\src\data\project_store.dart` | worker 1 | `ProjectRow` 加 `final String domain`；`listProjects` 映射补 `domain`；`createProject` 加 `String domain = ''` 参数 + `changedFields` + companion insert |
+| W2 | `apps\desktop\lib\src\data\project_domain_stats.dart`（**新建**） | worker 1 | 纯聚合：`ProjectDomainStat` + `projectDomainStats(List<ProjectRow>)` + 6 个 key 常量（**无 IO**） |
+| W3 | `apps\desktop\lib\src\l10n\parts\projects.dart` | worker 2 | 下列 **11** 条 getter：接口段 + zh 段 + en 段 |
+| W4 | `apps\desktop\lib\src\l10n\l10n_keys.dart` | worker 2 | 11 条 `static const` + `byGetter` 11 行 |
+| W5 | `apps\desktop\test\l10n_harness.dart` | worker 2 | `l10nAccessors` 加 11 行 |
+| W6 | `apps\desktop\test\l10n_base_test.dart` | worker 2 | `120 → 131`（两处）、`126 → 137`（一处） |
+| W7 | `apps\desktop\lib\src\widgets\project_domain_stats_panel.dart`（**新建**） | worker 3 | `ProjectDomainStatsPanel` 公开组件（比例条 + 标签 + 数量） |
+| W8 | `apps\desktop\lib\src\pages\projects_page.dart` | worker 3 | `build()` 插入面板；`_NewProjectForm` 加领域选择（`ChipRow`）+ 提交时带 `domain` |
+| W9 | `apps\desktop\test\task59_project_domain_stats_test.dart`（**新建**） | worker 3 | 数据层 + 界面层新用例（≥ 8 例） |
+| C1 | `docs\superpowers\plans\2026-11-07-b1-flutter-implementation.md` | 控制器 | 本节 §59 + 收口后等长打勾 |
+| C2 | `reports\task51-gate.ps1` | 控制器 | `$patterns` 追加 4 条白名单（见 59.5 ③）；**纯 ASCII / CRLF / 无 BOM** |
+| C3 | `reports\task59-recon.md` | 控制器 | 本轮侦察报告落盘（供台账引用） |
+| C4 | `AGENTS.md` / `.superpowers\sdd\...\handoff.md` / `...\progress.md` / `docs\B1_验收记录.md` / `docs\task40\项目页规划.md` / `README.md` / `README.zh-CN.md` | 控制器 | 台账同步 + R2 基线 + P2 落地状态 + README 两语言同步 |
+
+**门禁 `$patterns` 必加四条**（否则 `OUT_OF_SET>0` 判红）：`'apps/desktop/lib/src/data/project_domain_stats.dart'`、`'apps/desktop/lib/src/widgets/project_domain_stats_panel.dart'`、`'apps/desktop/test/task59_*.dart'`、`'reports/task59-*'`。**`packages/**` 一律算越界**（`task51-gate.ps1:209`）⇒ 本轮零 `packages\**` 改动。
+
+### 59.4 验收判据（复选框清单 · 只有控制器能打勾，等长替换 `- [ ] ` → `- [x] `）
+
+- [x] **59.4a 写侧贯通**：`createProject(domain: 'career')` ⇒ DB 行 `domain='career'` ⇒ `listProjects()` 回读 `domain` 一致；`changedFields` 含 `domain`（⇒ 走 oplog 同步）。
+- [x] **59.4b 统计正确**：给定项目集合，`projectDomainStats` 分桶计数正确、`ratio` = `count/total`、排序 = 数量降序 + 未分类最后。
+- [x] **59.4c 面板呈现**：项目页渲染「领域分布」面板，每桶一行 = 本地化标签 + 项目数 + 比例条；条长 ∝ ratio。
+- [x] **59.4d 边界**：空串 → 「未分类」桶且排最后；未知 key（如 `foo`）→ 单独成桶、原样显示；无项目 ⇒ 面板不渲染。
+- [x] **59.4e l10n**：11 条新 getter 在 zh/en 两套 mixin 均有实现；`byGetter` 与 `l10nAccessors` 同步登记；`l10n_base_test.dart` 计数 `131` / `137` 通过。
+- [x] **59.4f 门禁**：四包 `analyze` 逐字 `No issues found!`；desktop 全量用例数 ≥ **686 + 8**、零回退；core_data 204 / core_db 71 / core_domain 62；`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`。
+- [x] **59.4g 出货与装机**：`reports\task51-ship.ps1 -Stage build` → `-Stage ship` 两阶段 ⇒ `SHIP_VERDICT=PASS`；装机 `data\app.so` 与构建树三项逐字相同 ⇒ **R3 分发真源行更新**。
+- [x] **59.4h 独立复验**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记，不得写「已闭合」）。
+- [ ] **59.4i 台账与落库**：计划 §59 勾选 + `AGENTS.md` §2 R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §67 + `progress.md` + `docs\B1_验收记录.md` + `docs\task40\项目页规划.md` P2 落地状态 + README 两语言同步；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
+
+### 59.5 收口顺序（硬顺序，不得跳步）
+
+1. 控制器：写本节 §59 → 落盘侦察报告 C3 → 改 `reports\task51-gate.ps1` 追加 4 条白名单（C2）→ 自查 `$patterns` 命中 4 条。
+2. **并行派 worker 1（W1+W2 数据层）与 worker 2（W3–W6 l10n）**；两者写集互斥，可同时开工。worker 2 **不得**改 `apps\desktop\lib\src\data\**`，worker 1 **不得**改 l10n 与 `test\l10n_*`。
+3. 两worker 回报后，控制器跑一次 `dart analyze`（desktop）确认两侧接口齐备，再派 **worker 3（W7–W9 呈现层 + 新用例）**（依赖 worker 1 的 API 与 worker 2 的 getter 名）。
+4. worker 3 回报 ⇒ 控制器亲跑全量门禁（**先 `Move-Item` 挪走 `apps\desktop\build\test_cache\build`**）⇒ `GATE_VERDICT=PASS` 且用例数 ≥ 694。
+5. 出货两阶段（`-Stage build` → `-Stage ship`）+ 装机核对 + 真机帧（能取则取；**锁屏 / 桌面守卫不过 ⇒ 如实登记「未判定」，不判 PASS/FAIL**）。
+6. 派**独立 verifier**（只读、≠ 实现者）复验 59.4a–i ⇒ 处置缺陷。
+7. 台账同步（C4 六件）+ 计划 §59.4 等长打勾 + `AGENTS.md` R2 基线与 R3 分发真源行更新。
+8. commit + push（`AHEAD=0` / `BEHIND=0`）⇒ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。
