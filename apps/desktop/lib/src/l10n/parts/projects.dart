@@ -93,6 +93,15 @@ abstract class ProjectsL10n {
 
   /// 里程碑逾期标记。
   String get projectsMilestoneOverdue;
+
+  /// 增量行摘要上的「摘录」标注。
+  String get projectsIncrementExcerptTag;
+
+  /// 「摘录」标注的悬停说明：原文在当天的日志里。
+  String get projectsIncrementExcerptHint;
+
+  /// 打开该条增量对应的当天日志原文。
+  String get projectsIncrementOpenOriginalAction;
 }
 
 /// 项目页文案：简体中文。
@@ -180,6 +189,15 @@ mixin ProjectsZhL10n implements ProjectsL10n {
 
   @override
   String get projectsMilestoneOverdue => '逾期';
+
+  @override
+  String get projectsIncrementExcerptTag => '摘录';
+
+  @override
+  String get projectsIncrementExcerptHint => '从当天的复盘摘录，原文在日志里';
+
+  @override
+  String get projectsIncrementOpenOriginalAction => '查看原文';
 }
 
 /// 项目页文案：English。
@@ -270,4 +288,14 @@ mixin ProjectsEnL10n implements ProjectsL10n {
 
   @override
   String get projectsMilestoneOverdue => 'Overdue';
+
+  @override
+  String get projectsIncrementExcerptTag => 'Excerpt';
+
+  @override
+  String get projectsIncrementExcerptHint =>
+      "Excerpted from that day's review; the original is in the log";
+
+  @override
+  String get projectsIncrementOpenOriginalAction => 'Open original';
 }

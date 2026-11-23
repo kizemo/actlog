@@ -436,11 +436,25 @@ abstract final class L10nKeys {
   /// 里程碑逾期标记。
   static const String projectsMilestoneOverdue = 'projects-milestone-overdue';
 
+  // Task 57 补轮：增量摘要的「摘录」标注 + 回原文入口。
+
+  /// 增量摘要上的「摘录」标注。
+  static const String projectsIncrementExcerptTag =
+      'projects-increment-excerpt-tag';
+
+  /// 「摘录」标注的说明（原文在当天的日志里）。
+  static const String projectsIncrementExcerptHint =
+      'projects-increment-excerpt-hint';
+
+  /// 打开该条增量对应的日志原文。
+  static const String projectsIncrementOpenOriginalAction =
+      'projects-increment-open-original-action';
+
   // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（117 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// getter 名 → 键（120 条，覆盖 `AppLocalizations` 全部无参 String getter；
   /// 另有 2 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
@@ -569,6 +583,10 @@ abstract final class L10nKeys {
     'projectsIncrementToTodayAction': projectsIncrementToTodayAction,
     'projectsIncrementAppendOnly': projectsIncrementAppendOnly,
     'projectsMilestoneOverdue': projectsMilestoneOverdue,
+    // Task 57 补轮 3 条（摘录标注 + 回原文入口）
+    'projectsIncrementExcerptTag': projectsIncrementExcerptTag,
+    'projectsIncrementExcerptHint': projectsIncrementExcerptHint,
+    'projectsIncrementOpenOriginalAction': projectsIncrementOpenOriginalAction,
   };
 
   /// 列表型 getter 名 → 键（2 条；`byGetter` 只收 String getter）。

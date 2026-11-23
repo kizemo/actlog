@@ -337,7 +337,10 @@ class _ShellHostState extends State<ShellHost> {
         onDayPicked: () => setState(() => _nav = ShellHost.kTodayNavId),
       ),
       'settings' => const SettingsPage(),
-      'projects' => const ProjectsPage(),
+      // 项目页内容体没有自己的宿主栈，点增量「查看原文」后由壳层回今日页。
+      'projects' => ProjectsPage(
+        onOpenDayLog: () => setState(() => _nav = ShellHost.kTodayNavId),
+      ),
       _ => const TodayPage(),
     };
   }

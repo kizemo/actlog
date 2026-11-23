@@ -9043,6 +9043,7 @@ W1/W2/W3 三者写集互不重叠 ⇒ 可并行。**W1 禁碰** `day_grid.dart` 
 | W7 | `apps\desktop\test\task57_*.dart` | worker | 新增测试（见 57.4 判据） |
 | W8 | `apps\desktop\test\` 既有文件 | worker | **仅**当新增 l10n getter 导致锁定计数变化时才改（`l10n_base_test.dart` / `l10n_harness.dart` / `today_loop_hint_panel_test.dart` / `today_review_layout_test.dart` / `task56_projects_test.dart`）；改动只能是计数/期望值同步，**不得删断言** |
 | W9 | `reports\task57-*` | worker + 控制器 | 证据、门禁日志、真机帧、交付报告（gitignored） |
+| W10 | `apps\desktop\lib\src\app.dart` | worker | **Task 57 收口补（57.4g）新增**：仅在 `_content()` 的 `'projects' =>` 分支接一行 `ProjectsPage(onOpenDayLog: ...)`（壳内切页回今日页，与既有 `CalendarPage(onDayPicked:)` 同款模式）；**不改** `_ShellHostState` 结构、**不新增** `MaterialApp.routes`、**不动**快捷键与导航栏、**不改** `_go` / `_onNavSelected` 语义 |；**授权**：收口补轮 worker 已获授权将 `app.dart` 行尾由 CRLF 归一为 LF（内容逐字不变，`git ls-files --eol` 现为 `w/lf`）
 | C1 | `reports\task51-gate.ps1` | **控制器** | 追加 Task 57 allowlist 条目（gitignored，不进 status） |
 | C2 | `docs\superpowers\plans\2026-11-07-b1-flutter-implementation.md` | **控制器** | 本节 §57 + 收口后等长打勾 |
 | C3 | `docs\B1_验收记录.md` / `.superpowers\sdd\...\handoff.md` / `...\progress.md` / `AGENTS.md` / `docs\task40\项目页规划.md` | **控制器** | 台账六件 |
@@ -9057,12 +9058,14 @@ W1/W2/W3 三者写集互不重叠 ⇒ 可并行。**W1 禁碰** `day_grid.dart` 
 - [x] **57.4d L3 只追加**：任意操作路径下 `project_increment` 既有行 `updated_at` 不变；无编辑入口。
 - [x] **57.4e L3 停滞判定**：`today - max(increment.date) >= 3` 时提示出现，`< 3` 时不出现；提示**非红色警告**、文案温和；关闭后当日不再出现（按日期粒度抑制）。
 - [x] **57.4f L3 关联写**：当日已有指向该项目的 `plan_item` 时，新增增量行的 `plan_item_id` 被正确写入；无则写 NULL。
-- [ ] **57.4g L3 摘要有标注**：增量存的是派生摘要，UI 明确标注「摘录」，可点回 `day_log` 原文。
+- [x] **57.4g L3 摘要有标注**：增量存的是派生摘要，UI 明确标注「摘录」，可点回 `day_log` 原文。
 - [x] **57.4h 里程碑逾期标记**：`target_date < today && 未达成` 时清单行出现不显眼标记；当天到期不标；已达成不标；**无弹窗、无红色、无新增色值**。
 - [x] **57.4i 门禁**：`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0`；四包 `ANALYZE=VERBATIM`（逐字 `No issues found!`）；desktop 测试数 == 新基线（666 + 本轮新增），core_data 204 / core_db 71 / core_domain 62 不变。
-- [ ] **57.4j 出货 + 真机**：`-Stage build`（`BUILD_EXIT=0`）→ `-Stage ship`（`SHIP_VERDICT=PASS` / `INSTALL_EXIT=0`）两阶段；新包 sha16 **不同于** `921B99F73EC52BC3`；装机 `data\app.so` 的 mtime/sha16 == 构建树 `app.so`；真机帧坐实三项 UI 落点（项目详情两枚按钮 / 复盘 `→ 记到项目` / `LoopHintPanel` 停滞提示）。取帧前先过 `task29-desktop-check.ps1` 与 `LogonUI` 检查。
+- [x] **57.4j 出货 + 真机**：`-Stage build`（`BUILD_EXIT=0`）→ `-Stage ship`（`SHIP_VERDICT=PASS` / `INSTALL_EXIT=0`）两阶段；新包 sha16 **不同于** `921B99F73EC52BC3`；装机 `data\app.so` 的 mtime/sha16 == 构建树 `app.so`；真机帧坐实三项 UI 落点（项目详情两枚按钮 / 复盘 `→ 记到项目` / `LoopHintPanel` 停滞提示）。取帧前先过 `task29-desktop-check.ps1` 与 `LogonUI` 检查。
 - [x] **57.4k 台账闭合**：`docs\B1_验收记录.md` + `handoff.md` §62 + `progress.md` + `AGENTS.md` §7 快照 + `docs\task40\项目页规划.md` §7 P1 标为已落地；已知边界①（抑制态不跨重启）如实登记；独立 verifier（≠ 实现者会话）复核。
 
 ### 57.5 收口顺序（硬顺序，不得跳步）
 
 1. 控制器实读源码预检（**已完成**，见 57.1）→ 2. 写本节 §57（**已完成**）→ 3. 控制器改 `reports\task51-gate.ps1` 追加 allowlist → 4. 拼派工书 `reports\task57-dispatch.md` → 5. 派 worker（单 worker 串行：L1 → L3 → 里程碑标记，因三者共用 `project_store.dart`，写集重叠**不可并行**）→ 6. worker 自跑 `flutter analyze` + `flutter test` 至绿 → 7. 控制器亲跑门禁单轮全量（**跑前必须先 `Move-Item` 挪走 `apps\desktop\build\test_cache\build`**，否则 OS Error 183 挂死）→ 8. 出货两阶段 → 9. 装机 + 真机取帧判据 → 10. 台账六件 + 等长打勾 → 11. 独立 verifier 复核 → 12. 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。
+
+13. **Task 57 收口补轮（57.4g + 57.4j 合并做，硬顺序，不得跳步）**：① 控制器在 §57.3 写集表显式追加 W10（`app.dart` 一行接线）并留档 → ② 写派工书 `reports\task57-dispatch-g.md` → ③ 派 worker（**单 worker**；W2 / W6 / W10 / W7 / W8 写集相互重叠，**不可并行**）→ ④ 控制器亲跑门禁（`-ExpectDesktopTests <新基线>`，四包 analyze 逐字 `No issues found!`）→ ⑤ `-Stage build` → `-Stage ship` 两阶段出货 → ⑥ 装机核对 `data\app.so` 指纹三项全等 → ⑦ 取帧前先查 `LogonUI`（§5 坑 85）→ 取真机帧坐实 57.4j 三项 UI 落点（项目详情两枚按钮 / 复盘 `→ 记到项目` / `LoopHintPanel` 停滞提示）→ ⑧ 台账六件 + 等长打勾 `57.4g` / `57.4j` → ⑨ 独立 verifier（≠ 实现者会话）复核 → ⑩ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。

@@ -30,7 +30,13 @@ import '../widgets/gantt_chart.dart';
 /// 项目页：多项目 / 每项目多任务 / 自绘甘特图。
 class ProjectsPage extends ConsumerStatefulWidget {
   /// 创建项目页。
-  const ProjectsPage({super.key});
+  ///
+  /// [onOpenDayLog] 是增量行「查看原文」的出口：页面内容体在自己的宿主栈里
+  /// 没有可 push 的日志页，所以先由内容体把日期写进选中日，再请壳层跳页。
+  const ProjectsPage({super.key, this.onOpenDayLog});
+
+  /// 请壳层跳到「那一天的日志」；为 `null` 时只切日期、不切页。
+  final VoidCallback? onOpenDayLog;
 
   @override
   ConsumerState<ProjectsPage> createState() => _ProjectsPageState();
@@ -38,6 +44,12 @@ class ProjectsPage extends ConsumerStatefulWidget {
 
 class _ProjectsPageState extends ConsumerState<ProjectsPage> {
   late final ProjectStore _store;
+
+  /// 增量摘要只是摘录：把该条增量的日期写进选中日，再请壳层跳过去看原文。
+  void _openDayLog(IncrementRow increment) {
+    ref.read(selectedDateProvider.notifier).state = increment.date;
+    widget.onOpenDayLog?.call();
+  }
 
   /// 已读到的项目（含各自的任务）。
   List<ProjectRow> _projects = const <ProjectRow>[];
@@ -365,6 +377,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
               onAppendIncrement:
                   (String progress, String blockers, String nextStep) =>
                       _appendIncrement(project, progress, blockers, nextStep),
+              onOpenDayLog: _openDayLog,
             ),
             const SizedBox(height: AppTokens.gapCard),
           ],
@@ -537,10 +550,14 @@ class _ProjectCard extends StatelessWidget {
     required this.onScheduleToday,
     required this.onScheduleIncrement,
     required this.onAppendIncrement,
+    required this.onOpenDayLog,
   });
 
   final AppLocalizations localizations;
   final ProjectRow project;
+
+  /// 点增量行「查看原文」：切到该条增量的那天并由壳层跳页。
+  final void Function(IncrementRow increment) onOpenDayLog;
 
   /// 今天（`YYYY-MM-DD`）：头部「已排 MM-DD」与逾期判定的基准日。
   final String todayIso;
@@ -688,6 +705,7 @@ class _ProjectCard extends StatelessWidget {
             scheduled: scheduled,
             onScheduleIncrement: onScheduleIncrement,
             onAppendIncrement: onAppendIncrement,
+            onOpenDayLog: onOpenDayLog,
           ),
         ],
       ),
@@ -1122,12 +1140,16 @@ class _IncrementSection extends StatefulWidget {
     required this.scheduled,
     required this.onScheduleIncrement,
     required this.onAppendIncrement,
+    required this.onOpenDayLog,
   });
 
   final AppLocalizations localizations;
   final String todayIso;
   final List<IncrementRow> increments;
   final List<ScheduledItem> scheduled;
+
+  /// 点「查看原文」：由宿主把选中日切到该条增量的那天。
+  final void Function(IncrementRow increment) onOpenDayLog;
 
   /// 单条增量排进今天；返回 `null` = 成功，非空 = 错误文案。
   final Future<String?> Function(IncrementRow increment) onScheduleIncrement;
@@ -1256,46 +1278,84 @@ class _IncrementSectionState extends State<_IncrementSection> {
           for (final IncrementRow increment in widget.increments)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Text(
-                    increment.date,
-                    style: TextStyle(
-                      fontFamily: AppFonts.mono,
-                      fontFamilyFallback: AppFonts.monoFallback,
-                      fontSize: 10.5,
-                      color: tokens.faint,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      _lineText(increment),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: tokens.ink2),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (_scheduledToday(increment)) ...<Widget>[
-                    Text(
-                      t.projectsScheduledOn.replaceAll(
-                        '{date}',
-                        increment.date.substring(5),
+                  Row(
+                    children: <Widget>[
+                      Text(
+                        increment.date,
+                        style: TextStyle(
+                          fontFamily: AppFonts.mono,
+                          fontFamilyFallback: AppFonts.monoFallback,
+                          fontSize: 10.5,
+                          color: tokens.faint,
+                        ),
                       ),
-                      style: TextStyle(
-                        fontFamily: AppFonts.mono,
-                        fontFamilyFallback: AppFonts.monoFallback,
-                        fontSize: 10.5,
-                        color: tokens.faint,
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _lineText(increment),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: tokens.ink2),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  _GhostButton(
-                    label: t.projectsIncrementToTodayAction,
-                    busy: _busyIncrementId == increment.id,
-                    onPressed: () => _schedule(increment),
+                      const SizedBox(width: 8),
+                      if (_scheduledToday(increment)) ...<Widget>[
+                        Text(
+                          t.projectsScheduledOn.replaceAll(
+                            '{date}',
+                            increment.date.substring(5),
+                          ),
+                          style: TextStyle(
+                            fontFamily: AppFonts.mono,
+                            fontFamilyFallback: AppFonts.monoFallback,
+                            fontSize: 10.5,
+                            color: tokens.faint,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      _GhostButton(
+                        label: t.projectsIncrementToTodayAction,
+                        busy: _busyIncrementId == increment.id,
+                        onPressed: () => _schedule(increment),
+                      ),
+                    ],
+                  ),
+                  // 摘要只是摘录：标注出来，并给一条回原文的路 ——
+                  // 想看上下文的人不该被逼着去猜是哪一天。
+                  const SizedBox(height: 2),
+                  Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: <Widget>[
+                      Tooltip(
+                        message: t.projectsIncrementExcerptHint,
+                        child: Text(
+                          t.projectsIncrementExcerptTag,
+                          key: ValueKey<String>(
+                            'increment-excerpt-tag-${increment.id}',
+                          ),
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: tokens.faint,
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        key: ValueKey<String>(
+                          'increment-open-original-${increment.id}',
+                        ),
+                        onTap: () => widget.onOpenDayLog(increment),
+                        child: Text(
+                          t.projectsIncrementOpenOriginalAction,
+                          style: TextStyle(fontSize: 10.5, color: tokens.meta),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
