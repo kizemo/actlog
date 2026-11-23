@@ -9257,7 +9257,7 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
 - [x] **60.4f l10n 计数不变**：`byGetter.length==131` / `l10nAccessors.length==131` / `131+2+4==137` **全部保持**（本轮零新增 getter ⇒ `l10n_keys.dart` / `l10n_harness.dart` / `l10n_base_test.dart` 一字不改）。
 - [x] **60.4g 门禁**：四包 `analyze` 逐字 `No issues found!`；desktop 全量用例数 **= 本轮实测新数（预期 700 + ≥6）**、零回退；core_data 204 / core_db 71 / core_domain 62；`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`。
 - [x] **60.4h 出货与装机**：`reports\task51-ship.ps1 -Stage build` → `-Stage ship` 两阶段 ⇒ `SHIP_VERDICT=PASS`；装机 `data\app.so` 与构建树三项逐字相同 ⇒ **R3 分发真源行更新**。
-- [ ] **60.4i 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记，不得写「已闭合」）；计划 §60 等长打勾 + `AGENTS.md` R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §68 + `progress.md` + `docs\B1_验收记录.md` + `docs\task40\项目页规划.md` + README 两语言同步；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
+- [x] **60.4i 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记，不得写「已闭合」）；计划 §60 等长打勾 + `AGENTS.md` R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §68 + `progress.md` + `docs\B1_验收记录.md` + `docs\task40\项目页规划.md` + README 两语言同步；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
 
 ### 60.5 收口顺序（硬顺序，不得跳步）
 
