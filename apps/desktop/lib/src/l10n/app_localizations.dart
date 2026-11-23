@@ -29,6 +29,7 @@
 
 import 'package:flutter/widgets.dart';
 
+import '../data/project_domain_catalog.dart';
 import 'l10n_scope.dart';
 import 'parts/about.dart';
 import 'parts/calendar.dart';
@@ -97,6 +98,34 @@ abstract class AppLocalizations
   /// 内部、测试里的纯数据校验）；[of] 给「只有 context」的地方用（对话框、深层行
   /// 内组件）。缺失 [L10nScope] 时抛错而不是回落中文，理由见 `l10n_scope.dart`。
   static AppLocalizations of(BuildContext context) => L10nScope.of(context);
+
+  /// 领域 key ⇒ 本地化标签（**唯一标签映射**；Task 60 起页面不再自带 switch）。
+  ///
+  /// - 空串（未分类/未设置）⇒ `projectsDomainStatsUncategorized`；
+  /// - 未知 key（同步进来的历史数据）⇒ **原样返回 key**，不猜译名、不崩；
+  /// - 其余按 `projectDomainLabelGetters` 登记的 getter 取当前语言的文案。
+  String projectDomainLabel(String key) {
+    if (key.isEmpty) {
+      return projectsDomainStatsUncategorized;
+    }
+    switch (projectDomainLabelGetters[key]) {
+      case 'projectsDomainCareer':
+        return projectsDomainCareer;
+      case 'projectsDomainWealth':
+        return projectsDomainWealth;
+      case 'projectsDomainFamily':
+        return projectsDomainFamily;
+      case 'projectsDomainLearning':
+        return projectsDomainLearning;
+      case 'projectsDomainSocial':
+        return projectsDomainSocial;
+      case 'projectsDomainHealth':
+        return projectsDomainHealth;
+      default:
+        return key;
+    }
+  }
+
   AppLanguage get language;
 }
 

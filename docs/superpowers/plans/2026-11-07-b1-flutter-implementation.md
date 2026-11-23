@@ -9201,3 +9201,70 @@ Task 57 收口补轮三收尾并经独立复验 PASS 后，用户当轮提出三
 6. 派**独立 verifier**（只读、≠ 实现者）复验 59.4a–i ⇒ 处置缺陷。
 7. 台账同步（C4 六件）+ 计划 §59.4 等长打勾 + `AGENTS.md` R2 基线与 R3 分发真源行更新。
 8. commit + push（`AHEAD=0` / `BEHIND=0`）⇒ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。
+
+---
+
+## 60. Task 60 · 既有项目可改所属领域（可改可清除）+ 领域 key 真源单一化（2026-11-24 凌晨，控制器）
+
+### 60.1 背景与目标
+
+Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板，但**留下两处硬缺口**（Task 59 §59.2 ③ 明示「既有项目不改领域」是当时的取舍，本轮回头补齐）：
+
+1. **既有项目无法改领域** —— `project.domain` 列自 Task 59 起才有写入路径，但**只有 `createProject` 一条**；`apps\desktop\lib\src\data\project_store.dart` 全表**只有 insert、无 update**（侦察坐实：`project` 表自建库起至今**零 update 语句**）⇒ Task 59 之前建的老项目、以及建完之后想改主意的人，**领域永远锁死在建库那一刻**；且 Task 59 登记的边界「单选无法取消」（芯片只能选中、不能清空）**本轮一并闭合**。
+2. **领域 key 清单有两份真源** —— `apps\desktop\lib\src\data\project_domain_stats.dart:34-41` 持一份 `const List<String> projectDomainKeys`，`apps\desktop\lib\src\pages\projects_page.dart:431-450` 的 `_domainLabel` switch 又手写一份「key → 中文标签」映射 ⇒ 改一处漏一处 ⇒ **英文界面下 `_domainLabel` 会漏出中文**（Task 59 只修了面板标签，页面卡片那处 switch 仍在）。
+
+**本轮目标（两件，缺一不可）**：
+
+- **① 既有项目可改所属领域**：项目卡片内联「所属领域」芯片行，**点选即写**、**再点已选中芯片即清除**（空串 = 未设置）；写侧走 oplog 且 `rev` 手工递增；
+- **② 领域 key 真源单一化**：领域 key 全集**只出现在纯 Dart 数据层**一张表里；页面删掉手写清单与 label switch，标签统一由 `AppLocalizations.projectDomainLabel(key)` 解析。
+
+### 60.2 控制器口径裁决
+
+- **① 零 schema 变更、零新增依赖、零 `packages\**` 改动。** `domain` 列（`docs\schema_v1.sql:304`，`TEXT NOT NULL DEFAULT ''`）早已存在 ⇒ 仍是零迁移。
+- **② 真源单一化选 (f') 方案**：领域 key 全集**只出现在纯 Dart 数据层**新文件 `apps\desktop\lib\src\data\project_domain_catalog.dart` 的一张表 `projectDomainLabelGetters`（key → l10n getter 名）；`projectDomainKeys` **由该表派生**（`keys.toList()`），不另抄一份。`data\project_domain_stats.dart` 改为 `export 'project_domain_catalog.dart' show projectDomainKeys;` ⇒ **对外 import 路径与调用写法不变** ⇒ Task 59 的 14 例不因 import 改动而破。
+- **③ 标签唯一映射收敛到 `AppLocalizations.projectDomainLabel(String key)`**（基类 **concrete 方法**，zh/en 通过 mixin 多态解析）⇒ 页面 `_domainLabel` switch **删除**。口径：空串 ⇒ 未分类文案（`projectsDomainStatsUncategorized`）；未知 key ⇒ **原样返回 key**（与 Task 59 §59.2 ⑥「不猜译名」一致）；其余按 catalog 的 getter 名 switch。
+- **④ 零新增 l10n getter** ⇒ 复用 Task 59 已有的 `projectsDomainFieldLabel`（「所属领域」/「Domain」）、`projectsDomainUnset`（「未设置」/「Not set」）、`projectsDomainStatsUncategorized`（「未分类」/「Uncategorized」）与 6 个 `projectsDomain*` ⇒ l10n 计数 **131 / 137 保持不变**，`l10n_keys.dart` / `test\l10n_harness.dart` / `test\l10n_base_test.dart` **一字不改**。
+- **⑤ 编辑交互用内联芯片，不用弹窗**：`_ProjectCard` 是 `StatelessWidget`（`projects_page.dart:642-817`），内联芯片无需额外状态；芯片集合 = 未设置(`''`) + 6 领域共 **7 枚**，选中集 = `{project.domain}`；`onChanged` 分两步：取 `picked = next.isEmpty ? '' : next.first`，再判 `picked == project.domain ? '' : picked` ⇒ **再点已选中芯片 ⇒ `domain=''` ⇒ 清除**（**注意**：`ChipRow` 单选模式的 `_toggle` **恒产出 1 元素集合**（`chip_row.dart:64-67`）⇒ `next.isEmpty` 永假 ⇒ 清除只能靠「点中当前值即视为清除」实现，**禁改 `chip_row.dart`**（21 处调用点共用））。
+- **⑥ 写侧必须走 oplog 且 `rev` 手工递增**：`writeWithOplog(table:'project', id:projectId, changedFields:{'domain':domain}, write: update ProjectCompanion)`；**`writeWithOplog` 不自动 bump `rev`**（`packages\core_db\lib\src\oplog_writer.dart:106-124`）⇒ `rev+1` **必须调用方手写**（漏写是静默错误）；行不存在或 `deletedAt != null` ⇒ `StateError('项目 $projectId 不存在')`（照 `setMilestoneTargetDate` 口径）。
+- **⑦ 未知 key 项目无对应芯片**（已知边界，如实登记，不假装能改）；`domain` 为未知 key 时芯片行全不选中、显示「未设置」文案，**保存仍保留原 key**（不静默改写数据）。
+- **⑧ 面板只读、零新增色值**（`AppTokens` 纪律）：本轮不碰 `project_domain_stats_panel.dart`。
+
+### 60.3 写集表（Task 60 独占路径 · worker 只能写自己那一行）
+
+| # | 路径 | 归属 | 允许的改动 |
+|---|---|---|---|
+| W1 | `apps\desktop\lib\src\data\project_domain_catalog.dart`（**新建**） | worker A | 唯一真源表 `projectDomainLabelGetters`（key → l10n getter 名）+ 派生 `projectDomainKeys`；**纯 Dart、无 IO** |
+| W2 | `apps\desktop\lib\src\data\project_domain_stats.dart` | worker A | 删本地 `projectDomainKeys` 常量，改 `export 'project_domain_catalog.dart' show projectDomainKeys;`；**对外签名与 import 写法不变** |
+| W3 | `apps\desktop\lib\src\data\project_store.dart` | worker A | 新增 `setProjectDomain({required String projectId, required String domain})`：oplog 写入 + **手写 `rev+1`** + 行不存在抛 `StateError` |
+| W4 | `apps\desktop\lib\src\l10n\app_localizations.dart` | worker A | 新增 **concrete** 方法 `projectDomainLabel(String key)`（空串⇒未分类、未知 key⇒原样、其余按 getter 名 switch）；**零新增 getter** |
+| W5 | `apps\desktop\lib\src\pages\projects_page.dart` | worker B | 删 `_domainLabel`；`_ProjectCard` 目标文本之后 / 里程碑之前内联「所属领域」+ **7 枚 `ChipRow`**；`_ProjectsPageState._setProjectDomain` + `_reload()` 刷新；**零新增 l10n getter** |
+| W6 | `apps\desktop\test\task60_project_domain_edit_test.dart`（**新建**） | worker B | 本轮新用例 T1–T6（**≥ 6 例**） |
+| W7 | `apps\desktop\test\task59_project_domain_stats_test.dart` | worker B | **只收窄** `:452-453` 的 `find.byType(ChipRow)+findsOneWidget` Finder（新增编辑行会让其假红）；**14 例的条数 / 标题 / 语义一律不变** |
+| C1 | `docs\superpowers\plans\2026-11-07-b1-flutter-implementation.md` | 控制器 | 本节 §60 + 收口后等长打勾（LF / 无 BOM） |
+| C2 | `reports\task51-gate.ps1` | 控制器 | `$patterns` 追加 2 条白名单（见 60.5 ①）；**纯 ASCII / CRLF / 无 BOM** |
+| C3 | `reports\task60-recon.md` | 控制器 | 本轮侦察报告落盘（供台账引用） |
+| C4 | `AGENTS.md` / `.superpowers\sdd\...\handoff.md` / `...\progress.md` / `docs\B1_验收记录.md` / `docs\task40\项目页规划.md` / `README.md` / `README.zh-CN.md` | 控制器 | 台账同步 + R2 基线 + R3 分发真源行 + README 两语言同步 |
+
+**门禁 `$patterns` 必加三条**（否则 `OUT_OF_SET>0` 判红）：`'apps/desktop/lib/src/data/project_domain_catalog.dart'`、`'apps/desktop/test/task60_*.dart'`、`'reports/task60-*'`。**`packages/**` 一律算越界**（`task51-gate.ps1:209`）⇒ 本轮零 `packages\**` 改动。
+
+### 60.4 验收判据（复选框清单 · 只有控制器能打勾，等长替换 `- [ ] ` → `- [x] `）
+
+- [x] **60.4a 写侧贯通（改）**：既有项目改领域 ⇒ DB 行 `domain` 变更 ⇒ `listProjects()` 回读一致；oplog `changedFields` 含 `domain`；**`rev` 递增 1**（漏写 `rev` 即判红）。
+- [x] **60.4b 写侧贯通（清除）**：再点已选中芯片 ⇒ `domain=''` ⇒ DB 落空串 ⇒ 统计面板落「未分类」桶且排最后。
+- [x] **60.4c 边界**：`setProjectDomain` 对不存在 / 已删除行抛 `StateError`；未知 key 项目芯片行全不选中、显示「未设置」，保存不静默改写原 key。
+- [x] **60.4d 真源单一化**：领域 key 全集**只在** `project_domain_catalog.dart` 出现一次；`project_domain_stats.dart` 无本地常量、对外 `import` 路径与调用写法不变；`projects_page.dart` **无 `_domainLabel`、无手写 key→文案 switch**。
+- [x] **60.4e 标签解析**：`projectDomainLabel('')` ⇒ 未分类文案；未知 key ⇒ 原样返回 key；6 个已知 key ⇒ 中英文各自本地化文案（英文界面**不漏中文**）。
+- [x] **60.4f l10n 计数不变**：`byGetter.length==131` / `l10nAccessors.length==131` / `131+2+4==137` **全部保持**（本轮零新增 getter ⇒ `l10n_keys.dart` / `l10n_harness.dart` / `l10n_base_test.dart` 一字不改）。
+- [x] **60.4g 门禁**：四包 `analyze` 逐字 `No issues found!`；desktop 全量用例数 **= 本轮实测新数（预期 700 + ≥6）**、零回退；core_data 204 / core_db 71 / core_domain 62；`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`。
+- [x] **60.4h 出货与装机**：`reports\task51-ship.ps1 -Stage build` → `-Stage ship` 两阶段 ⇒ `SHIP_VERDICT=PASS`；装机 `data\app.so` 与构建树三项逐字相同 ⇒ **R3 分发真源行更新**。
+- [ ] **60.4i 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记，不得写「已闭合」）；计划 §60 等长打勾 + `AGENTS.md` R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §68 + `progress.md` + `docs\B1_验收记录.md` + `docs\task40\项目页规划.md` + README 两语言同步；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
+
+### 60.5 收口顺序（硬顺序，不得跳步）
+
+1. 控制器：写本节 §60（C1）→ 落盘侦察报告 C3 → 改 `reports\task51-gate.ps1` 追加 3 条白名单（C2）→ 自查 `$patterns` 命中 3 条、纯 ASCII / CRLF / 无 BOM。
+2. **并行派 worker A（W1–W4 数据层 + 真源 + l10n）与 worker B（W5–W7 页面 + 新用例）**；两者写集互斥，可同时开工。派工书把 API **逐字定死**（`projectDomainLabelGetters` / `projectDomainKeys` / `setProjectDomain({required String projectId, required String domain})` / `projectDomainLabel(String key)`），两侧按同一契约编码；**两侧均禁改 `packages\**`、禁 git 操作、禁跑 analyze/test/build**（并发会假红）⇒ 门禁由控制器亲跑。
+3. 两 worker 回报 ⇒ 控制器**亲跑** `flutter analyze`（desktop）确认两侧接口齐备 + 跑全量门禁（**先 `Move-Item` 挪走 `apps\desktop\build\test_cache\build`**，否则 OS Error 183 挂死）⇒ `GATE_VERDICT=PASS`，desktop 用例数 **= 实测新数**（`-ExpectDesktopTests <新数>`，脚本内 `$baseline=596` 是陈旧常量，`DESKTOP_DELTA` 不得当本轮增量）。
+4. 出货两阶段（`-Stage build` → `-Stage ship`）+ 装机核对 + 真机帧（**锁屏 / 桌面守卫不过 ⇒ 如实登记「未判定」，不判 PASS/FAIL**）。
+5. 派**独立 verifier**（只读、≠ 实现者）复验 60.4a–i ⇒ 处置缺陷。
+6. 台账同步（C4 六件）+ 计划 §60.4 等长打勾 + `AGENTS.md` R2 基线与 R3 分发真源行更新。
+7. commit + push（`AHEAD=0` / `BEHIND=0`）⇒ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。

@@ -449,6 +449,47 @@ class ProjectStore {
     );
   }
 
+  /// 设置既有项目的所属领域（空串 = 未分类 = 清除）。
+  ///
+  /// 走 oplog ⇒ 同步侧能看到这次改领域。
+  ///
+  /// [domain] 是稳定的英文小写 key（`career` / `wealth` / `family` /
+  /// `learning` / `social` / `health`）；列上**没有** CHECK 约束（自由文本），
+  /// 所以这里不校验取值域 —— 同步进来的历史 key 照样能存。
+  ///
+  /// `writeWithOplog` **不会**自动 bump `rev`（`oplog_writer.dart:106-124`），
+  /// 所以 `rev` 必须在这里手动 +1，与 `setMilestoneTargetDate` 同一口径。
+  Future<void> setProjectDomain({
+    required String projectId,
+    required String domain,
+  }) async {
+    final ProjectData? project =
+        await (_db.select(_db.project)..where((t) => t.id.equals(projectId)))
+            .getSingleOrNull();
+    if (project == null || project.deletedAt != null) {
+      throw StateError('项目 $projectId 不存在');
+    }
+
+    final int ts = nowMillis();
+    final String deviceId = await repos.oplog.resolveDeviceId();
+
+    await repos.oplog.writeWithOplog<void>(
+      table: 'project',
+      id: projectId,
+      changedFields: <String, Object?>{'domain': domain},
+      write: () =>
+          (_db.update(_db.project)..where((t) => t.id.equals(projectId)))
+              .write(
+        ProjectCompanion(
+          domain: Value<String>(domain),
+          updatedAt: Value<int>(ts),
+          originDeviceId: Value<String>(deviceId),
+          rev: Value<int>(project.rev + 1),
+        ),
+      ),
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // P1 批次：排期联动 / 增量追加 / 停滞判定（Task 57）
   // ---------------------------------------------------------------------------

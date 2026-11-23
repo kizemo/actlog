@@ -73,7 +73,7 @@ The "Projects" entry in the left rail (`Ctrl+5`) opens the projects page. Projec
 
 The project detail and each increment row carry a "schedule into today" button, and both go through the same write path to become a `plan_item` on the chosen day (`source_type='project'|'increment'` plus `source_id`). The review section can "record into the project", which **only appends** an increment (a mistake can be corrected by appending a correction, there is no edit entry point). When a project has seen no increment for three days, the Today page shows one **gentle** stall hint in the right rail (not red, no dialog, dismissible).
 
-A project also carries a **domain** (career / wealth / family / learning / social / health): you pick one when you create the project, and the projects page gains a **"By domain"** panel — one row per domain with the project count and a bar whose length follows that domain's share. The domain is stored as a stable key and the label is translated, so an English interface never shows Chinese labels. Projects created before this feature have no domain and fall into an **"Uncategorized"** bucket, which always sorts last.
+A project also carries a **domain** (career / wealth / family / learning / social / health): you pick one when you create the project, and the projects page gains a **"By domain"** panel — one row per domain with the project count and a bar whose length follows that domain's share. The domain is stored as a stable key and the label is translated, so an English interface never shows Chinese labels. Every project card also carries an inline row of **domain chips**, so an existing project can be **re-domained at any time**: click another chip to switch it, and click the chip that is already selected to **clear it** back to "Not set". Projects created before this feature have no domain and fall into an **"Uncategorized"** bucket, which always sorts last.
 
 ### Review: left-aligned content, three questions only
 
@@ -126,7 +126,7 @@ The habit check-in strip, the habit quick-look panel in the right rail, and the 
 The repository holds three design/planning documents produced in Task 40. All are **documents only**, nothing implemented:
 
 - [`docs/task40/模块优化建议.md`](docs/task40/模块优化建议.md) — per module: problem → suggestion → evidence → priority → estimated change surface;
-- [`docs/task40/项目页规划.md`](docs/task40/项目页规划.md) — projects-page information architecture, two-plus integration models with the planning home page, schema assessment, and the P0/P1/P2 roadmap (**P0 and P1 shipped with Task 56 / 57**; P2's "project statistics aggregated by domain" is still unimplemented);
+- [`docs/task40/项目页规划.md`](docs/task40/项目页规划.md) — projects-page information architecture, two-plus integration models with the planning home page, schema assessment, and the P0/P1/P2 roadmap (**P0 and P1 shipped with Task 56 / 57; P2's "project statistics aggregated by domain" shipped with Task 59, and Task 60 added the inline domain editor**);
 - [`docs/task40/关于页设计.md`](docs/task40/关于页设计.md) — about-page specification plus the gap list against the current implementation (no code changed here).
 
 ---
@@ -321,7 +321,7 @@ The install check is not "it opens after installing" but **binary identity**: th
 
 | Target | Baseline |
 |---|---|
-| `apps/desktop` (`flutter test`) | `+686` |
+| `apps/desktop` (`flutter test`) | `+709` |
 | `packages/core_data` (`dart test`) | `+204` |
 | `packages/core_db` | `+71` |
 | `packages/core_domain` | `+62` |
@@ -354,7 +354,7 @@ On the product rename (`practilog` → `actlog`): this was an **in-place rename,
 | The 13 product changes of Task 40 | Delivered | Table-like planning / merged quick entry / one glyph per priority axis / review rework / theme without blue / 3+2 state of mind / de-duplicated recurring tasks / delete confirmation / today and non-working days on the calendar / three design documents |
 | Projects page P0 (projects / Gantt / scheduling link) | Delivered (Task 56) | Multiple projects and tasks per project, Gantt chart, scheduling drops entries into the todo pool, redundant bottom key bar removed; zero schema change |
 | Projects page P1 (L1 scheduling / L3 progress / milestone marks) | Delivered (Task 57) | Project and increment entries share one write path, review only appends increments, a gentle hint after three idle days, a small overdue mark on milestones |
-| Projects page P2 "project statistics aggregated by domain" | **Not started** | The plan file has no corresponding section yet; it needs a new task and a from-scratch implementation |
+| Projects page P2 "project statistics aggregated by domain" | Delivered (Task 59 / Task 60) | Domain statistics panel on the projects page (Task 59) plus an inline domain editor on every project card — existing projects can be re-domained or cleared (Task 60); zero schema change |
 | **Task 41 dark theme** | Next round | Architecture-level token work: a second token set plus roughly **724** `AppTokens.*` reference changes across 41 files; `timeline_contrast_test.dart` pins the four state colours with an epsilon of 0.005, so mixing it into another round would leave half-dark, half-light UI — it is therefore scheduled on its own |
 | Visual details beyond the dark theme | Not started | See P1 / P2 in [`docs/task40/模块优化建议.md`](docs/task40/模块优化建议.md) |
 | `apps/android` | Not started | P6; the domain layer and schema are already designed for two-client consistency |

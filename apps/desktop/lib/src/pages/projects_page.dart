@@ -149,6 +149,24 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     }
   }
 
+  /// 改一个**既有项目**的所属领域（空串 = 未分类）。
+  ///
+  /// 走 [ProjectStore.setProjectDomain]（带 oplog 的写通道），写完必须
+  /// [_reload]：卡片的选中态与上面的分布面板都从 `_projects` 派生，不重读就
+  /// 还是旧领域。
+  Future<void> _setProjectDomain(String projectId, String domain) async {
+    try {
+      await _store.setProjectDomain(projectId: projectId, domain: domain);
+      await _reload();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      // 与 `_reload` 的 catch 同一口径：页级错误横幅，不弹窗。
+      setState(() => _error = _messageOf(error));
+    }
+  }
+
   /// 新建任务（带目标日 ⇒ 同步落一条待办）。
   Future<String?> _addTask(
     ProjectRow project,
@@ -356,7 +374,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
           domainOptions: <ChipOption>[
             ChipOption(key: '', label: t.projectsDomainUnset),
             for (final String key in projectDomainKeys)
-              ChipOption(key: key, label: _domainLabel(t, key)),
+              ChipOption(key: key, label: t.projectDomainLabel(key)),
           ],
           onSubmit: _createProject,
         ),
@@ -381,7 +399,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
             ProjectDomainStatsPanel(
               title: t.projectsDomainStatsTitle,
               stats: _domainStats,
-              labelOf: (String key) => _domainLabel(t, key),
+              labelOf: t.projectDomainLabel,
               countText: t.projectsDomainStatsCount,
             ),
             const SizedBox(height: AppTokens.gapCard),
@@ -411,6 +429,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
               onAppendIncrement:
                   (String progress, String blockers, String nextStep) =>
                       _appendIncrement(project, progress, blockers, nextStep),
+              onSetDomain: _setProjectDomain,
               onOpenDayLog: _openDayLog,
             ),
             const SizedBox(height: AppTokens.gapCard),
@@ -418,34 +437,6 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
         ],
       ],
     );
-  }
-}
-
-/// 领域 key ⇒ 本地化标签。
-///
-/// key 是存库的稳定英文小写值（见 `projectDomainKeys`）：
-///  - 六个固定 key 走 l10n 译名；
-///  - 空串 = 未分类，用 `projectsDomainStatsUncategorized`（与统计面板同一句）；
-///  - **未知 key 原样返回**（库里没有 CHECK 约束，同步进来的历史 key 不能被
-///    吞成「未分类」或空字，那样等于凭空丢信息）。
-String _domainLabel(AppLocalizations t, String key) {
-  switch (key) {
-    case 'career':
-      return t.projectsDomainCareer;
-    case 'wealth':
-      return t.projectsDomainWealth;
-    case 'family':
-      return t.projectsDomainFamily;
-    case 'learning':
-      return t.projectsDomainLearning;
-    case 'social':
-      return t.projectsDomainSocial;
-    case 'health':
-      return t.projectsDomainHealth;
-    case '':
-      return t.projectsDomainStatsUncategorized;
-    default:
-      return key;
   }
 }
 
@@ -651,6 +642,7 @@ class _ProjectCard extends StatelessWidget {
     required this.onScheduleToday,
     required this.onScheduleIncrement,
     required this.onAppendIncrement,
+    required this.onSetDomain,
     required this.onOpenDayLog,
   });
 
@@ -689,6 +681,12 @@ class _ProjectCard extends StatelessWidget {
     String nextStep,
   )
   onAppendIncrement;
+
+  /// 改本项目的所属领域（空串 = 未分类）。
+  ///
+  /// 卡片是 [StatelessWidget]：选中态由父层的 `_projects` 决定，写完由父层
+  /// `_reload()` 重画 —— 卡片自己不持有「正在编辑的领域」这份可变状态。
+  final Future<void> Function(String projectId, String domain) onSetDomain;
 
   @override
   Widget build(BuildContext context) {
@@ -776,6 +774,34 @@ class _ProjectCard extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+          const SizedBox(height: 8),
+          // 既有项目的领域编辑（内联，不弹窗）：与新建表单同一排 7 枚芯片。
+          // `ChipRow` 单选模式回传的 `next` 恒是「恰好一枚」（再点已选中的那枚
+          // 也只是写回同一枚），不是空集 ⇒「再点一次即清除」必须在这里判：
+          // 点中的值 == 当前值 ⇒ 当成清除（传空串）。
+          Text(
+            localizations.projectsDomainFieldLabel,
+            style: TextStyle(fontSize: 11.5, color: tokens.meta),
+          ),
+          const SizedBox(height: 4),
+          ChipRow(
+            options: <ChipOption>[
+              ChipOption(
+                key: '',
+                label: localizations.projectsDomainUnset,
+              ),
+              for (final String key in projectDomainKeys)
+                ChipOption(
+                  key: key,
+                  label: localizations.projectDomainLabel(key),
+                ),
+            ],
+            selected: <String>{project.domain},
+            onChanged: (Set<String> next) {
+              final String picked = next.isEmpty ? '' : next.first;
+              onSetDomain(project.id, picked == project.domain ? '' : picked);
+            },
           ),
           const SizedBox(height: 8),
           if (project.milestones.isEmpty)

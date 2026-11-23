@@ -449,7 +449,18 @@ void main() {
       await _settle(tester);
 
       final AppLocalizations t = AppLocalizations.zh;
-      final Finder chipRowFinder = find.byType(ChipRow);
+      // 页面上现在有**两排**领域芯片（新建表单 + 每张项目卡片的内联编辑行），
+      // 所以先收窄到新建表单那一排：表单的 `Column` 是名称输入框最近的
+      // `Column` 祖先，卡片里的芯片不在它下面。断言语义不变。
+      final Finder chipRowFinder = find.descendant(
+        of: find
+            .ancestor(
+              of: _fieldByHint(t.projectsNameHint),
+              matching: find.byType(Column),
+            )
+            .first,
+        matching: find.byType(ChipRow),
+      );
       expect(chipRowFinder, findsOneWidget, reason: '新建项目表单里就只有这一排领域芯片');
       final ChipRow chipRow = tester.widget<ChipRow>(chipRowFinder);
 

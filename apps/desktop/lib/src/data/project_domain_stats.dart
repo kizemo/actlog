@@ -11,6 +11,10 @@
 
 import 'project_store.dart';
 
+// 领域 key 清单的真源已迁到 `project_domain_catalog.dart`（Task 60）：这里只做
+// re-export，让既有的 `import 'project_domain_stats.dart'` 调用点一个字都不用改。
+export 'project_domain_catalog.dart' show projectDomainKeys;
+
 /// 项目领域分布的一行统计。
 class ProjectDomainStat {
   /// 构造。
@@ -29,16 +33,6 @@ class ProjectDomainStat {
   /// 该领域项目数占总数的比例（0..1）。
   final double ratio;
 }
-
-/// 固定领域 key 清单（写库用；显示文案走 l10n，不在这里翻译）。
-const List<String> projectDomainKeys = <String>[
-  'career',
-  'wealth',
-  'family',
-  'learning',
-  'social',
-  'health',
-];
 
 /// 按领域分桶统计项目（纯函数）。
 ///
