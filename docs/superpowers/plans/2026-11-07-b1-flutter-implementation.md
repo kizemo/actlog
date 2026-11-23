@@ -9124,7 +9124,7 @@ Task 57 收口补轮三收尾并经独立复验 PASS 后，用户当轮提出三
 - [x] **58.4e 链接可达**：README 内所有仓库内相对链接指向的文件**实际存在**。
 - [x] **58.4f 编码**：两文件 UTF-8 无 BOM、LF（`.gitattributes` 的 `*.md text eol=lf`）。
 - [x] **58.4g 门禁 allowlist**：`reports\task51-gate.ps1` 的 `$patterns` 含两条 README 路径 ⇒ 下一轮门禁 `OUT_OF_SET=0` 不被本轮误伤。
-- [ ] **58.4h 落库**：两文件 + 台账四件 commit + push 成功，`AHEAD=0` / `BEHIND=0`。
+- [x] **58.4h 落库**：两文件 + 台账四件 commit + push 成功，`AHEAD=0` / `BEHIND=0`。
 
 ### 58.5 收口顺序（硬顺序，不得跳步）
 
