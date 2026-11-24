@@ -9365,11 +9365,12 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
       装机 `data\app.so` 与构建树三项逐字相同 ⇒ **R3 分发真源行更新**。
 - [x] **61.4h 英文态真机帧**：沙箱第二实例（`settings.locale='en'`）取帧 ⇒ **外壳区零中文**（品牌 / 左导航 / 右轨快捷键面板 / 「页面切换」/ 右轨 4 面板）；
       **锁屏 / 桌面守卫不过 ⇒ 如实登记「未判定」，不判 PASS/FAIL**。
-- [ ] **61.4i 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记）；
+- [x] **61.4i 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记）；
       计划 §61 等长打勾 + `AGENTS.md` R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §69 + `progress.md` +
       `docs\B1_验收记录.md` + `docs\task40\项目页规划.md`；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
 - **⑪ 收口提交与推送**：commit `d5b1240`（代码 22 文件 + 台账六件 + §61.4a–h/j 等长打勾）已 push 至 `origin/main`（`8d32e23..d5b1240`）；回填 commit = **打勾 §61.4i + 证据回填**；推送后 `AHEAD=0` / `BEHIND=0`（`git rev-list --count origin/main..HEAD` = 0 / `git rev-list --count HEAD..origin/main` = 0）。
 - **⚠ 推送受阻（2026-11-24 11:5x 起实测）**：本机到 GitHub 的两条链路此刻**全断** —— ① 代理 `127.0.0.1:7897`（verge-mihomo）**CONNECT 隧道建立成功（HTTP 200）但 TLS 握手失败**（`schannel: failed to receive handshake`），且同一代理连 gitee 亦 000 ⇒ **代理出口整体失效**；② 直连 `github.com` 被 RST，20 个边缘 IP（`140.82.112–121.x` / `20.27.177.x` / `20.200.245.245` / `20.201.28.151` / `20.207.73.82` / `20.233.83.145` / `20.248.137.48`）经 `curl --resolve` **全部 000**，DNS 又解析到已知死 IP `20.205.243.166`（坑 88 已记录）；同机其它出口正常（baidu / gitee / npmjs 均 200）⇒ **是链路问题，不是仓库问题**。⇒ `commit cb89069` 暂在本地（`AHEAD=1` / `BEHIND=0`），**§61.4i 的「commit + push ⇒ AHEAD=0 / BEHIND=0」子判据尚未闭合 ⇒ 本条暂不打勾**；其余子判据（verifier 会话 ≠ 实现者且只读 / 总判 `PASS_WITH_NOTES` 且未判定项已登记 / 计划 §61 等长打勾 / `AGENTS.md` R2·§7·R3 / `handoff.md` §69 / `progress.md` / `docs\B1_验收记录.md` / `docs\task40\项目页规划.md`）**已全部闭合**。**恢复姿势**：换/重启 clash-verge 节点（或修代理出口），或等直连恢复后执行 `git -C F:\soft\00selfmade\practilog -c http.sslBackend=schannel -c http.proxy= -c https.proxy= -c http.version=HTTP/1.1 push origin main`；必要时先 `curl.exe -sS -o NUL -w "%{http_code}" --resolve "github.com:443:<可用IP>" --max-time 12 https://github.com` 扫边缘 IP（坑 88 / 坑 90 口径：**两条路都要试，别把任何一条写死**）。
+- **✅ 推送完成（2026-11-24 12:02:37 实测，标记 `PUSH_OK_20261124_120237`）**：直连路径恢复，重试循环第 11 轮直连成功，`git push` 输出 `d5b1240..c774bc0  main -> main`，`AHEAD=0` / `BEHIND=0` ⇒ 上方「推送受阻」记录（11:5x 实测的链路故障）**已解除**，保留为链路史实。⇒ **§61.4i 全量子判据闭合，本条已打勾**（其余子判据此前已闭合：verifier 会话 ≠ 实现者且只读 / 总判 `PASS_WITH_NOTES` 且未判定项已登记 / 计划 §61 等长打勾 / `AGENTS.md` R2·§7·R3 / `handoff.md` §69 / `progress.md` / `docs\B1_验收记录.md` / `docs\task40\项目页规划.md`）；§61.4i 回填提交与受阻登记提交**均已落到 GitHub `main`**。
 - [x] **61.4j 陈旧指针订正**：`progress.md` / `handoff.md` 里「深色主题 Task 41 独立排期」**订正为陈旧指针**
       （Task 41 已闭环，17 项复选框全勾，深浅开关端到端已实现）—— **只改台账文字，不动产品代码**；
       并把 §47 剩余 backlog（**W3–W8 + 47.3 + W9**）如实登记为未完成项。
