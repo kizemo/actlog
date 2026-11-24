@@ -9365,9 +9365,10 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
       装机 `data\app.so` 与构建树三项逐字相同 ⇒ **R3 分发真源行更新**。
 - [x] **61.4h 英文态真机帧**：沙箱第二实例（`settings.locale='en'`）取帧 ⇒ **外壳区零中文**（品牌 / 左导航 / 右轨快捷键面板 / 「页面切换」/ 右轨 4 面板）；
       **锁屏 / 桌面守卫不过 ⇒ 如实登记「未判定」，不判 PASS/FAIL**。
-- [ ] **61.4i 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记）；
+- [x] **61.4i 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记）；
       计划 §61 等长打勾 + `AGENTS.md` R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §69 + `progress.md` +
       `docs\B1_验收记录.md` + `docs\task40\项目页规划.md`；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
+- **⑪ 收口提交与推送**：commit `d5b1240`（代码 22 文件 + 台账六件 + §61.4a–h/j 等长打勾）已 push 至 `origin/main`（`8d32e23..d5b1240`）；回填 commit = **打勾 §61.4i + 证据回填**；推送后 `AHEAD=0` / `BEHIND=0`（`git rev-list --count origin/main..HEAD` = 0 / `git rev-list --count HEAD..origin/main` = 0）。
 - [x] **61.4j 陈旧指针订正**：`progress.md` / `handoff.md` 里「深色主题 Task 41 独立排期」**订正为陈旧指针**
       （Task 41 已闭环，17 项复选框全勾，深浅开关端到端已实现）—— **只改台账文字，不动产品代码**；
       并把 §47 剩余 backlog（**W3–W8 + 47.3 + W9**）如实登记为未完成项。
