@@ -9563,3 +9563,106 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
   - **台账原文「W8 = `parts\about.dart` 37 键」键数不实** ⇒ 按实测订正为 **35 键**（`handoff.md` §72.1 / `progress.md` Task 63 段 / `AGENTS.md` §7 / 本文件 63.4a 行**同步更正**）。
   - **归属偏差**：`git show --numstat 6031373 -- .../parts\about.dart` = **空** ⇒ **`about.dart` 在 Task 63 提交中零改动**，最后改动方 = Task 61 的 `d5b1240`；Task 63 的 W8 **实际交付 = 3 个 about 测试文件的 en 态断言**（`test\task39_about_page_test.dart` **+99** 行 / `test\task45_about_page_gaps_test.dart` **+87** 行 / `test\task46_about_licenses_test.dart` **+66** 行）。
   - **静态判据仍成立、但证据来源改写**：about 段 En mixin 的**字符串字面量 CJK = 0**（仅 `:370/:393/:414` 三处 `//` 注释）⇒ 63.4a「En 段零中文」成立；**证据是「本轮实测复核 Task 61 已交付物」，不是「本轮改动」**。凡把 `about.dart` 计入 Task 63 产出规模的表述，一律按本 NOTE 更正。
+
+## 68. Task 68（2026-11-24 夜）· §47 **W9 收尾批次**：en 态全量 g1–g4 + 死 key 清理 + 基线定稿 + 删 `@Deprecated` + 域层「工作日」正解
+
+### 68.1 目标
+
+**唯一目的 = 闭合计划 §47 的最后 1 项未勾复选框（`47.2 W9`）**；做完则 §47 全部闭合。
+
+| 子项 | 内容 | 本轮口径 |
+|---|---|---|
+| W9-1 | **en 态全量 g1–g4** | 以**英文态**视角跑全量四门禁（g1 analyze / g2 unittest / g3 migration + schema check / g4 contrast）+ **全仓静态中文扫描**（范围**不止** W3–W8 的 5 个 part） |
+| W9-2 | **死 key 清理** | l10n 键表中**确证无消费点**的 getter 移除；**判死必须编译级证明**（移除后 analyze + test 仍全绿），**禁止**用「搜不到引用」反推（坑 27） |
+| W9-3 | **基线定稿** | 最终用例数（desktop / core_data / core_db / core_domain）写进 `AGENTS.md` §7 + R2 阶梯 |
+| W9-4 | **删 `@Deprecated`** | **实测全仓零注解命中**（唯一 1 处命中 = `apps\desktop\lib\src\theme\app_theme.dart:149` 的**注释**）⇒ **本子项无待删对象**，如实登记「零改动」，**不得**为凑动作而新增注解 |
+| W9-5 | **域层「工作日」正解** | `packages\core_domain\lib\src\recurring_task.dart` 的**中文硬编码**从英文界面消失 ⇒ 域层出**结构化输出**，apps 侧走 l10n 渲染 |
+
+### 68.2 域层正解的技术定案（控制器实测侦察结论）
+
+**事实**：
+- 域层中文硬编码共 **2 个入口**：`WeekdayMask.label(int mask)`（`:93` → `未选`/`每天`/`工作日`/`周末`/`周一、周三`）与 `weekdayLabel(int isoWeekday)`（`:111` → `周一`…`周日`）；`:106` 用 `weekdayLabel` join `'、'`。
+- apps 侧**生产消费点仅 2 处**：`apps\desktop\lib\src\widgets\recurring_rail_panel.dart:248`（`WeekdayMask.label(rule.weekdayMask)`）与 `apps\desktop\lib\src\widgets\recurring_task_dialog.dart:238`（`WeekdayMask.label(_mask)`），两处均带「保留不动（R63-3）」注释。
+- 域层测试 `packages\core_domain\test\recurring_task_test.dart:62-67` 按中文断言。
+- ⚠ `packages\core_data\lib\src\calendar.dart:74` 的 `weekdayLabel(String date)` 是**另一个函数**（接日期字符串），与域层同名不同签名；apps 侧 `habits_page.dart:220` 已有 **`weekdayLabelOf(date, l10n)`** 的 l10n 化先例 ⇒ 沿用同一范式。
+
+**定案**：
+1. **apps 侧 2 个消费点**改走 l10n：mask 命中特殊组合（`none` / `all` / `workdays` / `weekend`）⇒ 取 l10n 整词 key；否则按 `WeekdayMask.weekdaysOf(mask)` 逐日取 l10n 星期名并**按语种拼接**（zh `、` / en `, `）。
+2. **l10n 新增**：星期名 7 条（`mon`…`sun`）+ 整词 4 条（`every` / `workdays` / `weekend` / `none`）+ 按语种分隔符；zh 取值须与原中文**逐字相同**。
+3. **域层**：apps 侧改完后若 `WeekdayMask.label` / `weekdayLabel` **再无任何生产调用** ⇒ 一并移除这两个中文硬编码函数并同步改 `packages\core_domain\test\recurring_task_test.dart:62-67`（断言改为结构化 API）；**若仍有其它调用** ⇒ 保留函数并在验收记录登记残留，**不得**宣称「域层零中文」。
+
+### 68.3 写集表（R1：控制器只写台账，实现一律 worker）
+
+| 写集 | 文件 | 归属 |
+|---|---|---|
+| W-1 | `apps\desktop\lib\src\widgets\recurring_rail_panel.dart` / `recurring_task_dialog.dart` | worker A |
+| W-2 | `apps\desktop\lib\src\l10n\parts\**`（星期名 / 整词 getter） | worker A |
+| W-3 | `apps\desktop\lib\src\l10n\l10n_keys.dart`（登记同步） | worker A |
+| W-4 | `apps\desktop\test\**`（l10n 包裹 / 新增 en 态断言 / 基线同步） | worker A |
+| W-5 | `packages\core_domain\lib\src\recurring_task.dart` + `packages\core_domain\test\recurring_task_test.dart`（**仅在 68.2 第 3 条成立时**） | worker A |
+| W-6 | `reports\task68-deadkey-scan.md`（**唯一允许写的文件**） | worker B |
+| C-1 | 计划 §68（本节 + §68.4 判据 + §68.5 白名单留档） | 控制器 |
+| C-2 | `reports\task51-gate.ps1`（**packages 精确路径豁免 + `$patterns` 追加**） | 控制器 |
+| C-3 | `.superpowers\sdd\2026-11-07-b1-flutter-implementation\waves\task68-w9.md`（派工书） | 控制器 |
+| C-4 | `AGENTS.md` §7 / `handoff.md` / `progress.md` / `docs\B1_验收记录.md`（收口台账） | 控制器 |
+
+### 68.4 验收判据（复选框清单 · 只有控制器能打勾，等长替换 `- [ ] ` → `- [x] `）
+
+- [x] **68.4a en 态全量 g1–g4**：四门禁全量 PASS（`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / 四包 `ANALYZE=VERBATIM` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`），desktop 用例数精确等值。
+- [ ] **68.4b 全仓静态中文扫描**：英文态可见的中文 UI 字面量 = 0（扫描面 = `apps\desktop\lib\**` 全量，不限 5 个 part）；不可见处（协议常量 / 调试异常 / 存储格式正则 / 注释）逐一登记。
+- [x] **68.4c 死 key 清理（编译级证明）**：移除清单内每个键后，`analyze` 仍逐字 `No issues found!` 且全量 `test` 仍全绿；**清单外一律不动**。
+- [x] **68.4d 基线定稿**：最终用例数写进 `AGENTS.md` §7 + R2 阶梯（**只增不减**）。
+- [x] **68.4e 删 `@Deprecated`**：如实登记「**实测零注解命中 ⇒ 无待删对象，零改动**」，并附扫描面与命中明细（`app_theme.dart:149` 为注释）。
+- [x] **68.4f 域层「工作日」正解**：英文帧中 `工作日` 归零；域层中文硬编码按 68.2 第 3 条处置并登记。
+- [x] **68.4g 独立复验**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项如实登记）。
+- [ ] **68.4h 收口提交与推送**：commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
+- [ ] **68.4i 宣称口径**：W9 全部子项闭合 ⇒ 方可宣称「英文界面零中文」；否则只声明已闭合范围。
+
+### 68.5 门禁白名单追加行（R1 留档 · 控制器已落）
+
+`reports\task51-gate.ps1` 本轮改动（**纯 ASCII / CRLF / 无 BOM**）：
+1. `$patterns` 追加 8 条 —— `packages/core_domain/lib/src/recurring_task.dart`、`packages/core_domain/test/recurring_task_test.dart`、`apps/desktop/lib/src/widgets/recurring_rail_panel.dart`、`apps/desktop/lib/src/widgets/recurring_task_dialog.dart`、`reports/task68-*`、`apps/desktop/test/task68_*.dart`、`apps/desktop/test/recurring_*`、`apps/desktop/lib/src/l10n/parts/settings.dart`（前 7 条为 worker A 的 l10n / 消费点 / 测试作用域；**第 8 条是控制器按实测路径补的** —— worker C 死 key 清理要改 `parts\settings.dart`，实测该路径**原先不在**白名单内，不补则门禁误报 `OUT_OF_SET`）。
+2. **packages 精确路径豁免**：新增 `$pkgAllowed` 数组，`if (($norm -match '^packages/') -and ($pkgAllowed -notcontains $norm)) { $pkgHits += $p }` ⇒ **仅这 2 个 core_domain 精确路径**豁免，**其余任何 `packages\` 改动仍判 `PACKAGES_TOUCHED` 红**（R1 自证力不被削弱）。
+3. worker 若发现还需改动白名单外的路径 ⇒ **不得自改门禁脚本**，须回报控制器按实测路径追加。
+4. **门禁排除参数 `-ExcludePaths`（控制器 · 本轮新增 · 默认空 = 行为不变）**：`param` 增 `[string]$ExcludePaths = ''`（`:10`），取值按 `,` 切分、路径归一化为正斜杠；命中项**不计入** `$paths`（既不判 `OUT_OF_SET` 也不判 `VIOLATIONS`），并在 summary **显式打印** `GATE_EXCLUDED=<n>` 与 `  EXCLUDED: <path>` 行。**匹配语义 = `-like` 通配**（`:121-125`）：首版为精确等值 `-contains`，因并发会话在两次门禁之间又新增文件而漏判 ⇒ 升级为通配（空参时行为与首版完全一致）。
+5. **本轮排除清单（归因：并发自动接力链写集，不属本批次范围）**：`docs/AGENT-RELAY.md`、`docs/relay*`（覆盖 `docs\relay.json` + `docs\relay\stage-*.md`，每跳都变）。**归因证据** = `docs\relay.json` `started_by=mvs_1711739d1ff3435a824c226a42c5db48` / `started_at=2026-11-24T21:33:28+08:00` / `current_stage=2` / `max_stages=6` + 该会话 stage-2 scope **明列本批次全部写集为禁改区**（`AGENTS.md` / `handoff.md` / `progress.md` / `docs\P1_进度.md` / `docs\B1_验收记录.md` / 计划 §68 / `reports\task51-gate.ps1` / `apps\**` / `packages\**`）且「**不得重做 Task 68**」。**纪律**：排除项**不得**塞进 `$patterns`（那会削弱 R1 自证力）、**不得**改名或删除对方文件、**不得**由本批次代为提交。
+6. **门禁三轮对照（同一批代码）**：`run1`（`reports\task68-gate-run1.log`）唯一红灯 `FAIL_ITEM=OUT_OF_SET=3`（3 个 relay 文件）⇒ `run2`（`reports\task68-gate-run2.log`）`OUT_OF_SET=1`（并发会话又新增 `docs\relay\stage-1-inventory.md`）⇒ **排除匹配升级为通配后** `run3`（`reports\task68-gate-run3.log`）**`OUT_OF_SET=0` / `GATE_EXCLUDED=2` / `GATE_VERDICT=PASS`**。
+
+### 68.6 W9 残留面与未闭合判据（控制器 2026-11-24 夜 · worker B 实测 · 本节是本轮**不**打勾 68.4b 的依据）
+
+- **实测口径**：worker B 全仓静态中文扫描，扫描面 = `apps\desktop\lib\**\*.dart` **93 个文件**（词法状态机区分注释 / 字符串 / 插值）⇒ **英文态可见中文 521 条**（严格文案口径 **515 条**）。
+- **构成（521 = 450 + 68 + 3）**：
+  - **450 条** = 3 套中文格言数据（`lib\src\data\quote_set_character.dart` 150 / `quote_set_mastery.dart` 150 / `quote_set_success.dart` 150）⇒ 属**数据内容**，是否翻译属产品决策。
+  - **68 条** = 绕过 l10n 的 UI 文案 / 字形。高危面：`widgets\shell\nav_rail.dart:36-41`（6 条导航项）、`widgets\shell\key_bar.dart:46-53`（8 条快捷键提示）、`widgets\outcome_composer.dart:28-56`（21 条）、`widgets\domain_chips.dart:22-27` + `:72-82`（12 条，**且与 l10n 的 domain 键重复定义**）、`widgets\est_duration_text.dart:17-29`（5 条单位）、`pages\projects_page.dart`（5 条表单校验）、`widgets\habit_quick_dialog.dart:200` + `pages\habits_page.dart:230` + `widgets\habit_section.dart:158`（3 条「次」单位）、`widgets\gantt_chart.dart:84/85/192`（3 条）、`widgets\timeline\slot_fill.dart:85-86`（2 条）。
+  - **3 条** = En mixin 泄漏：`parts\dialog.dart:894/960`（全角 `＋` U+FF0B，按 `parts\dialog.dart:17` 仓内约定属**按钮字形**非文案）、`parts\settings.dart:257`（`简体中文` = 语言名母语自称）。
+- **判读**：`§68.4b` 的判据是「英文态可见的中文 UI 字面量 = 0（扫描面 = `apps\desktop\lib\**` 全量）」⇒ **本轮实测 521 条 ⇒ 判据不成立 ⇒ `68.4b` 不打勾**。
+- **连带后果（必须连坐）**：`68.4b` 未闭合 ⇒ `68.4i` 宣称口径**不升级** ⇒ **`§47.2 W9` 不打勾** ⇒ 对外只声明「**§47 W3–W8 覆盖范围零中文**」，**不得**宣称「英文界面零中文」。
+- **下一批次候选范围（本轮只登记、不启动）**：
+  1. **UI 文案 68 条** l10n 化（`nav_rail` / `key_bar` / `outcome_composer` / `domain_chips` / `est_duration_text` / `projects_page` / `gantt_chart` / `slot_fill` / 3 处「次」单位）—— 纯 l10n 改造，工作量可控。
+  2. **格言数据 450 条** —— 需产品决策「翻译 / 换 en 数据集 / 英文态隐藏」三选一。
+  3. **B 类 4 键**（`hoursCount` / `minutesCount` / `deferredDays` / `moodScoreLabel`）—— 需产品 / 测试口径决策「补界面消费」还是「连断言退役」。
+  4. **未判定项**（worker B 盲区，如实登记）：`lib\src\data\project_store.dart` 6 条诊断串是否经 toast 上屏（若上屏则 521 → 527）；`lib\src\widgets\toast_probe.dart:111` 在发布构建的可达性；「英文态可见」为**静态推断**，**未真机英文态逐条截图**。
+- **本轮可闭合的子项**：`68.4a`（en 态全量 g1–g4 门禁）、`68.4c`（死 key 清理 —— **实删 7 条**，派工书「A 类 10 条」口径作废，见 §68.7 ③）、`68.4d`（基线定稿 836）、`68.4e`（删 `@Deprecated` —— 实测零注解命中 ⇒ 无待删对象 ⇒ 零改动）、`68.4f`（域层「工作日」正解 + 英文真机帧实测）、`68.4g`（独立复验 `VERIFIER_VERDICT=PASS`）、`68.4h`（收口提交与推送）。**`68.4b` / `68.4i` 与 `§47.2 W9` 保持未勾。**
+
+### 68.7 Task 68 收口（控制器 · 2026-11-24 夜 · 实测数字全量留档）
+
+**① 门禁第六轮**（`reports\task68-gate-run3.log`，`RUN_AT=2026-11-24 21:57:47` / `HEAD=01b6339`）= `GATE_VERDICT=PASS` / `GATE_FAILURES=0` / desktop **`TESTS=836` = `DESKTOP_EXPECTED=836`** / core_data **204** / core_db **71** / core_domain **62** / 四包 `ANALYZE=VERBATIM` / `VIOLATIONS=0` / **`OUT_OF_SET=0`** / `GATE_EXCLUDED=2` / `PS1_SCANNED=493` / `PS1_NEW_NON_ASCII=0` / `PS1_ASCII_VIOLATIONS=0` / `AHEAD=0`。前两轮对照见 §68.5 第 6 条。
+
+**② `68.4f` 英文真机帧**（`reports\task68-realrun1\` + `reports\task68-en-judge.txt`）：release 构建 `BUILD_EXIT=0`（AOT 快照 `apps\desktop\build\windows\x64\runner\Release\data\app.so` mtime **2026-11-24 21:49:26** / 8,749,960 B；本轮 12 个 Dart 文件 mtime **全部早于**该时刻 ⇒ **帧内即本轮代码**，非旧 exe）；沙箱种子 `reports\task59-j\sandbox-userdata`（库内已有 **active=1、未删除、`weekday_mask=31`（= 工作日）**、`start_minute=570` 的循环任务「早会」）⇒ 改动前英文帧应显「工作日」，改动后应显「Weekdays」。采集 5 帧 + 6 份 OCR（`CAPTURE_VERDICT=PARTIAL`，唯一缺口 `s1` 系**设计使然**的 `s0-navref` 重复帧，与 Task 63 realrun4 同因）。**三条判据**：① 英文帧 OCR 命中 **`工作日` = 0**（6/6 帧逐文件 grep，`WORKDAY_HITS=0`）；② 英文态右轨面板**实测显示 `Weekdays`**（`s0-navref-ocr.txt` / `s6-entry-ocr.txt`，坐标 `2089,514`，位于 `Recurring tasks` 面板内）；③ `JUDGE_VERDICT=PASS` / `JUDGE_NEEDLE_HITS=0` / `JUDGE_SHELL_CJK=0` / **`JUDGE_RAIL_CJK=0`** / 六帧 `FRAME_RESULT` 全 PASS。
+**诚实登记**：帧内残留 CJK = **种子用户内容**「早会」（种子库自带中文用户数据，**非 UI 字面量**）+ OCR 单字误识（`to` → `到` 等）⇒ 归入「英文态不可见 / 非 UI 字面量」口径，**不计入 `68.4b` 的 UI 字面量判定**。
+**静态可达性旁证**：全仓 `.dart` 中 `工作日` 的**唯一字符串字面量** = `apps\desktop\lib\src\l10n\parts\domain.dart:299`（**zh mixin** `String get workdays => '工作日';`），En mixin 对应值为 `Weekdays` ⇒ 英文态渲染路径不可能出现该词（zh mixin 只在 zh locale 实例化）。
+
+**③ `68.4c` 死 key 清理（编译级证明）**：**实删 7 条** —— `commonYes` / `commonNo` / `commonConfirmAction` / `sectionData` / `openDataDir` / `openDataDirHint` / `projectsLoadFailed`（lib + test 残留 0）。**3 条 ABC 键 `abcALabel` / `abcBLabel` / `abcCLabel` 经删除后全量测试立刻 2 例失败（`l10n_base_test.dart:196` Expected 'A 类要事' / Actual null）⇒ 坐实为活键并回滚**：根因 = `packages\core_data\lib\src\priority.dart:138` `AbcStyle.labelKey => 'domain-abc-${code.toLowerCase()}-label'` **产出 kebab id**，`l10n_keys.dart:439/442/445` 的值正是该 id，`l10n_base_test.dart:208` 用 `zh[PriorityDisplay.labelKeyFor(...)]` **按 id 查表** ⇒ **动态引用**，静态搜 getter 名查不到（**不可用「搜不到引用」反推死代码**）。**键数实算口径**：`byGetter` **390** / `byListGetter` **4** / `byMethod` **53** / 总键 **447**（派工书 387 / 444 作废）；`l10n_harness.dart` l10nAccessors **390**、`l10n_base_test.dart:27-29/111/117` 断言与标题数字同步。
+**B 类 4 键**（`hoursCount` / `minutesCount` / `deferredDays` / `moodScoreLabel`，有真实测试断言）与 **C 类 1 键**（`projectsDomainStatsUncategorized`，`app_localizations.dart:112` 裸名转发）**一律不动**。
+
+**④ `68.4d` 基线定稿**：desktop **834 → 836（+2）**（Worker A 新增 2 条英文态 widget 用例：`apps\desktop\test\recurring_task_test.dart:560` 面板 / `:586` 对话框）；core_data **204** / core_db **71** / core_domain **62** **均不变**（core_domain 测试 1:1 换结构化断言，用例数不变）。已写入 `AGENTS.md` R2 阶梯（`836(Task 68 +2)`）+ §7 快照（**只增不减**）。
+
+**⑤ `68.4e` 删 `@Deprecated`**：全仓 `.dart` **零注解命中**，唯一 1 处文本命中 = `apps\desktop\lib\src\theme\app_theme.dart:149` 的**注释** ⇒ **无待删对象，零改动**（**不得**为凑动作新增注解）。
+
+**⑥ `68.4g` 独立复验**（`reports\task68-verifier.md` / 15,652 B / 206 行；verifier 会话 **≠ 实现者**、只读、未跑 flutter / 未写文件）：第一轮 `VERIFIER_VERDICT=FAIL`（唯一阻塞 V7 写集纪律 = 派工书只列 worker 路径、漏列控制器台账写集；另记 M1 = `recurring_task.dart:74/:109` 两处 `ArgumentError` CJK 属调试异常、L1 = 误判 `reports\task68-deadkey-scan.md` 不存在）⇒ 控制器修正契约（V7 基准 = 计划 §68.3 写集表含 C-1..C-4；3 个 relay 文件显式排除并附归因证据；M1 按 §63.4a「调试异常」口径判成立但保留登记；L1 用 `Test-Path` 撤除）后**第二轮 `VERIFIER_VERDICT=PASS`**，V1–V8 全成立。
+
+**⑦ 域层残留登记（不计入 `68.4b`）**：`packages\core_domain\lib\src\recurring_task.dart:74` / `:109` 两处 `ArgumentError` **调试异常消息**含 CJK ⇒ 按 §63.4a「调试异常」口径**不属英文态可见 UI 文案**，本轮**只登记不改**（改它须动 `packages\**` ⇒ 须 worker 写集），列入下一批次候选。
+
+**⑧ 并发会话归因与门禁排除留档**：见 §68.5 第 4–6 条（排除项 `docs/AGENT-RELAY.md` + `docs/relay*`，归因并发自动接力链，**未**塞进 `$patterns`，**未**代为提交）。
+
+**⑨ 收口结论**：**`68.4b` / `68.4i` 保持未勾 ⇒ `§47.2 W9` 保持未勾** ⇒ 对外口径仍为「**§47 W3–W8 覆盖范围零中文**」，**不得**宣称「英文界面零中文」。本轮实际闭合：`68.4a` / `68.4c` / `68.4d` / `68.4e` / `68.4f` / `68.4g` / `68.4h`。**下一批次（Task 69 候选）范围**：① UI 文案 **68 条** l10n 化；② 格言数据 **450 条**（需产品决策：翻译 / 换 en 数据集 / 英文态隐藏）；③ B 类 4 键口径决策；④ En mixin 泄漏 3 条（`parts\dialog.dart:894/960` 全角 `＋`、`parts\settings.dart:257` `简体中文`）；⑤ 域层 2 处 `ArgumentError` CJK 调试异常；⑥ `project_store.dart` 6 条诊断串是否上屏（**未判定**）；⑦ `toast_probe.dart:111` 在发布构建的可达性（**未判定**）。
