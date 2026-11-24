@@ -9377,7 +9377,7 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
       > **台账指针**：侦察 → `reports/task61-recon-{shell,calendar,roadmap}.md`；派工书 → `docs/task61/`
       > （worker A 外壳底座 / B 外壳点件 / C 日历页 / D 日期控件 / E 测试修订）；批次记录 →
       > `.superpowers/sdd/2026-11-07-b1-flutter-implementation/progress.md`（Task 61 段）与
-      > `handoff.md` 的 §68（交付）/ §69（推送恢复回填）/ §70（终局收口：5 笔提交全上 GitHub +
+      > `handoff.md` 的 §68（交付）/ §69（推送恢复回填）/ §70（终局收口：Task 61 提交链 `d5b1240` 起逐笔全上 GitHub，笔数不写死、以 `git rev-list --count origin/main..HEAD` = 0 实测为准 +
       > 最终树门禁 PASS `RUN_AT=2026-11-24 12:21:21`）；验收记录 → `docs/B1_验收记录.md`；
       > 工具坑 → `AGENTS.md` §5（本轮新增坑 91 / 92 / 93）。
 
