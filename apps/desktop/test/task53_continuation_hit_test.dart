@@ -26,6 +26,8 @@ import 'package:actlog/src/widgets/timeline/day_grid.dart';
 import 'package:actlog/src/widgets/timeline/slot_layout.dart';
 import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定「今天」，被测日取其**次日**（未来日 ⇒ 不算回填，四态稳定）。
 const String _today = '2026-11-09';
 const String _future = '2026-11-10';
@@ -67,7 +69,9 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(home: Scaffold(body: DayGrid(date: _future))),
+        child: l10nScope(
+          MaterialApp(home: Scaffold(body: DayGrid(date: _future))),
+        ),
       ),
     );
   }

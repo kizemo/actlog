@@ -40,6 +40,7 @@ import 'package:core_db/core_db.dart';
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_tokens.dart';
 import '../chip_row.dart';
 import '../confirm_dialog.dart';
@@ -303,15 +304,28 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
 
   /// 回填 section 的三组可选项（用户需求 4：直接显示，不再多一跳）。
   Widget _inlinePickers() {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _chipGroup('结论', _kChipOutcome, OutcomeComposer.outcomeLabels),
+        _chipGroup(
+          l10n.domainConclusionLabel,
+          _kChipOutcome,
+          OutcomeComposer.outcomeLabels,
+        ),
         const SizedBox(height: 6),
-        _chipGroup('原因', _kChipReason, OutcomeComposer.reasonLabels),
+        _chipGroup(
+          l10n.domainReasonLabel,
+          _kChipReason,
+          OutcomeComposer.reasonLabels,
+        ),
         const SizedBox(height: 6),
-        _chipGroup('下一步', _kChipNextStep, OutcomeComposer.nextStepLabels),
+        _chipGroup(
+          l10n.domainNextStepLabel,
+          _kChipNextStep,
+          OutcomeComposer.nextStepLabels,
+        ),
       ],
     );
   }
@@ -346,10 +360,11 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
   }
 
   Future<void> _requestDelete() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final bool confirmed = await showConfirmDialog(
       context,
-      title: '删除计划项',
-      message: '确认删除「${widget.item.title}」？删除后它不再出现在清单里。',
+      title: l10n.timelineDeletePlanItemTitle,
+      message: l10n.timelineDeletePlanItemMessage(widget.item.title),
     );
     if (!mounted || !confirmed) {
       return;
@@ -380,13 +395,14 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
   @override
   Widget build(BuildContext context) {
     final ThemeTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return AlertDialog(
       backgroundColor: t.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTokens.radius),
       ),
       title: Text(
-        '任务详情',
+        l10n.timelineTaskDetailTitle,
         style: TextStyle(fontSize: 16, color: t.ink),
       ),
       scrollable: true,
@@ -398,7 +414,7 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
           children: <Widget>[
             // ① 标题：可编辑（Task 46 · W2 放开；写 `plan_item.title`）。
             //    未来日同样可改 —— 预排时本来就要能修订标题。
-            Text('标题', style: TextStyle(fontSize: 10, color: t.meta)),
+            Text(l10n.commonTitle, style: TextStyle(fontSize: 10, color: t.meta)),
             const SizedBox(height: 2),
             TextField(
               key: const ValueKey<String>('plan-detail-title'),
@@ -417,15 +433,15 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
               minLines: 2,
               maxLines: 4,
               style: TextStyle(fontSize: 13, color: t.ink2),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                labelText: '内容',
-                border: OutlineInputBorder(),
+                labelText: l10n.timelineContentLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: AppTokens.gapCard),
             // ③ 级别：复用既有四维标记选择器（两轴各自二选一 + 清除）。
-            Text('级别', style: TextStyle(fontSize: 10, color: t.meta)),
+            Text(l10n.timelineLevelLabel, style: TextStyle(fontSize: 10, color: t.meta)),
             const SizedBox(height: 4),
             PriorityMarkPicker(
               value: _quadrant,
@@ -445,17 +461,17 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
               minLines: 2,
               maxLines: 4,
               style: TextStyle(fontSize: 13, color: t.ink2),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                labelText: '回填内容',
-                border: OutlineInputBorder(),
+                labelText: l10n.timelineBackfillContentLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
             if (_future)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  '未来日不可回填：打卡 / 回填 / 复盘 / 心态只允许今天与过去。',
+                  l10n.timelineFutureDayBackfillBlocked,
                   key: const ValueKey<String>('plan-detail-note-locked'),
                   style: TextStyle(fontSize: 11.5, color: t.meta),
                 ),
@@ -472,14 +488,14 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
               child: TextButton(
                 key: const ValueKey<String>('plan-detail-template'),
                 onPressed: _future ? null : _openTemplate,
-                child: const Text('成果 / 进展模板'),
+                child: Text(l10n.timelineOutcomeTemplateTitle),
               ),
             ),
             // ⑤ 持续时间：15 分钟粒度步进 + 实时「共 N 分钟」。
-            Text('持续时间', style: TextStyle(fontSize: 10, color: t.meta)),
+            Text(l10n.timelineDurationLabel, style: TextStyle(fontSize: 10, color: t.meta)),
             const SizedBox(height: 2),
             _DetailStepperRow(
-              label: '开始',
+              label: l10n.timelineStartLabel,
               fieldKey: const ValueKey<String>('plan-detail-start'),
               value: _start,
               onMinus: () => _bumpStart(-kSlotMinutes),
@@ -487,7 +503,7 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
             ),
             const SizedBox(height: 4),
             _DetailStepperRow(
-              label: '结束',
+              label: l10n.timelineEndLabel,
               fieldKey: const ValueKey<String>('plan-detail-end'),
               value: _end,
               onMinus: () => _bumpEnd(-kSlotMinutes),
@@ -495,7 +511,7 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
             ),
             const SizedBox(height: 4),
             Text(
-              '共 ${_end - _start} 分钟',
+              l10n.timelineTotalMinutes(_end - _start),
               key: const ValueKey<String>('plan-detail-duration'),
               style: TextStyle(fontSize: 12.5, color: t.meta),
             ),
@@ -509,7 +525,7 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
                   foregroundColor: Theme.of(context).colorScheme.error,
                 ),
                 onPressed: _requestDelete,
-                child: const Text('删除'),
+                child: Text(l10n.commonDelete),
               ),
             ),
           ],
@@ -519,12 +535,12 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
         TextButton(
           key: const ValueKey<String>('plan-detail-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           key: const ValueKey<String>('plan-detail-save'),
           onPressed: _submit,
-          child: const Text('保存'),
+          child: Text(l10n.commonSave),
         ),
       ],
     );
@@ -551,6 +567,7 @@ class _DetailStepperRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -564,7 +581,7 @@ class _DetailStepperRow extends StatelessWidget {
         IconButton(
           onPressed: onMinus,
           icon: const Icon(Icons.remove, size: 16),
-          tooltip: '$label 减一格',
+          tooltip: l10n.timelineStepDown(label),
         ),
         SizedBox(
           width: 64,
@@ -582,7 +599,7 @@ class _DetailStepperRow extends StatelessWidget {
         IconButton(
           onPressed: onPlus,
           icon: const Icon(Icons.add, size: 16),
-          tooltip: '$label 加一格',
+          tooltip: l10n.timelineStepUp(label),
         ),
       ],
     );

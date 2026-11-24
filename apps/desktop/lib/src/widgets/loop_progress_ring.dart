@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:core_data/core_data.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
 
@@ -67,12 +68,15 @@ double _ratio(int done, int total) {
 ///
 /// 这是全项目唯一的四段比例口径：[LoopProgressRing]（中栏脊线）与
 /// [LoopHintBar]（右栏闭环提示）都从这里取，避免出现第二份 `done / total`。
-List<LoopSegmentEntry> loopSegmentEntries(DayStats stats) {
+List<LoopSegmentEntry> loopSegmentEntries(
+  DayStats stats,
+  AppLocalizations l10n,
+) {
   final double? rate = stats.backfillRate;
   return <LoopSegmentEntry>[
     LoopSegmentEntry(
       segment: DayStatsSegment.plan,
-      label: '计划',
+      label: l10n.domainPlanLabel,
       mark: stats.planPending > 0 ? '○' : '✓',
       value: '${stats.planDone}/${stats.planTotal}',
       ratio: _ratio(stats.planDone, stats.planTotal),
@@ -80,7 +84,7 @@ List<LoopSegmentEntry> loopSegmentEntries(DayStats stats) {
     ),
     LoopSegmentEntry(
       segment: DayStatsSegment.backfill,
-      label: '回填',
+      label: l10n.domainBackfillLabel,
       mark: stats.planDone > stats.backfilled ? '▸' : '●',
       value: rate == null ? '—' : '${stats.backfilled}/${stats.planDone}',
       ratio: _ratio(stats.backfilled, stats.planDone),
@@ -88,7 +92,7 @@ List<LoopSegmentEntry> loopSegmentEntries(DayStats stats) {
     ),
     LoopSegmentEntry(
       segment: DayStatsSegment.review,
-      label: '复盘',
+      label: l10n.domainReviewLabel,
       mark: stats.reviewDone ? '✓' : '▸',
       value: stats.reviewDone ? '✓' : '▸',
       ratio: stats.reviewDone ? 1 : 0,
@@ -96,7 +100,7 @@ List<LoopSegmentEntry> loopSegmentEntries(DayStats stats) {
     ),
     LoopSegmentEntry(
       segment: DayStatsSegment.mood,
-      label: '心态',
+      label: l10n.domainMoodLabel,
       mark: stats.moodDone ? '✓' : '▸',
       value: stats.moodDone ? '✓' : '▸',
       ratio: stats.moodDone ? 1 : 0,
@@ -113,7 +117,12 @@ List<LoopSegmentEntry> loopSegmentEntries(DayStats stats) {
 /// 数字全部来自 [DayStats]（唯一口径），本 widget **不自己算**。
 class LoopProgressRing extends StatelessWidget {
   /// 创建闭环脊线。
-  const LoopProgressRing({super.key, required this.stats, this.onJump});
+  const LoopProgressRing({
+    super.key,
+    required this.stats,
+    this.onJump,
+    this.l10n = AppLocalizations.zh,
+  });
 
   /// 当日统计。
   final DayStats stats;
@@ -121,12 +130,19 @@ class LoopProgressRing extends StatelessWidget {
   /// 点击某段时的回调（跳到对应段）。
   final void Function(DayStatsSegment segment)? onJump;
 
+  /// 文案来源。
+  ///
+  /// 默认中文：本 widget 目前**没有生产实例**（仅测试直接 pump），
+  /// 且既有测试用裸 `MaterialApp` 不带 `L10nScope` / `ProviderScope`，
+  /// 故不强制调用方注入。生产接入时须传 `ref.watch(appLocalizationsProvider)`。
+  final AppLocalizations l10n;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final ThemeTokens tokens = context.tokens;
     final labelSize = theme.textTheme.labelLarge?.fontSize ?? 11.5;
-    final entries = loopSegmentEntries(stats);
+    final entries = loopSegmentEntries(stats, l10n);
 
     return Container(
       padding: const EdgeInsets.only(top: 2, bottom: 12),
@@ -143,7 +159,7 @@ class LoopProgressRing extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.end,
             children: [
               Text(
-                '闭环环 · 四段比例条',
+                l10n.todayLoopRingA11y,
                 style: TextStyle(
                   fontSize: labelSize,
                   color: tokens.faint,
@@ -151,7 +167,7 @@ class LoopProgressRing extends StatelessWidget {
                 ),
               ),
               Text(
-                '刻度 0—100',
+                l10n.todayLoopRingScale,
                 style: TextStyle(
                   fontFamily: AppFonts.mono,
                   fontFamilyFallback: AppFonts.monoFallback,
@@ -290,7 +306,11 @@ class LoopHintBar extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               // 窄栏里标签先截断也不挤出横向边界（R-6）；数值永远完整。
+              // 标签与数值按 3:2 分摊剩余宽度：实测中文态 200% 时最长的四字标签
+              // 「计划缺口 / 回填缺口」宽 101.6px，仍小于 3 份（可用 229 时 ≈116px），
+              // 所以中文态的截断临界点没有被改动过。
               Expanded(
+                flex: 3,
                 child: Text(
                   label ?? entry.label,
                   maxLines: 1,
@@ -303,17 +323,34 @@ class LoopHintBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(
-                value ?? entry.value,
-                style: TextStyle(
-                  fontFamily: AppFonts.mono,
-                  fontFamilyFallback: AppFonts.monoFallback,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: accentColor,
-                  fontFeatures: const <FontFeature>[
-                    FontFeature.tabularFigures(),
-                  ],
+              // 数值占剩余宽的 2 份，并交给 `FittedBox(scaleDown)` 等比缩小。
+              // 起因（实测）：英文态 200% 下 `Not written` 自然宽 286px，加标记 24px
+              // 与两处 6px 间距已达 322px > 可用 229px ⇒ 只要数值按自然宽度排版，
+              // 无论标签怎么压缩都会溢出 96px。给数值**有界**区域后由 `FittedBox`
+              // 缩到刚好装下：不换行、不截断、不裁切（与下方 `_TickRow` 同一手法）。
+              // `Align(centerRight)` 保证数值照旧贴右边缘；中文态数值 ≤52px < 77px，
+              // 既不缩放也不位移，像素不变。
+              Expanded(
+                flex: 2,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      value ?? entry.value,
+                      style: TextStyle(
+                        fontFamily: AppFonts.mono,
+                        fontFamilyFallback: AppFonts.monoFallback,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: accentColor,
+                        fontFeatures: const <FontFeature>[
+                          FontFeature.tabularFigures(),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -467,12 +504,23 @@ class _SegmentState extends State<_Segment> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      entry.label,
-                      style: TextStyle(
-                        fontSize: widget.labelSize,
-                        color: headColor,
-                        letterSpacing: 0.6,
+                    // 标签是唯一会变长的子项（走 l10n，英文如 `Backfill` 实测
+                    // 116.8px），必须可收缩：省略号截断，而不是把整行撑爆
+                    // （en 态实测溢出 8.6px）。剩余宽度几乎全部（1000/1001）交给
+                    // 标签，只留 1 份给下面的 `Spacer` —— 两者都是紧约束，合计仍等于
+                    // 剩余宽，所以数值照旧贴右边缘，中文态的截断临界点（≈整条剩余宽）
+                    // 与改动前「放不下才溢出」的临界点一致，像素不变。
+                    Expanded(
+                      flex: 1000,
+                      child: Text(
+                        entry.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: widget.labelSize,
+                          color: headColor,
+                          letterSpacing: 0.6,
+                        ),
                       ),
                     ),
                     const Spacer(),

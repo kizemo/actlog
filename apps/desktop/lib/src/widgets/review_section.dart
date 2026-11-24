@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/project_store.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
 import 'section_card.dart';
@@ -36,10 +37,32 @@ class ReviewSection extends ConsumerStatefulWidget {
 }
 
 class _ReviewSectionState extends ConsumerState<ReviewSection> {
-  static const List<_ReviewField> _fields = [
-    _ReviewField('学到了什么', '今天最大的一个认知收获', Icons.lightbulb_outline),
-    _ReviewField('做得好', '值得保留的做法', Icons.thumb_up_outlined),
-    _ReviewField('待改进', '下次换个做法的地方', Icons.build_outlined),
+  /// 三段字段的条数。
+  ///
+  /// 输入框控制器、`_draft` 的下标、渲染循环全都按它对齐，与文案无关，
+  /// 所以留在 `static const` 上；文案本身见 [_fields]。
+  static const int _fieldCount = 3;
+
+  /// 三段字段（标题 / 占位 / 图标）。
+  ///
+  /// 文案随语言走，故从 `static const` 改成按 `l10n` 现取 —— 原来那三个中文
+  /// 字面量已迁到 `parts\today.dart`。
+  List<_ReviewField> _fields(AppLocalizations l10n) => <_ReviewField>[
+    _ReviewField(
+      l10n.todayReviewFieldLearn,
+      l10n.todayReviewFieldLearnHint,
+      Icons.lightbulb_outline,
+    ),
+    _ReviewField(
+      l10n.todayReviewFieldGood,
+      l10n.todayReviewFieldGoodHint,
+      Icons.thumb_up_outlined,
+    ),
+    _ReviewField(
+      l10n.todayReviewFieldImprove,
+      l10n.todayReviewFieldImproveHint,
+      Icons.build_outlined,
+    ),
   ];
 
   /// 已删掉输入框的两列，**原值读进来、原样传回去**。
@@ -55,7 +78,7 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
   String _uncontrollable = '';
 
   late final List<TextEditingController> _controllers = [
-    for (final _ in _fields) TextEditingController(),
+    for (var index = 0; index < _fieldCount; index++) TextEditingController(),
   ];
 
   Timer? _debounce;
@@ -154,17 +177,22 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
   ///  - `next_step` = 「待改进」
   ///  - `blockers` = `''` —— 源码里没有「卡在哪」这一栏，不替用户编造
   ///  - `date` = 当日日志的日期；`plan_item_id` 由仓储自动派生
-  Future<void> _toProject(List<ProjectRow> active, DayLogData log) async {
+  Future<void> _toProject(
+    List<ProjectRow> active,
+    DayLogData log,
+    AppLocalizations l10n,
+  ) async {
     if (_busy) {
       return;
     }
-    final String progress = <String>[
+    final List<String> segments = <String>[
       _excerpt(_controllers[1].text),
       _excerpt(_controllers[0].text),
-    ].where((String part) => part.isNotEmpty).join('；');
+    ].where((String part) => part.isNotEmpty).toList(growable: false);
+    final String progress = l10n.todayReviewJoinSegments(segments);
     final String nextStep = _excerpt(_controllers[2].text);
     if (progress.isEmpty && nextStep.isEmpty) {
-      setState(() => _notice = '三段都还空着，先写一句再记');
+      setState(() => _notice = l10n.todayReviewEmptyNotice);
       return;
     }
 
@@ -172,7 +200,7 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
     if (active.length == 1) {
       target = active.first;
     } else {
-      target = await _pickProject(active);
+      target = await _pickProject(active, l10n);
     }
     if (target == null || !mounted) {
       return;
@@ -195,7 +223,7 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
       }
       setState(() {
         _busy = false;
-        _notice = '已记到「${chosen.name}」';
+        _notice = l10n.todayReviewFiledTo(chosen.name);
       });
     } catch (error) {
       if (!mounted) {
@@ -209,11 +237,14 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
   }
 
   /// 项目多于一个时让用户挑；取消返回 `null`。
-  Future<ProjectRow?> _pickProject(List<ProjectRow> active) async {
+  Future<ProjectRow?> _pickProject(
+    List<ProjectRow> active,
+    AppLocalizations l10n,
+  ) async {
     final String? id = await showDialog<String>(
       context: context,
       builder: (BuildContext dialogContext) => SimpleDialog(
-        title: const Text('记到哪个项目'),
+        title: Text(l10n.todayReviewPickProject),
         children: <Widget>[
           for (final ProjectRow project in active)
             SimpleDialogOption(
@@ -235,7 +266,11 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
   }
 
   /// 「→ 记到项目」：**只有存在 active 项目时才出现**，没有项目就整块不渲染。
-  Widget _buildToProject(BuildContext context, DayLogData log) {
+  Widget _buildToProject(
+    BuildContext context,
+    DayLogData log,
+    AppLocalizations l10n,
+  ) {
     final Future<List<ProjectRow>> future =
         _projects ??= ProjectStore(ref.read(repositoriesProvider))
             .listProjects();
@@ -261,8 +296,8 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
             children: <Widget>[
               TextButton(
                 key: const ValueKey<String>('review-increment-to-project'),
-                onPressed: _busy ? null : () => _toProject(active, log),
-                child: const Text('→ 记到项目'),
+                onPressed: _busy ? null : () => _toProject(active, log, l10n),
+                child: Text(l10n.todayReviewFileToProject),
               ),
               if (notice != null)
                 Text(
@@ -279,14 +314,15 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = ref.watch(appLocalizationsProvider);
     final dayLog = ref.watch(dayLogProvider);
     // 还活着的时候把仓储抓进字段，供 dispose() 使用（见 _repo 的注释）。
     _repo ??= ref.read(repositoriesProvider).dayLog;
 
     return SectionCard(
       icon: Icons.rate_review_outlined,
-      title: '复盘',
-      subtitle: '哪几段有想法就写哪几段，留白不影响保存',
+      title: l10n.domainReviewLabel,
+      subtitle: l10n.todayReviewSubtitle,
       child: dayLog.when(
         loading: () => const LinearProgressIndicator(),
         error: (error, stack) => Text(
@@ -295,14 +331,15 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
         ),
         data: (log) {
           if (log == null) {
-            return const Text('当日日志尚未建立');
+            return Text(l10n.domainDayLogNotStarted);
           }
           if (_seededLogId != log.id) {
             _seed(log);
           }
+          final List<_ReviewField> fields = _fields(l10n);
           return Column(
             children: [
-              for (var index = 0; index < _fields.length; index++)
+              for (var index = 0; index < fields.length; index++)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: TextField(
@@ -311,15 +348,15 @@ class _ReviewSectionState extends ConsumerState<ReviewSection> {
                     maxLines: 3,
                     onChanged: (_) => _scheduleSave(log.id),
                     decoration: InputDecoration(
-                      labelText: _fields[index].label,
-                      hintText: _fields[index].hint,
-                      prefixIcon: Icon(_fields[index].icon, size: 18),
+                      labelText: fields[index].label,
+                      hintText: fields[index].hint,
+                      prefixIcon: Icon(fields[index].icon, size: 18),
                       border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                   ),
                 ),
-              _buildToProject(context, log),
+              _buildToProject(context, log, l10n),
             ],
           );
         },

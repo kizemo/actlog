@@ -14,6 +14,7 @@
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_tokens.dart';
 import '../outcome_composer.dart';
 
@@ -40,10 +41,11 @@ Future<SlotFillEdit?> showSlotFillDialog(
   // 所以在入口取 token 与在 builder 里取等价，却不用把整段 `AlertDialog`
   // 改成块状体。
   final ThemeTokens t = context.tokens;
+  final AppLocalizations l10n = AppLocalizations.of(context);
   return showDialog<SlotFillEdit>(
     context: context,
     builder: (BuildContext context) => AlertDialog(
-      title: const Text('成果 / 进展'),
+      title: Text(l10n.timelineSlotFillTitle),
       scrollable: true,
       content: SizedBox(
         width: 420,

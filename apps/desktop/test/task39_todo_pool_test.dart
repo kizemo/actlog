@@ -23,6 +23,8 @@ import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/density_profile.dart';
 import 'package:actlog/src/widgets/quick_todo_dialog.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 const ValueKey<String> _openKey = ValueKey<String>('test-open-todo-dialog');
 
@@ -54,15 +56,18 @@ final class _Harness {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: Scaffold(
-            body: Builder(
-              builder: (BuildContext context) => Center(
-                child: TextButton(
-                  key: _openKey,
-                  onPressed: () => showQuickTodoDialog(context),
-                  child: const Text('手写一条'),
+        // 手写面板与池子页都走 `AppLocalizations.of(context)`。
+        child: l10nScope(
+          MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: Scaffold(
+              body: Builder(
+                builder: (BuildContext context) => Center(
+                  child: TextButton(
+                    key: _openKey,
+                    onPressed: () => showQuickTodoDialog(context),
+                    child: const Text('手写一条'),
+                  ),
                 ),
               ),
             ),
@@ -78,10 +83,12 @@ final class _Harness {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: const Scaffold(
-            body: SingleChildScrollView(child: TodoPoolPage()),
+        child: l10nScope(
+          MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: const Scaffold(
+              body: SingleChildScrollView(child: TodoPoolPage()),
+            ),
           ),
         ),
       ),

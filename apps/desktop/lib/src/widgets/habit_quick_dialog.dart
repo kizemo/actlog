@@ -2,6 +2,7 @@ import 'package:core_data/core_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
@@ -164,13 +165,14 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
     if (_submitting || _done) {
       return;
     }
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final String name = _name.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = '习惯名不能为空');
+      setState(() => _error = l10n.dialogHabitNameRequired);
       return;
     }
     if (_needsWeekdays && _weekdays.isEmpty) {
-      setState(() => _error = '请至少选择一个星期');
+      setState(() => _error = l10n.dialogHabitWeekdayRequired);
       return;
     }
 
@@ -217,7 +219,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
       } catch (error) {
         // 习惯本身已经落库，不能因为「自动进计划」失败就把它吞掉：
         // 关面板后用 SnackBar 如实告知，让用户能自己去补。
-        warning = '习惯已保存，但未能自动加入日计划：${_errorMessage(error)}';
+        warning = l10n.dialogHabitSavedWarn(_errorMessage(error));
       }
       if (!mounted) {
         return;
@@ -245,6 +247,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return _HabitDialog(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -256,7 +259,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
             autofocus: true,
             enabled: !_submitting,
             style: _bodyStyle(size: 13, color: t.ink),
-            decoration: _fieldDecoration('习惯名（必填）', t),
+            decoration: _fieldDecoration(l10n.dialogHabitNameLabel, t),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 8),
@@ -265,7 +268,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
             controller: _description,
             enabled: !_submitting,
             style: _bodyStyle(size: 13, color: t.ink),
-            decoration: _fieldDecoration('说明（可选）', t),
+            decoration: _fieldDecoration(l10n.dialogHabitNoteLabel, t),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 12),
@@ -292,13 +295,13 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: <Widget>[
               _DialogButton(
-                label: '取消',
+                label: l10n.cancel,
                 dense: true,
                 onPressed: _submitting ? null : () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: 8),
               _DialogButton(
-                label: '保存',
+                label: l10n.commonSave,
                 dense: true,
                 primary: true,
                 onPressed: _submitting ? null : _submit,
@@ -312,11 +315,12 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
 
   /// 排程四选一（`Wrap` 保证 200% 文字缩放时换行而不是溢出）。
   Widget _scheduleSection() {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        const _SectionLabel('排程'),
+        _SectionLabel(l10n.dialogHabitSchedule),
         const SizedBox(height: 5),
         Wrap(
           key: const ValueKey<String>('habit-dialog-schedule'),
@@ -325,20 +329,20 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
           children: <Widget>[
             _ChoiceTile(
               key: const ValueKey<String>('habit-dialog-schedule-daily'),
-              label: '每天',
+              label: l10n.dialogHabitDaily,
               selected: _kind == _ScheduleKind.daily,
               onTap: _submitting ? null : () => _selectKind(_ScheduleKind.daily),
             ),
             _ChoiceTile(
               key: const ValueKey<String>('habit-dialog-schedule-every-days'),
-              label: '每隔 N 天',
+              label: l10n.dialogHabitEveryDays,
               selected: _kind == _ScheduleKind.everyNDays,
               onTap:
                   _submitting ? null : () => _selectKind(_ScheduleKind.everyNDays),
             ),
             _ChoiceTile(
               key: const ValueKey<String>('habit-dialog-schedule-every-weeks'),
-              label: '每隔 N 周',
+              label: l10n.dialogHabitEveryWeeks,
               selected: _kind == _ScheduleKind.everyNWeeks,
               onTap: _submitting
                   ? null
@@ -346,7 +350,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
             ),
             _ChoiceTile(
               key: const ValueKey<String>('habit-dialog-schedule-weekdays'),
-              label: '每周指定几天',
+              label: l10n.dialogHabitWeeklyPick,
               selected: _kind == _ScheduleKind.weekdays,
               onTap:
                   _submitting ? null : () => _selectKind(_ScheduleKind.weekdays),
@@ -360,6 +364,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
   /// 「每隔 N 天 / 每隔 N 周」的步进行。
   Widget _intervalRow() {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final bool weekly = _kind == _ScheduleKind.everyNWeeks;
     final int min = weekly ? 1 : 2;
     final int max = 7;
@@ -368,7 +373,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
       spacing: 6,
       runSpacing: 4,
       children: <Widget>[
-        Text('每隔', style: _bodyStyle(size: 11.5, color: t.faint)),
+        Text(l10n.dialogHabitEvery, style: _bodyStyle(size: 11.5, color: t.faint)),
         _StepButton(
           key: const ValueKey<String>('habit-dialog-interval-minus'),
           label: '−',
@@ -389,7 +394,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
               : () => setState(() => _interval++),
         ),
         Text(
-          weekly ? '周' : '天',
+          weekly ? l10n.commonUnitWeek : l10n.commonUnitDay,
           style: _bodyStyle(size: 11.5, color: t.faint),
         ),
       ],
@@ -398,12 +403,12 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
 
   /// 星期多选（1=周一 … 7=周日）。
   Widget _weekdayRow() {
-    const List<String> labels = <String>['一', '二', '三', '四', '五', '六', '日'];
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        const _SectionLabel('星期'),
+        _SectionLabel(l10n.dialogHabitWeekday),
         const SizedBox(height: 5),
         Wrap(
           key: const ValueKey<String>('habit-dialog-weekdays'),
@@ -413,7 +418,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
             for (var day = 1; day <= 7; day++)
               _ChoiceTile(
                 key: ValueKey<String>('habit-dialog-weekday-$day'),
-                label: '周${labels[day - 1]}',
+                label: l10n.domainWeekdayFull[day - 1],
                 selected: _weekdays.contains(day),
                 onTap: _submitting
                     ? null
@@ -431,12 +436,13 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
 
   /// 起始日期行：显示当前值，点开日期选择器。
   Widget _startDateRow() {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 8,
       runSpacing: 4,
       children: <Widget>[
-        const _SectionLabel('起始日期'),
+        _SectionLabel(l10n.dialogHabitStartDate),
         _ChoiceTile(
           key: const ValueKey<String>('habit-dialog-start-date'),
           label: _startDate,
@@ -450,6 +456,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
   /// 「每日至少完成 N 次」：勾上即写 `type='count'` + `target_count` + 单位「次」。
   Widget _targetCountRow() {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 6,
@@ -468,7 +475,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
                   : (bool? value) =>
                       setState(() => _countEnabled = value ?? false),
             ),
-            const _SectionLabel('每日至少完成'),
+            _SectionLabel(l10n.dialogHabitDailyMin),
           ],
         ),
         if (_countEnabled) ...<Widget>[
@@ -491,7 +498,7 @@ class _HabitQuickDialogState extends ConsumerState<HabitQuickDialog> {
                 ? null
                 : () => setState(() => _targetCount++),
           ),
-          Text('次', style: _bodyStyle(size: 11.5, color: t.faint)),
+          Text(l10n.commonUnitTimes, style: _bodyStyle(size: 11.5, color: t.faint)),
         ],
       ],
     );
@@ -513,6 +520,7 @@ class _HabitDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Dialog(
       key: const ValueKey<String>('habit-quick-dialog'),
       backgroundColor: t.paper,
@@ -531,7 +539,7 @@ class _HabitDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                '添加习惯',
+                l10n.dialogHabitCreate,
                 style: TextStyle(
                   fontFamily: AppFonts.display,
                   fontFamilyFallback: AppFonts.displayFallback,
@@ -543,7 +551,7 @@ class _HabitDialog extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                '定义排程与目标，间隔型习惯保存后自动进入未来 14 天日计划',
+                l10n.dialogHabitCreateSubtitle,
                 style: _bodyStyle(size: 11.5, color: t.faint),
               ),
               const SizedBox(height: 12),

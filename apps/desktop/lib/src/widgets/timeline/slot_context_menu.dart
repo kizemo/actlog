@@ -6,6 +6,7 @@ import 'package:core_db/core_db.dart' hide Todo, nowMillis;
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_tokens.dart';
 import 'slot_state.dart';
 
@@ -89,6 +90,7 @@ class SlotContextMenu extends StatelessWidget {
         .where((Todo t) => !slottedTodoIds.contains(t.id))
         .toList(growable: false);
     final ThemeTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
 
     return AlertDialog(
       backgroundColor: t.card,
@@ -96,7 +98,7 @@ class SlotContextMenu extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTokens.radius),
       ),
       title: Text(
-        '${formatMinute(startMinute)} 这一格',
+        l10n.timelineSlotMenuTitle(formatMinute(startMinute)),
         style: TextStyle(fontSize: 16, color: t.ink),
       ),
       content: SizedBox(
@@ -106,18 +108,18 @@ class SlotContextMenu extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              _GroupHeader('手填'),
+              _GroupHeader(l10n.timelineManualGroup),
               _ChoiceTile(
                 key: const ValueKey<String>('slot-menu-manual'),
                 icon: Icons.edit_outlined,
-                label: '手填一条',
+                label: l10n.timelineManualEntry,
                 onTap: () =>
                     Navigator.of(context).pop(const SlotMenuManual()),
               ),
               const SizedBox(height: AppTokens.gapCard),
-              _GroupHeader('待办'),
+              _GroupHeader(l10n.timelineTodoGroup),
               if (available.isEmpty)
-                const _EmptyLine('待办池里没有可入格的条目')
+                _EmptyLine(l10n.timelineTodoPoolEmpty)
               else
                 for (final Todo todo in available)
                   _ChoiceTile(
@@ -128,9 +130,9 @@ class SlotContextMenu extends StatelessWidget {
                         Navigator.of(context).pop(SlotMenuTodo(todo)),
                   ),
               const SizedBox(height: AppTokens.gapCard),
-              _GroupHeader('习惯'),
+              _GroupHeader(l10n.timelineHabitGroup),
               if (habits.isEmpty)
-                const _EmptyLine('这天没有排程内的习惯')
+                _EmptyLine(l10n.timelineHabitEmpty)
               else
                 for (final HabitData habit in habits)
                   _ChoiceTile(
@@ -148,7 +150,7 @@ class SlotContextMenu extends StatelessWidget {
         TextButton(
           key: const ValueKey<String>('slot-menu-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
       ],
     );

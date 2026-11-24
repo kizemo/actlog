@@ -85,7 +85,13 @@ class UnscheduledStrip extends ConsumerWidget {
     try {
       await ref.read(repositoriesProvider).planItem.setQuadrant(id, quadrant);
     } on Object catch (error) {
-      messenger?.showSnackBar(SnackBar(content: Text('写入失败：$error')));
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            ref.read(appLocalizationsProvider).timelineWriteFailed('$error'),
+          ),
+        ),
+      );
     }
   }
 

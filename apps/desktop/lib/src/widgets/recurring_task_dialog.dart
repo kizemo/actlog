@@ -1,10 +1,13 @@
 // `core_data` 与 `core_domain` 都导出 `weekdayLabel`：前者收日期字符串，
-// 后者收星期序号。本文件用的是**星期序号**那一版，故把前者隐藏掉。
+// 后者收星期序号。星期显示已改走 `l10n.domainWeekdayFull`（Task 63 批次二
+// W6），域层的 `weekdayLabel` / `WeekdayMask.label` 保留不动（R63-3）；
+// `hide` 一并保留，本文件不再引用其中任何一版。
 import 'package:core_data/core_data.dart' hide weekdayLabel;
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_recurring.dart';
 import '../theme/app_fonts.dart';
@@ -103,30 +106,31 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
     if (_submitting) {
       return;
     }
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final String title = _title.text.trim();
     if (title.isEmpty) {
-      setState(() => _error = '标题不能为空');
+      setState(() => _error = l10n.dialogTodoTitleRequired);
       return;
     }
     if (_mask == WeekdayMask.none) {
-      setState(() => _error = '至少要选一个星期');
+      setState(() => _error = l10n.dialogRecurringWeekdayRequired);
       return;
     }
     final int? parsedStart = parseMinuteOfDay(_time.text);
     if (parsedStart == null) {
-      setState(() => _error = '开始时刻要写成 HH:mm（例如 09:00）');
+      setState(() => _error = l10n.dialogRecurringTimeInvalid);
       return;
     }
     final int? duration = int.tryParse(_duration.text.trim());
     if (duration == null || duration <= 0 || duration > minutesPerDay) {
-      setState(() => _error = '时长必须是 1..1440 之间的整数（分钟）');
+      setState(() => _error = l10n.dialogRecurringDurationInvalid);
       return;
     }
 
     final String date = ref.read(selectedDateProvider);
     final DateTime? createdOn = parseIsoDate(date);
     if (createdOn == null) {
-      setState(() => _error = '选中日不是合法日历日：$date');
+      setState(() => _error = l10n.dialogRecurringBadDate(date));
       return;
     }
 
@@ -138,8 +142,9 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
     if (!WeekdayMask.includes(mask, createdOn.weekday)) {
       mask |= WeekdayMask.bitOf(createdOn.weekday);
       notices.add(
-        '已把 ${weekdayLabel(createdOn.weekday)} 并入重复日，'
-        '以便今天就出现在计划里',
+        l10n.dialogRecurringMergedWeekday(
+          l10n.domainWeekdayFull[createdOn.weekday - 1],
+        ),
       );
     }
     // 纠正 2 —— 时刻早于 06:00：网格只画 06:00–24:00，夹到下界。
@@ -147,8 +152,10 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
     if (startMinute < _timelineFirstMinute) {
       startMinute = _timelineFirstMinute;
       notices.add(
-        '开始时刻早于 ${formatMinuteOfDay(_timelineFirstMinute)}，'
-        '已改到 ${formatMinuteOfDay(startMinute)}（时间轴只显示 06:00 之后）',
+        l10n.dialogRecurringTimeClamped(
+          formatMinuteOfDay(_timelineFirstMinute),
+          formatMinuteOfDay(startMinute),
+        ),
       );
     }
 
@@ -203,6 +210,7 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return _RecurringDialog(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -214,15 +222,19 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
             autofocus: true,
             enabled: !_submitting,
             style: _bodyStyle(size: 13, color: t.ink),
-            decoration: _fieldDecoration('标题（必填）', t),
+            decoration: _fieldDecoration(l10n.dialogRecurringTitleLabel, t),
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 10),
           Row(
             children: <Widget>[
-              Text('星期', style: _bodyStyle(size: 12, color: t.meta)),
+              Text(
+                l10n.dialogHabitWeekday,
+                style: _bodyStyle(size: 12, color: t.meta),
+              ),
               const SizedBox(width: 8),
               Text(
+                // 域层 `WeekdayMask.label` 仍是硬编码中文，保留不动（R63-3）。
                 WeekdayMask.label(_mask),
                 style: _bodyStyle(size: 11.5, color: t.faint),
               ),
@@ -236,7 +248,7 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
               for (var weekday = 1; weekday <= 7; weekday++)
                 _WeekdayChip(
                   key: ValueKey<String>('recurring-dialog-weekday-$weekday'),
-                  label: weekdayLabel(weekday),
+                  label: l10n.domainWeekdayFull[weekday - 1],
                   selected: WeekdayMask.includes(_mask, weekday),
                   onTap: _submitting ? null : () => _toggleWeekday(weekday),
                 ),
@@ -251,7 +263,7 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
                   controller: _time,
                   enabled: !_submitting,
                   style: _bodyStyle(size: 13, color: t.ink),
-                  decoration: _fieldDecoration('开始 HH:mm（06:00 起）', t),
+                  decoration: _fieldDecoration(l10n.dialogRecurringStartLabel, t),
                   // 用户改过时刻 ⇒ 之前的改写提示作废，下一次提交重新判断。
                   onChanged: (_) {
                     if (_notice != null) {
@@ -269,7 +281,10 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
                   enabled: !_submitting,
                   keyboardType: TextInputType.number,
                   style: _bodyStyle(size: 13, color: t.ink),
-                  decoration: _fieldDecoration('时长（分钟）', t),
+                  decoration: _fieldDecoration(
+                    l10n.dialogRecurringDurationLabel,
+                    t,
+                  ),
                   onSubmitted: (_) => _submit(),
                 ),
               ),
@@ -281,7 +296,7 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
             controller: _note,
             enabled: !_submitting,
             style: _bodyStyle(size: 13, color: t.ink),
-            decoration: _fieldDecoration('备注（可选）', t),
+            decoration: _fieldDecoration(l10n.dialogRecurringNoteLabel, t),
             onSubmitted: (_) => _submit(),
           ),
           if (_error != null) ...<Widget>[
@@ -298,14 +313,16 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
             children: <Widget>[
               _DialogButton(
                 key: const ValueKey<String>('recurring-dialog-cancel'),
-                label: '取消',
+                label: l10n.cancel,
                 dense: true,
                 onPressed: _submitting ? null : () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: 8),
               _DialogButton(
                 key: const ValueKey<String>('recurring-dialog-save'),
-                label: _notice == null ? '保存' : '确认保存',
+                label: _notice == null
+                    ? l10n.commonSave
+                    : l10n.dialogRecurringSaveConfirm,
                 dense: true,
                 primary: true,
                 onPressed: _submitting ? null : _submit,
@@ -381,6 +398,7 @@ class _RecurringDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Dialog(
       key: const ValueKey<String>('recurring-task-dialog'),
       backgroundColor: t.paper,
@@ -399,7 +417,7 @@ class _RecurringDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                '添加循环任务',
+                l10n.dialogRecurringCreateTitle,
                 style: TextStyle(
                   fontFamily: AppFonts.display,
                   fontFamilyFallback: AppFonts.displayFallback,
@@ -411,7 +429,7 @@ class _RecurringDialog extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                '按星期与开始时刻，自动排进每一天的计划',
+                l10n.dialogRecurringCreateSubtitle,
                 style: _bodyStyle(size: 11.5, color: t.faint),
               ),
               const SizedBox(height: 12),

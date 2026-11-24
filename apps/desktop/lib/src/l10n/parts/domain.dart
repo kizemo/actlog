@@ -68,6 +68,52 @@ abstract class DomainL10n {
   String get priorityUnsetLabel;
 
   // ---------------------------------------------------------------------------
+  // 复盘三段 + 日循环四段 + 两个空态提示（Task 63 W3–W8 共用短词）
+  //
+  // 这几条在 2 个以上波次里同句同义出现（见 `reports\task63-recon-w3w8.md`
+  // §2.1），因此集中放在本 part，各波次直接复用，不再自建同形键。
+  //
+  // 注意：`结论 / 原因 / 下一步` 只是 **UI 段标题**。落库串的前缀仍然是
+  // `[结论]` / `[原因]` / `[下一步]`（`packages\core_domain\lib\src\result_note.dart:59`
+  // 的正则），那是历史数据格式，不随语言变化，也不得搬到本文件。
+  // ---------------------------------------------------------------------------
+
+  /// 复盘段标题：结论（chip 分组名）。
+  String get domainConclusionLabel;
+
+  /// 复盘段标题：原因（chip 分组名）。
+  String get domainReasonLabel;
+
+  /// 复盘段标题：下一步（chip 分组名）。
+  String get domainNextStepLabel;
+
+  /// 日循环段名：计划。
+  String get domainPlanLabel;
+
+  /// 日循环段名：回填。
+  String get domainBackfillLabel;
+
+  /// 日循环段名：复盘。
+  String get domainReviewLabel;
+
+  /// 日循环段名：心态。
+  String get domainMoodLabel;
+
+  /// 空态：所选日还没有当日日志。
+  String get domainDayLogNotStarted;
+
+  /// 空态：当天没有待打卡的习惯。
+  String get domainNoHabitsDueToday;
+
+  // ---------------------------------------------------------------------------
+  // 列表型（locale 敏感：星期全名）
+  // ---------------------------------------------------------------------------
+
+  /// 星期全名（周一起、周日末，共 7 条）。按 `1..7` 取 `[day - 1]`；
+  /// zh 自带「周」字，en 只有短名 ⇒ 调用点**不要**再拼前缀。
+  List<String> get domainWeekdayFull;
+
+  // ---------------------------------------------------------------------------
   // 带参数的插值文案
   // ---------------------------------------------------------------------------
 
@@ -121,6 +167,66 @@ mixin DomainZhL10n implements DomainL10n {
 
   @override
   String get priorityUnsetLabel => '未分级';
+
+  /// 旧代码：`widgets\outcome_composer.dart:170` 与
+  /// `widgets\timeline\plan_item_detail_dialog.dart:310` —— `'结论'`。
+  @override
+  String get domainConclusionLabel => '结论';
+
+  /// 旧代码：`widgets\outcome_composer.dart:182` 与
+  /// `widgets\timeline\plan_item_detail_dialog.dart:312` —— `'原因'`。
+  @override
+  String get domainReasonLabel => '原因';
+
+  /// 旧代码：`widgets\outcome_composer.dart:194` 与
+  /// `widgets\timeline\plan_item_detail_dialog.dart:314` —— `'下一步'`。
+  @override
+  String get domainNextStepLabel => '下一步';
+
+  /// 旧代码：`widgets\loop_progress_ring.dart:75`、
+  /// `widgets\timeline\slot_state.dart:287`、`pages\today_page.dart:922` 附近
+  /// —— `'计划'`。
+  @override
+  String get domainPlanLabel => '计划';
+
+  /// 旧代码：`widgets\loop_progress_ring.dart:83`、
+  /// `widgets\timeline\slot_state.dart:283` —— `'回填'`。
+  @override
+  String get domainBackfillLabel => '回填';
+
+  /// 旧代码：`widgets\loop_progress_ring.dart:91`、`pages\today_page.dart:923`
+  /// —— `'复盘'`。
+  @override
+  String get domainReviewLabel => '复盘';
+
+  /// 旧代码：`widgets\loop_progress_ring.dart:99`、`pages\today_page.dart:924`
+  /// —— `'心态'`。
+  @override
+  String get domainMoodLabel => '心态';
+
+  /// 旧代码：`pages\today_page.dart:98`、`widgets\review_section.dart:298`、
+  /// `widgets\mood_section.dart:128` —— `'当日日志尚未建立'`。
+  @override
+  String get domainDayLogNotStarted => '当日日志尚未建立';
+
+  /// 旧代码：`pages\today_page.dart:1259`、
+  /// `widgets\habit_checkin_strip.dart:37` —— `'今天没有待打卡的习惯'`。
+  @override
+  String get domainNoHabitsDueToday => '今天没有待打卡的习惯';
+
+  /// 旧代码：`pages\habits_page.dart:216` 的
+  /// `const labels = ['周一',…,'周日']`、`widgets\habit_quick_dialog.dart:416`
+  /// 的 `'周${labels[day - 1]}'` —— 两处都是这 7 条全名。
+  @override
+  List<String> get domainWeekdayFull => const <String>[
+    '周一',
+    '周二',
+    '周三',
+    '周四',
+    '周五',
+    '周六',
+    '周日',
+  ];
 
   /// 旧代码：`widgets\est_duration_text.dart:64` —— `'${minutes ~/ 60} 小时'`。
   @override
@@ -179,6 +285,44 @@ mixin DomainEnL10n implements DomainL10n {
 
   @override
   String get priorityUnsetLabel => 'Unclassified';
+
+  @override
+  String get domainConclusionLabel => 'Outcome';
+
+  @override
+  String get domainReasonLabel => 'Reason';
+
+  @override
+  String get domainNextStepLabel => 'Next step';
+
+  @override
+  String get domainPlanLabel => 'Plan';
+
+  @override
+  String get domainBackfillLabel => 'Backfill';
+
+  @override
+  String get domainReviewLabel => 'Review';
+
+  @override
+  String get domainMoodLabel => 'Mood';
+
+  @override
+  String get domainDayLogNotStarted => 'No log yet for this day';
+
+  @override
+  String get domainNoHabitsDueToday => 'No habits to check in today';
+
+  @override
+  List<String> get domainWeekdayFull => const <String>[
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
+  ];
 
   @override
   String hoursCount(int hours) => '$hours h';

@@ -102,8 +102,10 @@ final class _Harness {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          home: Scaffold(body: DayGrid(date: _today, minimal: minimal)),
+        child: l10nScope(
+          MaterialApp(
+            home: Scaffold(body: DayGrid(date: _today, minimal: minimal)),
+          ),
         ),
       ),
     );
@@ -180,34 +182,34 @@ void _expectMark(WidgetTester tester, Finder scope, PriorityMark expected) {
     of: scope,
     matching: find.byKey(expected.key),
   );
-  expect(hit, findsOneWidget, reason: '${expected.label} 标记没出现');
+  expect(hit, findsOneWidget, reason: '${expected.key} 标记没出现');
   final IconData? icon = expected.resolvedIcon;
   if (icon != null) {
     final Icon widget = tester.widget<Icon>(hit);
     expect(
       widget.icon,
       icon,
-      reason: '${expected.label} 的图标不对（`filled` 应选实心 / 空心）',
+      reason: '${expected.key} 的图标不对（`filled` 应选实心 / 空心）',
     );
     expect(
       widget.color,
       expected.color,
-      reason: '${expected.label} 的颜色 token 不对',
+      reason: '${expected.key} 的颜色 token 不对',
     );
     return;
   }
   final String glyph = expected.glyph!;
   final Text text = tester.widget<Text>(hit);
-  expect(text.data, glyph, reason: '${expected.label} 的字形不对');
+  expect(text.data, glyph, reason: '${expected.key} 的字形不对');
   expect(
     text.style?.fontWeight,
     expected.emphasis,
-    reason: '${expected.label} 的字重不对',
+    reason: '${expected.key} 的字重不对',
   );
   expect(
     text.style?.color,
     expected.color,
-    reason: '${expected.label} 的颜色 token 不对',
+    reason: '${expected.key} 的颜色 token 不对',
   );
 }
 
@@ -233,15 +235,17 @@ class _PickerHostState extends State<_PickerHost> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: PriorityMarkPicker(
-            value: _value,
-            onChanged: (Quadrant? next) {
-              widget.log.add(next);
-              setState(() => _value = next);
-            },
+    return l10nScope(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: PriorityMarkPicker(
+              value: _value,
+              onChanged: (Quadrant? next) {
+                widget.log.add(next);
+                setState(() => _value = next);
+              },
+            ),
           ),
         ),
       ),
@@ -263,9 +267,11 @@ void main() {
       for (final MapEntry<Quadrant, (PriorityMark, PriorityMark)> entry
           in expected.entries) {
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: Center(child: PriorityMarks(quadrant: entry.key)),
+          l10nScope(
+            MaterialApp(
+              home: Scaffold(
+                body: Center(child: PriorityMarks(quadrant: entry.key)),
+              ),
             ),
           ),
         );
@@ -291,8 +297,10 @@ void main() {
 
     testWidgets('未分级：不渲染任何标记、也不占空隙', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: Center(child: PriorityMarks(quadrant: null))),
+        l10nScope(
+          const MaterialApp(
+            home: Scaffold(body: Center(child: PriorityMarks(quadrant: null))),
+          ),
         ),
       );
 

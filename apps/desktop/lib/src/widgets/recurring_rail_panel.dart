@@ -4,6 +4,7 @@ import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_recurring.dart';
 import '../theme/app_fonts.dart';
@@ -51,6 +52,8 @@ class _RecurringRailPanelState extends ConsumerState<RecurringRailPanel> {
     if (_busy) {
       return;
     }
+    // `await` 之后不能再取 `context`（`mounted` 之外），故先把文案表读出来。
+    final AppLocalizations l10n = AppLocalizations.of(context);
     setState(() {
       _busy = true;
       _actionError = null;
@@ -61,7 +64,7 @@ class _RecurringRailPanelState extends ConsumerState<RecurringRailPanel> {
       ref.invalidate(recurringMaterializeProvider);
     } catch (error) {
       if (mounted) {
-        setState(() => _actionError = '规则操作失败：$error');
+        setState(() => _actionError = l10n.dialogRuleActionFailed('$error'));
       }
     } finally {
       if (mounted) {
@@ -97,12 +100,12 @@ class _RecurringRailPanelState extends ConsumerState<RecurringRailPanel> {
     }
     _confirming = true;
     bool confirmed = false;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     try {
       confirmed = await showConfirmDialog(
         context,
-        title: '删除循环任务',
-        message: '「${rule.title}」将从循环任务列表中移除，之后不再自动排入计划；'
-            '已经排入计划的条目会保留。',
+        title: l10n.dialogRecurringDeleteTitle,
+        message: l10n.dialogRecurringDeleteMessage(rule.title),
       );
     } finally {
       _confirming = false;
@@ -120,16 +123,18 @@ class _RecurringRailPanelState extends ConsumerState<RecurringRailPanel> {
     final AsyncValue<int> materialize = ref.watch(recurringMaterializeProvider);
     final AsyncValue<List<RecurringTaskData>> rules =
         ref.watch(recurringRulesProvider);
+    final AppLocalizations l10n = AppLocalizations.of(context);
     // 只取错误文本用于展示，**不**用 `whenOrNull` 把整段数据兜成空列表。
     final String? materializeError = materialize.whenOrNull(
-      error: (Object error, StackTrace _) => '自动排程失败：$error',
+      error: (Object error, StackTrace _) =>
+          l10n.dialogAutoScheduleFailed('$error'),
     );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        const _SectionTitle(text: '规则'),
+        _SectionTitle(text: l10n.dialogRecurringSection),
         ..._buildRules(rules),
         if (_actionError != null) ...<Widget>[
           const SizedBox(height: 2),
@@ -147,16 +152,17 @@ class _RecurringRailPanelState extends ConsumerState<RecurringRailPanel> {
 
   /// 规则段：三态渲染（读取中 / 错误原文 / 列表）。
   List<Widget> _buildRules(AsyncValue<List<RecurringTaskData>> rules) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return rules.when(
-      loading: () => <Widget>[_hint('读取规则…')],
+      loading: () => <Widget>[_hint(l10n.dialogRecurringLoading)],
       error: (Object error, StackTrace _) => <Widget>[
-        _RailError(text: '规则读取失败：$error'),
+        _RailError(text: l10n.dialogRecurringLoadFailed('$error')),
       ],
       data: (List<RecurringTaskData> rows) {
         if (rows.isEmpty) {
           return <Widget>[
-            _hint('还没有循环规则'),
-            _hint('点右上角 ＋ 添加一条', size: 11),
+            _hint(l10n.dialogRecurringNone),
+            _hint(l10n.dialogRecurringNoneHint, size: 11),
           ];
         }
         return <Widget>[
@@ -171,7 +177,7 @@ class _RecurringRailPanelState extends ConsumerState<RecurringRailPanel> {
           // 计数只反映**规则数**：旧文案「共 N 条 · 已自动排入计划」说的是
           // 今日实例，随「今日」段移除一并失效（需求 8）。
           _hint(
-            '共 ${rows.length} 条规则 · 命中日自动排入计划',
+            l10n.dialogRecurringCount(rows.length),
             size: 11,
             key: const ValueKey<String>('recurring-rules-count'),
           ),
@@ -233,10 +239,12 @@ class _RuleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeTokens tokens = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final bool active = rule.active == 1;
     // 空掩码在库层被 CHECK 与仓储挡住，这里再兜一次：显示「每日」而不是「未选」。
     final String weekdayText = rule.weekdayMask == WeekdayMask.none
-        ? '每日'
+        ? l10n.dialogRecurringDaily
+        // 域层 `WeekdayMask.label` 仍是硬编码中文，保留不动（R63-3）。
         : WeekdayMask.label(rule.weekdayMask);
     // 脏数据防御：`formatMinuteOfDay` 对越界值抛异常，别让一行坏数据把整块
     // 面板渲染搞挂（与 `materializeDate` 的脏数据防御同口径）。
@@ -264,8 +272,11 @@ class _RuleRow extends StatelessWidget {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  '$weekdayText · ${rule.durationMinutes} 分钟 · '
-                  '${active ? '启用中' : '已停用'}',
+                  l10n.dialogRecurringSummary(
+                    weekdayText,
+                    rule.durationMinutes,
+                    active ? l10n.dialogRuleActiveOn : l10n.dialogRuleActiveOff,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: _bodyStyle(tokens, size: 11, color: tokens.faint),
@@ -290,13 +301,13 @@ class _RuleRow extends StatelessWidget {
               const SizedBox(width: 6),
               _RuleAction(
                 key: ValueKey<String>('recurring-rule-active-${rule.id}'),
-                label: active ? '停用' : '启用',
+                label: active ? l10n.dialogRuleDisable : l10n.dialogRuleEnable,
                 onTap: busy ? null : onToggleActive,
               ),
               const SizedBox(width: 4),
               _RuleAction(
                 key: ValueKey<String>('recurring-rule-delete-${rule.id}'),
-                label: '删除',
+                label: l10n.commonDelete,
                 danger: true,
                 onTap: busy ? null : onArchive,
               ),

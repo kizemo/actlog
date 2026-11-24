@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_tokens.dart';
 import 'chip_row.dart';
 
@@ -133,6 +134,7 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
 
     if (!_note.parsed && !_restructured) {
       return Column(
@@ -151,11 +153,11 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
                   _restructured = true;
                   _note = const ResultNote();
                 }),
-                child: const Text('重新结构化'),
+                child: Text(l10n.dialogNoteRestructure),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).maybePop(),
-                child: const Text('取消'),
+                child: Text(l10n.cancel),
               ),
             ],
           ),
@@ -167,7 +169,7 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('结论', style: theme.textTheme.labelLarge),
+        Text(l10n.domainConclusionLabel, style: theme.textTheme.labelLarge),
         const SizedBox(height: 4),
         ChipRow(
           options: <ChipOption>[
@@ -179,7 +181,7 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
               _setSegment(ResultNoteLabel.outcome, next.isEmpty ? '' : next.first),
         ),
         const SizedBox(height: 10),
-        Text('原因', style: theme.textTheme.labelLarge),
+        Text(l10n.domainReasonLabel, style: theme.textTheme.labelLarge),
         const SizedBox(height: 4),
         ChipRow(
           options: <ChipOption>[
@@ -191,7 +193,7 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
               _setSegment(ResultNoteLabel.reason, next.isEmpty ? '' : next.first),
         ),
         const SizedBox(height: 10),
-        Text('下一步', style: theme.textTheme.labelLarge),
+        Text(l10n.domainNextStepLabel, style: theme.textTheme.labelLarge),
         const SizedBox(height: 4),
         ChipRow(
           options: <ChipOption>[
@@ -212,8 +214,8 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
           inputFormatters: <TextInputFormatter>[
             FilteringTextInputFormatter.deny(RegExp(r'[\[\]|]')),
           ],
-          decoration: const InputDecoration(
-            labelText: '下一步（自由文本，仅此处可打字）',
+          decoration: InputDecoration(
+            labelText: l10n.dialogNoteNextStepLabel,
             isDense: true,
           ),
           onChanged: _typeNextStep,
@@ -224,17 +226,17 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
           children: [
             TextButton(
               onPressed: () => Navigator.of(context).maybePop(),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             const SizedBox(width: 8),
             TextButton(
               onPressed: _canSubmit ? () => _submit(false) : null,
-              child: const Text('只存进展'),
+              child: Text(l10n.dialogNoteSaveProgressOnly),
             ),
             const SizedBox(width: 8),
             FilledButton(
               onPressed: _canSubmit ? () => _submit(true) : null,
-              child: const Text('完成'),
+              child: Text(l10n.dialogNoteDone),
             ),
           ],
         ),

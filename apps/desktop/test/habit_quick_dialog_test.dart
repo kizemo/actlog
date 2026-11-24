@@ -23,6 +23,8 @@ import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/density_profile.dart';
 import 'package:actlog/src/widgets/habit_quick_dialog.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定的「今天」：2026-11-09 是周一。
 const String _today = '2026-11-09';
 
@@ -58,23 +60,26 @@ final class _Harness {
   /// 挂一个只有入口按钮的极简页面：面板是 `showDialog` 挂上去的，与真机同路径。
   Future<void> mount(WidgetTester tester, {double textScale = 1}) async {
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          builder: (BuildContext context, Widget? child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(textScale)),
-            child: child ?? const SizedBox.shrink(),
-          ),
-          home: Scaffold(
-            body: Builder(
-              builder: (BuildContext context) => Center(
-                child: TextButton(
-                  key: _openKey,
-                  onPressed: () => showHabitQuickDialog(context),
-                  child: const Text('添加习惯'),
+      // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+      l10nScope(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            builder: (BuildContext context, Widget? child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(textScale)),
+              child: child ?? const SizedBox.shrink(),
+            ),
+            home: Scaffold(
+              body: Builder(
+                builder: (BuildContext context) => Center(
+                  child: TextButton(
+                    key: _openKey,
+                    onPressed: () => showHabitQuickDialog(context),
+                    child: const Text('添加习惯'),
+                  ),
                 ),
               ),
             ),

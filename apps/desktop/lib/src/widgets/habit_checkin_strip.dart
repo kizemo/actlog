@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:core_db/core_db.dart';
 import 'package:core_domain/core_domain.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
@@ -34,23 +35,22 @@ class HabitCheckinStrip extends ConsumerWidget {
   final void Function(String habitName)? onChecked;
 
   /// 所选日没有待打卡习惯时的占位文案。
-  static const String emptyLabel = '今天没有待打卡的习惯';
-
-  /// 习惯清单或打卡流尚未就绪时的提示文案。
-  static const String loadingLabel = '正在加载打卡状态…';
-
-  /// 任一异步数据加载失败时的提示文案。
-  static const String errorLabel = '打卡状态加载失败，请稍后重试';
+  ///
+  /// [兼容] 组件自身已改用 `l10n.domainNoHabitsDueToday`（zh 逐字相同）。
+  /// 这层 delegating getter 仅为 `test\today_page_selected_date_test.dart:207`
+  /// 等**不在本波次写集**的引用保留，清理归 R9。
+  static String get emptyLabel => AppLocalizations.zh.domainNoHabitsDueToday;
 
   /// 条头第一段（原型 `.dock-h` 第一段文案）。
-  static const String headTitle = '习惯打卡 · 吸底不滚动';
-
-  /// 条头第三段（原型 `.dock-h` 第三段文案）。
-  static const String headHint = '· 一点即打，跳过需理由';
+  ///
+  /// [兼容] 同上：组件已改用 `l10n.habitCheckinHeadTitle`，这层仅为
+  /// `test\ledger_dock_test.dart` 的三处引用保留。
+  static String get headTitle => AppLocalizations.zh.habitCheckinHeadTitle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = context.tokens;
+    final l10n = ref.watch(appLocalizationsProvider);
     // 两个 provider 都返回 AsyncValue：加载 / 空 / 错误是三种不同状态，
     // 不允许把加载态和错误态都渲染成空态（那是谎报）。
     final habitsAsync = ref.watch(habitsForTodayProvider);
@@ -63,15 +63,24 @@ class HabitCheckinStrip extends ConsumerWidget {
     }
 
     if (habitsAsync.hasError || checkinsAsync.hasError) {
-      return _dock(context, head: <Widget>[_statusText(context, errorLabel)]);
+      return _dock(
+        context,
+        head: <Widget>[_statusText(context, l10n.habitCheckinError)],
+      );
     }
     if (!habitsAsync.hasValue || !checkinsAsync.hasValue) {
-      return _dock(context, head: <Widget>[_statusText(context, loadingLabel)]);
+      return _dock(
+        context,
+        head: <Widget>[_statusText(context, l10n.habitCheckinLoading)],
+      );
     }
 
     final habits = habitsAsync.value!;
     if (habits.isEmpty) {
-      return _dock(context, head: <Widget>[_statusText(context, emptyLabel)]);
+      return _dock(
+        context,
+        head: <Widget>[_statusText(context, l10n.domainNoHabitsDueToday)],
+      );
     }
 
     final doneIds = <String>{
@@ -83,7 +92,7 @@ class HabitCheckinStrip extends ConsumerWidget {
     return _dock(
       context,
       head: <Widget>[
-        Text(headTitle, style: _headStyle(context)),
+        Text(l10n.habitCheckinHeadTitle, style: _headStyle(context)),
         Text(
           '$doneCount/${habits.length}',
           style: _headStyle(context).copyWith(
@@ -95,7 +104,7 @@ class HabitCheckinStrip extends ConsumerWidget {
             letterSpacing: 0,
           ),
         ),
-        Text(headHint, style: _headStyle(context)),
+        Text(l10n.habitCheckinHeadHint, style: _headStyle(context)),
       ],
       chips: <Widget>[
         for (final habit in habits)

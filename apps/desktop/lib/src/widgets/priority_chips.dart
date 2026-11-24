@@ -2,7 +2,17 @@ import 'package:core_data/core_data.dart';
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
 import '../theme/app_tokens.dart';
+
+/// 取当前 [AppLocalizations]；无 [L10nScope] 时回落中文档。
+///
+/// 选择器可能在裸 `MaterialApp`（测试）里被挂载，`L10nScope` 不存在时不能抛错，
+/// 因此走「有 scope 按 scope、无 scope 回 zh」口径（zh 态与迁移前逐字一致）。
+AppLocalizations _l10n(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+    AppLocalizations.zh;
 
 /// 把 `QuadrantStyle.colorHex` 解析成 [Color]。
 ///
@@ -72,8 +82,9 @@ class QuadrantPickerDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final AppLocalizations l10n = _l10n(context);
     return AlertDialog(
-      title: const Text('选择四象限'),
+      title: Text(l10n.priorityPickQuadrant),
       contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       content: SizedBox(
         width: 460,
@@ -113,11 +124,11 @@ class QuadrantPickerDialog extends StatelessWidget {
           onPressed: selected == null
               ? null
               : () => Navigator.of(context).pop(const QuadrantPick(null)),
-          child: const Text('清除'),
+          child: Text(l10n.commonClear),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
       ],
     );
@@ -232,8 +243,9 @@ class AbcPickerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = _l10n(context);
     return SimpleDialog(
-      title: const Text('选择 ABC 优先级'),
+      title: Text(l10n.priorityPickAbc),
       children: [
         for (final style in AbcStyle.all.values)
           SimpleDialogOption(
@@ -259,7 +271,7 @@ class AbcPickerDialog extends StatelessWidget {
           onPressed: selected == null
               ? null
               : () => Navigator.of(context).pop(const AbcPick(null)),
-          child: const Text('清除'),
+          child: Text(l10n.commonClear),
         ),
       ],
     );

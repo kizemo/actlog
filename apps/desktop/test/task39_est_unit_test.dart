@@ -17,11 +17,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` 只在 misc.dart 导出（3.5.0 起 flutter_riverpod.dart 不再带它）。
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/density_profile.dart';
 import 'package:actlog/src/widgets/est_duration_text.dart';
 import 'package:actlog/src/widgets/quick_todo_dialog.dart';
+
+import 'l10n_harness.dart';
 
 const String _today = '2026-11-09';
 const ValueKey<String> _openKey = ValueKey<String>('test-open-todo-dialog');
@@ -52,17 +55,20 @@ final class _Harness {
 
   Future<void> mount(WidgetTester tester) async {
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: Scaffold(
-            body: Builder(
-              builder: (BuildContext context) => Center(
-                child: TextButton(
-                  key: _openKey,
-                  onPressed: () => showQuickTodoDialog(context),
-                  child: const Text('手写一条'),
+      // Task 63 W6：面板文案改为运行时取 `t`，缺 `L10nScope` 会抛 `FlutterError`。
+      l10nScope(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: Scaffold(
+              body: Builder(
+                builder: (BuildContext context) => Center(
+                  child: TextButton(
+                    key: _openKey,
+                    onPressed: () => showQuickTodoDialog(context),
+                    child: const Text('手写一条'),
+                  ),
                 ),
               ),
             ),
@@ -123,20 +129,37 @@ void main() {
     };
     samples.forEach((int minutes, String expected) {
       test('$minutes → $expected', () {
-        expect(formatEstDuration(minutes), expected);
+        expect(formatEstDuration(minutes, AppLocalizations.zh), expected);
       });
     });
 
     test('边界：1 / 59 / 60 / 61', () {
-      expect(formatEstDuration(1), '1 分钟');
-      expect(formatEstDuration(59), '59 分钟');
-      expect(formatEstDuration(60), '1 小时');
-      expect(formatEstDuration(61), '61 分钟');
+      expect(formatEstDuration(1, AppLocalizations.zh), '1 分钟');
+      expect(formatEstDuration(59, AppLocalizations.zh), '59 分钟');
+      expect(formatEstDuration(60, AppLocalizations.zh), '1 小时');
+      expect(formatEstDuration(61, AppLocalizations.zh), '61 分钟');
     });
 
     test('非正数原样按分钟给，不落进「0 月」', () {
-      expect(formatEstDuration(0), '0 分钟');
-      expect(formatEstDuration(-5), '-5 分钟');
+      expect(formatEstDuration(0, AppLocalizations.zh), '0 分钟');
+      expect(formatEstDuration(-5, AppLocalizations.zh), '-5 分钟');
+    });
+  });
+
+  // Task 63 批次二 W6：单位名改为随语言给；阶梯口径与 zh 完全一致。
+  group('formatEstDuration · 英文态单位名', () {
+    test('逐档换成英文单位，阶梯规则不变', () {
+      expect(formatEstDuration(90, AppLocalizations.en), '90 min');
+      expect(formatEstDuration(120, AppLocalizations.en), '2 hr');
+      expect(formatEstDuration(1440, AppLocalizations.en), '1 day');
+      expect(formatEstDuration(10080, AppLocalizations.en), '1 wk');
+      expect(formatEstDuration(43200, AppLocalizations.en), '1 mo');
+      expect(formatEstDuration(45, AppLocalizations.en), '45 min');
+    });
+
+    test('非正数照样按分钟给', () {
+      expect(formatEstDuration(0, AppLocalizations.en), '0 min');
+      expect(formatEstDuration(-5, AppLocalizations.en), '-5 min');
     });
   });
 

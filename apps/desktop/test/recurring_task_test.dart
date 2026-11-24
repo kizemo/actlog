@@ -24,6 +24,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'l10n_harness.dart';
+
 /// 2026-11-11 是**周三**（物化命中与否全靠这一点）。
 const String _date = '2026-11-11';
 const int _wednesday = 3;
@@ -55,11 +57,14 @@ final class _Harness {
 
   Future<void> mount(WidgetTester tester, Widget child) async {
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: Scaffold(body: SingleChildScrollView(child: child)),
+      // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+      l10nScope(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: Scaffold(body: SingleChildScrollView(child: child)),
+          ),
         ),
       ),
     );

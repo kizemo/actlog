@@ -24,6 +24,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/widgets/timeline/slot_hover_card.dart';
 
+import 'l10n_harness.dart';
+
 /// 条目与卡片的共同标题（chip 与卡片各渲染一次，故只能按 key 定位）。
 const String _title = '写交付报告';
 
@@ -100,7 +102,14 @@ Future<void> _pumpCard(
   }
 
   await tester.pumpWidget(
-    MaterialApp(home: Scaffold(body: Align(alignment: Alignment.topLeft, child: body))),
+    // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+    l10nScope(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(alignment: Alignment.topLeft, child: body),
+        ),
+      ),
+    ),
   );
   await tester.pump();
 }

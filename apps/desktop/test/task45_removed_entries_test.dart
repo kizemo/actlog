@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` 只在 misc.dart 导出（3.5.0 起 flutter_riverpod.dart 不再带它）。
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/pages/today_page.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
@@ -119,6 +120,55 @@ void main() {
       findsNothing,
       reason: '任何形态的「从待办池捞」文案都不许回到今日页',
     );
+
+    await _flushTimers(tester);
+  });
+
+  // ------------------------------------------------ Task 63 · W8：en 态补齐
+  // 只**追加** en 态字面量断言 + 中文阴性对照；上面那条 zh 用例一字未改。
+  // 锚点真值取自 `l10n/parts/shell.dart` 的 `shellNavToday`（en 为 `Journal`）。
+  testWidgets('en 态今日页同样没有「从待办池捞」入口，方格与手写条仍在',
+      (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final _Harness harness = _Harness.create();
+    // 与 `_Harness.mount` 同构，只是显式指定 en：不动既有 helper，避免影响 zh 用例。
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: harness.container,
+        child: l10nScope(
+          const MaterialApp(
+            home: LedgerShell(content: TodayPage(), currentNavId: 'today'),
+          ),
+          language: AppLanguage.en,
+        ),
+      ),
+    );
+    await _settle(tester);
+
+    // ① 先证 en 态真的渲染了：左导航「今日」条目换成 `Journal`。
+    expect(
+      find.text('Journal'),
+      findsOneWidget,
+      reason: 'en 态外壳没渲染出来，下面的 findsNothing 就是空过',
+    );
+    expect(find.text('日志'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('day-grid')),
+      findsOneWidget,
+      reason: '方格时间轴在，说明 en 态 TodayPage 正文确实渲染了',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('add-plan-datetime-button')),
+      findsOneWidget,
+    );
+
+    // ② 需求 4 在 en 态同样成立：key / 精确文案 / 含该词的任何文案都命中 0。
+    expect(
+      find.byKey(const ValueKey<String>('plan-pool-entry')),
+      findsNothing,
+    );
+    expect(find.text('＋ 从待办池捞'), findsNothing);
+    expect(find.textContaining('从待办池捞'), findsNothing);
 
     await _flushTimers(tester);
   });

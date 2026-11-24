@@ -91,13 +91,15 @@ final class _Harness {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: Scaffold(
-            body: Builder(
-              builder: (BuildContext context) => TextButton(
-                onPressed: () => showPullFromPoolDialog(context),
-                child: const Text('open-pull'),
+        child: l10nScope(
+          MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: Scaffold(
+              body: Builder(
+                builder: (BuildContext context) => TextButton(
+                  onPressed: () => showPullFromPoolDialog(context),
+                  child: const Text('open-pull'),
+                ),
               ),
             ),
           ),

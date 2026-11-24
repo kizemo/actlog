@@ -2,6 +2,7 @@ import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
@@ -68,6 +69,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final pool = ref.watch(todoPoolProvider);
     final target = ref.watch(todoPullTargetDateProvider);
     // 「已填时间」是派生事实：加载中 / 出错就当没有徽标，绝不编造。
@@ -75,8 +77,8 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
         ref.watch(slottedTodosProvider).asData?.value ??
             const <String, SlottedTodo>{};
     final countLabel = pool.maybeWhen(
-      data: (rows) => '${rows.length} 条待捞',
-      orElse: () => '加载中',
+      data: (rows) => l10n.dialogPoolAvailable(rows.length),
+      orElse: () => l10n.dialogPoolLoading,
     );
     final error = _error;
 
@@ -86,7 +88,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
       children: <Widget>[
         const DateBar(),
         const SizedBox(height: AppTokens.gapCard),
-        _PoolHead(subtitle: '$countLabel · 捞入 $target'),
+        _PoolHead(subtitle: l10n.dialogPoolHead(countLabel, target)),
         const SizedBox(height: AppTokens.gapCard),
         _buildCreateForm(),
         if (error != null) ...<Widget>[
@@ -123,6 +125,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
   /// 变化，`Row` 会直接溢出，`Wrap` 只会换行。
   Widget _buildCreateForm() {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -140,7 +143,10 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
             textInputAction: TextInputAction.done,
             style: _bodyStyle(tokens: t, size: 13, color: t.ink),
             onSubmitted: (_) => _submit(),
-            decoration: _fieldDecoration(tokens: t, hint: '待办标题（必填）'),
+            decoration: _fieldDecoration(
+              tokens: t,
+              hint: l10n.dialogPoolTitleHint,
+            ),
           ),
           const SizedBox(height: 8),
           Row(
@@ -155,7 +161,10 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
                     decimal: true,
                   ),
                   style: _bodyStyle(tokens: t, size: 13, color: t.ink),
-                  decoration: _fieldDecoration(tokens: t, hint: '例如 25'),
+                  decoration: _fieldDecoration(
+                    tokens: t,
+                    hint: l10n.dialogTodoEstHint,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -163,6 +172,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
               Expanded(
                 child: EstUnitPicker(
                   keyPrefix: 'todo-pool',
+                  t: l10n,
                   selected: _estUnit,
                   enabled: !_creating,
                   onChanged: (EstUnit unit) => setState(() => _estUnit = unit),
@@ -182,7 +192,10 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
                   key: const ValueKey<String>('todo-new-start'),
                   controller: _start,
                   style: _bodyStyle(tokens: t, size: 13, color: t.ink),
-                  decoration: _fieldDecoration(tokens: t, hint: '起始 09:15'),
+                  decoration: _fieldDecoration(
+                    tokens: t,
+                    hint: l10n.dialogPoolStartHint,
+                  ),
                 ),
               ),
               SizedBox(
@@ -191,7 +204,10 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
                   key: const ValueKey<String>('todo-new-due'),
                   controller: _due,
                   style: _bodyStyle(tokens: t, size: 13, color: t.ink),
-                  decoration: _fieldDecoration(tokens: t, hint: '到期 yyyy-MM-dd'),
+                  decoration: _fieldDecoration(
+                    tokens: t,
+                    hint: l10n.dialogPoolDueHint,
+                  ),
                 ),
               ),
               ChipRow(
@@ -215,7 +231,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
               ),
               _PoolButton(
                 key: const ValueKey<String>('todo-new-submit'),
-                label: '＋ 新建待办',
+                label: l10n.dialogPoolNew,
                 primary: true,
                 onPressed: _creating ? null : _submit,
               ),
@@ -229,6 +245,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
   /// 待办表格（表头 + 行）。列宽固定，标题列吃掉剩余宽度。
   Widget _buildTable(List<Todo> rows, Map<String, SlottedTodo> slotted) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: t.card,
@@ -247,12 +264,12 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
             ),
             child: Row(
               children: <Widget>[
-                Expanded(child: _headCell('标题')),
-                _fixed(_wPriority, _headCell('优先级')),
-                _fixed(_wEst, _headCell('预估')),
-                _fixed(_wQuadrant, _headCell('象限')),
-                _fixed(_wDue, _headCell('到期')),
-                _fixed(_wAction, _headCell('动作')),
+                Expanded(child: _headCell(l10n.commonTitle)),
+                _fixed(_wPriority, _headCell(l10n.dialogPoolColPriority)),
+                _fixed(_wEst, _headCell(l10n.dialogPoolColEst)),
+                _fixed(_wQuadrant, _headCell(l10n.dialogPoolColQuadrant)),
+                _fixed(_wDue, _headCell(l10n.dialogPoolColDue)),
+                _fixed(_wAction, _headCell(l10n.dialogPoolColAction)),
               ],
             ),
           ),
@@ -263,7 +280,9 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
               // 只读徽标，放在标题单元格内 ⇒ 表头仍是严格五列。
               slottedLabel: slotted[rows[i].id] == null
                   ? null
-                  : '已排期 ${formatMinute(slotted[rows[i].id]!.startMinute)}',
+                  : l10n.dialogPoolScheduled(
+                      formatMinute(slotted[rows[i].id]!.startMinute),
+                    ),
               last: i == rows.length - 1,
               pulling: _pullingId == rows[i].id,
               planning: _planningId == rows[i].id,
@@ -286,9 +305,10 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
 
   /// 新建一条待办。
   Future<void> _submit() async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final title = _title.text.trim();
     if (title.isEmpty) {
-      setState(() => _error = '标题不能为空');
+      setState(() => _error = l10n.dialogTodoTitleRequired);
       return;
     }
 
@@ -298,7 +318,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
     if (estText.isNotEmpty) {
       final amount = double.tryParse(estText);
       if (amount == null || amount <= 0) {
-        setState(() => _error = '预估时间要填正数，或留空');
+        setState(() => _error = l10n.dialogTodoEstInvalid);
         return;
       }
       // 四舍五入到 0 视为未填（例如 0.001 分钟），存 NULL。
@@ -314,7 +334,7 @@ class _TodoPoolPageState extends ConsumerState<TodoPoolPage> {
     if (startText.isNotEmpty) {
       final int? parsed = _parseMinute(startText);
       if (parsed == null) {
-        setState(() => _error = '起始时间要填 HH:mm，或留空');
+        setState(() => _error = l10n.dialogPoolStartInvalid);
         return;
       }
       // 15 分钟吸附：`planned_start` 永远落在格线上。
@@ -456,12 +476,13 @@ class _PoolHead extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          '待办池',
+          l10n.dialogPoolTitle,
           style: TextStyle(
             fontFamily: AppFonts.display,
             fontFamilyFallback: AppFonts.displayFallback,
@@ -504,6 +525,7 @@ class _TodoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -542,7 +564,7 @@ class _TodoRow extends StatelessWidget {
               // 库里只存分钟数；显示侧统一走确定性阶梯（90 分钟 / 2 小时 / 1 日…）。
               todo.estMinutes == null
                   ? '—'
-                  : formatEstDuration(todo.estMinutes!),
+                  : formatEstDuration(todo.estMinutes!, l10n),
               style: _monoStyle(tokens: t, size: 12, color: t.meta),
             ),
           ),
@@ -569,13 +591,13 @@ class _TodoRow extends StatelessWidget {
                 children: <Widget>[
                   _PoolButton(
                     key: ValueKey<String>('todo-pull-${todo.id}'),
-                    label: '捞入',
+                    label: l10n.dialogTodoPull,
                     dense: true,
                     onPressed: pulling ? null : onPull,
                   ),
                   _PoolButton(
                     key: ValueKey<String>('todo-plan-${todo.id}'),
-                    label: '加入主页计划',
+                    label: l10n.dialogPoolAddToToday,
                     dense: true,
                     onPressed: planning ? null : onPlan,
                   ),
@@ -596,6 +618,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
@@ -605,7 +628,7 @@ class _EmptyState extends StatelessWidget {
         border: Border.all(color: t.hairSoft, width: 1),
       ),
       child: Text(
-        '待办池是空的：先在上面新建一条，再捞到选中日。',
+        l10n.dialogPoolEmptyLong,
         style: _bodyStyle(tokens: t, size: 12.5, color: t.faint),
       ),
     );

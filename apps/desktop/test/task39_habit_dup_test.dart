@@ -35,6 +35,8 @@ import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/density_profile.dart';
 import 'package:actlog/src/widgets/habit_quick_dialog.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 const ValueKey<String> _openKey = ValueKey<String>('test-open-habit-dialog');
 
@@ -64,17 +66,20 @@ final class _Harness {
 
   Future<void> mount(WidgetTester tester) async {
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: Scaffold(
-            body: Builder(
-              builder: (BuildContext context) => Center(
-                child: TextButton(
-                  key: _openKey,
-                  onPressed: () => showHabitQuickDialog(context),
-                  child: const Text('添加习惯'),
+      // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+      l10nScope(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: Scaffold(
+              body: Builder(
+                builder: (BuildContext context) => Center(
+                  child: TextButton(
+                    key: _openKey,
+                    onPressed: () => showHabitQuickDialog(context),
+                    child: const Text('添加习惯'),
+                  ),
                 ),
               ),
             ),

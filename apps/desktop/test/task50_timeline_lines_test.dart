@@ -33,6 +33,8 @@ import 'package:actlog/src/widgets/timeline/slot_layout.dart';
 import 'package:actlog/src/widgets/timeline/slot_state.dart';
 import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定「今天」，与被测日期同值：本文件只关心当天排期，不构造回填 / 未来。
 const String _today = '2026-11-09';
 
@@ -82,9 +84,12 @@ final class _Harness {
 
   Future<void> mount(WidgetTester tester, String date) {
     return tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(home: Scaffold(body: DayGrid(date: date))),
+      // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+      l10nScope(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(home: Scaffold(body: DayGrid(date: date))),
+        ),
       ),
     );
   }

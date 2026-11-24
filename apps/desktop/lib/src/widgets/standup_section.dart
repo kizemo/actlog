@@ -1,7 +1,10 @@
 import 'package:core_data/core_data.dart';
+import 'package:core_domain/core_domain.dart' show Quadrant;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
+import '../providers.dart';
 import '../providers_p1.dart';
 import 'priority_chips.dart';
 import 'section_card.dart';
@@ -17,12 +20,13 @@ class StandupSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = ref.watch(appLocalizationsProvider);
     final brief = ref.watch(standupBriefProvider);
 
     return SectionCard(
       icon: Icons.groups_outlined,
-      title: '站会',
-      subtitle: '昨天做成了什么 · 今天最重要的事 · 卡在哪',
+      title: l10n.todayStandupTitle,
+      subtitle: l10n.todayStandupSubtitle,
       child: brief.when(
         loading: () => const LinearProgressIndicator(),
         error: (error, stack) => Text(
@@ -32,7 +36,7 @@ class StandupSection extends ConsumerWidget {
         data: (data) {
           if (data.isEmpty) {
             return Text(
-              '三段都还没有内容 —— 先给今天加几条计划，或者去补昨天的记录。',
+              l10n.todayStandupEmpty,
               style: theme.textTheme.bodySmall,
             );
           }
@@ -40,24 +44,27 @@ class StandupSection extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _Block(
-                label: '昨日亮点',
+                l10n: l10n,
+                label: l10n.todayStandupYesterday,
                 icon: Icons.emoji_events_outlined,
                 entries: data.yesterdayHighlights,
-                emptyHint: '昨天没有已完成的条目',
+                emptyHint: l10n.todayStandupYesterdayEmpty,
               ),
               const SizedBox(height: 10),
               _Block(
-                label: '今日优先',
+                l10n: l10n,
+                label: l10n.todayStandupToday,
                 icon: Icons.playlist_add_check,
                 entries: data.todayPriorities,
-                emptyHint: '今天还没有待办条目',
+                emptyHint: l10n.todayStandupTodayEmpty,
               ),
               const SizedBox(height: 10),
               _Block(
-                label: '阻塞项',
+                l10n: l10n,
+                label: l10n.todayStandupBlockers,
                 icon: Icons.report_problem_outlined,
                 entries: data.blockers,
-                emptyHint: '没有检测到阻塞 — 保持住',
+                emptyHint: l10n.todayStandupBlockersEmpty,
               ),
             ],
           );
@@ -69,12 +76,14 @@ class StandupSection extends ConsumerWidget {
 
 class _Block extends StatelessWidget {
   const _Block({
+    required this.l10n,
     required this.label,
     required this.icon,
     required this.entries,
     required this.emptyHint,
   });
 
+  final AppLocalizations l10n;
   final String label;
   final IconData icon;
   final List<StandupEntry> entries;
@@ -91,7 +100,7 @@ class _Block extends StatelessWidget {
             Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(width: 4),
             Text(
-              '$label（${entries.length}）',
+              l10n.todayStandupSectionCount(label, entries.length),
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -146,7 +155,7 @@ class _Block extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(left: 6),
                       child: _MiniTag(
-                        text: _tagOf(entry),
+                        text: _tagOf(entry, l10n),
                         color: colorFromHex(
                           QuadrantStyle.of(entry.quadrant).colorHex,
                           fallback: theme.colorScheme.primary,
@@ -160,9 +169,17 @@ class _Block extends StatelessWidget {
     );
   }
 
-  static String _tagOf(StandupEntry entry) {
-    if (entry.quadrant != null) {
-      return QuadrantStyle.of(entry.quadrant).shortLabel;
+  /// 行尾小标签：象限走 l10n 短名（`domain-quadrant-q{1..4}-short-label`），
+  /// ABC 分级暂沿用包层文案（R63-12 已裁决接受，W9 复核）。
+  static String _tagOf(StandupEntry entry, AppLocalizations l10n) {
+    final Quadrant? quadrant = entry.quadrant;
+    if (quadrant != null) {
+      return switch (quadrant) {
+        Quadrant.q1 => l10n.quadrantQ1ShortLabel,
+        Quadrant.q2 => l10n.quadrantQ2ShortLabel,
+        Quadrant.q3 => l10n.quadrantQ3ShortLabel,
+        Quadrant.q4 => l10n.quadrantQ4ShortLabel,
+      };
     }
     final abc = entry.priorityAbc;
     return abc == null ? '' : AbcStyle.of(abc).label;

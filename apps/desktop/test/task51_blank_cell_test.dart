@@ -34,6 +34,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定「今天」，与被测日期同值。
 const String _today = '2026-11-09';
 
@@ -81,7 +83,9 @@ final class _Harness {
         key: boundaryKey,
         child: UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(home: Scaffold(body: DayGrid(date: date))),
+          child: l10nScope(
+            MaterialApp(home: Scaffold(body: DayGrid(date: date))),
+          ),
         ),
       ),
     );

@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
 
@@ -29,7 +30,8 @@ enum EstUnit {
 
   const EstUnit(this.label, this.minutes);
 
-  /// 中文单位名（也是选择器上的文案）。
+  /// 中文单位名。**只作兼容读取**（旧测试引用了它），界面文案一律走
+  /// [AppLocalizations] 的 `dialogEstUnit*`（Task 63 批次二 W6）。
   final String label;
 
   /// 一个单位折合多少分钟。
@@ -43,27 +45,29 @@ int? estMinutesOf(double amount, EstUnit unit) {
   return raw > 0 ? raw : null;
 }
 
-/// 分钟数 ⇒ 中文时长，按确定性阶梯收紧到最大可用单位。
+/// 分钟数 ⇒ 时长文案，按确定性阶梯收紧到最大可用单位。
 ///
 /// 例：120 → `2 小时`、1440 → `1 日`、45 → `45 分钟`。
 /// 非正数原样按分钟给（`0 分钟`），避免落进 `0 % 43200 == 0` 的分支。
-String formatEstDuration(int minutes) {
+///
+/// [t] 必填（Task 63 批次二 W6）：单位名随语言变化，不再写死中文。
+String formatEstDuration(int minutes, AppLocalizations t) {
   if (minutes <= 0) {
-    return '$minutes 分钟';
+    return '$minutes ${t.dialogEstUnitMinute}';
   }
   if (minutes % EstUnit.month.minutes == 0) {
-    return '${minutes ~/ EstUnit.month.minutes} 月';
+    return '${minutes ~/ EstUnit.month.minutes} ${t.dialogEstUnitMonth}';
   }
   if (minutes % EstUnit.week.minutes == 0) {
-    return '${minutes ~/ EstUnit.week.minutes} 周';
+    return '${minutes ~/ EstUnit.week.minutes} ${t.dialogEstUnitWeek}';
   }
   if (minutes % EstUnit.day.minutes == 0) {
-    return '${minutes ~/ EstUnit.day.minutes} 日';
+    return '${minutes ~/ EstUnit.day.minutes} ${t.dialogEstUnitDay}';
   }
   if (minutes % EstUnit.hour.minutes == 0) {
-    return '${minutes ~/ EstUnit.hour.minutes} 小时';
+    return '${minutes ~/ EstUnit.hour.minutes} ${t.dialogEstUnitHour}';
   }
-  return '$minutes 分钟';
+  return '$minutes ${t.dialogEstUnitMinute}';
 }
 
 /// 预估时间的单位选择器：五个固定档，选中 `ink` 反白 / 未选 `card` + `hair-strong`。
@@ -80,12 +84,16 @@ class EstUnitPicker extends StatelessWidget {
     required this.keyPrefix,
     required this.selected,
     required this.onChanged,
+    required this.t,
     this.enabled = true,
     super.key,
   });
 
   /// 挂载点前缀，决定 chip 的 `ValueKey`（见类注释）。
   final String keyPrefix;
+
+  /// 当前语言的文案表（单位名随语言变化）。
+  final AppLocalizations t;
 
   /// 当前选中的单位。
   final EstUnit selected;
@@ -105,7 +113,7 @@ class EstUnitPicker extends StatelessWidget {
         for (final EstUnit unit in EstUnit.values)
           _EstUnitChip(
             key: ValueKey<String>('$keyPrefix-est-unit-${unit.name}'),
-            label: unit.label,
+            label: _estUnitLabel(unit, t),
             selected: unit == selected,
             onTap: enabled ? () => onChanged(unit) : null,
           ),
@@ -113,6 +121,15 @@ class EstUnitPicker extends StatelessWidget {
     );
   }
 }
+
+/// 单位 ⇒ 当前语言的单位名（[EstUnit.label] 是中文兼容字段，不用于显示）。
+String _estUnitLabel(EstUnit unit, AppLocalizations t) => switch (unit) {
+  EstUnit.minute => t.dialogEstUnitMinute,
+  EstUnit.hour => t.dialogEstUnitHour,
+  EstUnit.day => t.dialogEstUnitDay,
+  EstUnit.week => t.dialogEstUnitWeek,
+  EstUnit.month => t.dialogEstUnitMonth,
+};
 
 /// 单位芯片：选中态 `ink` 反白，未选中 `card` 底 + `hair-strong` 边。
 class _EstUnitChip extends StatelessWidget {

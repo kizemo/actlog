@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_tokens.dart';
 import 'slot_state.dart';
 
@@ -97,6 +98,9 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
   @override
   Widget build(BuildContext context) {
     final ThemeTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String startLabel = l10n.timelineStartLabel;
+    final String endLabel = l10n.timelineEndLabel;
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.escape): () =>
@@ -110,7 +114,7 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
           borderRadius: BorderRadius.circular(AppTokens.radius),
         ),
         title: Text(
-          '${widget.date} · 起止',
+          l10n.timelineRangeTitle(widget.date),
           style: TextStyle(fontSize: 16, color: t.ink),
         ),
         content: Column(
@@ -118,7 +122,7 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _StepperRow(
-              label: '开始',
+              label: startLabel,
               fieldKey: const ValueKey<String>('slot-range-start'),
               value: _start,
               onMinus: () => _bumpStart(-kSlotMinutes),
@@ -126,7 +130,7 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
             ),
             const SizedBox(height: AppTokens.gapCard),
             _StepperRow(
-              label: '结束',
+              label: endLabel,
               fieldKey: const ValueKey<String>('slot-range-end'),
               value: _end,
               onMinus: () => _bumpEnd(-kSlotMinutes),
@@ -134,7 +138,7 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
             ),
             const SizedBox(height: AppTokens.gapCard),
             Text(
-              '共 ${_end - _start} 分钟',
+              l10n.timelineTotalMinutes(_end - _start),
               style: TextStyle(fontSize: 12.5, color: t.meta),
             ),
           ],
@@ -143,12 +147,12 @@ class _SlotRangeDialogState extends State<SlotRangeDialog> {
           TextButton(
             key: const ValueKey<String>('slot-range-cancel'),
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             key: const ValueKey<String>('slot-range-confirm'),
             onPressed: _confirm,
-            child: const Text('确认'),
+            child: Text(l10n.timelineConfirmAction),
           ),
         ],
       ),
@@ -174,6 +178,7 @@ class _StepperRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -187,7 +192,7 @@ class _StepperRow extends StatelessWidget {
         IconButton(
           onPressed: onMinus,
           icon: const Icon(Icons.remove, size: 16),
-          tooltip: '$label 减一格',
+          tooltip: l10n.timelineStepDown(label),
         ),
         SizedBox(
           width: 64,
@@ -205,7 +210,7 @@ class _StepperRow extends StatelessWidget {
         IconButton(
           onPressed: onPlus,
           icon: const Icon(Icons.add, size: 16),
-          tooltip: '$label 加一格',
+          tooltip: l10n.timelineStepUp(label),
         ),
       ],
     );

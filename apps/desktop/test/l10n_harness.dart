@@ -4,8 +4,8 @@
 // 为什么这些放在 test\ 而不是 lib\：它只为测试服务，进 lib 就是又造一层生产代码
 // 里的转发（本项目明令不要 `AppStrings.xxx => t.xxx` 那种壳）。
 //
-// `l10nAccessors` 是**测试数据**：把 170 条 getter 一条一条列成「键 → 取值闭包」
-// （列表型 3 条在 `l10nListAccessors`）。
+// `l10nAccessors` 是**测试数据**：把 386 条 getter 一条一条列成「键 → 取值闭包」
+// （列表型 4 条在 `l10nListAccessors`）。
 // 有了它，测试才能不看 getter 名地遍历全部文案（校验非空、校验中英不同、校验
 // 键数与条数一致）。新增 getter 时两侧都要加一行 —— 少了就会在
 // `l10n_base_test.dart` 的「条数一致」用例上红。
@@ -24,7 +24,7 @@ import 'package:actlog/src/l10n/l10n_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 170 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
+/// 386 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
 final Map<String, String Function(AppLocalizations)> l10nAccessors =
     <String, String Function(AppLocalizations)>{
   // 设置页 35 条
@@ -252,9 +252,311 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.calendarTomorrow: (AppLocalizations t) => t.calendarTomorrow,
   L10nKeys.calendarThisWeek: (AppLocalizations t) => t.calendarThisWeek,
   L10nKeys.calendarNoDeadline: (AppLocalizations t) => t.calendarNoDeadline,
+  // common 16 条（Task 63 轮二）
+  L10nKeys.commonTitle: (AppLocalizations t) => t.commonTitle,
+  L10nKeys.commonSave: (AppLocalizations t) => t.commonSave,
+  L10nKeys.commonDelete: (AppLocalizations t) => t.commonDelete,
+  L10nKeys.commonClose: (AppLocalizations t) => t.commonClose,
+  L10nKeys.commonYes: (AppLocalizations t) => t.commonYes,
+  L10nKeys.commonNo: (AppLocalizations t) => t.commonNo,
+  L10nKeys.commonConfirmAction: (AppLocalizations t) => t.commonConfirmAction,
+  L10nKeys.commonClear: (AppLocalizations t) => t.commonClear,
+  L10nKeys.commonClearPriority: (AppLocalizations t) => t.commonClearPriority,
+  L10nKeys.commonAxisImportant: (AppLocalizations t) => t.commonAxisImportant,
+  L10nKeys.commonAxisNotImportant: (AppLocalizations t) =>
+      t.commonAxisNotImportant,
+  L10nKeys.commonAxisUrgent: (AppLocalizations t) => t.commonAxisUrgent,
+  L10nKeys.commonAxisNotUrgent: (AppLocalizations t) => t.commonAxisNotUrgent,
+  L10nKeys.commonUnitTimes: (AppLocalizations t) => t.commonUnitTimes,
+  L10nKeys.commonUnitDay: (AppLocalizations t) => t.commonUnitDay,
+  L10nKeys.commonUnitWeek: (AppLocalizations t) => t.commonUnitWeek,
+  // domain 9 条（Task 63 轮二）
+  L10nKeys.domainConclusionLabel: (AppLocalizations t) =>
+      t.domainConclusionLabel,
+  L10nKeys.domainReasonLabel: (AppLocalizations t) => t.domainReasonLabel,
+  L10nKeys.domainNextStepLabel: (AppLocalizations t) => t.domainNextStepLabel,
+  L10nKeys.domainPlanLabel: (AppLocalizations t) => t.domainPlanLabel,
+  L10nKeys.domainBackfillLabel: (AppLocalizations t) => t.domainBackfillLabel,
+  L10nKeys.domainReviewLabel: (AppLocalizations t) => t.domainReviewLabel,
+  L10nKeys.domainMoodLabel: (AppLocalizations t) => t.domainMoodLabel,
+  L10nKeys.domainDayLogNotStarted: (AppLocalizations t) =>
+      t.domainDayLogNotStarted,
+  L10nKeys.domainNoHabitsDueToday: (AppLocalizations t) =>
+      t.domainNoHabitsDueToday,
+  // timeline 30 条（Task 63 轮二）
+  L10nKeys.timelineEmptyGridHint: (AppLocalizations t) =>
+      t.timelineEmptyGridHint,
+  L10nKeys.timelineHabitBackfill: (AppLocalizations t) =>
+      t.timelineHabitBackfill,
+  L10nKeys.timelinePlanTitleHint: (AppLocalizations t) =>
+      t.timelinePlanTitleHint,
+  L10nKeys.timelineScheduleAction: (AppLocalizations t) =>
+      t.timelineScheduleAction,
+  L10nKeys.timelineManualGroup: (AppLocalizations t) => t.timelineManualGroup,
+  L10nKeys.timelineManualEntry: (AppLocalizations t) => t.timelineManualEntry,
+  L10nKeys.timelineTodoGroup: (AppLocalizations t) => t.timelineTodoGroup,
+  L10nKeys.timelineTodoPoolEmpty: (AppLocalizations t) =>
+      t.timelineTodoPoolEmpty,
+  L10nKeys.timelineHabitGroup: (AppLocalizations t) => t.timelineHabitGroup,
+  L10nKeys.timelineHabitEmpty: (AppLocalizations t) => t.timelineHabitEmpty,
+  L10nKeys.timelineConfirmAction: (AppLocalizations t) =>
+      t.timelineConfirmAction,
+  L10nKeys.timelineStartLabel: (AppLocalizations t) => t.timelineStartLabel,
+  L10nKeys.timelineEndLabel: (AppLocalizations t) => t.timelineEndLabel,
+  L10nKeys.timelineDurationLabel: (AppLocalizations t) =>
+      t.timelineDurationLabel,
+  L10nKeys.timelineSlotFillTitle: (AppLocalizations t) =>
+      t.timelineSlotFillTitle,
+  L10nKeys.timelineOutcomeTemplateTitle: (AppLocalizations t) =>
+      t.timelineOutcomeTemplateTitle,
+  L10nKeys.timelineTaskDetailTitle: (AppLocalizations t) =>
+      t.timelineTaskDetailTitle,
+  L10nKeys.timelineContentLabel: (AppLocalizations t) => t.timelineContentLabel,
+  L10nKeys.timelineLevelLabel: (AppLocalizations t) => t.timelineLevelLabel,
+  L10nKeys.timelineBackfillContentLabel: (AppLocalizations t) =>
+      t.timelineBackfillContentLabel,
+  L10nKeys.timelineFutureDayBackfillBlocked: (AppLocalizations t) =>
+      t.timelineFutureDayBackfillBlocked,
+  L10nKeys.timelineDeletePlanItemTitle: (AppLocalizations t) =>
+      t.timelineDeletePlanItemTitle,
+  L10nKeys.timelineKindHabitLabel: (AppLocalizations t) =>
+      t.timelineKindHabitLabel,
+  L10nKeys.timelineKindDoneLabel: (AppLocalizations t) =>
+      t.timelineKindDoneLabel,
+  L10nKeys.timelineTodoLoadFailed: (AppLocalizations t) =>
+      t.timelineTodoLoadFailed,
+  L10nKeys.timelineTodoLoading: (AppLocalizations t) => t.timelineTodoLoading,
+  L10nKeys.timelineTodoEmpty: (AppLocalizations t) => t.timelineTodoEmpty,
+  L10nKeys.timelineTodoSlotted: (AppLocalizations t) => t.timelineTodoSlotted,
+  L10nKeys.timelineNodeGap: (AppLocalizations t) => t.timelineNodeGap,
+  L10nKeys.timelineNodeClosed: (AppLocalizations t) => t.timelineNodeClosed,
+  // today 44 条（Task 63 轮二）
+  L10nKeys.todayReviewFutureTitle: (AppLocalizations t) =>
+      t.todayReviewFutureTitle,
+  L10nKeys.todayReviewFutureDetail: (AppLocalizations t) =>
+      t.todayReviewFutureDetail,
+  L10nKeys.todayFuturePlanOnly: (AppLocalizations t) => t.todayFuturePlanOnly,
+  L10nKeys.todayFuturePlanning: (AppLocalizations t) => t.todayFuturePlanning,
+  L10nKeys.todayChangeDate: (AppLocalizations t) => t.todayChangeDate,
+  L10nKeys.todayChangeTime: (AppLocalizations t) => t.todayChangeTime,
+  L10nKeys.todayClearTime: (AppLocalizations t) => t.todayClearTime,
+  L10nKeys.todayTimeUnset: (AppLocalizations t) => t.todayTimeUnset,
+  L10nKeys.todayPickStartTime: (AppLocalizations t) => t.todayPickStartTime,
+  L10nKeys.todayAddPlanHint: (AppLocalizations t) => t.todayAddPlanHint,
+  L10nKeys.todayAddManual: (AppLocalizations t) => t.todayAddManual,
+  L10nKeys.todayHabitLoadFailed: (AppLocalizations t) => t.todayHabitLoadFailed,
+  L10nKeys.todayHabitLoading: (AppLocalizations t) => t.todayHabitLoading,
+  L10nKeys.todayHabitEmpty: (AppLocalizations t) => t.todayHabitEmpty,
+  L10nKeys.todayStatPlanGap: (AppLocalizations t) => t.todayStatPlanGap,
+  L10nKeys.todayStatFillGap: (AppLocalizations t) => t.todayStatFillGap,
+  L10nKeys.todayStatWritten: (AppLocalizations t) => t.todayStatWritten,
+  L10nKeys.todayStatUnwritten: (AppLocalizations t) => t.todayStatUnwritten,
+  L10nKeys.todayStatRecorded: (AppLocalizations t) => t.todayStatRecorded,
+  L10nKeys.todayStatUnrecorded: (AppLocalizations t) => t.todayStatUnrecorded,
+  L10nKeys.todayStallDismiss: (AppLocalizations t) => t.todayStallDismiss,
+  L10nKeys.todayNoticeFutureCheckin: (AppLocalizations t) =>
+      t.todayNoticeFutureCheckin,
+  L10nKeys.todayGotIt: (AppLocalizations t) => t.todayGotIt,
+  L10nKeys.todayReviewFieldLearn: (AppLocalizations t) =>
+      t.todayReviewFieldLearn,
+  L10nKeys.todayReviewFieldLearnHint: (AppLocalizations t) =>
+      t.todayReviewFieldLearnHint,
+  L10nKeys.todayReviewFieldGood: (AppLocalizations t) => t.todayReviewFieldGood,
+  L10nKeys.todayReviewFieldGoodHint: (AppLocalizations t) =>
+      t.todayReviewFieldGoodHint,
+  L10nKeys.todayReviewFieldImprove: (AppLocalizations t) =>
+      t.todayReviewFieldImprove,
+  L10nKeys.todayReviewFieldImproveHint: (AppLocalizations t) =>
+      t.todayReviewFieldImproveHint,
+  L10nKeys.todayReviewSubtitle: (AppLocalizations t) => t.todayReviewSubtitle,
+  L10nKeys.todayReviewEmptyNotice: (AppLocalizations t) =>
+      t.todayReviewEmptyNotice,
+  L10nKeys.todayReviewPickProject: (AppLocalizations t) =>
+      t.todayReviewPickProject,
+  L10nKeys.todayReviewFileToProject: (AppLocalizations t) =>
+      t.todayReviewFileToProject,
+  L10nKeys.todayLoopRingA11y: (AppLocalizations t) => t.todayLoopRingA11y,
+  L10nKeys.todayLoopRingScale: (AppLocalizations t) => t.todayLoopRingScale,
+  L10nKeys.todayStandupTitle: (AppLocalizations t) => t.todayStandupTitle,
+  L10nKeys.todayStandupSubtitle: (AppLocalizations t) => t.todayStandupSubtitle,
+  L10nKeys.todayStandupEmpty: (AppLocalizations t) => t.todayStandupEmpty,
+  L10nKeys.todayStandupYesterday: (AppLocalizations t) =>
+      t.todayStandupYesterday,
+  L10nKeys.todayStandupYesterdayEmpty: (AppLocalizations t) =>
+      t.todayStandupYesterdayEmpty,
+  L10nKeys.todayStandupToday: (AppLocalizations t) => t.todayStandupToday,
+  L10nKeys.todayStandupTodayEmpty: (AppLocalizations t) =>
+      t.todayStandupTodayEmpty,
+  L10nKeys.todayStandupBlockers: (AppLocalizations t) => t.todayStandupBlockers,
+  L10nKeys.todayStandupBlockersEmpty: (AppLocalizations t) =>
+      t.todayStandupBlockersEmpty,
+  // habit 44 条（Task 63 轮二）
+  L10nKeys.moodGroupDayTitle: (AppLocalizations t) => t.moodGroupDayTitle,
+  L10nKeys.moodGroupWeekTitle: (AppLocalizations t) => t.moodGroupWeekTitle,
+  L10nKeys.moodSectionSubtitle: (AppLocalizations t) => t.moodSectionSubtitle,
+  L10nKeys.moodClearAll: (AppLocalizations t) => t.moodClearAll,
+  L10nKeys.moodMarkFailed: (AppLocalizations t) => t.moodMarkFailed,
+  L10nKeys.moodNextActionLabel: (AppLocalizations t) => t.moodNextActionLabel,
+  L10nKeys.moodNextActionHint: (AppLocalizations t) => t.moodNextActionHint,
+  L10nKeys.moodNoteLabel: (AppLocalizations t) => t.moodNoteLabel,
+  L10nKeys.moodNoteHint: (AppLocalizations t) => t.moodNoteHint,
+  L10nKeys.moodUnrated: (AppLocalizations t) => t.moodUnrated,
+  L10nKeys.moodClearDimension: (AppLocalizations t) => t.moodClearDimension,
+  L10nKeys.moodDimFulfillmentLabel: (AppLocalizations t) =>
+      t.moodDimFulfillmentLabel,
+  L10nKeys.moodDimFulfillmentDesc: (AppLocalizations t) =>
+      t.moodDimFulfillmentDesc,
+  L10nKeys.moodDimEfficiencyLabel: (AppLocalizations t) =>
+      t.moodDimEfficiencyLabel,
+  L10nKeys.moodDimEfficiencyDesc: (AppLocalizations t) =>
+      t.moodDimEfficiencyDesc,
+  L10nKeys.moodDimPositiveMindLabel: (AppLocalizations t) =>
+      t.moodDimPositiveMindLabel,
+  L10nKeys.moodDimPositiveMindDesc: (AppLocalizations t) =>
+      t.moodDimPositiveMindDesc,
+  L10nKeys.moodDimSelfEfficacyLabel: (AppLocalizations t) =>
+      t.moodDimSelfEfficacyLabel,
+  L10nKeys.moodDimSelfEfficacyDesc: (AppLocalizations t) =>
+      t.moodDimSelfEfficacyDesc,
+  L10nKeys.moodDimContributionLabel: (AppLocalizations t) =>
+      t.moodDimContributionLabel,
+  L10nKeys.moodDimContributionDesc: (AppLocalizations t) =>
+      t.moodDimContributionDesc,
+  L10nKeys.moodLegacyDiligent: (AppLocalizations t) => t.moodLegacyDiligent,
+  L10nKeys.moodLegacyFast: (AppLocalizations t) => t.moodLegacyFast,
+  L10nKeys.moodLegacyKeepPromise: (AppLocalizations t) =>
+      t.moodLegacyKeepPromise,
+  L10nKeys.moodLegacyFinishTask: (AppLocalizations t) => t.moodLegacyFinishTask,
+  L10nKeys.moodLegacyOptimistic: (AppLocalizations t) => t.moodLegacyOptimistic,
+  L10nKeys.moodLegacyConfident: (AppLocalizations t) => t.moodLegacyConfident,
+  L10nKeys.moodLegacyLoveAndDedication: (AppLocalizations t) =>
+      t.moodLegacyLoveAndDedication,
+  L10nKeys.moodLegacyNoExcuses: (AppLocalizations t) => t.moodLegacyNoExcuses,
+  L10nKeys.habitSectionTitle: (AppLocalizations t) => t.habitSectionTitle,
+  L10nKeys.habitSectionSubtitle: (AppLocalizations t) => t.habitSectionSubtitle,
+  L10nKeys.habitSectionEmpty: (AppLocalizations t) => t.habitSectionEmpty,
+  L10nKeys.habitCheckinLoading: (AppLocalizations t) => t.habitCheckinLoading,
+  L10nKeys.habitCheckinError: (AppLocalizations t) => t.habitCheckinError,
+  L10nKeys.habitCheckinHeadTitle: (AppLocalizations t) =>
+      t.habitCheckinHeadTitle,
+  L10nKeys.habitCheckinHeadHint: (AppLocalizations t) => t.habitCheckinHeadHint,
+  L10nKeys.habitPageTitle: (AppLocalizations t) => t.habitPageTitle,
+  L10nKeys.habitPageFutureHint: (AppLocalizations t) => t.habitPageFutureHint,
+  L10nKeys.habitPageEmpty: (AppLocalizations t) => t.habitPageEmpty,
+  L10nKeys.priorityPickQuadrant: (AppLocalizations t) => t.priorityPickQuadrant,
+  L10nKeys.priorityPickAbc: (AppLocalizations t) => t.priorityPickAbc,
+  L10nKeys.priorityBubbleCurrent: (AppLocalizations t) =>
+      t.priorityBubbleCurrent,
+  L10nKeys.priorityBubbleReadonly: (AppLocalizations t) =>
+      t.priorityBubbleReadonly,
+  L10nKeys.priorityBubbleEditable: (AppLocalizations t) =>
+      t.priorityBubbleEditable,
+  // dialog 73 条（Task 63 轮二）
+  L10nKeys.dialogEstUnitMinute: (AppLocalizations t) => t.dialogEstUnitMinute,
+  L10nKeys.dialogEstUnitHour: (AppLocalizations t) => t.dialogEstUnitHour,
+  L10nKeys.dialogEstUnitDay: (AppLocalizations t) => t.dialogEstUnitDay,
+  L10nKeys.dialogEstUnitWeek: (AppLocalizations t) => t.dialogEstUnitWeek,
+  L10nKeys.dialogEstUnitMonth: (AppLocalizations t) => t.dialogEstUnitMonth,
+  L10nKeys.dialogHabitNameRequired: (AppLocalizations t) =>
+      t.dialogHabitNameRequired,
+  L10nKeys.dialogHabitWeekdayRequired: (AppLocalizations t) =>
+      t.dialogHabitWeekdayRequired,
+  L10nKeys.dialogHabitNameLabel: (AppLocalizations t) => t.dialogHabitNameLabel,
+  L10nKeys.dialogHabitNoteLabel: (AppLocalizations t) => t.dialogHabitNoteLabel,
+  L10nKeys.dialogHabitSchedule: (AppLocalizations t) => t.dialogHabitSchedule,
+  L10nKeys.dialogHabitDaily: (AppLocalizations t) => t.dialogHabitDaily,
+  L10nKeys.dialogHabitEveryDays: (AppLocalizations t) => t.dialogHabitEveryDays,
+  L10nKeys.dialogHabitEveryWeeks: (AppLocalizations t) =>
+      t.dialogHabitEveryWeeks,
+  L10nKeys.dialogHabitWeeklyPick: (AppLocalizations t) =>
+      t.dialogHabitWeeklyPick,
+  L10nKeys.dialogHabitEvery: (AppLocalizations t) => t.dialogHabitEvery,
+  L10nKeys.dialogHabitWeekday: (AppLocalizations t) => t.dialogHabitWeekday,
+  L10nKeys.dialogHabitStartDate: (AppLocalizations t) => t.dialogHabitStartDate,
+  L10nKeys.dialogHabitDailyMin: (AppLocalizations t) => t.dialogHabitDailyMin,
+  L10nKeys.dialogHabitCreate: (AppLocalizations t) => t.dialogHabitCreate,
+  L10nKeys.dialogHabitCreateSubtitle: (AppLocalizations t) =>
+      t.dialogHabitCreateSubtitle,
+  L10nKeys.dialogTodoTitleRequired: (AppLocalizations t) =>
+      t.dialogTodoTitleRequired,
+  L10nKeys.dialogTodoEstInvalid: (AppLocalizations t) => t.dialogTodoEstInvalid,
+  L10nKeys.dialogTodoCreateTitle: (AppLocalizations t) =>
+      t.dialogTodoCreateTitle,
+  L10nKeys.dialogTodoTitleHint: (AppLocalizations t) => t.dialogTodoTitleHint,
+  L10nKeys.dialogTodoEstLabel: (AppLocalizations t) => t.dialogTodoEstLabel,
+  L10nKeys.dialogTodoEstHint: (AppLocalizations t) => t.dialogTodoEstHint,
+  L10nKeys.dialogTodoPriorityLabel: (AppLocalizations t) =>
+      t.dialogTodoPriorityLabel,
+  L10nKeys.dialogTodoPullToday: (AppLocalizations t) => t.dialogTodoPullToday,
+  L10nKeys.dialogTodoSaving: (AppLocalizations t) => t.dialogTodoSaving,
+  L10nKeys.dialogTodoPullTitle: (AppLocalizations t) => t.dialogTodoPullTitle,
+  L10nKeys.dialogTodoPoolEmpty: (AppLocalizations t) => t.dialogTodoPoolEmpty,
+  L10nKeys.dialogTodoPulling: (AppLocalizations t) => t.dialogTodoPulling,
+  L10nKeys.dialogTodoPull: (AppLocalizations t) => t.dialogTodoPull,
+  L10nKeys.dialogRecurringWeekdayRequired: (AppLocalizations t) =>
+      t.dialogRecurringWeekdayRequired,
+  L10nKeys.dialogRecurringTimeInvalid: (AppLocalizations t) =>
+      t.dialogRecurringTimeInvalid,
+  L10nKeys.dialogRecurringDurationInvalid: (AppLocalizations t) =>
+      t.dialogRecurringDurationInvalid,
+  L10nKeys.dialogRecurringTitleLabel: (AppLocalizations t) =>
+      t.dialogRecurringTitleLabel,
+  L10nKeys.dialogRecurringStartLabel: (AppLocalizations t) =>
+      t.dialogRecurringStartLabel,
+  L10nKeys.dialogRecurringDurationLabel: (AppLocalizations t) =>
+      t.dialogRecurringDurationLabel,
+  L10nKeys.dialogRecurringNoteLabel: (AppLocalizations t) =>
+      t.dialogRecurringNoteLabel,
+  L10nKeys.dialogRecurringSaveConfirm: (AppLocalizations t) =>
+      t.dialogRecurringSaveConfirm,
+  L10nKeys.dialogRecurringCreateTitle: (AppLocalizations t) =>
+      t.dialogRecurringCreateTitle,
+  L10nKeys.dialogRecurringCreateSubtitle: (AppLocalizations t) =>
+      t.dialogRecurringCreateSubtitle,
+  L10nKeys.dialogRecurringDeleteTitle: (AppLocalizations t) =>
+      t.dialogRecurringDeleteTitle,
+  L10nKeys.dialogRecurringSection: (AppLocalizations t) =>
+      t.dialogRecurringSection,
+  L10nKeys.dialogRecurringLoading: (AppLocalizations t) =>
+      t.dialogRecurringLoading,
+  L10nKeys.dialogRecurringNone: (AppLocalizations t) => t.dialogRecurringNone,
+  L10nKeys.dialogRecurringNoneHint: (AppLocalizations t) =>
+      t.dialogRecurringNoneHint,
+  L10nKeys.dialogRecurringDaily: (AppLocalizations t) => t.dialogRecurringDaily,
+  L10nKeys.dialogRuleActiveOn: (AppLocalizations t) => t.dialogRuleActiveOn,
+  L10nKeys.dialogRuleActiveOff: (AppLocalizations t) => t.dialogRuleActiveOff,
+  L10nKeys.dialogRuleDisable: (AppLocalizations t) => t.dialogRuleDisable,
+  L10nKeys.dialogRuleEnable: (AppLocalizations t) => t.dialogRuleEnable,
+  L10nKeys.dialogDurationCustom: (AppLocalizations t) => t.dialogDurationCustom,
+  L10nKeys.dialogDurationCustomHint: (AppLocalizations t) =>
+      t.dialogDurationCustomHint,
+  L10nKeys.dialogNoteRestructure: (AppLocalizations t) =>
+      t.dialogNoteRestructure,
+  L10nKeys.dialogNoteNextStepLabel: (AppLocalizations t) =>
+      t.dialogNoteNextStepLabel,
+  L10nKeys.dialogNoteSaveProgressOnly: (AppLocalizations t) =>
+      t.dialogNoteSaveProgressOnly,
+  L10nKeys.dialogNoteDone: (AppLocalizations t) => t.dialogNoteDone,
+  L10nKeys.dialogPoolLoading: (AppLocalizations t) => t.dialogPoolLoading,
+  L10nKeys.dialogPoolTitle: (AppLocalizations t) => t.dialogPoolTitle,
+  L10nKeys.dialogPoolTitleHint: (AppLocalizations t) => t.dialogPoolTitleHint,
+  L10nKeys.dialogPoolStartHint: (AppLocalizations t) => t.dialogPoolStartHint,
+  L10nKeys.dialogPoolDueHint: (AppLocalizations t) => t.dialogPoolDueHint,
+  L10nKeys.dialogPoolNew: (AppLocalizations t) => t.dialogPoolNew,
+  L10nKeys.dialogPoolColPriority: (AppLocalizations t) =>
+      t.dialogPoolColPriority,
+  L10nKeys.dialogPoolColEst: (AppLocalizations t) => t.dialogPoolColEst,
+  L10nKeys.dialogPoolColQuadrant: (AppLocalizations t) =>
+      t.dialogPoolColQuadrant,
+  L10nKeys.dialogPoolColDue: (AppLocalizations t) => t.dialogPoolColDue,
+  L10nKeys.dialogPoolColAction: (AppLocalizations t) => t.dialogPoolColAction,
+  L10nKeys.dialogPoolStartInvalid: (AppLocalizations t) =>
+      t.dialogPoolStartInvalid,
+  L10nKeys.dialogPoolAddToToday: (AppLocalizations t) => t.dialogPoolAddToToday,
+  L10nKeys.dialogPoolEmptyLong: (AppLocalizations t) => t.dialogPoolEmptyLong,
 };
 
-/// 列表型 getter（`List<String>`）的访问器表（3 条）。
+/// 列表型 getter（`List<String>`）的访问器表（4 条）。
 ///
 /// 与 `l10nAccessors` 同一套键空间，只是取值返回 `List<String>`，所以单列一张
 /// 表，避免把 `Map<String, String Function(...)>` 撑成动态类型。
@@ -264,6 +566,7 @@ final Map<String, List<String> Function(AppLocalizations)> l10nListAccessors =
   L10nKeys.aboutChangelog: (AppLocalizations t) => t.aboutChangelog,
   L10nKeys.calendarWeekdaysShort: (AppLocalizations t) =>
       t.calendarWeekdaysShort,
+  L10nKeys.domainWeekdayFull: (AppLocalizations t) => t.domainWeekdayFull,
 };
 
 /// 允许中英同值的键（白名单）。

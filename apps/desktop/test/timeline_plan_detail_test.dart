@@ -33,6 +33,8 @@ import 'package:actlog/src/widgets/timeline/day_grid.dart';
 import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 import 'package:actlog/src/widgets/timeline/todo_rail_panel.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定「今天」；被测日期就是它（过去 / 未来与详情窗无关，取当天最直接）。
 const String _today = '2026-11-09';
 
@@ -90,19 +92,22 @@ final class _Harness {
   /// `asData`，否则网格里的待办携带分支会拿到空列表（与 W1 同一口径）。
   Future<void> mount(WidgetTester tester, String date) {
     return tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          home: Scaffold(
-            body: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(child: DayGrid(date: date)),
-                SizedBox(
-                  width: 240,
-                  child: TodoRailPanel(),
-                ),
-              ],
+      // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+      l10nScope(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(child: DayGrid(date: date)),
+                  SizedBox(
+                    width: 240,
+                    child: TodoRailPanel(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

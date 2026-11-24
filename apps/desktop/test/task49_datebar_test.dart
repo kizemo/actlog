@@ -20,6 +20,8 @@ import 'package:actlog/src/widgets/date_picker_sheet.dart';
 import 'package:actlog/src/widgets/day_timeline.dart';
 import 'package:actlog/src/widgets/timeline/day_grid.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定「今天」，让「非今日」的判定确定化。
 const String _today = '2026-11-07';
 
@@ -40,7 +42,9 @@ Future<void> _mountBar(WidgetTester tester, ProviderContainer container) {
   return tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(home: Scaffold(body: DateBar())),
+      child: l10nScope(
+        const MaterialApp(home: Scaffold(body: DateBar())),
+      ),
     ),
   );
 }
@@ -145,7 +149,9 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: Scaffold(body: DayGrid(date: _today))),
+        child: l10nScope(
+          const MaterialApp(home: Scaffold(body: DayGrid(date: _today))),
+        ),
       ),
     );
     await tester.runAsync(

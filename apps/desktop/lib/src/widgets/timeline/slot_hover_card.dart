@@ -35,6 +35,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_tokens.dart';
 import 'slot_state.dart';
 
@@ -412,6 +413,7 @@ class _SlotHoverCardState extends State<SlotHoverCard> {
   /// `hair` / `shadowTint`）：方格区禁用赭石 `accent`，浮窗同理 —— 它是方格区
   /// 的一部分，换色会让「同一屏两种色系」自相矛盾。
   Widget _card(ThemeTokens t) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final List<Widget> lines = <Widget>[
       Text(
         '${formatMinute(widget.startMinute)}–${formatMinute(widget.endMinute)}',
@@ -433,16 +435,36 @@ class _SlotHoverCardState extends State<SlotHoverCard> {
       ),
     ];
     if (widget.detail.isNotEmpty) {
-      lines.add(_metaLine('slot-hover-card-detail', '详情：${widget.detail}', t));
+      lines.add(
+        _metaLine(
+          'slot-hover-card-detail',
+          l10n.timelineHoverDetail(widget.detail),
+          t,
+        ),
+      );
     }
     if (widget.showNote && widget.note.isNotEmpty) {
-      lines.add(_metaLine('slot-hover-card-note', '进展：${widget.note}', t));
+      lines.add(
+        _metaLine('slot-hover-card-note', l10n.timelineHoverNote(widget.note), t),
+      );
     }
     if (widget.stateLabel != null) {
-      lines.add(_footLine('slot-hover-card-state', '状态：${widget.stateLabel}', t));
+      lines.add(
+        _footLine(
+          'slot-hover-card-state',
+          l10n.timelineHoverState(widget.stateLabel!),
+          t,
+        ),
+      );
     }
     if (widget.levelLabel != null) {
-      lines.add(_footLine('slot-hover-card-level', '级别：${widget.levelLabel}', t));
+      lines.add(
+        _footLine(
+          'slot-hover-card-level',
+          l10n.timelineHoverLevel(widget.levelLabel!),
+          t,
+        ),
+      );
     }
     return Container(
       key: const ValueKey<String>('slot-hover-card'),

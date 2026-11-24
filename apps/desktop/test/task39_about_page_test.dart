@@ -301,4 +301,103 @@ void main() {
     expect(find.text(zh.aboutTitle), findsNothing);
     expect(find.text(en.sectionRepository), findsWidgets);
   });
+
+  // ------------------------------------------------ Task 63 · W8：en 态补齐
+  // 只**追加** en 态字面量断言 + 中文阴性对照；既有 zh 用例一字未改。
+  // en 期望串全部取自 `l10n/parts/about.dart` 的 `AboutEnL10n`。
+  testWidgets('en 态三种检查结果文案逐条用英文真值', (WidgetTester tester) async {
+    // 每个状态单独挂一次页面（结果行只在点过「检查」之后出现）。
+    Future<void> checkResult(
+      ReleaseCheckResult result,
+      String enText,
+      String zhText,
+    ) async {
+      _useTallSurface(tester);
+      final _Harness h = _Harness.create(
+        result: result,
+        language: AppLanguage.en,
+      );
+      await h.mount(tester);
+      await _pump(tester);
+      await tester.tap(find.byKey(_key('about-check-update')));
+      await _pump(tester);
+
+      expect(
+        tester.widget<Text>(find.byKey(_key('about-check-result'))).data,
+        enText,
+      );
+      // 阴性对照：同一句的中文原文在 en 态不许出现。
+      expect(find.text(zhText), findsNothing);
+    }
+
+    await checkResult(
+      const ReleaseCheckResult(ReleaseCheckStatus.noRelease),
+      'No releases available yet',
+      '暂无可用发布版本',
+    );
+    await checkResult(
+      const ReleaseCheckResult(ReleaseCheckStatus.networkError),
+      'Network unavailable or timed out',
+      '网络不可用或请求超时，未能检查更新',
+    );
+    // 有更新时是「en 文案 + 空格 + 去掉 v 的版本号」。
+    await checkResult(
+      const ReleaseCheckResult(
+        ReleaseCheckStatus.newer,
+        latestTag: 'v0.2.0',
+      ),
+      'A newer version is available 0.2.0',
+      '发现新版本 0.2.0',
+    );
+  });
+
+  testWidgets('en 态禁用原因、未核实标注与两枚按钮用英文真值',
+      (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create(
+      result: const ReleaseCheckResult(ReleaseCheckStatus.noRelease),
+      language: AppLanguage.en,
+    );
+    await h.mount(tester);
+    await _pump(tester);
+
+    expect(
+      tester.widget<Text>(find.byKey(_key('about-online-upgrade-reason'))).data,
+      'This repository has no releases yet',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(_key('about-pageweaver-unverified'))).data,
+      'repository link unverified',
+    );
+    expect(find.text('Upgrade online'), findsOneWidget);
+    expect(find.text('Check for updates'), findsOneWidget);
+
+    // 阴性对照。
+    expect(find.text('当前仓库暂无发布版本'), findsNothing);
+    expect(find.text('仓库地址待核实'), findsNothing);
+    expect(find.text('在线升级'), findsNothing);
+    expect(find.text('检查新版本'), findsNothing);
+  });
+
+  testWidgets('en 态三处区块标题与开发者简介用英文真值',
+      (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create(
+      result: const ReleaseCheckResult(ReleaseCheckStatus.noRelease),
+      language: AppLanguage.en,
+    );
+    await h.mount(tester);
+    await _pump(tester);
+
+    // 区块标题 + 本页导航条目 ⇒ 每串至少命中 1 处。
+    expect(find.text('Developer'), findsWidgets);
+    expect(find.text('Other software'), findsWidgets);
+    expect(find.text('Repository'), findsWidgets);
+    expect(find.text('kizemo - GitHub profile github.com/kizemo'), findsOneWidget);
+
+    // 阴性对照。
+    expect(find.text('开发者'), findsNothing);
+    expect(find.text('其它软件推荐'), findsNothing);
+    expect(find.text('仓库'), findsNothing);
+  });
 }

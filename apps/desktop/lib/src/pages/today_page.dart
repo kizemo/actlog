@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../data/project_store.dart';
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
@@ -53,6 +54,7 @@ class TodayPage extends ConsumerWidget {
     // 否则标题停在今天、内容却是别的一天（M16-6 的根因）。
     final date = ref.watch(selectedDateProvider);
     final dayLog = ref.watch(dayLogProvider);
+    final l10n = ref.watch(appLocalizationsProvider);
 
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
@@ -75,7 +77,7 @@ class TodayPage extends ConsumerWidget {
             onInvoke: () => showQuickTodoDialog(context),
           ),
           _CheckinFirstIntent: _CheckinFirstAction(
-            onInvoke: () => _checkInFirstHabit(ref),
+            onInvoke: () => _checkInFirstHabit(ref, l10n),
           ),
           _GoTodayIntent: _GoTodayAction(
             onInvoke: () => ref.read(selectedDateProvider.notifier).state =
@@ -95,7 +97,7 @@ class TodayPage extends ConsumerWidget {
           loading: () => const _LoadingPane(),
           error: (error, stack) => _ErrorPane(error: error),
           data: (log) => log == null
-              ? const _NotePane(text: '当日日志尚未建立')
+              ? _NotePane(text: l10n.domainDayLogNotStarted)
               : _TodayBody(date: date, log: log),
         ),
       ),
@@ -113,6 +115,7 @@ class _TodayBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final minimal = log.mode == dayModeMinimal;
+    final l10n = ref.watch(appLocalizationsProvider);
     // 快捷键造成的状态变化要有可见回落（不许静默）：警句横幅贴在日期条下方，其后是提示横幅。
     final notice = ref.watch(_todayNoticeProvider);
     // 未来日只可预排：打卡 / 回填 / 复盘 / 心态一律不开放（spec §H-1）。
@@ -130,6 +133,7 @@ class _TodayBody extends ConsumerWidget {
         if (notice != null) ...<Widget>[
           const SizedBox(height: 8),
           _NoticeBanner(
+            l10n: l10n,
             message: notice,
             onDismiss: () =>
                 ref.read(_todayNoticeProvider.notifier).state = null,
@@ -153,7 +157,7 @@ class _TodayBody extends ConsumerWidget {
         _AddPlanItemBar(date: date),
         if (future) ...<Widget>[
           const SizedBox(height: AppTokens.gapCard),
-          const _FuturePlanHint(),
+          _FuturePlanHint(l10n: l10n),
         ],
         const SizedBox(height: AppTokens.gapSec),
         // 复盘 + 心态不再走 `DayTimeline` / `TimelineSection` 的左栏包装
@@ -163,10 +167,11 @@ class _TodayBody extends ConsumerWidget {
         // 这里直接铺成普通区块：与其它模块同一条左基线，且页面上不再出现
         // 「晚 · 复盘与心态」「已闭合」这两处只属于时间轴骨架的文案。
         if (future)
-          const _FutureLockedSection(
+          _FutureLockedSection(
+            l10n: l10n,
             icon: Icons.nights_stay,
-            title: '复盘与心态在当天开放',
-            detail: '未来日只做预排：到了那天再写复盘与心态。',
+            title: l10n.todayReviewFutureTitle,
+            detail: l10n.todayReviewFutureDetail,
           )
         else
           const Column(
@@ -283,6 +288,7 @@ enum _DateTimeActionKind {
 class _DateTimeAction extends StatefulWidget {
   const _DateTimeAction({
     super.key,
+    required this.l10n,
     required this.date,
     required this.startMinute,
     required this.enabled,
@@ -303,6 +309,12 @@ class _DateTimeAction extends StatefulWidget {
   final VoidCallback onPickDate;
   final VoidCallback onPickTime;
   final VoidCallback onClearTime;
+
+  /// 文案来源。
+  ///
+  /// 本 widget 是纯 `StatefulWidget`（`State` 里没有 `ref`），
+  /// 所以在 `_AddPlanItemBar` 那层取好后下传。
+  final AppLocalizations l10n;
 
   @override
   State<_DateTimeAction> createState() => _DateTimeActionState();
@@ -325,22 +337,22 @@ class _DateTimeActionState extends State<_DateTimeAction> {
         Offset.zero & MediaQuery.sizeOf(context),
       ),
       items: <PopupMenuEntry<_DateTimeActionKind>>[
-        const PopupMenuItem<_DateTimeActionKind>(
+        PopupMenuItem<_DateTimeActionKind>(
           value: _DateTimeActionKind.pickDate,
-          child: Text('改日期'),
+          child: Text(widget.l10n.todayChangeDate),
         ),
-        const PopupMenuItem<_DateTimeActionKind>(
+        PopupMenuItem<_DateTimeActionKind>(
           value: _DateTimeActionKind.pickTime,
-          child: Text('改时刻'),
+          child: Text(widget.l10n.todayChangeTime),
         ),
         // 「清除时刻」只在真的排了时刻时出现：没排的时刻没有可清的东西，
         // 常驻一项空动作等于给用户一个点了没反应的按钮。
         if (widget.startMinute != null)
-          const PopupMenuItem<_DateTimeActionKind>(
+          PopupMenuItem<_DateTimeActionKind>(
             value: _DateTimeActionKind.clearTime,
             child: Text(
-              '清除时刻',
-              key: ValueKey<String>('add-plan-time-clear'),
+              widget.l10n.todayClearTime,
+              key: const ValueKey<String>('add-plan-time-clear'),
             ),
           ),
       ],
@@ -361,8 +373,8 @@ class _DateTimeActionState extends State<_DateTimeAction> {
   @override
   Widget build(BuildContext context) {
     final String timeLabel = widget.startMinute == null
-        ? '时间 · 未排'
-        : '时间 · ${formatMinute(widget.startMinute!)}';
+        ? widget.l10n.todayTimeUnset
+        : widget.l10n.todayTimeSet(formatMinute(widget.startMinute!));
     final t = context.tokens;
     final Color ink = !widget.enabled
         ? t.faint
@@ -372,7 +384,7 @@ class _DateTimeActionState extends State<_DateTimeAction> {
       child: Semantics(
         button: true,
         enabled: widget.enabled,
-        label: '日期 ${widget.date}，$timeLabel，点击修改日期或时刻',
+        label: widget.l10n.todayDateChipA11y(widget.date, timeLabel),
         child: MouseRegion(
           cursor:
               widget.enabled ? SystemMouseCursors.click : MouseCursor.defer,
@@ -400,7 +412,7 @@ class _DateTimeActionState extends State<_DateTimeAction> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: <Widget>[
                     Text(
-                      '日期 · ${widget.date}',
+                      widget.l10n.todayDateLabel(widget.date),
                       key: const ValueKey<String>('add-plan-date-chip'),
                       style: _bodyStyle(size: 11.5, color: ink, tokens: t),
                     ),
@@ -425,7 +437,10 @@ class _DateTimeActionState extends State<_DateTimeAction> {
 /// 键名 `future-plan-hint` 是既有验收锚点（`ledger_dock_test.dart:227`）：
 /// 未来日必须给出可见提示，而不是把输入框变成黑洞。
 class _FuturePlanHint extends StatelessWidget {
-  const _FuturePlanHint();
+  const _FuturePlanHint({required this.l10n});
+
+  /// 文案来源：纯 `StatelessWidget` 没有 `ref`，由 `_TodayBody` 取好下传。
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -436,7 +451,7 @@ class _FuturePlanHint extends StatelessWidget {
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          '未来日只可预排：可以先写计划，到了那天才能打卡与回填。',
+          l10n.todayFuturePlanOnly,
           style: _bodyStyle(size: 12, color: t.meta, tokens: t),
         ),
       ),
@@ -566,7 +581,7 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: initial ~/ 60, minute: initial % 60),
-      helpText: '选择开始时刻',
+      helpText: ref.read(appLocalizationsProvider).todayPickStartTime,
       builder: (BuildContext context, Widget? child) => MediaQuery(
         // 固定 24 小时制：分钟口径与刻度尺（06:00–24:00）同源，不出现 AM/PM。
         data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
@@ -581,9 +596,11 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
       // 方格时间轴从 06:00 起。更早的时刻排不进任何一格 —— 静默接受等于
       // 「写进去了但界面上看不见」。这里明说一句，并且**不**写时间，
       // 条目照旧落进未排期带（数据不丢，用户可再排）。
-      ref.read(_todayNoticeProvider.notifier).state =
-          '方格时间轴从 ${formatMinute(kGridStartHour * 60)} 开始：'
-          '更早的时刻排不进格子，这条会落在下方未排期带。';
+      // 两段拼接（「从 X 开始：」+「更早排不进格子…」）合成一条带参文案：
+      // 拆成两个 getter 会让译文的语序被固定成中文主谓宾。
+      ref.read(_todayNoticeProvider.notifier).state = ref
+          .read(appLocalizationsProvider)
+          .todayGridStartHint(formatMinute(kGridStartHour * 60));
       return;
     }
     setState(() => _startMinute = minutes);
@@ -592,6 +609,7 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final l10n = ref.watch(appLocalizationsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -605,7 +623,7 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
                 onSubmitted: (_) => _submit(),
                 style: _bodyStyle(size: 13, color: t.ink, tokens: t),
                 decoration: InputDecoration(
-                  hintText: '添加计划条目…',
+                  hintText: l10n.todayAddPlanHint,
                   hintStyle: _bodyStyle(size: 13, color: t.faint, tokens: t),
                   isDense: true,
                   filled: true,
@@ -622,7 +640,7 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
             ),
             const SizedBox(width: 8),
             _GhostAction(
-              label: '+ 手写一条',
+              label: l10n.todayAddManual,
               onPressed: _submitting ? null : _submit,
             ),
           ],
@@ -642,6 +660,7 @@ class _AddPlanItemBarState extends ConsumerState<_AddPlanItemBar> {
             Flexible(
               child: _DateTimeAction(
                 key: const ValueKey<String>('add-plan-datetime-button'),
+                l10n: l10n,
                 date: _date ?? widget.date,
                 startMinute: _startMinute,
                 enabled: !_submitting,
@@ -680,10 +699,14 @@ OutlineInputBorder _fieldBorder(Color color, {double width = 1}) {
 /// 整段消失后以为界面出错。
 class _FutureLockedSection extends StatelessWidget {
   const _FutureLockedSection({
+    required this.l10n,
     required this.icon,
     required this.title,
     required this.detail,
   });
+
+  /// 文案来源：纯 `StatelessWidget` 没有 `ref`，由 `_TodayBody` 取好下传。
+  final AppLocalizations l10n;
 
   /// 区块图标，沿用被替换区块的图标以保持视觉连续。
   final IconData icon;
@@ -700,7 +723,7 @@ class _FutureLockedSection extends StatelessWidget {
     return SectionCard(
       icon: icon,
       title: title,
-      subtitle: '未来日只做预排',
+      subtitle: l10n.todayFuturePlanning,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Text(
@@ -790,17 +813,18 @@ class HabitOverviewPanel extends ConsumerWidget {
     final habitsAsync = ref.watch(habitsForTodayProvider);
     final checkinsAsync = ref.watch(habitCheckinsProvider);
     final t = context.tokens;
+    final l10n = ref.watch(appLocalizationsProvider);
 
     if (habitsAsync.hasError || checkinsAsync.hasError) {
-      return const _RailNote(text: '习惯速览加载失败', danger: true);
+      return _RailNote(text: l10n.todayHabitLoadFailed, danger: true);
     }
     if (!habitsAsync.hasValue || !checkinsAsync.hasValue) {
-      return const _RailNote(text: '正在加载习惯…');
+      return _RailNote(text: l10n.todayHabitLoading);
     }
 
     final habits = habitsAsync.value!;
     if (habits.isEmpty) {
-      return const _RailNote(text: '所选日没有排程习惯');
+      return _RailNote(text: l10n.todayHabitEmpty);
     }
 
     final doneIds = <String>{
@@ -916,24 +940,25 @@ class LoopHintPanel extends ConsumerWidget {
   /// 四行共用的那条刻度轴的定位键。
   static const ValueKey<String> axisKey = ValueKey<String>('loop-hint-tick-axis');
 
-  /// 右栏标签（沿用合并前文案，不改措辞）。
-  static const List<String> _labels = <String>[
-    '计划缺口',
-    '回填缺口',
-    '复盘',
-    '心态',
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appLocalizationsProvider);
     final DayStats stats = ref.watch(dayStatsProvider);
-    final entries = loopSegmentEntries(stats);
+    final entries = loopSegmentEntries(stats, l10n);
+    // 右栏标签沿用合并前文案，不改措辞；「复盘 / 心态」直接复用 `domain` 段
+    // 已有的同义键，不为右栏另造一份同义键。
+    final List<String> labels = <String>[
+      l10n.todayStatPlanGap,
+      l10n.todayStatFillGap,
+      l10n.domainReviewLabel,
+      l10n.domainMoodLabel,
+    ];
     final rate = stats.backfillRate;
     final values = <String>[
       '${stats.planPending}',
       rate == null ? '—' : '${stats.planDone - stats.backfilled}',
-      stats.reviewDone ? '已写' : '未写',
-      stats.moodDone ? '已记' : '未记',
+      stats.reviewDone ? l10n.todayStatWritten : l10n.todayStatUnwritten,
+      stats.moodDone ? l10n.todayStatRecorded : l10n.todayStatUnrecorded,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -946,7 +971,7 @@ class LoopHintPanel extends ConsumerWidget {
           LoopHintBar(
             key: rowKeys[i],
             entry: entries[i],
-            label: _labels[i],
+            label: labels[i],
             value: values[i],
             showTicks: false,
           ),
@@ -1004,6 +1029,7 @@ class _StallHints extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final ThemeTokens tokens = context.tokens;
+    final l10n = ref.watch(appLocalizationsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -1018,8 +1044,7 @@ class _StallHints extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Text(
-                  '「${stall.name}」${stall.daysSinceIncrement} 天没有增量了，'
-                  '想起它的时候再推一步。',
+                  l10n.todayStallHint(stall.name, stall.daysSinceIncrement),
                   style: _bodyStyle(
                     size: 11.5,
                     color: tokens.meta,
@@ -1042,7 +1067,7 @@ class _StallHints extends ConsumerWidget {
                           <String>{...dismissed, '${stall.projectId}|$todayIso'};
                     },
                     child: Text(
-                      '今天不再提',
+                      l10n.todayStallDismiss,
                       style: _bodyStyle(
                         size: 11,
                         color: tokens.faint,
@@ -1225,11 +1250,14 @@ final StateProvider<String?> _todayNoticeProvider =
 ///
 /// 口径与习惯页的打卡卡带一致（`status == done.code` 才算已打卡）。
 /// 未来日按 spec §H-1 只做预排 —— 拒绝打卡，但**必须给可见提示**，不许静默。
-Future<void> _checkInFirstHabit(WidgetRef ref) async {
+///
+/// [l10n] 由 `TodayPage.build` 传进来：本函数是顶层函数，拿不到 `ref.watch`，
+/// 而它启用的提示文案要跟着语言设置走。
+Future<void> _checkInFirstHabit(WidgetRef ref, AppLocalizations l10n) async {
   final date = ref.read(selectedDateProvider);
   final today = ref.read(todayProvider);
   if (date.compareTo(today) > 0) {
-    ref.read(_todayNoticeProvider.notifier).state = '未来日只做预排：到了那天再打卡。';
+    ref.read(_todayNoticeProvider.notifier).state = l10n.todayNoticeFutureCheckin;
     return;
   }
   // B2（2026-11-12）：今日页与壳层都不再常驻 watch 这两个 provider（习惯区与
@@ -1241,7 +1269,9 @@ Future<void> _checkInFirstHabit(WidgetRef ref) async {
     habits = await ref.read(habitsForTodayProvider.future);
     checkins = await ref.read(habitCheckinsProvider.future);
   } catch (error) {
-    ref.read(_todayNoticeProvider.notifier).state = '习惯数据加载失败：$error';
+    ref.read(_todayNoticeProvider.notifier).state = l10n.todayHabitLoadError(
+      '$error',
+    );
     return;
   }
   final doneIds = <String>{
@@ -1256,7 +1286,7 @@ Future<void> _checkInFirstHabit(WidgetRef ref) async {
     }
   }
   if (target == null) {
-    ref.read(_todayNoticeProvider.notifier).state = '今天没有待打卡的习惯';
+    ref.read(_todayNoticeProvider.notifier).state = l10n.domainNoHabitsDueToday;
     return;
   }
   try {
@@ -1264,15 +1294,26 @@ Future<void> _checkInFirstHabit(WidgetRef ref) async {
         .read(repositoriesProvider)
         .habit
         .upsertCheckin(habitId: target.id, date: date);
-    ref.read(_todayNoticeProvider.notifier).state = '已打卡：${target.name}';
+    ref.read(_todayNoticeProvider.notifier).state = l10n.todayCheckedIn(
+      target.name,
+    );
   } catch (error) {
-    ref.read(_todayNoticeProvider.notifier).state = '打卡失败：$error';
+    ref.read(_todayNoticeProvider.notifier).state = l10n.todayCheckinFailed(
+      '$error',
+    );
   }
 }
 
 /// 页内提示横幅（`accentWash` 底 + `accent` 边，与待办池页横幅同 token）。
 class _NoticeBanner extends StatelessWidget {
-  const _NoticeBanner({required this.message, required this.onDismiss});
+  const _NoticeBanner({
+    required this.l10n,
+    required this.message,
+    required this.onDismiss,
+  });
+
+  /// 文案来源：纯 `StatelessWidget` 没有 `ref`，由 `_TodayBody` 取好下传。
+  final AppLocalizations l10n;
 
   /// 提示正文。
   final String message;
@@ -1301,7 +1342,7 @@ class _NoticeBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          _GhostAction(label: '知道了', dense: true, onPressed: onDismiss),
+          _GhostAction(label: l10n.todayGotIt, dense: true, onPressed: onDismiss),
         ],
       ),
     );

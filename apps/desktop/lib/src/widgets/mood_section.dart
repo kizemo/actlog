@@ -6,6 +6,7 @@ import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import 'section_card.dart';
@@ -102,21 +103,24 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
     };
   }
 
-  static String _groupTitle(MoodPeriod period) {
-    return period == MoodPeriod.day ? '每日核心' : '每周补充';
+  static String _groupTitle(AppLocalizations t, MoodPeriod period) {
+    return period == MoodPeriod.day
+        ? t.moodGroupDayTitle
+        : t.moodGroupWeekTitle;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = ref.watch(appLocalizationsProvider);
     final dayLog = ref.watch(dayLogProvider);
     // 还活着的时候把仓储抓进字段，供 dispose() 使用（见 _repo 的注释）。
     _repo ??= ref.read(repositoriesProvider).dayLog;
 
     return SectionCard(
       icon: Icons.self_improvement,
-      title: '心态',
-      subtitle: '每日 3 项 + 每周 2 项，各 0–10 分；留空表示不作评',
+      title: t.domainMoodLabel,
+      subtitle: t.moodSectionSubtitle,
       child: dayLog.when(
         loading: () => const LinearProgressIndicator(),
         error: (error, stack) => Text(
@@ -125,7 +129,7 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
         ),
         data: (log) {
           if (log == null) {
-            return const Text('当日日志尚未建立');
+            return Text(t.domainDayLogNotStarted);
           }
           final summary = ref.watch(moodProvider(log));
           if (_seededLogId != log.id) {
@@ -146,12 +150,14 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: <Widget>[
                   Text(
-                    '已评 $rated/${moodDimensionDefs.length} 维',
+                    t.moodRatedCount(rated, moodDimensionDefs.length),
                     key: const ValueKey<String>('mood-rated-count'),
                     style: theme.textTheme.labelSmall,
                   ),
                   Text(
-                    '均分 ${average == null ? '—' : average.toStringAsFixed(1)}',
+                    t.moodAverage(
+                      average == null ? '—' : average.toStringAsFixed(1),
+                    ),
                     key: const ValueKey<String>('mood-average'),
                     style: theme.textTheme.labelSmall,
                   ),
@@ -162,7 +168,7 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
                         setState(_scores.clear);
                         _scheduleSave(log.id);
                       },
-                      child: const Text('全部清空'),
+                      child: Text(t.moodClearAll),
                     ),
                   TextButton(
                     key: const ValueKey<String>('mood-mark-failed'),
@@ -170,7 +176,7 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
                       setState(() => _failedRequested = true);
                       _scheduleSave(log.id);
                     },
-                    child: const Text('今天没打分'),
+                    child: Text(t.moodMarkFailed),
                   ),
                 ],
               ),
@@ -184,7 +190,8 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       _MoodGroupHeader(
-                        title: _groupTitle(period),
+                        t: t,
+                        title: _groupTitle(t, period),
                         period: period,
                         rated: ratedMoodDimensionCount(
                           dimensionScores,
@@ -197,6 +204,7 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
                       for (final definition in moodDimensionDefs)
                         if (definition.period == period)
                           _MoodDimensionRow(
+                            t: t,
                             key: ValueKey<String>(
                               'mood-dim-${definition.key}',
                             ),
@@ -224,11 +232,11 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
                 minLines: 1,
                 maxLines: 2,
                 onChanged: (_) => _scheduleSave(log.id),
-                decoration: const InputDecoration(
-                  labelText: moodNextActionLabel,
-                  hintText: '明天先做的一件具体事',
-                  prefixIcon: Icon(Icons.flag_outlined, size: 18),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: t.moodNextActionLabel,
+                  hintText: t.moodNextActionHint,
+                  prefixIcon: const Icon(Icons.flag_outlined, size: 18),
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
               ),
@@ -239,11 +247,11 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
                 minLines: 1,
                 maxLines: 3,
                 onChanged: (_) => _scheduleSave(log.id),
-                decoration: const InputDecoration(
-                  labelText: '情绪备注',
-                  hintText: '今天状态如何？为什么？',
-                  prefixIcon: Icon(Icons.notes, size: 18),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: t.moodNoteLabel,
+                  hintText: t.moodNoteHint,
+                  prefixIcon: const Icon(Icons.notes, size: 18),
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
               ),
@@ -258,12 +266,15 @@ class _MoodSectionState extends ConsumerState<MoodSection> {
 /// 「每日核心 / 每周补充」分组头。
 class _MoodGroupHeader extends StatelessWidget {
   const _MoodGroupHeader({
+    required this.t,
     required this.title,
     required this.period,
     required this.rated,
     required this.total,
   });
 
+  /// 当前语言的文案表（由 `_MoodSectionState` 传下来）。
+  final AppLocalizations t;
   final String title;
   final MoodPeriod period;
   final int rated;
@@ -280,13 +291,13 @@ class _MoodGroupHeader extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
           Text(
-            '$title · ${period == MoodPeriod.day ? '每日' : '每周'}更新',
+            t.moodGroupHeader(title, period == MoodPeriod.day),
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           Text(
-            '$total 项 · 已评 $rated',
+            t.moodGroupProgress(total, rated),
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -300,6 +311,7 @@ class _MoodGroupHeader extends StatelessWidget {
 /// 单个心态维度：一个主存列的 0–10 打分控件 + 文案 + 佐证只读行。
 class _MoodDimensionRow extends StatelessWidget {
   const _MoodDimensionRow({
+    required this.t,
     required this.definition,
     required this.score,
     required this.rawScores,
@@ -308,6 +320,8 @@ class _MoodDimensionRow extends StatelessWidget {
     super.key,
   });
 
+  /// 当前语言的文案表（由 `_MoodSectionState` 传下来）。
+  final AppLocalizations t;
   final MoodDimensionDef definition;
   final int? score;
   final Map<MoodDimension, int> rawScores;
@@ -320,7 +334,7 @@ class _MoodDimensionRow extends StatelessWidget {
     final rated = score != null;
     final evidence = <String>[
       for (final dimension in definition.supporting)
-        '${dimension.label} ${rawScores[dimension] ?? '未评'}',
+        '${_legacyLabel(dimension, t)} ${rawScores[dimension] ?? t.moodUnrated}',
     ];
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -332,7 +346,7 @@ class _MoodDimensionRow extends StatelessWidget {
               SizedBox(
                 width: 92,
                 child: Text(
-                  definition.label,
+                  _dimensionLabel(definition, t),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: rated ? null : theme.colorScheme.onSurfaceVariant,
                   ),
@@ -372,7 +386,7 @@ class _MoodDimensionRow extends StatelessWidget {
                 width: 30,
                 child: rated
                     ? IconButton(
-                        tooltip: '清除这一维',
+                        tooltip: t.moodClearDimension,
                         icon: const Icon(Icons.close, size: 14),
                         visualDensity: VisualDensity.compact,
                         onPressed: onClear,
@@ -382,14 +396,14 @@ class _MoodDimensionRow extends StatelessWidget {
             ],
           ),
           Text(
-            definition.description,
+            _dimensionDesc(definition, t),
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           if (evidence.isNotEmpty)
             Text(
-              '佐证：${evidence.join(' · ')}',
+              t.moodEvidence(evidence.join(' · ')),
               key: ValueKey<String>('mood-supporting-${definition.key}'),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -398,5 +412,63 @@ class _MoodDimensionRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// 5 个新维度的显示名（按落库 `key` 取，不按中文 label 匹配）。
+String _dimensionLabel(MoodDimensionDef definition, AppLocalizations t) {
+  switch (definition.key) {
+    case 'fulfillment':
+      return t.moodDimFulfillmentLabel;
+    case 'efficiency':
+      return t.moodDimEfficiencyLabel;
+    case 'positiveMind':
+      return t.moodDimPositiveMindLabel;
+    case 'selfEfficacy':
+      return t.moodDimSelfEfficacyLabel;
+    case 'contribution':
+      return t.moodDimContributionLabel;
+    default:
+      return definition.label;
+  }
+}
+
+/// 5 个新维度的说明文案（同上，按 `key` 取）。
+String _dimensionDesc(MoodDimensionDef definition, AppLocalizations t) {
+  switch (definition.key) {
+    case 'fulfillment':
+      return t.moodDimFulfillmentDesc;
+    case 'efficiency':
+      return t.moodDimEfficiencyDesc;
+    case 'positiveMind':
+      return t.moodDimPositiveMindDesc;
+    case 'selfEfficacy':
+      return t.moodDimSelfEfficacyDesc;
+    case 'contribution':
+      return t.moodDimContributionDesc;
+    default:
+      return definition.description;
+  }
+}
+
+/// 8 个 legacy 维度的显示名（佐证行用；枚举名稳定，不受文案变动影响）。
+String _legacyLabel(MoodDimension dimension, AppLocalizations t) {
+  switch (dimension) {
+    case MoodDimension.diligent:
+      return t.moodLegacyDiligent;
+    case MoodDimension.fast:
+      return t.moodLegacyFast;
+    case MoodDimension.keepPromise:
+      return t.moodLegacyKeepPromise;
+    case MoodDimension.finishTask:
+      return t.moodLegacyFinishTask;
+    case MoodDimension.optimistic:
+      return t.moodLegacyOptimistic;
+    case MoodDimension.confident:
+      return t.moodLegacyConfident;
+    case MoodDimension.loveAndDedication:
+      return t.moodLegacyLoveAndDedication;
+    case MoodDimension.noExcuses:
+      return t.moodLegacyNoExcuses;
   }
 }

@@ -105,9 +105,11 @@ void main() {
 
     await harness.mount(tester);
 
-    expect(find.text(HabitCheckinStrip.loadingLabel), findsOneWidget);
-    expect(find.text(HabitCheckinStrip.emptyLabel), findsNothing);
-    expect(find.text(HabitCheckinStrip.errorLabel), findsNothing);
+    // 断字面量（§47.3 铁律 1）：不拿 `HabitCheckinStrip.xxxLabel` 当期望值，
+    // 否则组件改文案、测试跟着改，等于什么都没钉住。
+    expect(find.text('正在加载打卡状态…'), findsOneWidget);
+    expect(find.text('今天没有待打卡的习惯'), findsNothing);
+    expect(find.text('打卡状态加载失败，请稍后重试'), findsNothing);
     await _flushTimers(tester);
   });
 

@@ -34,8 +34,18 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
 import 'focus_ring.dart';
 import 'priority_marks.dart';
+
+/// 取当前 [AppLocalizations]；无 [L10nScope] 时回落中文档。
+///
+/// 气泡可能在裸 `MaterialApp`（测试）里被挂载，`L10nScope` 不存在时不能抛错，
+/// 因此走「有 scope 按 scope、无 scope 回 zh」口径（zh 态与迁移前逐字一致）。
+AppLocalizations _l10n(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+    AppLocalizations.zh;
 
 /// 气泡卡片宽度（与 `task36-a-roulette.html` 的 `.bub` 同宽）。
 const double kPriorityBubbleWidth = 344;
@@ -228,9 +238,11 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
               button: true,
               // 读屏通道：象限结论 + **两维取值**，"悬停"对读屏用户无意义，
               // 所以换成「可按下」语义（Enter/Space 由按钮语义带动点击）。
-              label: '${style.label}，紧急：'
-                  '${value.isUrgent ? '是' : '否'}，重要：'
-                  '${value.isImportant ? '是' : '否'}',
+              label: _l10n(context).priorityBubbleA11y(
+                style.label,
+                value.isUrgent,
+                value.isImportant,
+              ),
               child: PriorityMarks(quadrant: value, size: widget.markSize),
             ),
           ),
@@ -363,8 +375,11 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
   Widget _dimensionRow({required bool isUrgency, required bool current}) {
     final ThemeTokens tokens = context.tokens;
     final bool enabled = !_readOnly;
-    final String onLabel = isUrgency ? '紧急' : '重要';
-    final String offLabel = isUrgency ? '不紧急' : '不重要';
+    final AppLocalizations l10n = _l10n(context);
+    final String onLabel =
+        isUrgency ? l10n.commonAxisUrgent : l10n.commonAxisImportant;
+    final String offLabel =
+        isUrgency ? l10n.commonAxisNotUrgent : l10n.commonAxisNotImportant;
     final String prefix = '${widget.ownerKey ?? 'priority'}-'
         '${isUrgency ? 'urgent' : 'important'}';
     return Row(
@@ -422,7 +437,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
           textBaseline: TextBaseline.alphabetic,
           children: <Widget>[
             Text(
-              '当前',
+              _l10n(context).priorityBubbleCurrent,
               style: TextStyle(
                 fontFamily: AppFonts.mono,
                 fontFamilyFallback: AppFonts.monoFallback,
@@ -479,7 +494,7 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
         const _Keycap(text: 'Esc'),
         const SizedBox(width: 4),
         Text(
-          '关闭',
+          _l10n(context).commonClose,
           style: TextStyle(
             fontFamily: AppFonts.body,
             fontFamilyFallback: AppFonts.bodyFallback,
@@ -490,7 +505,9 @@ class _PriorityHoverBubbleState extends State<PriorityHoverBubble> {
         ),
         const Spacer(),
         Text(
-          _readOnly ? '点标记开关 · 分级写入未开放' : '点标记开关 · 点维度改分级',
+          _readOnly
+              ? _l10n(context).priorityBubbleReadonly
+              : _l10n(context).priorityBubbleEditable,
           style: TextStyle(
             fontFamily: AppFonts.body,
             fontFamilyFallback: AppFonts.bodyFallback,

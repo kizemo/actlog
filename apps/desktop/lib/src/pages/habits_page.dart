@@ -3,6 +3,7 @@ import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
@@ -26,6 +27,7 @@ class HabitsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final t = context.tokens;
+    final l10n = ref.watch(appLocalizationsProvider);
     final String date = ref.watch(selectedDateProvider);
     final String today = ref.watch(todayProvider);
     final bool future = date.compareTo(today) > 0;
@@ -39,7 +41,7 @@ class HabitsPage extends ConsumerWidget {
         const DateBar(),
         const SizedBox(height: AppTokens.gapCard),
         Text(
-          '习惯',
+          l10n.habitPageTitle,
           style: theme.textTheme.titleLarge?.copyWith(
             fontFamily: AppFonts.body,
             fontFamilyFallback: AppFonts.bodyFallback,
@@ -48,7 +50,7 @@ class HabitsPage extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          '$date · ${weekdayLabelOf(date)}',
+          '$date · ${weekdayLabelOf(date, l10n)}',
           key: const ValueKey<String>('habits-page-date'),
           style: TextStyle(
             fontFamily: AppFonts.mono,
@@ -61,7 +63,7 @@ class HabitsPage extends ConsumerWidget {
         if (future) ...<Widget>[
           const SizedBox(height: AppTokens.gapSec),
           Text(
-            '未来日只做预排：习惯打卡在当天开放。',
+            l10n.habitPageFutureHint,
             key: const ValueKey<String>('habits-page-future-hint'),
             style: TextStyle(
               fontFamily: AppFonts.body,
@@ -83,13 +85,13 @@ class HabitsPage extends ConsumerWidget {
           child: habits.when(
             loading: () => const LinearProgressIndicator(),
             error: (Object error, StackTrace stack) => Text(
-              '习惯加载失败：$error',
+              l10n.habitLoadFailed('$error'),
               style: TextStyle(color: theme.colorScheme.error),
             ),
             data: (List<HabitData> rows) {
               if (rows.isEmpty) {
                 return Text(
-                  '还没有习惯',
+                  l10n.habitPageEmpty,
                   key: const ValueKey<String>('habits-page-empty'),
                   style: TextStyle(color: t.meta),
                 );
@@ -97,7 +99,7 @@ class HabitsPage extends ConsumerWidget {
               return checkins.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (Object error, StackTrace stack) => Text(
-                  '打卡记录加载失败：$error',
+                  l10n.habitCheckinLoadFailed('$error'),
                   style: TextStyle(color: theme.colorScheme.error),
                 ),
                 data: (List<HabitCheckinData> dayCheckins) {
@@ -144,12 +146,17 @@ class _HabitRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = context.tokens;
+    final l10n = ref.watch(appLocalizationsProvider);
     final repo = ref.read(repositoriesProvider).habit;
     final bool done = checkin?.status == CheckinStatus.done.code;
     final double? targetCount = habit.targetCount;
     final String? target = targetCount != null && targetCount > 1
-        ? '目标 ${targetCount % 1 == 0 ? targetCount.toStringAsFixed(0) : targetCount.toStringAsFixed(1)}'
-              '${habit.targetUnit}'
+        ? l10n.habitTarget(
+            targetCount % 1 == 0
+                ? targetCount.toStringAsFixed(0)
+                : targetCount.toStringAsFixed(1),
+            _displayUnit(habit.targetUnit, l10n),
+          )
         : null;
 
     return Padding(
@@ -208,11 +215,16 @@ class _HabitRow extends ConsumerWidget {
 }
 
 /// `2026-11-05` ⇒ `周四`。解析失败返回空串（不抛异常，不打断渲染）。
-String weekdayLabelOf(String date) {
+///
+/// [t] 省略时回落中文档（保持既有单参调用点不变）。
+String weekdayLabelOf(String date, [AppLocalizations? t]) {
   final parsed = DateTime.tryParse(date);
   if (parsed == null) {
     return '';
   }
-  const labels = <String>['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-  return labels[parsed.weekday - 1];
+  return (t ?? AppLocalizations.zh).domainWeekdayFull[parsed.weekday - 1];
 }
+
+/// 落库单位 `次` 显示成当前语言；其它单位原样返回。
+String _displayUnit(String stored, AppLocalizations t) =>
+    stored == '次' ? t.commonUnitTimes : stored;

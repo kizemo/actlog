@@ -2,6 +2,7 @@ import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../providers_p1.dart';
 import '../theme/app_fonts.dart';
@@ -73,9 +74,10 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
     if (_submitting || _saved) {
       return;
     }
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final title = _title.text.trim();
     if (title.isEmpty) {
-      setState(() => _error = '标题不能为空');
+      setState(() => _error = l10n.dialogTodoTitleRequired);
       return;
     }
     // 数量 × 单位 ⇒ 分钟；留空 ⇒ 不写库（NULL）。
@@ -84,7 +86,7 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
     if (estText.isNotEmpty) {
       final amount = double.tryParse(estText);
       if (amount == null || amount <= 0) {
-        setState(() => _error = '预估时间要填正数，或留空');
+        setState(() => _error = l10n.dialogTodoEstInvalid);
         return;
       }
       // 四舍五入到 0 视为未填（例如 0.001 分钟），存 NULL。
@@ -136,26 +138,27 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final target = ref.watch(todoPullTargetDateProvider);
     return _LedgerDialog(
-      title: '手写一条',
-      subtitle: '先存进待办池；勾选后同时落进 $target 的计划。',
+      title: l10n.dialogTodoCreateTitle,
+      subtitle: l10n.dialogTodoCreateSubtitle(target),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text('标题', style: _bodyStyle(size: 11.5, color: t.faint)),
+          Text(l10n.commonTitle, style: _bodyStyle(size: 11.5, color: t.faint)),
           const SizedBox(height: 4),
           TextField(
             controller: _title,
             autofocus: true,
             textInputAction: TextInputAction.next,
             style: _bodyStyle(size: 13, color: t.ink),
-            decoration: _fieldDecoration('要做什么？', t),
+            decoration: _fieldDecoration(l10n.dialogTodoTitleHint, t),
           ),
           const SizedBox(height: 10),
           Text(
-            '预估时间（可选）',
+            l10n.dialogTodoEstLabel,
             style: _bodyStyle(size: 11.5, color: t.faint),
           ),
           const SizedBox(height: 4),
@@ -172,13 +175,14 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
                   style: _bodyStyle(size: 13, color: t.ink),
-                  decoration: _fieldDecoration('例如 25', t),
+                  decoration: _fieldDecoration(l10n.dialogTodoEstHint, t),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: EstUnitPicker(
                   keyPrefix: 'quick-todo',
+                  t: l10n,
                   selected: _unit,
                   enabled: !_submitting && !_saved,
                   onChanged: (EstUnit unit) => setState(() => _unit = unit),
@@ -188,7 +192,7 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
           ),
           const SizedBox(height: 10),
           Text(
-            '优先级（可选）',
+            l10n.dialogTodoPriorityLabel,
             style: _bodyStyle(size: 11.5, color: t.faint),
           ),
           const SizedBox(height: 4),
@@ -210,7 +214,7 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
               ),
               Expanded(
                 child: Text(
-                  '同时捞入今天',
+                  l10n.dialogTodoPullToday,
                   style: _bodyStyle(size: 12.5, color: t.ink2),
                 ),
               ),
@@ -228,13 +232,13 @@ class _QuickTodoDialogState extends ConsumerState<QuickTodoDialog> {
             runSpacing: 8,
             children: <Widget>[
               _DialogButton(
-                label: '取消',
+                label: l10n.cancel,
                 onPressed: _submitting
                     ? null
                     : () => Navigator.of(context).pop(),
               ),
               _DialogButton(
-                label: _submitting ? '保存中…' : '保存',
+                label: _submitting ? l10n.dialogTodoSaving : l10n.commonSave,
                 primary: true,
                 onPressed: _submitting ? null : _submit,
               ),
@@ -299,11 +303,12 @@ class _PullFromPoolDialogState extends ConsumerState<PullFromPoolDialog> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final pool = ref.watch(todoPoolProvider);
     final target = ref.watch(todoPullTargetDateProvider);
     return _LedgerDialog(
-      title: '从待办池捞',
-      subtitle: '捞进 $target 的计划；待办池本身不会被删。',
+      title: l10n.dialogTodoPullTitle,
+      subtitle: l10n.dialogTodoPullSubtitle(target),
       child: pool.when(
         loading: () => const Padding(
           padding: EdgeInsets.symmetric(vertical: 18),
@@ -321,7 +326,7 @@ class _PullFromPoolDialogState extends ConsumerState<PullFromPoolDialog> {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
-                '待办池是空的',
+                l10n.dialogTodoPoolEmpty,
                 style: _bodyStyle(size: 12.5, color: t.faint),
               ),
             );
@@ -361,7 +366,7 @@ class _PullFromPoolDialogState extends ConsumerState<PullFromPoolDialog> {
                 alignment: WrapAlignment.end,
                 children: <Widget>[
                   _DialogButton(
-                    label: '关闭',
+                    label: l10n.commonClose,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -396,9 +401,11 @@ class _PoolRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final meta = <String>[
       if (todo.priorityAbc != null) todo.priorityAbc!.code,
-      if (todo.estMinutes != null) formatEstDuration(todo.estMinutes!),
+      if (todo.estMinutes != null)
+        formatEstDuration(todo.estMinutes!, l10n),
     ].join(' · ');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -428,7 +435,7 @@ class _PoolRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           _DialogButton(
-            label: pulling ? '捞入中…' : '捞入',
+            label: pulling ? l10n.dialogTodoPulling : l10n.dialogTodoPull,
             dense: true,
             onPressed: busy ? null : onPull,
           ),

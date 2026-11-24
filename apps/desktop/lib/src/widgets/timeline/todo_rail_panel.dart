@@ -28,23 +28,28 @@ class TodoRailPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final todosAsync = ref.watch(todoPoolProvider);
     final slottedAsync = ref.watch(slottedTodosProvider);
+    final l10n = ref.watch(appLocalizationsProvider);
 
-    // 三种状态（失败 / 加载 / 空）的原文案一字不改。
+    // 三种状态（失败 / 加载 / 空）的文案走 l10n。
     // 「优先级分布」块已删（Task 45 需求 5）：右栏「待办列表」只显示待办时间列表。
     final List<Widget> rows;
     if (todosAsync.hasError || slottedAsync.hasError) {
-      rows = <Widget>[const _RailNote(text: '待办加载失败', danger: true)];
+      rows = <Widget>[_RailNote(text: l10n.timelineTodoLoadFailed, danger: true)];
     } else if (!todosAsync.hasValue || !slottedAsync.hasValue) {
-      rows = <Widget>[const _RailNote(text: '正在加载待办…')];
+      rows = <Widget>[_RailNote(text: l10n.timelineTodoLoading)];
     } else {
       // 已排期集合按 `todo.id` 计（跨日期），与待办池「已排期」徽标同一事实源。
       final slottedIds = slottedAsync.value!.keys.toSet();
       final todos = todosAsync.value!;
       rows = <Widget>[
-        if (todos.isEmpty) const _RailNote(text: '暂无待办'),
+        if (todos.isEmpty) _RailNote(text: l10n.timelineTodoEmpty),
         for (final todo in todos)
           if (slottedIds.contains(todo.id))
-            _ReadOnlyEntry(label: todo.title, quadrant: todo.quadrant)
+            _ReadOnlyEntry(
+              label: todo.title,
+              quadrant: todo.quadrant,
+              slottedLabel: l10n.timelineTodoSlotted,
+            )
           else
             _DraggableEntry(
               entry: _RailEntry(
@@ -148,12 +153,19 @@ class _DraggableEntry extends StatelessWidget {
 /// 形状与可拖条目一致，只是没有拖拽柄光标、没有 `Draggable` —— 它不可能是
 /// 方格时间轴的落点来源。
 class _ReadOnlyEntry extends StatelessWidget {
-  const _ReadOnlyEntry({required this.label, this.quadrant});
+  const _ReadOnlyEntry({
+    required this.label,
+    required this.slottedLabel,
+    this.quadrant,
+  });
 
   final String label;
 
   /// 四维度优先级；null = 未分级。
   final Quadrant? quadrant;
+
+  /// 「已排期」徽标文案（由调用方从 l10n 取，保持本 widget 无 l10n 依赖）。
+  final String slottedLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +196,7 @@ class _ReadOnlyEntry extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          Text('已排期', style: _monoStyle(size: 10.5, color: t.faint)),
+          Text(slottedLabel, style: _monoStyle(size: 10.5, color: t.faint)),
         ],
       ),
     );

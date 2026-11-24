@@ -22,22 +22,36 @@
 //     Q3 = star_border + notifications   Q4 = star_border + notifications_none
 //
 // **身份仍由 `Key` 承担**：同一轴的两态同形（只差填充），所以「象限 → 标记」的
-// 表达是 `PriorityMark` 描述对象（key / label / 实心与空心图标 / `filled` / 颜色），
+// 表达是 `PriorityMark` 描述对象（key / 实心与空心图标 / `filled` / 颜色），
 // 唯一取用入口是 `markOf` / `marksOf`。渲染处带**值级** `Key`
 // （`priority-mark-important` / `-not-important` / `-urgent` / `-not-urgent`），
 // 测试按 key 定位，不用 `find.text` / `find.byIcon` 这种会与另一态撞车的形状计数。
 //
 // 未分级（`quadrant == null`）不画标记，也不留占位空隙 —— 空白本身是信息：
 // 用户看一眼就知道这条还没想过分级，与「想了但结论是 Q4」明确区分。
+//
+// 文案纪律（Task 63 · W5）：本文件不再自带中文展示名 —— 芯片文案一律从
+// `AppLocalizations` 取（`commonAxis*` / `commonClear*`），同一枚标记在 zh/en
+// 下说同一件事。`PriorityMark.label` 字段已删，身份只留 `key`。
 // =============================================================================
 
 import 'package:core_data/core_data.dart';
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
 import 'priority_chips.dart' show colorFromHex;
+
+/// 取当前 [AppLocalizations]；无 [L10nScope] 时回落中文档。
+///
+/// 选择器与标记可能在裸 `MaterialApp`（测试）里被挂载，`L10nScope` 不存在时
+/// 不能抛错，因此走「有 scope 按 scope、无 scope 回 zh」口径（zh 态逐字不变）。
+AppLocalizations _l10n(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+    AppLocalizations.zh;
 
 /// 重要性轴的两枚图标：**同一枚星**的实心 / 空心两态。
 ///
@@ -70,7 +84,6 @@ class PriorityMark {
   /// [filled] 默认 `true` ⇒ 只给 [icon] 的老调用点渲染实心，呈现与改造前一致。
   const PriorityMark({
     required this.key,
-    required this.label,
     required this.color,
     this.glyph,
     this.icon,
@@ -84,9 +97,6 @@ class PriorityMark {
 
   /// 渲染处的值级 Key（`priority-mark-important` 等）—— 测试定位用。
   final Key key;
-
-  /// 该维度取值的中文名（「重要」/「不重要」/「紧急」/「不紧急」）。
-  final String label;
 
   /// 该标记在**浅色档**的主色（重要 = `accent`，不重要 = `faint`，两条轴同构）。
   ///
@@ -126,7 +136,6 @@ class PriorityMark {
 /// 「重要」：**实心**星 + accent。
 const PriorityMark kMarkImportantSpec = PriorityMark(
   key: ValueKey<String>('priority-mark-important'),
-  label: '重要',
   icon: kMarkImportant,
   outlineIcon: kMarkNotImportant,
   filled: true,
@@ -141,7 +150,6 @@ const PriorityMark kMarkImportantSpec = PriorityMark(
 /// 同轴共用一对图标正是「同图标 + 填充/空心」的实现方式。
 const PriorityMark kMarkNotImportantSpec = PriorityMark(
   key: ValueKey<String>('priority-mark-not-important'),
-  label: '不重要',
   icon: kMarkImportant,
   outlineIcon: kMarkNotImportant,
   filled: false,
@@ -152,7 +160,6 @@ const PriorityMark kMarkNotImportantSpec = PriorityMark(
 /// 「紧急」：**实心**铃 + accent。
 const PriorityMark kMarkUrgentSpec = PriorityMark(
   key: ValueKey<String>('priority-mark-urgent'),
-  label: '紧急',
   icon: kMarkUrgent,
   outlineIcon: kMarkNotUrgent,
   filled: true,
@@ -162,7 +169,6 @@ const PriorityMark kMarkUrgentSpec = PriorityMark(
 /// 「不紧急」：**同一枚铃的空心版** + 弱化色（只有 `filled` 取反）。
 const PriorityMark kMarkNotUrgentSpec = PriorityMark(
   key: ValueKey<String>('priority-mark-not-urgent'),
-  label: '不紧急',
   icon: kMarkUrgent,
   outlineIcon: kMarkNotUrgent,
   filled: false,
@@ -213,8 +219,9 @@ Quadrant quadrantOf({required bool important, required bool urgent}) {
 /// 只做**只读渲染**：点击与修改由 `PriorityMarkPicker` 或既有
 /// `QuadrantPickerDialog` 承担，标记本身不抢焦点、不进 Tab 序列。
 ///
-/// 语义合成一句中文（如「重要且紧急」），读屏用户听到的是结论而不是
-/// 「实心星 实心铃」这种图形噪声。
+/// 语义合成一句结论（如「重要且紧急」），读屏用户听到的是结论而不是
+/// 「实心星 实心铃」这种图形噪声；结论文案按象限穷举取 l10n
+/// （`quadrantQ1Label`…`quadrantQ4Label`，见 [_semanticLabelOf]）。
 class PriorityMarks extends StatelessWidget {
   /// 创建标记组；[quadrant] 为 null 时渲染成零尺寸占位（不占空隙）。
   const PriorityMarks({required this.quadrant, this.size = 10, super.key});
@@ -232,10 +239,9 @@ class PriorityMarks extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final ThemeTokens tokens = context.tokens;
-    final QuadrantStyle style = QuadrantStyle.of(value);
     final List<PriorityMark> marks = marksOf(value);
     return Semantics(
-      label: style.label,
+      label: _semanticLabelOf(context, value),
       excludeSemantics: true,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -246,6 +252,18 @@ class PriorityMarks extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// 读屏结论文案：显式穷举四象限走 l10n，不落 `QuadrantStyle.label`
+  /// 的域层中文（zh 态取值与旧常量逐字相同）。
+  static String _semanticLabelOf(BuildContext context, Quadrant value) {
+    final AppLocalizations l10n = _l10n(context);
+    return switch (value) {
+      Quadrant.q1 => l10n.quadrantQ1Label,
+      Quadrant.q2 => l10n.quadrantQ2Label,
+      Quadrant.q3 => l10n.quadrantQ3Label,
+      Quadrant.q4 => l10n.quadrantQ4Label,
+    };
   }
 
   /// 一枚标记：Material 图标（按 `filled` 落实心/空心）或文本字形，
@@ -304,6 +322,7 @@ class PriorityMarkPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeTokens tokens = context.tokens;
+    final AppLocalizations l10n = _l10n(context);
     final Quadrant? current = value;
     final bool important = current?.isImportant ?? false;
     final bool urgent = current?.isUrgent ?? false;
@@ -320,7 +339,7 @@ class PriorityMarkPicker extends StatelessWidget {
       children: <Widget>[
         _MarkChip(
           key: const ValueKey<String>('priority-mark-picker-important'),
-          label: '重要',
+          label: l10n.commonAxisImportant,
           mark: kMarkImportantSpec,
           selected: current != null && important,
           accent: accent,
@@ -329,7 +348,7 @@ class PriorityMarkPicker extends StatelessWidget {
         ),
         _MarkChip(
           key: const ValueKey<String>('priority-mark-picker-not-important'),
-          label: '不重要',
+          label: l10n.commonAxisNotImportant,
           mark: kMarkNotImportantSpec,
           selected: current != null && !important,
           accent: accent,
@@ -338,7 +357,7 @@ class PriorityMarkPicker extends StatelessWidget {
         ),
         _MarkChip(
           key: const ValueKey<String>('priority-mark-picker-urgent'),
-          label: '紧急',
+          label: l10n.commonAxisUrgent,
           mark: kMarkUrgentSpec,
           selected: current != null && urgent,
           accent: accent,
@@ -347,7 +366,7 @@ class PriorityMarkPicker extends StatelessWidget {
         ),
         _MarkChip(
           key: const ValueKey<String>('priority-mark-picker-not-urgent'),
-          label: '不紧急',
+          label: l10n.commonAxisNotUrgent,
           mark: kMarkNotUrgentSpec,
           selected: current != null && !urgent,
           accent: accent,
@@ -355,13 +374,17 @@ class PriorityMarkPicker extends StatelessWidget {
           onTap: () => onChanged(quadrantOf(important: important, urgent: false)),
         ),
         if (current != null)
-          _ClearChip(enabled: enabled, onTap: () => onChanged(null)),
+          _ClearChip(
+            enabled: enabled,
+            l10n: l10n,
+            onTap: () => onChanged(null),
+          ),
       ],
     );
   }
 }
 
-/// 一枚芯片：字形 / 图标 + 中文标签，选中时换底色与边框。
+/// 一枚芯片：字形 / 图标 + 标签，选中时换底色与边框。
 class _MarkChip extends StatelessWidget {
   const _MarkChip({
     required this.label,
@@ -449,9 +472,14 @@ class _MarkChip extends StatelessWidget {
 
 /// 「清除」芯片：把已分级打回未分级。
 class _ClearChip extends StatelessWidget {
-  const _ClearChip({required this.enabled, required this.onTap});
+  const _ClearChip({
+    required this.enabled,
+    required this.l10n,
+    required this.onTap,
+  });
 
   final bool enabled;
+  final AppLocalizations l10n;
   final VoidCallback onTap;
 
   @override
@@ -459,7 +487,7 @@ class _ClearChip extends StatelessWidget {
     final ThemeTokens tokens = context.tokens;
     return Semantics(
       button: true,
-      label: '清除优先级',
+      label: l10n.commonClearPriority,
       excludeSemantics: true,
       child: InkWell(
         key: const ValueKey<String>('priority-mark-picker-clear'),
@@ -468,7 +496,7 @@ class _ClearChip extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: Text(
-            '清除',
+            l10n.commonClear,
             style: TextStyle(
               fontFamily: AppFonts.body,
               fontFamilyFallback: AppFonts.bodyFallback,

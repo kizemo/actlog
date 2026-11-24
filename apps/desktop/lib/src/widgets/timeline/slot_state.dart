@@ -15,6 +15,7 @@ import 'dart:ui' show Color;
 import 'package:core_db/core_db.dart' hide Todo, nowMillis;
 import 'package:core_domain/core_domain.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_tokens.dart';
 
 /// 一格的分钟数。运行时不可切换（5 分钟档只保留这个常量的替换位）。
@@ -271,20 +272,24 @@ String glyphOfSlotKind(SlotKind kind) {
   }
 }
 
-/// 四态中文状态词（文字通道）。
+/// 四态状态词（文字通道）。
 ///
 /// 与 [glyphOfSlotKind] 成对出现：只靠形状会要求用户先学会图例，
 /// 只靠颜色则对色觉障碍不友好，两条通道同时给才叫冗余可辨识。
-String stateLabelOfSlotKind(SlotKind kind) {
+///
+/// 文案走 l10n：本层仍是纯函数，`localizations` 可选、缺省取中文，
+/// 与 [foregroundOfSlotKind] 传 `ThemeTokens` 同一口径。
+String stateLabelOfSlotKind(SlotKind kind, {AppLocalizations? localizations}) {
+  final AppLocalizations l10n = localizations ?? AppLocalizations.zh;
   switch (kind) {
     case SlotKind.habit:
-      return '打卡';
+      return l10n.timelineKindHabitLabel;
     case SlotKind.backfill:
-      return '回填';
+      return l10n.domainBackfillLabel;
     case SlotKind.done:
-      return '完成';
+      return l10n.timelineKindDoneLabel;
     case SlotKind.plannedOpen:
-      return '计划';
+      return l10n.domainPlanLabel;
   }
 }
 

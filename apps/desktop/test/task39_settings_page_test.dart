@@ -23,6 +23,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定「今天」，让 `DayGrid` 不依赖真实时钟。
 const String _today = '2026-11-09';
 
@@ -97,7 +99,10 @@ final class _Harness {
 
   Future<void> mount(WidgetTester tester, Widget child) {
     return tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: child),
+      UncontrolledProviderScope(
+        container: container,
+        child: l10nScope(child),
+      ),
     );
   }
 }

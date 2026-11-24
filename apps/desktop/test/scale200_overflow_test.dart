@@ -18,9 +18,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/app.dart';
+import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/pages/today_page.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/widgets/section_card.dart';
+
+import 'l10n_harness.dart';
 
 const String _today = '2026-11-09';
 
@@ -57,7 +60,15 @@ Future<void> _flushTimers(WidgetTester tester) async {
 }
 
 /// 挂 200% 字号的整棵树（缩放只由 `ActLogApp.textScale` 施加）。
-Future<void> _mountAt200(WidgetTester tester) async {
+///
+/// [language] 走偏好覆盖（`appLocalizationsProvider` 读的是
+/// `currentPreferencesProvider`）：`ActLogApp` 自己就挂着 `L10nScope`
+/// （`app.dart:147`），所以这棵树**能**取到文案表；外层再包一层同语言的
+/// `L10nScope` 只是给脱离内层的子树兜底，内层取值优先。
+Future<void> _mountAt200(
+  WidgetTester tester, {
+  AppLanguage language = AppLanguage.zh,
+}) async {
   final db = openInMemoryActLogDatabase();
   final repos = ActLogRepositories(db, deviceId: 'scale200-test');
   final container = ProviderContainer(
@@ -66,6 +77,9 @@ Future<void> _mountAt200(WidgetTester tester) async {
       todayProvider.overrideWithValue(_today),
       repositoriesProvider.overrideWithValue(repos),
       selectedDateProvider.overrideWith((ref) => _today),
+      currentPreferencesProvider.overrideWithValue(
+        AppPreferences.defaults.copyWith(language: language),
+      ),
     ],
   );
   // `addTearDown` 按 LIFO 执行 ⇒ 先 dispose 容器、再 db.close。
@@ -75,7 +89,12 @@ Future<void> _mountAt200(WidgetTester tester) async {
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const ActLogApp(textScale: 2.0),
+      // `ActLogApp` 自身已挂 `L10nScope`（`app.dart:147`）；外层这份是给
+      // 「脱离内层 scope 的子树」兜底的同语言文案表，内层取值优先。
+      child: l10nScope(
+        const ActLogApp(textScale: 2.0),
+        language: language,
+      ),
     ),
   );
   await _settle(tester);
@@ -163,6 +182,28 @@ void main() {
     final pageElement = tester.element(find.byType(TodayPage));
     expect(MediaQuery.textScalerOf(pageElement).scale(10), 20);
     expect(find.byType(SectionCard), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+
+    await _flushTimers(tester);
+  });
+
+  testWidgets('英文态 200%：今日页同样零溢出，且文案确为 en', (tester) async {
+    _useLargeSurface(tester);
+    await _mountAt200(tester, language: AppLanguage.en);
+
+    final pageElement = tester.element(find.byType(TodayPage));
+    expect(MediaQuery.textScalerOf(pageElement).scale(10), 20);
+
+    // 英文串普遍比中文长 ⇒ 横向挤压只在这一态才可能冒出来。
+    // 断字面量：`parts\habit.dart` 里 `moodSectionSubtitle` 的 en 取值。
+    expect(
+      find.text('3 daily + 2 weekly items, 0–10 each; leave blank to skip'),
+      findsOneWidget,
+    );
+    expect(find.text('每日 3 项 + 每周 2 项，各 0–10 分；留空表示不作评'), findsNothing);
+
+    expect(find.byType(SectionCard), findsNWidgets(2));
+    // 真实断言：任何 `RenderFlex overflowed` 都会挂在这里。
     expect(tester.takeException(), isNull);
 
     await _flushTimers(tester);

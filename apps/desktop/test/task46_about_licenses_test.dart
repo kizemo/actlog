@@ -384,4 +384,70 @@ void main() {
         reason: '英文档也要同源');
     expect(changelog, isNot(contains('0.1.0')));
   });
+
+  // ------------------------------------------------ Task 63 · W8：en 态补齐
+  // 只**追加** en 态字面量断言 + 中文阴性对照；既有 zh 用例一字未改。
+  // en 期望串取自 `l10n/parts/about.dart` 与 `l10n/parts/common.dart`。
+  testWidgets('en 态许可证 / 隐私标题与仓库复制按钮用英文',
+      (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create(
+      result: const ReleaseCheckResult(ReleaseCheckStatus.noRelease),
+      language: AppLanguage.en,
+    );
+    await h.mount(tester);
+    await _pump(tester);
+
+    expect(find.byKey(_key('about-licenses')), findsOneWidget);
+    // 标题同时出现在「本页导航条目」与「区块标题」两处。
+    expect(find.text('Licenses'), findsWidgets);
+    expect(find.text('Data & privacy'), findsWidgets);
+    // 共用词 `copy` 的 en 真值（关于页里专指仓库 URL）。
+    expect(find.text('Copy URL'), findsOneWidget);
+
+    // 阴性对照：三串 zh 原文在 en 态必须一条都找不到。
+    expect(find.text('许可证'), findsNothing);
+    expect(find.text('数据与隐私'), findsNothing);
+    expect(find.text('复制地址'), findsNothing);
+  });
+
+  testWidgets('en 态点复制后反馈为 Copied，重新检查复位为 Copy result',
+      (WidgetTester tester) async {
+    _ClipboardSpy.install();
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create(
+      result: const ReleaseCheckResult(ReleaseCheckStatus.noRelease),
+      language: AppLanguage.en,
+    );
+    await h.mount(tester);
+    await _pump(tester);
+
+    await _check(tester);
+    expect(find.text('Copy result'), findsOneWidget);
+
+    await tester.tap(find.byKey(_key('about-copy-result')));
+    await tester.pump();
+    await tester.pump();
+
+    // `CommonEnL10n.copied` 的真值。
+    expect(
+      find.descendant(
+        of: find.byKey(_key('about-copy-result')),
+        matching: find.text('Copied'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('已复制'), findsNothing);
+
+    // 重新检查 ⇒ 回到未复制态（en 的 `aboutCopyResult`）。
+    await _check(tester);
+    expect(
+      find.descendant(
+        of: find.byKey(_key('about-copy-result')),
+        matching: find.text('Copy result'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('复制结果'), findsNothing);
+  });
 }

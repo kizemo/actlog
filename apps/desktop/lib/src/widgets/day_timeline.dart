@@ -1,6 +1,7 @@
 // apps/desktop/lib/src/widgets/day_timeline.dart
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_tokens.dart';
 
 /// `TOKENS.md:238-239` 的 `<1280px` 断点边界。
@@ -30,8 +31,20 @@ BoxDecoration tlNodeDecoration({
     );
 
 /// 节点下方文字通道（`TOKENS.md:254-255`，12px 允许换行）。
-String tlNodeLabel({required bool hasGap, String? gapLabel}) =>
-    gapLabel ?? (hasGap ? '▸ 有缺口' : '✓ 已闭合');
+///
+/// 本层是纯函数（没有 `BuildContext`），所以文案表由调用方传入 —— 与
+/// [tlNodeDecoration] 收 `ThemeTokens` 值对象是同一条口径。`localizations`
+/// 缺省取中文表：`test\day_timeline_test.dart` 直接断这一层返回的中文，
+/// 且本文件的产品侧已无调用方（`today_page.dart:159` 注），缺省值不会漏到
+/// 英文界面。
+String tlNodeLabel({
+  required bool hasGap,
+  String? gapLabel,
+  AppLocalizations? localizations,
+}) {
+  final AppLocalizations l10n = localizations ?? AppLocalizations.zh;
+  return gapLabel ?? (hasGap ? l10n.timelineNodeGap : l10n.timelineNodeClosed);
+}
 
 /// 节点文字颜色：缺口态用赭石**文字**（`accentInk` 保证对比度），其余用次级色。
 Color tlNodeTextColor({required bool hasGap, required ThemeTokens tokens}) =>
@@ -45,6 +58,7 @@ class TimelineSection extends StatelessWidget {
     required this.child,
     this.hasGap = false,
     this.gapLabel,
+    this.localizations,
     super.key,
   });
 
@@ -57,11 +71,17 @@ class TimelineSection extends StatelessWidget {
   /// 缺口说明（可空）：有缺口时优先显示它，否则显示默认缺口文字。
   final String? gapLabel;
 
+  /// 文案表（可空）。本控件**产品侧已无调用方**（`today_page.dart:159` 起
+  /// 「复盘 + 心态不再走 `DayTimeline` / `TimelineSection`」），只剩测试在用；
+  /// 缺省取中文表，避免测试因「没有 `L10nScope`」抛错。
+  final AppLocalizations? localizations;
+
   /// 时段内容。
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = localizations ?? AppLocalizations.zh;
     final t = context.tokens;
     final double width = MediaQuery.of(context).size.width;
     return Row(
@@ -80,7 +100,11 @@ class TimelineSection extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                tlNodeLabel(hasGap: hasGap, gapLabel: gapLabel),
+                tlNodeLabel(
+                  hasGap: hasGap,
+                  gapLabel: gapLabel,
+                  localizations: l10n,
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,

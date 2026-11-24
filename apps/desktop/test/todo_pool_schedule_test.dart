@@ -21,6 +21,8 @@ import 'package:actlog/src/pages/todo_pool_page.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/widgets/shell/ledger_shell.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 
 const ValueKey<String> _kTitle = ValueKey<String>('todo-new-title');
@@ -56,8 +58,11 @@ final class _Harness {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
-          home: LedgerShell(content: TodoPoolPage(), currentNavId: 'inbox'),
+        // 池子页文案走 `AppLocalizations.of(context)`，缺 L10nScope 会抛错。
+        child: l10nScope(
+          const MaterialApp(
+            home: LedgerShell(content: TodoPoolPage(), currentNavId: 'inbox'),
+          ),
         ),
       ),
     );

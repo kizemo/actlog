@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` 只在 misc.dart 导出（3.5.0 起 flutter_riverpod.dart 不再带它）。
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/pages/today_page.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/widgets/habit_section.dart';
@@ -29,7 +30,10 @@ final class _Harness {
   final ProviderContainer container;
   final ActLogRepositories repos;
 
-  static _Harness create({required String selected}) {
+  static _Harness create({
+    required String selected,
+    AppLanguage language = AppLanguage.zh,
+  }) {
     final db = openInMemoryActLogDatabase();
     final repos = ActLogRepositories(db, deviceId: 'habit-section-date-test');
     final container = ProviderContainer(
@@ -38,6 +42,11 @@ final class _Harness {
         todayProvider.overrideWithValue(_today),
         repositoriesProvider.overrideWithValue(repos),
         selectedDateProvider.overrideWith((ref) => selected),
+        // 语言注入点：`HabitSection` 通过 `appLocalizationsProvider` 读偏好，
+        // 所以 en 态必须钉偏好 —— `L10nScope` 对读 provider 的组件无效。
+        currentPreferencesProvider.overrideWithValue(
+          AppPreferences.defaults.copyWith(language: language),
+        ),
       ],
     );
     // `addTearDown` 按 LIFO 执行 ⇒ 先 dispose 容器、再 db.close。
@@ -253,6 +262,25 @@ void main() {
       isNotNull,
       reason: '切到未来日不得动到今天的记录',
     );
+
+    await _flushTimers(tester);
+  });
+
+  testWidgets('英文态：区块文案走 en 档，用户数据（习惯名）不翻译', (tester) async {
+    final harness = _Harness.create(selected: _past, language: AppLanguage.en);
+    await harness.addDailyHabit('晨间写作');
+    await harness.mountSection(tester);
+    await _settle(tester);
+
+    // 断字面量（§47.3 铁律 1）：直接把 en 档应有的取值写死。
+    expect(find.text('Habit check-in'), findsOneWidget);
+    expect(
+      find.text('Checking a habit also adds a backfill row to today’s plan'),
+      findsOneWidget,
+    );
+    expect(find.text('习惯打卡'), findsNothing);
+    // 习惯名是落库数据，跟着语种变就是 bug。
+    expect(_rowText('晨间写作'), findsOneWidget);
 
     await _flushTimers(tester);
   });

@@ -33,6 +33,8 @@ import 'package:actlog/src/widgets/timeline/slot_state.dart';
 import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 import 'package:actlog/src/widgets/timeline/todo_rail_panel.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定「今天」，与被测日期分开，才能确定性地构造回填 / 未来。
 const String _today = '2026-11-09';
 
@@ -87,27 +89,30 @@ final class _Harness {
   /// 拖拽源，`slot-menu-habit-<id>` 也会因为没人 watch 而消失。
   Future<void> mount(WidgetTester tester, String date) {
     return tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          home: Scaffold(
-            body: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(child: DayGrid(date: date)),
-                SizedBox(
-                  width: 240,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: const <Widget>[
-                      TodoRailPanel(),
-                      SizedBox(height: 12),
-                      HabitOverviewPanel(),
-                    ],
+      // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+      l10nScope(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(child: DayGrid(date: date)),
+                  SizedBox(
+                    width: 240,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: const <Widget>[
+                        TodoRailPanel(),
+                        SizedBox(height: 12),
+                        HabitOverviewPanel(),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

@@ -29,6 +29,8 @@ import 'package:actlog/src/widgets/timeline/day_grid.dart';
 import 'package:actlog/src/widgets/timeline/todo_rail_panel.dart';
 import 'package:actlog/src/widgets/timeline/unscheduled_strip.dart';
 
+import 'l10n_harness.dart';
+
 const String _today = '2026-11-09';
 
 /// 已排期 + 已分级（Q1）：20:00–21:00，**先**写入。
@@ -98,32 +100,35 @@ final class _Harness {
   /// 网格 + 未排期带 + 右轨待办面板（「优先级分布」挂在后者内部）。
   Future<void> mount(WidgetTester tester) {
     return tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          home: Scaffold(
-            body: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      const DayGrid(date: _today),
-                      const UnscheduledStrip(),
-                    ],
+      // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+      l10nScope(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const DayGrid(date: _today),
+                        const UnscheduledStrip(),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(
-                  width: 240,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[TodoRailPanel()],
+                  const SizedBox(
+                    width: 240,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[TodoRailPanel()],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

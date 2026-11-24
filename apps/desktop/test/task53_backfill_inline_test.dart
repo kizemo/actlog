@@ -24,6 +24,8 @@ import 'package:actlog/src/widgets/chip_row.dart';
 import 'package:actlog/src/widgets/outcome_composer.dart';
 import 'package:actlog/src/widgets/timeline/plan_item_detail_dialog.dart';
 
+import 'l10n_harness.dart';
+
 /// 固定「今天」；`_item()` 默认就落在这天（过去 / 今天都算可回填）。
 const String _today = '2026-11-09';
 
@@ -73,19 +75,22 @@ Future<void> _openDetail(
   required PlanItemData item,
 }) async {
   await tester.pumpWidget(
-    MaterialApp(
-      home: Builder(
-        builder: (BuildContext context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              onPressed: () => showPlanItemDetailDialog(
-                context,
-                item: item,
-                todayIso: todayIso,
-                defaultStart: 9 * 60,
-                defaultEnd: 9 * 60 + 15,
+    // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+    l10nScope(
+      MaterialApp(
+        home: Builder(
+          builder: (BuildContext context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => showPlanItemDetailDialog(
+                  context,
+                  item: item,
+                  todayIso: todayIso,
+                  defaultStart: 9 * 60,
+                  defaultEnd: 9 * 60 + 15,
+                ),
+                child: const Text('打开详情'),
               ),
-              child: const Text('打开详情'),
             ),
           ),
         ),

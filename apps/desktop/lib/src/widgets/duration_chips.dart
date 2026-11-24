@@ -1,6 +1,7 @@
 // apps/desktop/lib/src/widgets/duration_chips.dart
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import 'chip_row.dart';
 
 /// 预估时长档位芯片。
@@ -26,14 +27,18 @@ class DurationChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final selected = selectedMinutes == null
         ? const <String>{}
         : <String>{'$selectedMinutes'};
     return ChipRow(
       options: <ChipOption>[
         for (final minutes in presets)
-          ChipOption(key: '$minutes', label: '$minutes 分钟'),
-        const ChipOption(key: 'custom', label: '自定义…'),
+          ChipOption(
+            key: '$minutes',
+            label: '$minutes ${l10n.dialogEstUnitMinute}',
+          ),
+        ChipOption(key: 'custom', label: l10n.dialogDurationCustom),
       ],
       selected: selected,
       onChanged: onChanged == null
@@ -47,7 +52,7 @@ class DurationChips extends StatelessWidget {
               if (key == 'custom') {
                 // 自定义入口：本轮只提示需要打字，不弹系统数字键盘。
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('自定义时长：点「+ 手写」里输入分钟数')),
+                  SnackBar(content: Text(l10n.dialogDurationCustomHint)),
                 );
                 return;
               }

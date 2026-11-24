@@ -11,13 +11,13 @@
 //   跨格」这件事变得表达不出来。
 // =============================================================================
 
-import 'package:core_data/core_data.dart' show QuadrantStyle;
 import 'package:core_db/core_db.dart';
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../../providers_p1.dart';
 import '../../theme/app_fonts.dart';
@@ -394,7 +394,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
                         right: 0,
                         top: 12,
                         child: Text(
-                          '右键任意一格开始排期',
+                          AppLocalizations.of(context).timelineEmptyGridHint,
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 12, color: t.faint),
                         ),
@@ -835,7 +835,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
               border: Border.all(color: t.hair),
             ),
             child: Text(
-              '习惯回填',
+              AppLocalizations.of(context).timelineHabitBackfill,
               style: TextStyle(fontSize: 10, color: t.meta),
             ),
           ),
@@ -861,6 +861,7 @@ class _DayGridState extends ConsumerState<DayGrid> {
   /// 浮窗必须走 `OverlayPortal`（`SlotHoverCard` 内部）：格子区外层是
   /// `Clip.antiAlias`，普通 `Overlay` 子树会被裁在这一格里。
   Widget _hoverCardAround(GridEntry entry, Widget child) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final PlanItemData? row = _rowOf(entry.id);
     final Quadrant? quadrant = Quadrant.fromCode(row?.quadrant);
     return SlotHoverCard(
@@ -869,12 +870,31 @@ class _DayGridState extends ConsumerState<DayGrid> {
       endMinute: entry.endMinute,
       detail: _minimal ? '' : (row?.detail ?? ''),
       note: row?.resultNote ?? '',
-      stateLabel: stateLabelOfSlotKind(entry.kind),
-      levelLabel: quadrant == null ? '未分级' : QuadrantStyle.of(quadrant).label,
+      stateLabel: stateLabelOfSlotKind(entry.kind, localizations: l10n),
+      levelLabel: _levelLabelOf(quadrant, l10n),
       showNote: !_minimal,
       child: child,
     );
   }
+
+  /// 悬停浮窗「级别」行的文案。
+  ///
+  /// 为什么不再用 `QuadrantStyle.of(quadrant).label`：那是 `core_data` 里的
+  /// 硬编码中文 —— 英文界面下这一行会漏出中文（R63-15）。
+  ///
+  /// 为什么用 `switch` 穷举而不是 `??` 兜底：兜底会把「将来新增象限」静静
+  /// 变成某条固定文案，编译期发现不了；穷举后新增枚举值会直接编译报错。
+  /// 四个分支的中文与域层 `QuadrantStyle.label` **逐字相同**（见
+  /// `l10n\parts\domain.dart` 的 `quadrantQ1Label` … `quadrantQ4Label`），
+  /// 所以中文态显示一个字都没变。
+  String _levelLabelOf(Quadrant? quadrant, AppLocalizations t) =>
+      switch (quadrant) {
+        null => t.priorityUnsetLabel,
+        Quadrant.q1 => t.quadrantQ1Label,
+        Quadrant.q2 => t.quadrantQ2Label,
+        Quadrant.q3 => t.quadrantQ3Label,
+        Quadrant.q4 => t.quadrantQ4Label,
+      };
 
   /// 写操作统一入口：失败只提示、不吞掉。
   Future<void> _write(Future<void> Function() action) async {
@@ -884,8 +904,13 @@ class _DayGridState extends ConsumerState<DayGrid> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.maybeOf(context)
-          ?.showSnackBar(SnackBar(content: Text('写入失败：$error')));
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).timelineWriteFailed('$error'),
+          ),
+        ),
+      );
     }
   }
 
@@ -1297,25 +1322,26 @@ class _TitleDialogState extends State<_TitleDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: Text('${formatMinute(widget.startMinute)} 要做什么？'),
+      title: Text(l10n.timelineSlotPrompt(formatMinute(widget.startMinute))),
       content: TextField(
         key: const ValueKey<String>('slot-title-field'),
         controller: _controller,
         autofocus: true,
         onSubmitted: (_) => _submit(),
-        decoration: const InputDecoration(hintText: '计划标题'),
+        decoration: InputDecoration(hintText: l10n.timelinePlanTitleHint),
       ),
       actions: <Widget>[
         TextButton(
           key: const ValueKey<String>('slot-title-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           key: const ValueKey<String>('slot-title-confirm'),
           onPressed: _submit,
-          child: const Text('排上'),
+          child: Text(l10n.timelineScheduleAction),
         ),
       ],
     );

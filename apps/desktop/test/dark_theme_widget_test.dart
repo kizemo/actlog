@@ -27,6 +27,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'l10n_harness.dart';
+
 // —— 深色 token 字面量 ——
 const Color _paper = Color(0xFF1A1714);
 const Color _card = Color(0xFF221E1A);
@@ -43,9 +45,11 @@ const Color _accentInk = Color(0xFFD6A366);
 /// 固定「今天」，让 `DayGrid` 的 `nowMinute` 不参与取色判断。
 const String _today = '2026-11-09';
 
-Widget _darkApp(Widget child) => MaterialApp(
-      theme: AppTheme.dark(DensityProfile.comfortable),
-      home: Scaffold(body: child),
+Widget _darkApp(Widget child) => l10nScope(
+      MaterialApp(
+        theme: AppTheme.dark(DensityProfile.comfortable),
+        home: Scaffold(body: child),
+      ),
     );
 
 /// 收集某棵子树里所有带 border 的 `BoxDecoration`（`Container` 才有）。
@@ -279,9 +283,11 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          theme: AppTheme.dark(DensityProfile.comfortable),
-          home: const Scaffold(body: DayGrid(date: _today)),
+        child: l10nScope(
+          MaterialApp(
+            theme: AppTheme.dark(DensityProfile.comfortable),
+            home: const Scaffold(body: DayGrid(date: _today)),
+          ),
         ),
       ),
     );

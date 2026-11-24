@@ -19,12 +19,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/app.dart';
+import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/density_profile.dart';
 import 'package:actlog/src/widgets/quick_todo_dialog.dart';
 import 'package:actlog/src/widgets/shell/tool_rail.dart';
 import 'package:actlog/src/widgets/timeline/todo_rail_panel.dart';
+
+import 'l10n_harness.dart';
 
 const String _today = '2026-11-09';
 const String _todoTitle = '右轨待办甲';
@@ -71,16 +74,22 @@ final class _Harness {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
-          theme: AppTheme.light(DensityProfile.comfortable),
-          home: Builder(
-            builder: (BuildContext context) => Scaffold(
-              body: Align(
-                alignment: Alignment.topLeft,
-                child: ToolRail(panels: todayRailPanels(context)),
+        // Task 63 R63-16：面板标题与动作位改为运行时取 `t`，缺 `L10nScope`
+        // 会在 `todayRailPanels(context)` 里抛 `FlutterError`。显式钉中文态，
+        // 让本文件的 zh 文案断言与用例名一字不变。
+        child: l10nScope(
+          MaterialApp(
+            theme: AppTheme.light(DensityProfile.comfortable),
+            home: Builder(
+              builder: (BuildContext context) => Scaffold(
+                body: Align(
+                  alignment: Alignment.topLeft,
+                  child: ToolRail(panels: todayRailPanels(context)),
+                ),
               ),
             ),
           ),
+          language: AppLanguage.zh,
         ),
       ),
     );

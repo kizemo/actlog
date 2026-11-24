@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「170 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「386 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -327,7 +327,7 @@ abstract final class L10nKeys {
   static const String shellPanelLoopHint = 'shell-panel-loop-hint';
 
   // ---------------------------------------------------------------------------
-  // 跨页共用（parts\common.dart，7 条）
+  // 跨页共用（parts\common.dart，23 条）
   // ---------------------------------------------------------------------------
 
   /// 取消。
@@ -350,6 +350,56 @@ abstract final class L10nKeys {
 
   /// 打开。
   static const String commonOpen = 'common-open';
+
+  // Task 63 轮二 16 条：二元取值 / 动作 / 优先级轴 / 单位
+
+  /// 标题（表单字段名 / 分组标题）。
+  static const String commonTitle = 'common-title';
+
+  /// 保存（表单主按钮）。
+  static const String commonSave = 'common-save';
+
+  /// 删除（破坏性动作按钮）。
+  static const String commonDelete = 'common-delete';
+
+  /// 关闭（关掉浮层 / 对话框的按钮，不是关窗口）。
+  static const String commonClose = 'common-close';
+
+  /// 二元轴的肯定取值：是。
+  static const String commonYes = 'common-yes';
+
+  /// 二元轴的否定取值：否。
+  static const String commonNo = 'common-no';
+
+  /// 确认（动作按钮）。注意 `confirm` 的 zh 是「确定」，两者不可互换。
+  static const String commonConfirmAction = 'common-confirm-action';
+
+  /// 清除（把已分级打回未分级 / 清空选择）。
+  static const String commonClear = 'common-clear';
+
+  /// 清除优先级（完整措辞，用于芯片与提示文案）。
+  static const String commonClearPriority = 'common-clear-priority';
+
+  /// 优先级轴：重要。
+  static const String commonAxisImportant = 'common-axis-important';
+
+  /// 优先级轴：不重要。
+  static const String commonAxisNotImportant = 'common-axis-not-important';
+
+  /// 优先级轴：紧急。
+  static const String commonAxisUrgent = 'common-axis-urgent';
+
+  /// 优先级轴：不紧急。
+  static const String commonAxisNotUrgent = 'common-axis-not-urgent';
+
+  /// 次数单位（显示层用；落库值 `次` 不随语言变）。
+  static const String commonUnitTimes = 'common-unit-times';
+
+  /// 天数单位。
+  static const String commonUnitDay = 'common-unit-day';
+
+  /// 周数单位。
+  static const String commonUnitWeek = 'common-unit-week';
 
   // ---------------------------------------------------------------------------
   // 插值方法（parts\domain.dart，4 条；不是 getter，单列一张表）
@@ -414,6 +464,38 @@ abstract final class L10nKeys {
 
   /// 未分级标签。
   static const String domainPriorityUnsetLabel = 'domain-priority-unset-label';
+
+  // Task 63 轮二：9 条标签 getter + 1 条列表型 getter（domainWeekdayFull）
+
+  /// 复盘段标题：结论（chip 分组名）。
+  static const String domainConclusionLabel = 'domain-conclusion-label';
+
+  /// 复盘段标题：原因（chip 分组名）。
+  static const String domainReasonLabel = 'domain-reason-label';
+
+  /// 复盘段标题：下一步（chip 分组名）。
+  static const String domainNextStepLabel = 'domain-next-step-label';
+
+  /// 日循环段名：计划。
+  static const String domainPlanLabel = 'domain-plan-label';
+
+  /// 日循环段名：回填。
+  static const String domainBackfillLabel = 'domain-backfill-label';
+
+  /// 日循环段名：复盘。
+  static const String domainReviewLabel = 'domain-review-label';
+
+  /// 日循环段名：心态。
+  static const String domainMoodLabel = 'domain-mood-label';
+
+  /// 空态：所选日还没有当日日志。
+  static const String domainDayLogNotStarted = 'domain-day-log-not-started';
+
+  /// 空态：当天没有待打卡的习惯。
+  static const String domainNoHabitsDueToday = 'domain-no-habits-due-today';
+
+  /// 星期全名（周一起、周日末，共 7 条）。按 `1..7` 取 `[day - 1]`；  zh 自带「周」字，en 只有短名 ⇒ 调用点**不要**再拼前缀。
+  static const String domainWeekdayFull = 'domain-weekday-full';
 
   // ---------------------------------------------------------------------------
   // 项目页（parts\projects.dart，42 条）
@@ -627,11 +709,768 @@ abstract final class L10nKeys {
   static const String calendarDateTitle = 'calendar-date-title';
 
   // ---------------------------------------------------------------------------
+  // 方格时间轴（parts\timeline.dart，42 条：30 条 getter + 12 条插值方法）
+  // ---------------------------------------------------------------------------
+
+  /// 空格子上的引导语。
+  static const String timelineEmptyGridHint = 'timeline-empty-grid-hint';
+
+  /// 习惯入格条目的角标。
+  static const String timelineHabitBackfill = 'timeline-habit-backfill';
+
+  /// 手填弹窗的输入框提示。
+  static const String timelinePlanTitleHint = 'timeline-plan-title-hint';
+
+  /// 手填弹窗的确认按钮（≠ `confirm`/「确定」）。
+  static const String timelineScheduleAction = 'timeline-schedule-action';
+
+  /// 菜单分组名：手填。
+  static const String timelineManualGroup = 'timeline-manual-group';
+
+  /// 菜单项：手填一条。
+  static const String timelineManualEntry = 'timeline-manual-entry';
+
+  /// 菜单分组名：待办。
+  static const String timelineTodoGroup = 'timeline-todo-group';
+
+  /// 待办分支空态。
+  static const String timelineTodoPoolEmpty = 'timeline-todo-pool-empty';
+
+  /// 菜单分组名：习惯。
+  static const String timelineHabitGroup = 'timeline-habit-group';
+
+  /// 习惯分支空态。
+  static const String timelineHabitEmpty = 'timeline-habit-empty';
+
+  /// 起止弹窗的确认按钮（zh 是「确认」，与 `confirm` 的「确定」不是一条）。
+  static const String timelineConfirmAction = 'timeline-confirm-action';
+
+  /// 步进行标签：开始。
+  static const String timelineStartLabel = 'timeline-start-label';
+
+  /// 步进行标签：结束。
+  static const String timelineEndLabel = 'timeline-end-label';
+
+  /// 时长行标签：持续时间。
+  static const String timelineDurationLabel = 'timeline-duration-label';
+
+  /// 回填弹层标题。
+  static const String timelineSlotFillTitle = 'timeline-slot-fill-title';
+
+  /// 回填模板按钮。
+  static const String timelineOutcomeTemplateTitle =
+      'timeline-outcome-template-title';
+
+  /// 详情窗标题。
+  static const String timelineTaskDetailTitle = 'timeline-task-detail-title';
+
+  /// 详情窗字段名：内容。
+  static const String timelineContentLabel = 'timeline-content-label';
+
+  /// 详情窗字段名：级别。
+  static const String timelineLevelLabel = 'timeline-level-label';
+
+  /// 详情窗字段名：回填内容。
+  static const String timelineBackfillContentLabel =
+      'timeline-backfill-content-label';
+
+  /// 未来日的回填锁定提示。
+  static const String timelineFutureDayBackfillBlocked =
+      'timeline-future-day-backfill-blocked';
+
+  /// 删除计划项的确认框标题。
+  static const String timelineDeletePlanItemTitle =
+      'timeline-delete-plan-item-title';
+
+  /// 状态词：打卡。
+  static const String timelineKindHabitLabel = 'timeline-kind-habit-label';
+
+  /// 状态词：完成。
+  static const String timelineKindDoneLabel = 'timeline-kind-done-label';
+
+  /// 待办加载失败。
+  static const String timelineTodoLoadFailed = 'timeline-todo-load-failed';
+
+  /// 待办加载中。
+  static const String timelineTodoLoading = 'timeline-todo-loading';
+
+  /// 待办空态。
+  static const String timelineTodoEmpty = 'timeline-todo-empty';
+
+  /// 已排期徽标。
+  static const String timelineTodoSlotted = 'timeline-todo-slotted';
+
+  /// 节点文字：有缺口。
+  static const String timelineNodeGap = 'timeline-node-gap';
+
+  /// 节点文字：已闭合。
+  static const String timelineNodeClosed = 'timeline-node-closed';
+
+  /// 菜单标题：`HH:mm 这一格`。
+  static const String timelineSlotMenuTitle = 'timeline-slot-menu-title';
+
+  /// 起止弹窗标题：`YYYY-MM-DD · 起止`。
+  static const String timelineRangeTitle = 'timeline-range-title';
+
+  /// 时长：`共 N 分钟`（`slot_range_dialog.dart` 与  `plan_item_detail_dialog.dart` 共用）。
+  static const String timelineTotalMinutes = 'timeline-total-minutes';
+
+  /// 步进按钮 tooltip：`<标签> 减一格`。
+  static const String timelineStepDown = 'timeline-step-down';
+
+  /// 步进按钮 tooltip：`<标签> 加一格`。
+  static const String timelineStepUp = 'timeline-step-up';
+
+  /// 手填弹窗标题：`HH:mm 要做什么？`。
+  static const String timelineSlotPrompt = 'timeline-slot-prompt';
+
+  /// 写库失败提示：`写入失败：<error>`（两处共用同一条）。
+  static const String timelineWriteFailed = 'timeline-write-failed';
+
+  /// 删除确认正文：`确认删除「<title>」？…`。
+  static const String timelineDeletePlanItemMessage =
+      'timeline-delete-plan-item-message';
+
+  /// 悬停卡片：详情行。
+  static const String timelineHoverDetail = 'timeline-hover-detail';
+
+  /// 悬停卡片：进展行。
+  static const String timelineHoverNote = 'timeline-hover-note';
+
+  /// 悬停卡片：状态行。
+  static const String timelineHoverState = 'timeline-hover-state';
+
+  /// 悬停卡片：级别行。
+  static const String timelineHoverLevel = 'timeline-hover-level';
+
+  // ---------------------------------------------------------------------------
+  // 今日面板（parts\today.dart，55 条：44 条 getter + 11 条插值方法）
+  // ---------------------------------------------------------------------------
+
+  /// 未来日锁定卡标题：复盘与心态在当天开放。
+  static const String todayReviewFutureTitle = 'today-review-future-title';
+
+  /// 未来日锁定卡说明。
+  static const String todayReviewFutureDetail = 'today-review-future-detail';
+
+  /// 未来日「只可预排」提示（正文，手写条下方）。
+  static const String todayFuturePlanOnly = 'today-future-plan-only';
+
+  /// 未来日锁定卡副标题。
+  static const String todayFuturePlanning = 'today-future-planning';
+
+  /// 菜单项：改日期。
+  static const String todayChangeDate = 'today-change-date';
+
+  /// 菜单项：改时刻。
+  static const String todayChangeTime = 'today-change-time';
+
+  /// 菜单项：清除时刻（仅已排时刻时出现）。
+  static const String todayClearTime = 'today-clear-time';
+
+  /// 未排时刻：`时间 · 未排`。
+  static const String todayTimeUnset = 'today-time-unset';
+
+  /// 时刻选择器的标题。
+  static const String todayPickStartTime = 'today-pick-start-time';
+
+  /// 手写输入框占位：添加计划条目…
+  static const String todayAddPlanHint = 'today-add-plan-hint';
+
+  /// 手写按钮：+ 手写一条。
+  static const String todayAddManual = 'today-add-manual';
+
+  /// 右轨习惯速览：加载失败。
+  static const String todayHabitLoadFailed = 'today-habit-load-failed';
+
+  /// 右轨习惯速览：正在加载。
+  static const String todayHabitLoading = 'today-habit-loading';
+
+  /// 右轨习惯速览：所选日无排程习惯。
+  static const String todayHabitEmpty = 'today-habit-empty';
+
+  /// 闭环提示第一行：计划缺口。
+  static const String todayStatPlanGap = 'today-stat-plan-gap';
+
+  /// 闭环提示第二行：回填缺口。
+  static const String todayStatFillGap = 'today-stat-fill-gap';
+
+  /// 复盘状态：已写。
+  static const String todayStatWritten = 'today-stat-written';
+
+  /// 复盘状态：未写。
+  static const String todayStatUnwritten = 'today-stat-unwritten';
+
+  /// 心态状态：已记。
+  static const String todayStatRecorded = 'today-stat-recorded';
+
+  /// 心态状态：未记。
+  static const String todayStatUnrecorded = 'today-stat-unrecorded';
+
+  /// 项目停滞提醒的抑制按钮：今天不再提。
+  static const String todayStallDismiss = 'today-stall-dismiss';
+
+  /// 未来日拒绝打卡的提示。
+  static const String todayNoticeFutureCheckin = 'today-notice-future-checkin';
+
+  /// 提示横幅的关闭按钮：知道了。
+  static const String todayGotIt = 'today-got-it';
+
+  /// 复盘字段一标题。
+  static const String todayReviewFieldLearn = 'today-review-field-learn';
+
+  /// 复盘字段一占位。
+  static const String todayReviewFieldLearnHint =
+      'today-review-field-learn-hint';
+
+  /// 复盘字段二标题。
+  static const String todayReviewFieldGood = 'today-review-field-good';
+
+  /// 复盘字段二占位。
+  static const String todayReviewFieldGoodHint = 'today-review-field-good-hint';
+
+  /// 复盘字段三标题。
+  static const String todayReviewFieldImprove = 'today-review-field-improve';
+
+  /// 复盘字段三占位。
+  static const String todayReviewFieldImproveHint =
+      'today-review-field-improve-hint';
+
+  /// 复盘区块副标题。
+  static const String todayReviewSubtitle = 'today-review-subtitle';
+
+  /// 三段全空时的行内提示。
+  static const String todayReviewEmptyNotice = 'today-review-empty-notice';
+
+  /// 选项目对话框标题。
+  static const String todayReviewPickProject = 'today-review-pick-project';
+
+  /// 「记到项目」按钮文案。
+  static const String todayReviewFileToProject = 'today-review-file-to-project';
+
+  /// 脊线抬头：闭环环 · 四段比例条。
+  static const String todayLoopRingA11y = 'today-loop-ring-a11y';
+
+  /// 脊线刻度说明：刻度 0—100。
+  static const String todayLoopRingScale = 'today-loop-ring-scale';
+
+  /// 站会区块标题。
+  static const String todayStandupTitle = 'today-standup-title';
+
+  /// 站会区块副标题。
+  static const String todayStandupSubtitle = 'today-standup-subtitle';
+
+  /// 三段全空时的整块提示。
+  static const String todayStandupEmpty = 'today-standup-empty';
+
+  /// 第一段：昨日亮点。
+  static const String todayStandupYesterday = 'today-standup-yesterday';
+
+  /// 第一段空态。
+  static const String todayStandupYesterdayEmpty =
+      'today-standup-yesterday-empty';
+
+  /// 第二段：今日优先。
+  static const String todayStandupToday = 'today-standup-today';
+
+  /// 第二段空态。
+  static const String todayStandupTodayEmpty = 'today-standup-today-empty';
+
+  /// 第三段：阻塞项。
+  static const String todayStandupBlockers = 'today-standup-blockers';
+
+  /// 第三段空态。
+  static const String todayStandupBlockersEmpty =
+      'today-standup-blockers-empty';
+
+  /// 已排时刻：`时间 · <时刻>`。
+  static const String todayTimeSet = 'today-time-set';
+
+  /// 日期芯片文案：`日期 · <日期>`。
+  static const String todayDateLabel = 'today-date-label';
+
+  /// 日期按钮的无障碍标签（日期 + 时刻 + 可做什么）。
+  static const String todayDateChipA11y = 'today-date-chip-a11y';
+
+  /// 方格时间轴起点提示（选了过早的时刻时）。
+  static const String todayGridStartHint = 'today-grid-start-hint';
+
+  /// 项目停滞提醒正文。
+  static const String todayStallHint = 'today-stall-hint';
+
+  /// 习惯数据加载失败提示。
+  static const String todayHabitLoadError = 'today-habit-load-error';
+
+  /// 打卡成功提示。
+  static const String todayCheckedIn = 'today-checked-in';
+
+  /// 打卡失败提示。
+  static const String todayCheckinFailed = 'today-checkin-failed';
+
+  /// 已记到某项目。
+  static const String todayReviewFiledTo = 'today-review-filed-to';
+
+  /// 把两段摘录拼成一条增量正文（中文分号 / 英文分号加空格）。
+  static const String todayReviewJoinSegments = 'today-review-join-segments';
+
+  /// 段标题 + 条目数：`<标签>（N）`。
+  static const String todayStandupSectionCount = 'today-standup-section-count';
+
+  // ---------------------------------------------------------------------------
+  // 习惯打卡（parts\habit.dart，53 条：44 条 getter + 9 条插值方法）
+  // ---------------------------------------------------------------------------
+
+  /// 心态分组名：每日核心。
+  static const String moodGroupDayTitle = 'mood-group-day-title';
+
+  /// 心态分组名：每周补充。
+  static const String moodGroupWeekTitle = 'mood-group-week-title';
+
+  /// 心态卡片副标题：`每日 3 项 + 每周 2 项，各 0–10 分；留空表示不作评`。
+  static const String moodSectionSubtitle = 'mood-section-subtitle';
+
+  /// 按钮：全部清空。
+  static const String moodClearAll = 'mood-clear-all';
+
+  /// 空态：今天没打分。
+  static const String moodMarkFailed = 'mood-mark-failed';
+
+  /// 输入框标签：明日改进点。
+  static const String moodNextActionLabel = 'mood-next-action-label';
+
+  /// 输入框提示：明天先做的一件具体事。
+  static const String moodNextActionHint = 'mood-next-action-hint';
+
+  /// 输入框标签：情绪备注。
+  static const String moodNoteLabel = 'mood-note-label';
+
+  /// 输入框提示：今天状态如何？为什么？
+  static const String moodNoteHint = 'mood-note-hint';
+
+  /// 维度未评标记。
+  static const String moodUnrated = 'mood-unrated';
+
+  /// 无障碍/提示：清除这一维。
+  static const String moodClearDimension = 'mood-clear-dimension';
+
+  /// 维度名：履约负责。
+  static const String moodDimFulfillmentLabel = 'mood-dim-fulfillment-label';
+
+  /// 维度说明：履约负责。
+  static const String moodDimFulfillmentDesc = 'mood-dim-fulfillment-desc';
+
+  /// 维度名：高效高质。
+  static const String moodDimEfficiencyLabel = 'mood-dim-efficiency-label';
+
+  /// 维度说明：高效高质。
+  static const String moodDimEfficiencyDesc = 'mood-dim-efficiency-desc';
+
+  /// 维度名：积极思维。
+  static const String moodDimPositiveMindLabel = 'mood-dim-positive-mind-label';
+
+  /// 维度说明：积极思维。
+  static const String moodDimPositiveMindDesc = 'mood-dim-positive-mind-desc';
+
+  /// 维度名：自我效能。
+  static const String moodDimSelfEfficacyLabel = 'mood-dim-self-efficacy-label';
+
+  /// 维度说明：自我效能。
+  static const String moodDimSelfEfficacyDesc = 'mood-dim-self-efficacy-desc';
+
+  /// 维度名：利他贡献。
+  static const String moodDimContributionLabel = 'mood-dim-contribution-label';
+
+  /// 维度说明：利他贡献。
+  static const String moodDimContributionDesc = 'mood-dim-contribution-desc';
+
+  /// legacy 维度名：认真。
+  static const String moodLegacyDiligent = 'mood-legacy-diligent';
+
+  /// legacy 维度名：快。
+  static const String moodLegacyFast = 'mood-legacy-fast';
+
+  /// legacy 维度名：坚守承诺。
+  static const String moodLegacyKeepPromise = 'mood-legacy-keep-promise';
+
+  /// legacy 维度名：保证完成任务。
+  static const String moodLegacyFinishTask = 'mood-legacy-finish-task';
+
+  /// legacy 维度名：乐观。
+  static const String moodLegacyOptimistic = 'mood-legacy-optimistic';
+
+  /// legacy 维度名：自信。
+  static const String moodLegacyConfident = 'mood-legacy-confident';
+
+  /// legacy 维度名：爱与奉献。
+  static const String moodLegacyLoveAndDedication =
+      'mood-legacy-love-and-dedication';
+
+  /// legacy 维度名：决不找借口。
+  static const String moodLegacyNoExcuses = 'mood-legacy-no-excuses';
+
+  /// 区块标题：习惯打卡。
+  static const String habitSectionTitle = 'habit-section-title';
+
+  /// 区块副标题：`打勾会同步生成今日计划里的回填行`。
+  static const String habitSectionSubtitle = 'habit-section-subtitle';
+
+  /// 区块空态：`今天没有排程内的习惯。`（注意句末句号，与  `domainNoHabitsDueToday` 不是同一条）。
+  static const String habitSectionEmpty = 'habit-section-empty';
+
+  /// 吸底条加载中。
+  static const String habitCheckinLoading = 'habit-checkin-loading';
+
+  /// 吸底条加载失败。
+  static const String habitCheckinError = 'habit-checkin-error';
+
+  /// 吸底条标题：`习惯打卡 · 吸底不滚动`。
+  static const String habitCheckinHeadTitle = 'habit-checkin-head-title';
+
+  /// 吸底条提示：`· 一点即打，跳过需理由`。
+  static const String habitCheckinHeadHint = 'habit-checkin-head-hint';
+
+  /// 习惯页标题：习惯。
+  static const String habitPageTitle = 'habit-page-title';
+
+  /// 习惯页未来日提示：`未来日只做预排：习惯打卡在当天开放。`。
+  static const String habitPageFutureHint = 'habit-page-future-hint';
+
+  /// 习惯页空态：还没有习惯。
+  static const String habitPageEmpty = 'habit-page-empty';
+
+  /// 象限选择对话框标题。
+  static const String priorityPickQuadrant = 'priority-pick-quadrant';
+
+  /// ABC 选择对话框标题。
+  static const String priorityPickAbc = 'priority-pick-abc';
+
+  /// 悬停气泡徽标：当前。
+  static const String priorityBubbleCurrent = 'priority-bubble-current';
+
+  /// 悬停气泡脚注（只读态）。
+  static const String priorityBubbleReadonly = 'priority-bubble-readonly';
+
+  /// 悬停气泡脚注（可编辑态）。
+  static const String priorityBubbleEditable = 'priority-bubble-editable';
+
+  /// 心态计分：`已评 N/M 维`。
+  static const String moodRatedCount = 'mood-rated-count';
+
+  /// 心态均分：`均分 <value>`（`value` 为已格式化串，可能为 `—`）。
+  static const String moodAverage = 'mood-average';
+
+  /// 分组头：`<title> · 每日更新` / `<title> · 每周更新`。
+  static const String moodGroupHeader = 'mood-group-header';
+
+  /// 分组进度：`N 项 · 已评 M`。
+  static const String moodGroupProgress = 'mood-group-progress';
+
+  /// 佐证行：`佐证：<joined>`。
+  static const String moodEvidence = 'mood-evidence';
+
+  /// 习惯目标：`目标 N<unit>`。
+  static const String habitTarget = 'habit-target';
+
+  /// 习惯加载失败：`习惯加载失败：<error>`。
+  static const String habitLoadFailed = 'habit-load-failed';
+
+  /// 打卡记录加载失败：`打卡记录加载失败：<error>`。
+  static const String habitCheckinLoadFailed = 'habit-checkin-load-failed';
+
+  /// 象限气泡无障碍摘要：`<象限>，紧急：是，重要：否`。
+  static const String priorityBubbleA11y = 'priority-bubble-a11y';
+
+  // ---------------------------------------------------------------------------
+  // 对话框（parts\dialog.dart，88 条：73 条 getter + 15 条插值方法）
+  // ---------------------------------------------------------------------------
+
+  /// 预估时长单位：分钟。
+  static const String dialogEstUnitMinute = 'dialog-est-unit-minute';
+
+  /// 预估时长单位：小时。
+  static const String dialogEstUnitHour = 'dialog-est-unit-hour';
+
+  /// 预估时长单位：日。
+  static const String dialogEstUnitDay = 'dialog-est-unit-day';
+
+  /// 预估时长单位：周。
+  static const String dialogEstUnitWeek = 'dialog-est-unit-week';
+
+  /// 预估时长单位：月。
+  static const String dialogEstUnitMonth = 'dialog-est-unit-month';
+
+  /// 校验失败：习惯名为空。
+  static const String dialogHabitNameRequired = 'dialog-habit-name-required';
+
+  /// 校验失败：没选任何星期。
+  static const String dialogHabitWeekdayRequired =
+      'dialog-habit-weekday-required';
+
+  /// 字段名：习惯名（必填）。
+  static const String dialogHabitNameLabel = 'dialog-habit-name-label';
+
+  /// 字段名：说明（可选）。
+  static const String dialogHabitNoteLabel = 'dialog-habit-note-label';
+
+  /// 小节名：排程。
+  static const String dialogHabitSchedule = 'dialog-habit-schedule';
+
+  /// 排程选项：每天。
+  static const String dialogHabitDaily = 'dialog-habit-daily';
+
+  /// 排程选项：每隔 N 天。
+  static const String dialogHabitEveryDays = 'dialog-habit-every-days';
+
+  /// 排程选项：每隔 N 周。
+  static const String dialogHabitEveryWeeks = 'dialog-habit-every-weeks';
+
+  /// 排程选项：每周指定几天。
+  static const String dialogHabitWeeklyPick = 'dialog-habit-weekly-pick';
+
+  /// 间隔行前缀：每隔。
+  static const String dialogHabitEvery = 'dialog-habit-every';
+
+  /// 小节名：星期。
+  static const String dialogHabitWeekday = 'dialog-habit-weekday';
+
+  /// 小节名：起始日期。
+  static const String dialogHabitStartDate = 'dialog-habit-start-date';
+
+  /// 小节名：每日至少完成。
+  static const String dialogHabitDailyMin = 'dialog-habit-daily-min';
+
+  /// 面板标题：添加习惯。
+  static const String dialogHabitCreate = 'dialog-habit-create';
+
+  /// 面板副标题：排程与目标的说明。
+  static const String dialogHabitCreateSubtitle =
+      'dialog-habit-create-subtitle';
+
+  /// 校验失败：标题为空（W7 `todo_pool_page` 复用）。
+  static const String dialogTodoTitleRequired = 'dialog-todo-title-required';
+
+  /// 校验失败：预估时间不是正数（W7 `todo_pool_page` 复用）。
+  static const String dialogTodoEstInvalid = 'dialog-todo-est-invalid';
+
+  /// 面板标题：手写一条。
+  static const String dialogTodoCreateTitle = 'dialog-todo-create-title';
+
+  /// 输入框占位：要做什么？
+  static const String dialogTodoTitleHint = 'dialog-todo-title-hint';
+
+  /// 字段名：预估时间（可选）。
+  static const String dialogTodoEstLabel = 'dialog-todo-est-label';
+
+  /// 输入框占位：例如 25。
+  static const String dialogTodoEstHint = 'dialog-todo-est-hint';
+
+  /// 字段名：优先级（可选）。
+  static const String dialogTodoPriorityLabel = 'dialog-todo-priority-label';
+
+  /// 复选项：同时捞入今天。
+  static const String dialogTodoPullToday = 'dialog-todo-pull-today';
+
+  /// 主按钮：保存中…。
+  static const String dialogTodoSaving = 'dialog-todo-saving';
+
+  /// 面板标题：从待办池捞。
+  static const String dialogTodoPullTitle = 'dialog-todo-pull-title';
+
+  /// 空态：待办池是空的（短版）。
+  static const String dialogTodoPoolEmpty = 'dialog-todo-pool-empty';
+
+  /// 主按钮：捞入中…。
+  static const String dialogTodoPulling = 'dialog-todo-pulling';
+
+  /// 主按钮：捞入。
+  static const String dialogTodoPull = 'dialog-todo-pull';
+
+  /// 校验失败：没选任何星期。
+  static const String dialogRecurringWeekdayRequired =
+      'dialog-recurring-weekday-required';
+
+  /// 校验失败：开始时刻格式不对。
+  static const String dialogRecurringTimeInvalid =
+      'dialog-recurring-time-invalid';
+
+  /// 校验失败：时长越界。
+  static const String dialogRecurringDurationInvalid =
+      'dialog-recurring-duration-invalid';
+
+  /// 字段名：标题（必填）。
+  static const String dialogRecurringTitleLabel =
+      'dialog-recurring-title-label';
+
+  /// 字段名：开始 HH:mm（06:00 起）。
+  static const String dialogRecurringStartLabel =
+      'dialog-recurring-start-label';
+
+  /// 字段名：时长（分钟）。
+  static const String dialogRecurringDurationLabel =
+      'dialog-recurring-duration-label';
+
+  /// 字段名：备注（可选）。
+  static const String dialogRecurringNoteLabel = 'dialog-recurring-note-label';
+
+  /// 主按钮：确认保存（上面有夹取提示时才用它）。
+  static const String dialogRecurringSaveConfirm =
+      'dialog-recurring-save-confirm';
+
+  /// 面板标题：添加循环任务。
+  static const String dialogRecurringCreateTitle =
+      'dialog-recurring-create-title';
+
+  /// 面板副标题：按星期与开始时刻自动排进计划。
+  static const String dialogRecurringCreateSubtitle =
+      'dialog-recurring-create-subtitle';
+
+  /// 确认框标题：删除循环任务。
+  static const String dialogRecurringDeleteTitle =
+      'dialog-recurring-delete-title';
+
+  /// 段落标题：规则。
+  static const String dialogRecurringSection = 'dialog-recurring-section';
+
+  /// 读取中占位。
+  static const String dialogRecurringLoading = 'dialog-recurring-loading';
+
+  /// 空态：还没有循环规则。
+  static const String dialogRecurringNone = 'dialog-recurring-none';
+
+  /// 空态提示：怎么添加一条。
+  static const String dialogRecurringNoneHint = 'dialog-recurring-none-hint';
+
+  /// 掩码为 0 时的兜底显示（`每日`，与排程选项的 `每天` 不是同一句）。
+  static const String dialogRecurringDaily = 'dialog-recurring-daily';
+
+  /// 规则状态：启用中。
+  static const String dialogRuleActiveOn = 'dialog-rule-active-on';
+
+  /// 规则状态：已停用。
+  static const String dialogRuleActiveOff = 'dialog-rule-active-off';
+
+  /// 规则动作：停用。
+  static const String dialogRuleDisable = 'dialog-rule-disable';
+
+  /// 规则动作：启用。
+  static const String dialogRuleEnable = 'dialog-rule-enable';
+
+  /// 芯片：自定义…。
+  static const String dialogDurationCustom = 'dialog-duration-custom';
+
+  /// 提示：自定义时长怎么输入（引用键条上的手写入口）。
+  static const String dialogDurationCustomHint = 'dialog-duration-custom-hint';
+
+  /// 按钮：把未能解析的原文重新拆成三段。
+  static const String dialogNoteRestructure = 'dialog-note-restructure';
+
+  /// `[下一步]` 自由文本框的标签（全角括号逐字保留）。
+  static const String dialogNoteNextStepLabel = 'dialog-note-next-step-label';
+
+  /// 按钮：只存进展、不标记完成。
+  static const String dialogNoteSaveProgressOnly =
+      'dialog-note-save-progress-only';
+
+  /// 按钮：标记完成（是按钮，不是 `PlanStatus` 的「完成」标签）。
+  static const String dialogNoteDone = 'dialog-note-done';
+
+  /// 副标前半的「加载中」占位。
+  static const String dialogPoolLoading = 'dialog-pool-loading';
+
+  /// 页标题。
+  static const String dialogPoolTitle = 'dialog-pool-title';
+
+  /// 新建表单：标题输入框提示（必填）。
+  static const String dialogPoolTitleHint = 'dialog-pool-title-hint';
+
+  /// 新建表单：起始时间输入框提示。
+  static const String dialogPoolStartHint = 'dialog-pool-start-hint';
+
+  /// 新建表单：到期日输入框提示。
+  static const String dialogPoolDueHint = 'dialog-pool-due-hint';
+
+  /// 新建表单：主按钮（全角 `＋` 是字形，不是文案）。
+  static const String dialogPoolNew = 'dialog-pool-new';
+
+  /// 表头：优先级列。
+  static const String dialogPoolColPriority = 'dialog-pool-col-priority';
+
+  /// 表头：预估时长列。
+  static const String dialogPoolColEst = 'dialog-pool-col-est';
+
+  /// 表头：象限列。
+  static const String dialogPoolColQuadrant = 'dialog-pool-col-quadrant';
+
+  /// 表头：到期日列。
+  static const String dialogPoolColDue = 'dialog-pool-col-due';
+
+  /// 表头：动作列。
+  static const String dialogPoolColAction = 'dialog-pool-col-action';
+
+  /// 起始时间格式非法时的行内错误。
+  static const String dialogPoolStartInvalid = 'dialog-pool-start-invalid';
+
+  /// 行内动作：加入主页计划。
+  static const String dialogPoolAddToToday = 'dialog-pool-add-to-today';
+
+  /// 空态长句（与手写面板的短版「待办池是空的」并存，两句不是同一条）。
+  static const String dialogPoolEmptyLong = 'dialog-pool-empty-long';
+
+  /// 习惯已落库但自动进计划失败（附带原始错误）。
+  static const String dialogHabitSavedWarn = 'dialog-habit-saved-warn';
+
+  /// 面板副标题：先存进待办池（夹带目标日期）。
+  static const String dialogTodoCreateSubtitle = 'dialog-todo-create-subtitle';
+
+  /// 面板副标题：捞进目标日计划（夹带目标日期）。
+  static const String dialogTodoPullSubtitle = 'dialog-todo-pull-subtitle';
+
+  /// 校验失败：选中日不是合法日历日。
+  static const String dialogRecurringBadDate = 'dialog-recurring-bad-date';
+
+  /// 提示：为了让规则今天就生效，已把今天并入重复日。
+  static const String dialogRecurringMergedWeekday =
+      'dialog-recurring-merged-weekday';
+
+  /// 提示：开始时刻早于时间轴下界，已夹到边界。
+  static const String dialogRecurringTimeClamped =
+      'dialog-recurring-time-clamped';
+
+  /// 规则动作（停用 / 启用 / 删除）失败（附带原始错误）。
+  static const String dialogRuleActionFailed = 'dialog-rule-action-failed';
+
+  /// 确认框正文：归档语义说明（夹带规则标题）。
+  static const String dialogRecurringDeleteMessage =
+      'dialog-recurring-delete-message';
+
+  /// 物化失败（附带原始错误）。
+  static const String dialogAutoScheduleFailed = 'dialog-auto-schedule-failed';
+
+  /// 规则列表读取失败（附带原始错误）。
+  static const String dialogRecurringLoadFailed =
+      'dialog-recurring-load-failed';
+
+  /// 计数行：共 N 条规则。
+  static const String dialogRecurringCount = 'dialog-recurring-count';
+
+  /// 规则行摘要：星期 · 时长 · 状态。
+  static const String dialogRecurringSummary = 'dialog-recurring-summary';
+
+  /// 副标前半：池内待捞条数。
+  static const String dialogPoolAvailable = 'dialog-pool-available';
+
+  /// 副标：「条数 · 捞入 目标日」。
+  static const String dialogPoolHead = 'dialog-pool-head';
+
+  /// 行内只读徽标：已排期 + 起始时刻。
+  static const String dialogPoolScheduled = 'dialog-pool-scheduled';
+
+  // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（170 条，覆盖 `AppLocalizations` 全部无参 String getter；
-  /// 另有 3 条列表型 getter 在 `byListGetter`）。
+  /// getter 名 → 键（386 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// 另有 4 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
   static const Map<String, String> byGetter = <String, String>{
@@ -817,9 +1656,231 @@ abstract final class L10nKeys {
     'calendarTomorrow': calendarTomorrow,
     'calendarThisWeek': calendarThisWeek,
     'calendarNoDeadline': calendarNoDeadline,
+    // common 16 条（Task 63 轮二）
+    'commonTitle': commonTitle,
+    'commonSave': commonSave,
+    'commonDelete': commonDelete,
+    'commonClose': commonClose,
+    'commonYes': commonYes,
+    'commonNo': commonNo,
+    'commonConfirmAction': commonConfirmAction,
+    'commonClear': commonClear,
+    'commonClearPriority': commonClearPriority,
+    'commonAxisImportant': commonAxisImportant,
+    'commonAxisNotImportant': commonAxisNotImportant,
+    'commonAxisUrgent': commonAxisUrgent,
+    'commonAxisNotUrgent': commonAxisNotUrgent,
+    'commonUnitTimes': commonUnitTimes,
+    'commonUnitDay': commonUnitDay,
+    'commonUnitWeek': commonUnitWeek,
+    // domain 9 条（Task 63 轮二）
+    'domainConclusionLabel': domainConclusionLabel,
+    'domainReasonLabel': domainReasonLabel,
+    'domainNextStepLabel': domainNextStepLabel,
+    'domainPlanLabel': domainPlanLabel,
+    'domainBackfillLabel': domainBackfillLabel,
+    'domainReviewLabel': domainReviewLabel,
+    'domainMoodLabel': domainMoodLabel,
+    'domainDayLogNotStarted': domainDayLogNotStarted,
+    'domainNoHabitsDueToday': domainNoHabitsDueToday,
+    // timeline 30 条（Task 63 轮二）
+    'timelineEmptyGridHint': timelineEmptyGridHint,
+    'timelineHabitBackfill': timelineHabitBackfill,
+    'timelinePlanTitleHint': timelinePlanTitleHint,
+    'timelineScheduleAction': timelineScheduleAction,
+    'timelineManualGroup': timelineManualGroup,
+    'timelineManualEntry': timelineManualEntry,
+    'timelineTodoGroup': timelineTodoGroup,
+    'timelineTodoPoolEmpty': timelineTodoPoolEmpty,
+    'timelineHabitGroup': timelineHabitGroup,
+    'timelineHabitEmpty': timelineHabitEmpty,
+    'timelineConfirmAction': timelineConfirmAction,
+    'timelineStartLabel': timelineStartLabel,
+    'timelineEndLabel': timelineEndLabel,
+    'timelineDurationLabel': timelineDurationLabel,
+    'timelineSlotFillTitle': timelineSlotFillTitle,
+    'timelineOutcomeTemplateTitle': timelineOutcomeTemplateTitle,
+    'timelineTaskDetailTitle': timelineTaskDetailTitle,
+    'timelineContentLabel': timelineContentLabel,
+    'timelineLevelLabel': timelineLevelLabel,
+    'timelineBackfillContentLabel': timelineBackfillContentLabel,
+    'timelineFutureDayBackfillBlocked': timelineFutureDayBackfillBlocked,
+    'timelineDeletePlanItemTitle': timelineDeletePlanItemTitle,
+    'timelineKindHabitLabel': timelineKindHabitLabel,
+    'timelineKindDoneLabel': timelineKindDoneLabel,
+    'timelineTodoLoadFailed': timelineTodoLoadFailed,
+    'timelineTodoLoading': timelineTodoLoading,
+    'timelineTodoEmpty': timelineTodoEmpty,
+    'timelineTodoSlotted': timelineTodoSlotted,
+    'timelineNodeGap': timelineNodeGap,
+    'timelineNodeClosed': timelineNodeClosed,
+    // today 44 条（Task 63 轮二）
+    'todayReviewFutureTitle': todayReviewFutureTitle,
+    'todayReviewFutureDetail': todayReviewFutureDetail,
+    'todayFuturePlanOnly': todayFuturePlanOnly,
+    'todayFuturePlanning': todayFuturePlanning,
+    'todayChangeDate': todayChangeDate,
+    'todayChangeTime': todayChangeTime,
+    'todayClearTime': todayClearTime,
+    'todayTimeUnset': todayTimeUnset,
+    'todayPickStartTime': todayPickStartTime,
+    'todayAddPlanHint': todayAddPlanHint,
+    'todayAddManual': todayAddManual,
+    'todayHabitLoadFailed': todayHabitLoadFailed,
+    'todayHabitLoading': todayHabitLoading,
+    'todayHabitEmpty': todayHabitEmpty,
+    'todayStatPlanGap': todayStatPlanGap,
+    'todayStatFillGap': todayStatFillGap,
+    'todayStatWritten': todayStatWritten,
+    'todayStatUnwritten': todayStatUnwritten,
+    'todayStatRecorded': todayStatRecorded,
+    'todayStatUnrecorded': todayStatUnrecorded,
+    'todayStallDismiss': todayStallDismiss,
+    'todayNoticeFutureCheckin': todayNoticeFutureCheckin,
+    'todayGotIt': todayGotIt,
+    'todayReviewFieldLearn': todayReviewFieldLearn,
+    'todayReviewFieldLearnHint': todayReviewFieldLearnHint,
+    'todayReviewFieldGood': todayReviewFieldGood,
+    'todayReviewFieldGoodHint': todayReviewFieldGoodHint,
+    'todayReviewFieldImprove': todayReviewFieldImprove,
+    'todayReviewFieldImproveHint': todayReviewFieldImproveHint,
+    'todayReviewSubtitle': todayReviewSubtitle,
+    'todayReviewEmptyNotice': todayReviewEmptyNotice,
+    'todayReviewPickProject': todayReviewPickProject,
+    'todayReviewFileToProject': todayReviewFileToProject,
+    'todayLoopRingA11y': todayLoopRingA11y,
+    'todayLoopRingScale': todayLoopRingScale,
+    'todayStandupTitle': todayStandupTitle,
+    'todayStandupSubtitle': todayStandupSubtitle,
+    'todayStandupEmpty': todayStandupEmpty,
+    'todayStandupYesterday': todayStandupYesterday,
+    'todayStandupYesterdayEmpty': todayStandupYesterdayEmpty,
+    'todayStandupToday': todayStandupToday,
+    'todayStandupTodayEmpty': todayStandupTodayEmpty,
+    'todayStandupBlockers': todayStandupBlockers,
+    'todayStandupBlockersEmpty': todayStandupBlockersEmpty,
+    // habit 44 条（Task 63 轮二）
+    'moodGroupDayTitle': moodGroupDayTitle,
+    'moodGroupWeekTitle': moodGroupWeekTitle,
+    'moodSectionSubtitle': moodSectionSubtitle,
+    'moodClearAll': moodClearAll,
+    'moodMarkFailed': moodMarkFailed,
+    'moodNextActionLabel': moodNextActionLabel,
+    'moodNextActionHint': moodNextActionHint,
+    'moodNoteLabel': moodNoteLabel,
+    'moodNoteHint': moodNoteHint,
+    'moodUnrated': moodUnrated,
+    'moodClearDimension': moodClearDimension,
+    'moodDimFulfillmentLabel': moodDimFulfillmentLabel,
+    'moodDimFulfillmentDesc': moodDimFulfillmentDesc,
+    'moodDimEfficiencyLabel': moodDimEfficiencyLabel,
+    'moodDimEfficiencyDesc': moodDimEfficiencyDesc,
+    'moodDimPositiveMindLabel': moodDimPositiveMindLabel,
+    'moodDimPositiveMindDesc': moodDimPositiveMindDesc,
+    'moodDimSelfEfficacyLabel': moodDimSelfEfficacyLabel,
+    'moodDimSelfEfficacyDesc': moodDimSelfEfficacyDesc,
+    'moodDimContributionLabel': moodDimContributionLabel,
+    'moodDimContributionDesc': moodDimContributionDesc,
+    'moodLegacyDiligent': moodLegacyDiligent,
+    'moodLegacyFast': moodLegacyFast,
+    'moodLegacyKeepPromise': moodLegacyKeepPromise,
+    'moodLegacyFinishTask': moodLegacyFinishTask,
+    'moodLegacyOptimistic': moodLegacyOptimistic,
+    'moodLegacyConfident': moodLegacyConfident,
+    'moodLegacyLoveAndDedication': moodLegacyLoveAndDedication,
+    'moodLegacyNoExcuses': moodLegacyNoExcuses,
+    'habitSectionTitle': habitSectionTitle,
+    'habitSectionSubtitle': habitSectionSubtitle,
+    'habitSectionEmpty': habitSectionEmpty,
+    'habitCheckinLoading': habitCheckinLoading,
+    'habitCheckinError': habitCheckinError,
+    'habitCheckinHeadTitle': habitCheckinHeadTitle,
+    'habitCheckinHeadHint': habitCheckinHeadHint,
+    'habitPageTitle': habitPageTitle,
+    'habitPageFutureHint': habitPageFutureHint,
+    'habitPageEmpty': habitPageEmpty,
+    'priorityPickQuadrant': priorityPickQuadrant,
+    'priorityPickAbc': priorityPickAbc,
+    'priorityBubbleCurrent': priorityBubbleCurrent,
+    'priorityBubbleReadonly': priorityBubbleReadonly,
+    'priorityBubbleEditable': priorityBubbleEditable,
+    // dialog 73 条（Task 63 轮二）
+    'dialogEstUnitMinute': dialogEstUnitMinute,
+    'dialogEstUnitHour': dialogEstUnitHour,
+    'dialogEstUnitDay': dialogEstUnitDay,
+    'dialogEstUnitWeek': dialogEstUnitWeek,
+    'dialogEstUnitMonth': dialogEstUnitMonth,
+    'dialogHabitNameRequired': dialogHabitNameRequired,
+    'dialogHabitWeekdayRequired': dialogHabitWeekdayRequired,
+    'dialogHabitNameLabel': dialogHabitNameLabel,
+    'dialogHabitNoteLabel': dialogHabitNoteLabel,
+    'dialogHabitSchedule': dialogHabitSchedule,
+    'dialogHabitDaily': dialogHabitDaily,
+    'dialogHabitEveryDays': dialogHabitEveryDays,
+    'dialogHabitEveryWeeks': dialogHabitEveryWeeks,
+    'dialogHabitWeeklyPick': dialogHabitWeeklyPick,
+    'dialogHabitEvery': dialogHabitEvery,
+    'dialogHabitWeekday': dialogHabitWeekday,
+    'dialogHabitStartDate': dialogHabitStartDate,
+    'dialogHabitDailyMin': dialogHabitDailyMin,
+    'dialogHabitCreate': dialogHabitCreate,
+    'dialogHabitCreateSubtitle': dialogHabitCreateSubtitle,
+    'dialogTodoTitleRequired': dialogTodoTitleRequired,
+    'dialogTodoEstInvalid': dialogTodoEstInvalid,
+    'dialogTodoCreateTitle': dialogTodoCreateTitle,
+    'dialogTodoTitleHint': dialogTodoTitleHint,
+    'dialogTodoEstLabel': dialogTodoEstLabel,
+    'dialogTodoEstHint': dialogTodoEstHint,
+    'dialogTodoPriorityLabel': dialogTodoPriorityLabel,
+    'dialogTodoPullToday': dialogTodoPullToday,
+    'dialogTodoSaving': dialogTodoSaving,
+    'dialogTodoPullTitle': dialogTodoPullTitle,
+    'dialogTodoPoolEmpty': dialogTodoPoolEmpty,
+    'dialogTodoPulling': dialogTodoPulling,
+    'dialogTodoPull': dialogTodoPull,
+    'dialogRecurringWeekdayRequired': dialogRecurringWeekdayRequired,
+    'dialogRecurringTimeInvalid': dialogRecurringTimeInvalid,
+    'dialogRecurringDurationInvalid': dialogRecurringDurationInvalid,
+    'dialogRecurringTitleLabel': dialogRecurringTitleLabel,
+    'dialogRecurringStartLabel': dialogRecurringStartLabel,
+    'dialogRecurringDurationLabel': dialogRecurringDurationLabel,
+    'dialogRecurringNoteLabel': dialogRecurringNoteLabel,
+    'dialogRecurringSaveConfirm': dialogRecurringSaveConfirm,
+    'dialogRecurringCreateTitle': dialogRecurringCreateTitle,
+    'dialogRecurringCreateSubtitle': dialogRecurringCreateSubtitle,
+    'dialogRecurringDeleteTitle': dialogRecurringDeleteTitle,
+    'dialogRecurringSection': dialogRecurringSection,
+    'dialogRecurringLoading': dialogRecurringLoading,
+    'dialogRecurringNone': dialogRecurringNone,
+    'dialogRecurringNoneHint': dialogRecurringNoneHint,
+    'dialogRecurringDaily': dialogRecurringDaily,
+    'dialogRuleActiveOn': dialogRuleActiveOn,
+    'dialogRuleActiveOff': dialogRuleActiveOff,
+    'dialogRuleDisable': dialogRuleDisable,
+    'dialogRuleEnable': dialogRuleEnable,
+    'dialogDurationCustom': dialogDurationCustom,
+    'dialogDurationCustomHint': dialogDurationCustomHint,
+    'dialogNoteRestructure': dialogNoteRestructure,
+    'dialogNoteNextStepLabel': dialogNoteNextStepLabel,
+    'dialogNoteSaveProgressOnly': dialogNoteSaveProgressOnly,
+    'dialogNoteDone': dialogNoteDone,
+    'dialogPoolLoading': dialogPoolLoading,
+    'dialogPoolTitle': dialogPoolTitle,
+    'dialogPoolTitleHint': dialogPoolTitleHint,
+    'dialogPoolStartHint': dialogPoolStartHint,
+    'dialogPoolDueHint': dialogPoolDueHint,
+    'dialogPoolNew': dialogPoolNew,
+    'dialogPoolColPriority': dialogPoolColPriority,
+    'dialogPoolColEst': dialogPoolColEst,
+    'dialogPoolColQuadrant': dialogPoolColQuadrant,
+    'dialogPoolColDue': dialogPoolColDue,
+    'dialogPoolColAction': dialogPoolColAction,
+    'dialogPoolStartInvalid': dialogPoolStartInvalid,
+    'dialogPoolAddToToday': dialogPoolAddToToday,
+    'dialogPoolEmptyLong': dialogPoolEmptyLong,
   };
 
-  /// 列表型 getter 名 → 键（3 条；`byGetter` 只收 String getter）。
+  /// 列表型 getter 名 → 键（4 条；`byGetter` 只收 String getter）。
   ///
   /// 列表型 getter（`List<String>`）无法塞进 `Map<String, String>`，单列一张表，
   /// 好让测试同样能遍历「键一条不少 + 中英两态都非空且不同」。
@@ -827,9 +1888,10 @@ abstract final class L10nKeys {
     'aboutToc': aboutToc,
     'aboutChangelog': aboutChangelog,
     'calendarWeekdaysShort': calendarWeekdaysShort,
+    'domainWeekdayFull': domainWeekdayFull,
   };
 
-  /// 插值方法名 → 键（6 条）。
+  /// 插值方法名 → 键（53 条）。
   static const Map<String, String> byMethod = <String, String>{
     'hoursCount': domainHoursCount,
     'minutesCount': domainMinutesCount,
@@ -837,5 +1899,56 @@ abstract final class L10nKeys {
     'moodScoreLabel': domainMoodScoreLabel,
     'calendarMonthLabel': calendarMonthLabel,
     'calendarDateTitle': calendarDateTitle,
+    // timeline 12 条（Task 63 轮二）
+    'timelineSlotMenuTitle': timelineSlotMenuTitle,
+    'timelineRangeTitle': timelineRangeTitle,
+    'timelineTotalMinutes': timelineTotalMinutes,
+    'timelineStepDown': timelineStepDown,
+    'timelineStepUp': timelineStepUp,
+    'timelineSlotPrompt': timelineSlotPrompt,
+    'timelineWriteFailed': timelineWriteFailed,
+    'timelineDeletePlanItemMessage': timelineDeletePlanItemMessage,
+    'timelineHoverDetail': timelineHoverDetail,
+    'timelineHoverNote': timelineHoverNote,
+    'timelineHoverState': timelineHoverState,
+    'timelineHoverLevel': timelineHoverLevel,
+    // today 11 条（Task 63 轮二）
+    'todayTimeSet': todayTimeSet,
+    'todayDateLabel': todayDateLabel,
+    'todayDateChipA11y': todayDateChipA11y,
+    'todayGridStartHint': todayGridStartHint,
+    'todayStallHint': todayStallHint,
+    'todayHabitLoadError': todayHabitLoadError,
+    'todayCheckedIn': todayCheckedIn,
+    'todayCheckinFailed': todayCheckinFailed,
+    'todayReviewFiledTo': todayReviewFiledTo,
+    'todayReviewJoinSegments': todayReviewJoinSegments,
+    'todayStandupSectionCount': todayStandupSectionCount,
+    // habit 9 条（Task 63 轮二）
+    'moodRatedCount': moodRatedCount,
+    'moodAverage': moodAverage,
+    'moodGroupHeader': moodGroupHeader,
+    'moodGroupProgress': moodGroupProgress,
+    'moodEvidence': moodEvidence,
+    'habitTarget': habitTarget,
+    'habitLoadFailed': habitLoadFailed,
+    'habitCheckinLoadFailed': habitCheckinLoadFailed,
+    'priorityBubbleA11y': priorityBubbleA11y,
+    // dialog 15 条（Task 63 轮二）
+    'dialogHabitSavedWarn': dialogHabitSavedWarn,
+    'dialogTodoCreateSubtitle': dialogTodoCreateSubtitle,
+    'dialogTodoPullSubtitle': dialogTodoPullSubtitle,
+    'dialogRecurringBadDate': dialogRecurringBadDate,
+    'dialogRecurringMergedWeekday': dialogRecurringMergedWeekday,
+    'dialogRecurringTimeClamped': dialogRecurringTimeClamped,
+    'dialogRuleActionFailed': dialogRuleActionFailed,
+    'dialogRecurringDeleteMessage': dialogRecurringDeleteMessage,
+    'dialogAutoScheduleFailed': dialogAutoScheduleFailed,
+    'dialogRecurringLoadFailed': dialogRecurringLoadFailed,
+    'dialogRecurringCount': dialogRecurringCount,
+    'dialogRecurringSummary': dialogRecurringSummary,
+    'dialogPoolAvailable': dialogPoolAvailable,
+    'dialogPoolHead': dialogPoolHead,
+    'dialogPoolScheduled': dialogPoolScheduled,
   };
 }

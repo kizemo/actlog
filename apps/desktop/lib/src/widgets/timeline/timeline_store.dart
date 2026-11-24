@@ -64,7 +64,7 @@ class TimelineStore {
   }) {
     final String trimmed = title.trim();
     if (trimmed.isEmpty) {
-      throw ArgumentError.value(title, 'title', '标题不能为空');
+      throw ArgumentError.value(title, 'title', 'title must not be empty');
     }
     final bool backfill = todayIso != null &&
         nowMinute != null &&
@@ -191,7 +191,7 @@ class TimelineStore {
   }) async {
     final PlanItemData? row = await _rowOf(planItemId);
     if (row == null) {
-      throw StateError('plan_item $planItemId 不存在');
+      throw StateError('plan_item $planItemId not found');
     }
     final String deviceId = await repos.oplog.resolveDeviceId();
     final int ts = nowMillis();
@@ -283,7 +283,7 @@ class TimelineStore {
   }) async {
     final String trimmed = title.trim();
     if (trimmed.isEmpty) {
-      throw ArgumentError.value(title, 'title', '标题不能为空');
+      throw ArgumentError.value(title, 'title', 'title must not be empty');
     }
     final String todoId = uuidV7();
     final int ts = nowMillis();
@@ -363,7 +363,7 @@ class TimelineStore {
   }) {
     final String trimmed = title.trim();
     if (trimmed.isEmpty) {
-      throw ArgumentError.value(title, 'title', '标题不能为空');
+      throw ArgumentError.value(title, 'title', 'title must not be empty');
     }
     return _insertPlanItem(
       date: date,
@@ -451,7 +451,7 @@ class TimelineStore {
         await (_db.select(_db.todo)..where((t) => t.id.equals(todo.id)))
             .getSingleOrNull();
     if (row == null) {
-      throw StateError('todo ${todo.id} 不存在');
+      throw StateError('todo ${todo.id} not found');
     }
     await repos.oplog.writeWithOplog<void>(
       table: 'todo',

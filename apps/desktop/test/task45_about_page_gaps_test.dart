@@ -548,4 +548,91 @@ void main() {
       expect(find.byKey(_key(key)), findsOneWidget, reason: '缺少或重名：$key');
     }
   });
+
+  // ------------------------------------------------ Task 63 · W8：en 态补齐
+  // 以下两条只**追加** en 态字面量断言 + 中文阴性对照，既有 zh 用例一字未改。
+  // en 期望串全部取自 `apps/desktop/lib/src/l10n/parts/about.dart` 的 en mixin。
+  testWidgets('en 态本页导航七条整体换成英文，中文条目一条不留',
+      (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create(
+      result: const ReleaseCheckResult(ReleaseCheckStatus.noRelease),
+      language: AppLanguage.en,
+    );
+    await h.mount(tester);
+    await _pump(tester);
+
+    // 先证页面确实渲染了：否则下面的 `findsNothing` 全是空过。
+    expect(find.byKey(_key('about-page')), findsOneWidget);
+
+    // 真值来源：`AboutEnL10n.aboutToc`。
+    for (final String label in <String>[
+      'Version',
+      'Recent changes',
+      'Data & privacy',
+      'Repository',
+      'Developer',
+      'Other software',
+      'Licenses',
+    ]) {
+      expect(
+        find.widgetWithText(InkWell, label),
+        findsOneWidget,
+        reason: 'en 态本页导航缺少「$label」',
+      );
+    }
+
+    // 阴性对照：en 态导航里一枚中文条目都不许留。
+    for (final String label in <String>[
+      '版本',
+      '最近变更',
+      '数据与隐私',
+      '仓库',
+      '开发者',
+      '其它软件',
+      '许可证',
+    ]) {
+      expect(
+        find.widgetWithText(InkWell, label),
+        findsNothing,
+        reason: 'en 态导航里不该有中文「$label」',
+      );
+    }
+  });
+
+  testWidgets('en 态版本行、检查结果与复制按钮都用英文真值',
+      (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create(
+      result: const ReleaseCheckResult(ReleaseCheckStatus.noRelease),
+      language: AppLanguage.en,
+    );
+    await h.mount(tester);
+    await _pump(tester);
+
+    // 版本行 = en 的 `versionLabel`（`Version`）+ 两个空格 + 版本常量，
+    // 与 `about_page.dart` 的拼法一致。
+    expect(
+      tester.widget<Text>(find.byKey(_key('about-version'))).data,
+      'Version  $kAppVersionFull',
+    );
+
+    await tester.tap(find.byKey(_key('about-check-update')));
+    await _pump(tester);
+
+    expect(
+      tester.widget<Text>(find.byKey(_key('about-check-result'))).data,
+      'No releases available yet',
+    );
+    // `aboutCopyResult` 的 en 真值；
+    expect(find.text('Copy result'), findsOneWidget);
+    // 仓库复制按钮走共用词 `copy`（en 为 `Copy URL`）。
+    expect(find.text('Copy URL'), findsOneWidget);
+
+    // 阴性对照：这四串 zh 原文在 en 态必须一条都找不到。
+    expect(find.text('复制结果'), findsNothing);
+    expect(find.text('暂无可用发布版本'), findsNothing);
+    expect(find.text('复制地址'), findsNothing);
+    expect(find.text('检查新版本'), findsNothing);
+  });
 }
