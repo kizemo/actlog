@@ -9374,6 +9374,12 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
 - [x] **61.4j 陈旧指针订正**：`progress.md` / `handoff.md` 里「深色主题 Task 41 独立排期」**订正为陈旧指针**
       （Task 41 已闭环，17 项复选框全勾，深浅开关端到端已实现）—— **只改台账文字，不动产品代码**；
       并把 §47 剩余 backlog（**W3–W8 + 47.3 + W9**）如实登记为未完成项。
+      > **台账指针**：侦察 → `reports/task61-recon-{shell,calendar,roadmap}.md`；派工书 → `docs/task61/`
+      > （worker A 外壳底座 / B 外壳点件 / C 日历页 / D 日期控件 / E 测试修订）；批次记录 →
+      > `.superpowers/sdd/2026-11-07-b1-flutter-implementation/progress.md`（Task 61 段）与
+      > `handoff.md` 的 §68（交付）/ §69（推送恢复回填）/ §70（终局收口：5 笔提交全上 GitHub +
+      > 最终树门禁 PASS `RUN_AT=2026-11-24 12:21:21`）；验收记录 → `docs/B1_验收记录.md`；
+      > 工具坑 → `AGENTS.md` §5（本轮新增坑 91 / 92 / 93）。
 
 ### 61.5 收口顺序（硬顺序，不得跳步）
 
