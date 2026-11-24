@@ -9427,7 +9427,7 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
 
 ### 62.2 与 §47 / 既有 backlog 的相互影响
 
-- **§47 W3–W8 未开工**：本规划轮**未碰**右轨内容区中文落点（`todo_rail_panel.dart:44 '暂无待办'`、`today_page.dart:798 '所选日没有排程习惯'`、`:920-925 _labels=['计划缺口','回填缺口','复盘','心态']`、`:933-937`），**不得**宣称「英文界面零中文」；§47 的 4 项复选框保持未勾。
+- **§47 W3–W8 未开工**：本规划轮**未碰**右轨内容区中文落点（`todo_rail_panel.dart:44 '暂无待办'`、`today_page.dart:798 '所选日没有排程习惯'`、`:920-925 _labels=['计划缺口','回填缺口','复盘','心态']`、`:933-937`），**不得**宣称「英文界面零中文」；§47 的 4 项复选框当时按整簇口径留白（⚠ **该口径已作废**：Task 63 收口轮已逐条订正为「仅剩 `47.2 W9` 未勾」，见 §63.5）。
 - **反向影响（风险 R-D）**：Task 64/65 新增 l10n getter 与 `nav_rail` 改动会**扩大 §47 W3 的中文落点清单** ⇒ 两批须**串行**（先 W3–W8 再 P0；若先 P0，W3 清单必须重取），不得并行。
 - **写集与派工**：Task 63–67 全部经 worker 落地（R1 控制器不改 `apps\` / `packages\`）；每批开始前把新写集追加进 `reports\task51-gate.ps1:112-144` 的 `$patterns`；派工 **R8** 必须显式 `model=custom_provider:provider-aa5659/deepseek-v4.1-flash-1017` + `effort=high|max`。
 
@@ -9549,5 +9549,17 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
       **锁屏 / 桌面守卫不过 ⇒ 如实登记「未判定」，不判 PASS/FAIL**（`reports\task60-realdevice-recipe.md`）。
 - [x] **63.4h 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项如实登记）；
       计划 §63 等长打勾 + `AGENTS.md` R2 基线 / §7 快照 + `handoff.md` §72 + `progress.md` Task 63 段 + `docs\B1_验收记录.md`。
-- [ ] **63.4i 收口提交与推送**：commit + push ⇒ `AHEAD=0` / `BEHIND=0`（**推送受阻时按 §61.4i 的「两条路都试」口径**）。
+- [x] **63.4i 收口提交与推送**：commit + push ⇒ `AHEAD=0` / `BEHIND=0`（**推送受阻时按 §61.4i 的「两条路都试」口径**）。
 - [x] **63.4j 宣称口径**：**W9 未做 ⇒ 不得宣称「英文界面零中文」**；只能声明「§47 W3–W8 覆盖范围零中文」。
+
+### 63.5 收口提交与台账订正（控制器 2026-11-24 夜 · Task 63 收口轮）
+
+- **提交链（实测 `git log --oneline origin/main`）**：`6031373`（产品面：**80 文件 / +8121 −737**）→ `13ca525`（台账：计划 §63 全节 + `AGENTS.md` R2 基线 736→834 + §7 快照 + `docs\B1_验收记录.md` Task 63 章 + `docs\task62\模块规划.md` 首次入库，**4 文件 / +835 −5**）→ **本节提交（收口台账）**。
+- **63.4i 已闭合**：用户当轮问卷明确授权「提交并推送」⇒ `git push origin main` 一次成功（`2d3f2ea..13ca525  main -> main`），推送后实测 `AHEAD=0` / `BEHIND=0` / `STATUS_LINES=0`；**坑 93（代理 TLS 间歇抖动）本轮未复现**。**R6 等长打勾实测**：计划文件字节数 **665403 → 665403（不变）**、sha16 `C494D308CAE6AF26` → **`4641187D7AC42B2F`**（当场重测）。判据取「工作树干净 + `AHEAD=0` + `BEHIND=0`」三合一，不取字面笔数（沿用 §61.4i 口径；记录提交链的那笔提交本身必然滞后一笔）。
+- **门禁第五轮（控制器亲跑，`reports\task63-gate-run5.log`，`RUN_AT=2026-11-24 20:36:41` / `HEAD=13ca525`）**：`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / desktop `TESTS=834` `DESKTOP_EXPECTED=834` / core_data **204** / core_db **71** / core_domain **62** / 四包 `ANALYZE=VERBATIM` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `STATUS_LINES=0` / `PS1_ASCII_VIOLATIONS=0` / `PS1_SCANNED=493` / `PS1_NEW_NON_ASCII=0` / `PS1_ASCII_FLIPPED=0`。
+- **§47.6 复选框订正已落库**（控制器逐条重判 + 等长替换，R6 双判据同款）：补勾 4 处 —— `47.1 W2 日历与日期`（Task 61 已闭合）/ `47.1 W3–W8`（Task 63 已闭合）/ `47.3 判据改造`（§63.4e 已闭合）/ §62.3 下阶段闸门项 `**Task 63**`；**`47.2 W9` 保持未勾** ⇒ §47 自此**仅剩 1 项**未闭合。⚠ **凡台账旧文写「§47 的 4 项复选框保持未勾」者一律作废**，按本条订正。
+- **NOTE · W8 归属偏差（控制器实测订正；不翻案已成立的判据）**：
+  - 实测 `apps\desktop\lib\src\l10n\parts\about.dart` = **442 行 / 13,712 B / 35 个 distinct getter**（每个 getter 在「抽象类 `AboutL10n` + `mixin AboutZhL10n` + `mixin AboutEnL10n`」三处声明 ⇒ `String get` 共出现 **105** 次）；`l10n_keys.dart` 中 `'about-'` 前缀命中 **28 行**（两者口径不同，不构成矛盾）。
+  - **台账原文「W8 = `parts\about.dart` 37 键」键数不实** ⇒ 按实测订正为 **35 键**（`handoff.md` §72.1 / `progress.md` Task 63 段 / `AGENTS.md` §7 / 本文件 63.4a 行**同步更正**）。
+  - **归属偏差**：`git show --numstat 6031373 -- .../parts\about.dart` = **空** ⇒ **`about.dart` 在 Task 63 提交中零改动**，最后改动方 = Task 61 的 `d5b1240`；Task 63 的 W8 **实际交付 = 3 个 about 测试文件的 en 态断言**（`test\task39_about_page_test.dart` **+99** 行 / `test\task45_about_page_gaps_test.dart` **+87** 行 / `test\task46_about_licenses_test.dart` **+66** 行）。
+  - **静态判据仍成立、但证据来源改写**：about 段 En mixin 的**字符串字面量 CJK = 0**（仅 `:370/:393/:414` 三处 `//` 注释）⇒ 63.4a「En 段零中文」成立；**证据是「本轮实测复核 Task 61 已交付物」，不是「本轮改动」**。凡把 `about.dart` 计入 Task 63 产出规模的表述，一律按本 NOTE 更正。
