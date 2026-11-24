@@ -71,15 +71,6 @@ abstract class SettingsL10n {
   /// 起止时间说明。
   String get planWindowHint;
 
-  /// 分组：数据。
-  String get sectionData;
-
-  /// 打开数据目录。
-  String get openDataDir;
-
-  /// 打开数据目录说明。
-  String get openDataDirHint;
-
   /// 分组：其它。
   String get sectionOther;
 
@@ -179,15 +170,6 @@ mixin SettingsZhL10n implements SettingsL10n {
 
   @override
   String get planWindowHint => '方格时间轴按这个区间裁剪，默认 06:00–24:00';
-
-  @override
-  String get sectionData => '数据';
-
-  @override
-  String get openDataDir => '打开数据目录';
-
-  @override
-  String get openDataDirHint => '数据库文件所在文件夹（资源管理器）';
 
   @override
   String get sectionOther => '其它';
@@ -291,15 +273,6 @@ mixin SettingsEnL10n implements SettingsL10n {
   @override
   String get planWindowHint =>
       'The day grid is cropped to this range; default 06:00-24:00';
-
-  @override
-  String get sectionData => 'Data';
-
-  @override
-  String get openDataDir => 'Open data folder';
-
-  @override
-  String get openDataDirHint => 'Folder that holds the database file';
 
   @override
   String get sectionOther => 'Other';

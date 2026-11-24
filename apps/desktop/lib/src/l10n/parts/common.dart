@@ -42,20 +42,11 @@ abstract class CommonL10n {
   String get commonClose;
 
   // ---------------------------------------------------------------------------
-  // 二元取值 / 动作 / 优先级轴 / 单位（Task 63 轮二：W3–W7 共用短词）
+  // 动作 / 优先级轴 / 单位（Task 63 轮二：W3–W7 共用短词）
   //
   // 这几条在 2 个以上波次里同句同义出现，因此集中在 common part，
   // 各波次直接复用，不再自建同形键。
   // ---------------------------------------------------------------------------
-
-  /// 二元轴的肯定取值：是。
-  String get commonYes;
-
-  /// 二元轴的否定取值：否。
-  String get commonNo;
-
-  /// 确认（动作按钮）。注意 `confirm` 的 zh 是「确定」，两者不可互换。
-  String get commonConfirmAction;
 
   /// 清除（把已分级打回未分级 / 清空选择）。
   String get commonClear;
@@ -121,15 +112,6 @@ mixin CommonZhL10n implements CommonL10n {
   String get commonClose => '关闭';
 
   @override
-  String get commonYes => '是';
-
-  @override
-  String get commonNo => '否';
-
-  @override
-  String get commonConfirmAction => '确认';
-
-  @override
   String get commonClear => '清除';
 
   @override
@@ -191,15 +173,6 @@ mixin CommonEnL10n implements CommonL10n {
 
   @override
   String get commonClose => 'Close';
-
-  @override
-  String get commonYes => 'Yes';
-
-  @override
-  String get commonNo => 'No';
-
-  @override
-  String get commonConfirmAction => 'Confirm';
 
   @override
   String get commonClear => 'Clear';

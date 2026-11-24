@@ -4,7 +4,7 @@
 // 为什么这些放在 test\ 而不是 lib\：它只为测试服务，进 lib 就是又造一层生产代码
 // 里的转发（本项目明令不要 `AppStrings.xxx => t.xxx` 那种壳）。
 //
-// `l10nAccessors` 是**测试数据**：把 386 条 getter 一条一条列成「键 → 取值闭包」
+// `l10nAccessors` 是**测试数据**：把 390 条 getter 一条一条列成「键 → 取值闭包」
 // （列表型 4 条在 `l10nListAccessors`）。
 // 有了它，测试才能不看 getter 名地遍历全部文案（校验非空、校验中英不同、校验
 // 键数与条数一致）。新增 getter 时两侧都要加一行 —— 少了就会在
@@ -24,10 +24,10 @@ import 'package:actlog/src/l10n/l10n_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 386 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
+/// 390 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
 final Map<String, String Function(AppLocalizations)> l10nAccessors =
     <String, String Function(AppLocalizations)>{
-  // 设置页 35 条
+  // 设置页 32 条
   L10nKeys.settingsTitle: (AppLocalizations t) => t.settingsTitle,
   L10nKeys.settingsSubtitle: (AppLocalizations t) => t.settingsSubtitle,
   L10nKeys.settingsSectionAppearance: (AppLocalizations t) =>
@@ -50,9 +50,6 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.settingsPlanStart: (AppLocalizations t) => t.planStart,
   L10nKeys.settingsPlanEnd: (AppLocalizations t) => t.planEnd,
   L10nKeys.settingsPlanWindowHint: (AppLocalizations t) => t.planWindowHint,
-  L10nKeys.settingsSectionData: (AppLocalizations t) => t.sectionData,
-  L10nKeys.settingsOpenDataDir: (AppLocalizations t) => t.openDataDir,
-  L10nKeys.settingsOpenDataDirHint: (AppLocalizations t) => t.openDataDirHint,
   L10nKeys.settingsSectionOther: (AppLocalizations t) => t.sectionOther,
   L10nKeys.settingsDensity: (AppLocalizations t) => t.density,
   L10nKeys.settingsDensityCompact: (AppLocalizations t) => t.densityCompact,
@@ -165,7 +162,7 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.domainAbcCLabel: (AppLocalizations t) => t.abcCLabel,
   L10nKeys.domainPriorityUnsetLabel: (AppLocalizations t) =>
       t.priorityUnsetLabel,
-  // 项目页 42 条（Task 56 新增 17 条 + Task 57 新增 11 条 + 补轮 3 条 +
+  // 项目页 41 条（Task 56 新增 17 条 + Task 57 新增 11 条 + 补轮 3 条 +
   // Task 59 新增 11 条）
   L10nKeys.projectsTitle: (AppLocalizations t) => t.projectsTitle,
   L10nKeys.projectsSubtitle: (AppLocalizations t) => t.projectsSubtitle,
@@ -186,7 +183,6 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.projectsNoTask: (AppLocalizations t) => t.projectsNoTask,
   L10nKeys.projectsNoDateRange: (AppLocalizations t) => t.projectsNoDateRange,
   L10nKeys.projectsEmptyChart: (AppLocalizations t) => t.projectsEmptyChart,
-  L10nKeys.projectsLoadFailed: (AppLocalizations t) => t.projectsLoadFailed,
   L10nKeys.projectsScheduleTodayAction: (AppLocalizations t) =>
       t.projectsScheduleTodayAction,
   L10nKeys.projectsScheduledOn: (AppLocalizations t) => t.projectsScheduledOn,
@@ -252,14 +248,11 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.calendarTomorrow: (AppLocalizations t) => t.calendarTomorrow,
   L10nKeys.calendarThisWeek: (AppLocalizations t) => t.calendarThisWeek,
   L10nKeys.calendarNoDeadline: (AppLocalizations t) => t.calendarNoDeadline,
-  // common 16 条（Task 63 轮二）
+  // common 13 条（Task 63 轮二）
   L10nKeys.commonTitle: (AppLocalizations t) => t.commonTitle,
   L10nKeys.commonSave: (AppLocalizations t) => t.commonSave,
   L10nKeys.commonDelete: (AppLocalizations t) => t.commonDelete,
   L10nKeys.commonClose: (AppLocalizations t) => t.commonClose,
-  L10nKeys.commonYes: (AppLocalizations t) => t.commonYes,
-  L10nKeys.commonNo: (AppLocalizations t) => t.commonNo,
-  L10nKeys.commonConfirmAction: (AppLocalizations t) => t.commonConfirmAction,
   L10nKeys.commonClear: (AppLocalizations t) => t.commonClear,
   L10nKeys.commonClearPriority: (AppLocalizations t) => t.commonClearPriority,
   L10nKeys.commonAxisImportant: (AppLocalizations t) => t.commonAxisImportant,
@@ -283,6 +276,18 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.domainDayLogNotStarted,
   L10nKeys.domainNoHabitsDueToday: (AppLocalizations t) =>
       t.domainNoHabitsDueToday,
+  // domain 11 条（Task 68 W9）
+  L10nKeys.domainWeekdayMon: (AppLocalizations t) => t.mon,
+  L10nKeys.domainWeekdayTue: (AppLocalizations t) => t.tue,
+  L10nKeys.domainWeekdayWed: (AppLocalizations t) => t.wed,
+  L10nKeys.domainWeekdayThu: (AppLocalizations t) => t.thu,
+  L10nKeys.domainWeekdayFri: (AppLocalizations t) => t.fri,
+  L10nKeys.domainWeekdaySat: (AppLocalizations t) => t.sat,
+  L10nKeys.domainWeekdaySun: (AppLocalizations t) => t.sun,
+  L10nKeys.domainRecurringEvery: (AppLocalizations t) => t.every,
+  L10nKeys.domainRecurringWorkdays: (AppLocalizations t) => t.workdays,
+  L10nKeys.domainRecurringWeekend: (AppLocalizations t) => t.weekend,
+  L10nKeys.domainRecurringNone: (AppLocalizations t) => t.none,
   // timeline 30 条（Task 63 轮二）
   L10nKeys.timelineEmptyGridHint: (AppLocalizations t) =>
       t.timelineEmptyGridHint,

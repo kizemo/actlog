@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「386 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「390 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -19,7 +19,7 @@
 /// 文案键常量（kebab-case）与「Dart 名字 → 键」对照表。
 abstract final class L10nKeys {
   // ---------------------------------------------------------------------------
-  // 设置页（parts\settings.dart，35 条）
+  // 设置页（parts\settings.dart，32 条）
   // ---------------------------------------------------------------------------
 
   /// 设置页标题。
@@ -79,15 +79,6 @@ abstract final class L10nKeys {
 
   /// 起止时间说明。
   static const String settingsPlanWindowHint = 'settings-plan-window-hint';
-
-  /// 分组：数据。
-  static const String settingsSectionData = 'settings-section-data';
-
-  /// 打开数据目录。
-  static const String settingsOpenDataDir = 'settings-open-data-dir';
-
-  /// 打开数据目录说明。
-  static const String settingsOpenDataDirHint = 'settings-open-data-dir-hint';
 
   /// 分组：其它。
   static const String settingsSectionOther = 'settings-section-other';
@@ -327,7 +318,7 @@ abstract final class L10nKeys {
   static const String shellPanelLoopHint = 'shell-panel-loop-hint';
 
   // ---------------------------------------------------------------------------
-  // 跨页共用（parts\common.dart，23 条）
+  // 跨页共用（parts\common.dart，20 条）
   // ---------------------------------------------------------------------------
 
   /// 取消。
@@ -364,15 +355,6 @@ abstract final class L10nKeys {
 
   /// 关闭（关掉浮层 / 对话框的按钮，不是关窗口）。
   static const String commonClose = 'common-close';
-
-  /// 二元轴的肯定取值：是。
-  static const String commonYes = 'common-yes';
-
-  /// 二元轴的否定取值：否。
-  static const String commonNo = 'common-no';
-
-  /// 确认（动作按钮）。注意 `confirm` 的 zh 是「确定」，两者不可互换。
-  static const String commonConfirmAction = 'common-confirm-action';
 
   /// 清除（把已分级打回未分级 / 清空选择）。
   static const String commonClear = 'common-clear';
@@ -497,8 +479,43 @@ abstract final class L10nKeys {
   /// 星期全名（周一起、周日末，共 7 条）。按 `1..7` 取 `[day - 1]`；  zh 自带「周」字，en 只有短名 ⇒ 调用点**不要**再拼前缀。
   static const String domainWeekdayFull = 'domain-weekday-full';
 
+  // Task 68 W9：星期名单条 7 条 + 循环任务整词 4 条
+
+  /// 星期名：周一。
+  static const String domainWeekdayMon = 'domain-weekday-mon';
+
+  /// 星期名：周二。
+  static const String domainWeekdayTue = 'domain-weekday-tue';
+
+  /// 星期名：周三。
+  static const String domainWeekdayWed = 'domain-weekday-wed';
+
+  /// 星期名：周四。
+  static const String domainWeekdayThu = 'domain-weekday-thu';
+
+  /// 星期名：周五。
+  static const String domainWeekdayFri = 'domain-weekday-fri';
+
+  /// 星期名：周六。
+  static const String domainWeekdaySat = 'domain-weekday-sat';
+
+  /// 星期名：周日。
+  static const String domainWeekdaySun = 'domain-weekday-sun';
+
+  /// 循环任务整词：每天。
+  static const String domainRecurringEvery = 'domain-recurring-every';
+
+  /// 循环任务整词：工作日。
+  static const String domainRecurringWorkdays = 'domain-recurring-workdays';
+
+  /// 循环任务整词：周末。
+  static const String domainRecurringWeekend = 'domain-recurring-weekend';
+
+  /// 循环任务整词：未选。
+  static const String domainRecurringNone = 'domain-recurring-none';
+
   // ---------------------------------------------------------------------------
-  // 项目页（parts\projects.dart，42 条）
+  // 项目页（parts\projects.dart，41 条）
   // ---------------------------------------------------------------------------
 
   /// 项目页标题。
@@ -548,9 +565,6 @@ abstract final class L10nKeys {
 
   /// 甘特图无可排期日期。
   static const String projectsEmptyChart = 'projects-empty-chart';
-
-  /// 项目页加载失败。
-  static const String projectsLoadFailed = 'projects-load-failed';
 
   /// 项目整体排进今天（Task 57）。
   static const String projectsScheduleTodayAction =
@@ -1469,12 +1483,12 @@ abstract final class L10nKeys {
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（386 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// getter 名 → 键（390 条，覆盖 `AppLocalizations` 全部无参 String getter；
   /// 另有 4 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
   static const Map<String, String> byGetter = <String, String>{
-    // 设置页 35 条
+    // 设置页 32 条
     'settingsTitle': settingsTitle,
     'settingsSubtitle': settingsSubtitle,
     'sectionAppearance': settingsSectionAppearance,
@@ -1494,9 +1508,6 @@ abstract final class L10nKeys {
     'planStart': settingsPlanStart,
     'planEnd': settingsPlanEnd,
     'planWindowHint': settingsPlanWindowHint,
-    'sectionData': settingsSectionData,
-    'openDataDir': settingsOpenDataDir,
-    'openDataDirHint': settingsOpenDataDirHint,
     'sectionOther': settingsSectionOther,
     'density': settingsDensity,
     'densityCompact': settingsDensityCompact,
@@ -1593,7 +1604,7 @@ abstract final class L10nKeys {
     'shellPanelRecurringTasks': shellPanelRecurringTasks,
     'shellPanelAddRecurringTask': shellPanelAddRecurringTask,
     'shellPanelLoopHint': shellPanelLoopHint,
-    // 项目页 42 条（Task 56 的 17 条 + Task 57 的 11 条 + 补轮 3 条 +
+    // 项目页 41 条（Task 56 的 17 条 + Task 57 的 11 条 + 补轮 3 条 +
     // Task 59 的 11 条）
     'projectsTitle': projectsTitle,
     'projectsSubtitle': projectsSubtitle,
@@ -1611,7 +1622,6 @@ abstract final class L10nKeys {
     'projectsNoTask': projectsNoTask,
     'projectsNoDateRange': projectsNoDateRange,
     'projectsEmptyChart': projectsEmptyChart,
-    'projectsLoadFailed': projectsLoadFailed,
     'projectsScheduleTodayAction': projectsScheduleTodayAction,
     'projectsScheduledOn': projectsScheduledOn,
     'projectsIncrementTitle': projectsIncrementTitle,
@@ -1656,14 +1666,11 @@ abstract final class L10nKeys {
     'calendarTomorrow': calendarTomorrow,
     'calendarThisWeek': calendarThisWeek,
     'calendarNoDeadline': calendarNoDeadline,
-    // common 16 条（Task 63 轮二）
+    // common 13 条（Task 63 轮二）
     'commonTitle': commonTitle,
     'commonSave': commonSave,
     'commonDelete': commonDelete,
     'commonClose': commonClose,
-    'commonYes': commonYes,
-    'commonNo': commonNo,
-    'commonConfirmAction': commonConfirmAction,
     'commonClear': commonClear,
     'commonClearPriority': commonClearPriority,
     'commonAxisImportant': commonAxisImportant,
@@ -1683,6 +1690,18 @@ abstract final class L10nKeys {
     'domainMoodLabel': domainMoodLabel,
     'domainDayLogNotStarted': domainDayLogNotStarted,
     'domainNoHabitsDueToday': domainNoHabitsDueToday,
+    // domain 11 条（Task 68 W9）
+    'mon': domainWeekdayMon,
+    'tue': domainWeekdayTue,
+    'wed': domainWeekdayWed,
+    'thu': domainWeekdayThu,
+    'fri': domainWeekdayFri,
+    'sat': domainWeekdaySat,
+    'sun': domainWeekdaySun,
+    'every': domainRecurringEvery,
+    'workdays': domainRecurringWorkdays,
+    'weekend': domainRecurringWeekend,
+    'none': domainRecurringNone,
     // timeline 30 条（Task 63 轮二）
     'timelineEmptyGridHint': timelineEmptyGridHint,
     'timelineHabitBackfill': timelineHabitBackfill,

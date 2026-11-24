@@ -1,13 +1,16 @@
-// `core_data` 与 `core_domain` 都导出 `weekdayLabel`：前者收日期字符串，
-// 后者收星期序号。星期显示已改走 `l10n.domainWeekdayFull`（Task 63 批次二
-// W6），域层的 `weekdayLabel` / `WeekdayMask.label` 保留不动（R63-3）；
-// `hide` 一并保留，本文件不再引用其中任何一版。
-import 'package:core_data/core_data.dart' hide weekdayLabel;
+// 星期名与整词全部走 `l10n`：Task 63 批次二 W6 起用 `domainWeekdayFull`，
+// Task 68 W9 起改用单条 `mon`…`sun` + 整词 getter。域层的
+// `weekdayLabel` / `WeekdayMask.label` 已在 W9 移除，`core_data` 里同名的
+// `weekdayLabel(String date)` 本文件不用 ⇒ 不再需要 `hide`。
+import 'package:core_data/core_data.dart';
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
+// `weekdayNameOf` 是 `DomainL10n` 上的扩展 ⇒ 必须把声明它的库 import 进来。
+import '../l10n/parts/domain.dart';
 import '../providers.dart';
 import '../providers_recurring.dart';
 import '../theme/app_fonts.dart';
@@ -234,8 +237,16 @@ class _RecurringTaskDialogState extends ConsumerState<RecurringTaskDialog> {
               ),
               const SizedBox(width: 8),
               Text(
-                // 域层 `WeekdayMask.label` 仍是硬编码中文，保留不动（R63-3）。
-                WeekdayMask.label(_mask),
+                // Task 68 W9：星期文案走 l10n（域层 `WeekdayMask.label` 已移除）。
+                switch (_mask) {
+                  WeekdayMask.none => l10n.none,
+                  WeekdayMask.all => l10n.every,
+                  WeekdayMask.workdays => l10n.workdays,
+                  WeekdayMask.weekend => l10n.weekend,
+                  final int mask => L10nFormat(l10n.language).joinList(
+                    WeekdayMask.weekdaysOf(mask).map(l10n.weekdayNameOf),
+                  ),
+                },
                 style: _bodyStyle(size: 11.5, color: t.faint),
               ),
             ],

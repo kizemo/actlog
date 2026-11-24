@@ -58,14 +58,23 @@ void main() {
       expect(WeekdayMask.bitOfDate(wednesday), WeekdayMask.wednesday);
     });
 
-    test('label 摘要', () {
-      expect(WeekdayMask.label(WeekdayMask.none), '未选');
-      expect(WeekdayMask.label(WeekdayMask.all), '每天');
-      expect(WeekdayMask.label(WeekdayMask.workdays), '工作日');
-      expect(WeekdayMask.label(WeekdayMask.weekend), '周末');
+    test('weekdaysOf 是星期摘要的唯一真源（文案已交给 l10n）', () {
+      // Task 68 W9：`WeekdayMask.label` / `weekdayLabel` 已从域层移除 ——
+      // 「未选/每天/工作日/周末/周一、周三」这些文案迁到 l10n 的星期名 +
+      // 整词 getter，域层只留结构化取值（本用例不再断言任何中文）。
+      expect(WeekdayMask.weekdaysOf(WeekdayMask.none), isEmpty);
       expect(
-        WeekdayMask.label(WeekdayMask.monday | WeekdayMask.wednesday),
-        '周一、周三',
+        WeekdayMask.weekdaysOf(WeekdayMask.all),
+        <int>[1, 2, 3, 4, 5, 6, 7],
+      );
+      expect(
+        WeekdayMask.weekdaysOf(WeekdayMask.workdays),
+        <int>[1, 2, 3, 4, 5],
+      );
+      expect(WeekdayMask.weekdaysOf(WeekdayMask.weekend), <int>[6, 7]);
+      expect(
+        WeekdayMask.weekdaysOf(WeekdayMask.monday | WeekdayMask.wednesday),
+        <int>[1, 3],
       );
     });
   });

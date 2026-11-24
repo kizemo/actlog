@@ -89,40 +89,9 @@ abstract final class WeekdayMask {
   /// 某个日期落在星期几上的单比特（用来判断「今天是否该排」）。
   static int bitOfDate(DateTime date) => bitOf(date.weekday);
 
-  /// 掩码的中文摘要：`每天` / `工作日` / `周末` / `周一、周三` / `未选`。
-  static String label(int mask) {
-    if (mask == none) {
-      return '未选';
-    }
-    if (mask == all) {
-      return '每天';
-    }
-    if (mask == workdays) {
-      return '工作日';
-    }
-    if (mask == weekend) {
-      return '周末';
-    }
-    return weekdaysOf(mask).map(weekdayLabel).join('、');
-  }
-}
-
-/// ISO 星期（1..7）的中文名。
-String weekdayLabel(int isoWeekday) {
-  const List<String> names = <String>[
-    '',
-    '周一',
-    '周二',
-    '周三',
-    '周四',
-    '周五',
-    '周六',
-    '周日',
-  ];
-  if (isoWeekday < 1 || isoWeekday > 7) {
-    throw ArgumentError.value(isoWeekday, 'isoWeekday', '必须在 1..7');
-  }
-  return names[isoWeekday];
+  // Task 68 W9：掩码 → 文案的映射已迁到 l10n（星期名 `mon`…`sun` + 整词
+  // `every` / `workdays` / `weekend` / `none`）。域层只留结构化取值：
+  // `weekdaysOf(mask)` 逐日给出 ISO 星期，拼接与分隔符都由调用方按语种决定。
 }
 
 /// 一天的分钟数（`00:00` 到 `23:59` 共 1440 个取值点）。

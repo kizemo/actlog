@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
+// `weekdayNameOf` 是 `DomainL10n` 上的扩展 ⇒ 必须把声明它的库 import 进来。
+import '../l10n/parts/domain.dart';
 import '../providers.dart';
 import '../providers_recurring.dart';
 import '../theme/app_fonts.dart';
@@ -241,11 +244,17 @@ class _RuleRow extends StatelessWidget {
     final ThemeTokens tokens = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final bool active = rule.active == 1;
+    // Task 68 W9：星期文案全部走 l10n（域层 `WeekdayMask.label` 已移除）。
     // 空掩码在库层被 CHECK 与仓储挡住，这里再兜一次：显示「每日」而不是「未选」。
-    final String weekdayText = rule.weekdayMask == WeekdayMask.none
-        ? l10n.dialogRecurringDaily
-        // 域层 `WeekdayMask.label` 仍是硬编码中文，保留不动（R63-3）。
-        : WeekdayMask.label(rule.weekdayMask);
+    final String weekdayText = switch (rule.weekdayMask) {
+      WeekdayMask.none => l10n.dialogRecurringDaily,
+      WeekdayMask.all => l10n.every,
+      WeekdayMask.workdays => l10n.workdays,
+      WeekdayMask.weekend => l10n.weekend,
+      final int mask => L10nFormat(l10n.language).joinList(
+        WeekdayMask.weekdaysOf(mask).map(l10n.weekdayNameOf),
+      ),
+    };
     // 脏数据防御：`formatMinuteOfDay` 对越界值抛异常，别让一行坏数据把整块
     // 面板渲染搞挂（与 `materializeDate` 的脏数据防御同口径）。
     final String timeText =

@@ -1,7 +1,7 @@
 // =============================================================================
 // l10n part：项目页（Task 56）
 // =============================================================================
-// 42 条，全部是无参 String getter（不新增插值方法 ⇒ `byMethod` 仍是 4 条）。
+// 41 条，全部是无参 String getter（不新增插值方法 ⇒ `byMethod` 仍是 4 条）。
 // 带数量的两条（「未排期 {n} 条」/「{n} 个项目」）用 `{n}` 占位符，由页面侧
 // `replaceAll` 插值。
 //
@@ -58,9 +58,6 @@ abstract class ProjectsL10n {
 
   /// 甘特图画不出任何日期时的空态。
   String get projectsEmptyChart;
-
-  /// 读取失败。
-  String get projectsLoadFailed;
 
   /// 把项目整体排进今天。
   String get projectsScheduleTodayAction;
@@ -189,9 +186,6 @@ mixin ProjectsZhL10n implements ProjectsL10n {
   String get projectsEmptyChart => '没有可排期的日期';
 
   @override
-  String get projectsLoadFailed => '加载失败';
-
-  @override
   String get projectsScheduleTodayAction => '＋ 排进今天';
 
   @override
@@ -318,9 +312,6 @@ mixin ProjectsEnL10n implements ProjectsL10n {
 
   @override
   String get projectsEmptyChart => 'No date to lay out';
-
-  @override
-  String get projectsLoadFailed => 'Failed to load';
 
   @override
   String get projectsScheduleTodayAction => '+ Plan today';

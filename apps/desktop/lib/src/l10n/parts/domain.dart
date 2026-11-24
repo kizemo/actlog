@@ -114,6 +114,44 @@ abstract class DomainL10n {
   List<String> get domainWeekdayFull;
 
   // ---------------------------------------------------------------------------
+  // 星期名单条 + 循环任务整词（Task 68 W9）
+  // ---------------------------------------------------------------------------
+
+  /// 星期名：周一 / Mon。与 [domainWeekdayFull] 同源，按 ISO 星期（1..7）
+  /// **逐条**暴露 —— 供「周一、周三」这类拼接调用点取值。
+  String get mon;
+
+  /// 星期名：周二 / Tue。
+  String get tue;
+
+  /// 星期名：周三 / Wed。
+  String get wed;
+
+  /// 星期名：周四 / Thu。
+  String get thu;
+
+  /// 星期名：周五 / Fri。
+  String get fri;
+
+  /// 星期名：周六 / Sat。
+  String get sat;
+
+  /// 星期名：周日 / Sun。
+  String get sun;
+
+  /// 循环任务整词：每天。
+  String get every;
+
+  /// 循环任务整词：工作日。
+  String get workdays;
+
+  /// 循环任务整词：周末。
+  String get weekend;
+
+  /// 循环任务整词：未选。
+  String get none;
+
+  // ---------------------------------------------------------------------------
   // 带参数的插值文案
   // ---------------------------------------------------------------------------
 
@@ -228,6 +266,46 @@ mixin DomainZhL10n implements DomainL10n {
     '周日',
   ];
 
+  /// 旧代码：`core_domain\lib\src\recurring_task.dart:111` 的
+  /// `['', '周一', …]` —— 逐条 getter 与 [domainWeekdayFull] 同源，避免第二处
+  /// 字面量漂移。
+  @override
+  String get mon => domainWeekdayFull[0];
+
+  @override
+  String get tue => domainWeekdayFull[1];
+
+  @override
+  String get wed => domainWeekdayFull[2];
+
+  @override
+  String get thu => domainWeekdayFull[3];
+
+  @override
+  String get fri => domainWeekdayFull[4];
+
+  @override
+  String get sat => domainWeekdayFull[5];
+
+  @override
+  String get sun => domainWeekdayFull[6];
+
+  /// 旧代码：`WeekdayMask.label` 的 `'每天'`。
+  @override
+  String get every => '每天';
+
+  /// 旧代码：`WeekdayMask.label` 的 `'工作日'`。
+  @override
+  String get workdays => '工作日';
+
+  /// 旧代码：`WeekdayMask.label` 的 `'周末'`。
+  @override
+  String get weekend => '周末';
+
+  /// 旧代码：`WeekdayMask.label` 的 `'未选'`。
+  @override
+  String get none => '未选';
+
   /// 旧代码：`widgets\est_duration_text.dart:64` —— `'${minutes ~/ 60} 小时'`。
   @override
   String hoursCount(int hours) => '$hours 小时';
@@ -325,6 +403,39 @@ mixin DomainEnL10n implements DomainL10n {
   ];
 
   @override
+  String get mon => domainWeekdayFull[0];
+
+  @override
+  String get tue => domainWeekdayFull[1];
+
+  @override
+  String get wed => domainWeekdayFull[2];
+
+  @override
+  String get thu => domainWeekdayFull[3];
+
+  @override
+  String get fri => domainWeekdayFull[4];
+
+  @override
+  String get sat => domainWeekdayFull[5];
+
+  @override
+  String get sun => domainWeekdayFull[6];
+
+  @override
+  String get every => 'Every day';
+
+  @override
+  String get workdays => 'Weekdays';
+
+  @override
+  String get weekend => 'Weekend';
+
+  @override
+  String get none => 'Not selected';
+
+  @override
   String hoursCount(int hours) => '$hours h';
 
   @override
@@ -335,4 +446,23 @@ mixin DomainEnL10n implements DomainL10n {
 
   @override
   String moodScoreLabel(String dimensionLabel) => '$dimensionLabel score';
+}
+
+/// 星期名取值（Task 68 W9）。
+///
+/// 挂在 [DomainL10n] 上而不是 `AppLocalizations` 上：本文件是独立库（`parts\*.dart`
+/// 由 `app_localizations.dart` 单向 import），反向引用 `AppLocalizations` 会绕成环。
+/// 拼接（含分隔符）留在调用点用 `L10nFormat.joinList` 做，四类整词也由调用点判定。
+extension WeekdayNameL10n on DomainL10n {
+  /// ISO 星期（1..7）名。越界属于 bug，直接抛（与 `formatMinuteOfDay` 同口径）。
+  String weekdayNameOf(int isoWeekday) => switch (isoWeekday) {
+    1 => mon,
+    2 => tue,
+    3 => wed,
+    4 => thu,
+    5 => fri,
+    6 => sat,
+    7 => sun,
+    _ => throw ArgumentError.value(isoWeekday, 'isoWeekday', '必须在 1..7'),
+  };
 }

@@ -9,6 +9,7 @@
 //   4. 读取失败时错误原文可见（不是空列表）。
 //
 // 全部用内存真库 + 真仓储：物化幂等与掩码命中只有真 schema 才算数。
+import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/providers_recurring.dart';
 import 'package:actlog/src/theme/app_theme.dart';
@@ -55,9 +56,14 @@ final class _Harness {
     return _Harness._(container, repos);
   }
 
-  Future<void> mount(WidgetTester tester, Widget child) async {
+  Future<void> mount(
+    WidgetTester tester,
+    Widget child, {
+    AppLanguage language = AppLanguage.zh,
+  }) async {
     await tester.pumpWidget(
       // Task 63 FIX-4：`AppLocalizations.of` 走严格 `L10nScope.of`，补祖先。
+      // Task 68 W9：`language` 让同一套夹具能跑英文态（判据：不出现中文星期）。
       l10nScope(
         UncontrolledProviderScope(
           container: container,
@@ -66,6 +72,7 @@ final class _Harness {
             home: Scaffold(body: SingleChildScrollView(child: child)),
           ),
         ),
+        language: language,
       ),
     );
     await _settle(tester);
@@ -542,6 +549,65 @@ void main() {
     final remaining =
         await tester.runAsync(() => harness.repos.recurring.listActive());
     expect(remaining, isEmpty);
+
+    await _flushTimers(tester);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Task 68 W9：英文态不得出现中文星期文案（中文态由上面各组用例逐字兜住）
+  // ---------------------------------------------------------------------------
+
+  testWidgets('英文态面板：星期名与整词走英文，界面无中文星期残留', (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final harness = _Harness.create();
+    await tester.runAsync(
+      () => harness.repos.recurring.create(
+        title: 'Morning review',
+        weekdayMask: WeekdayMask.bitOf(_wednesday),
+        startMinute: 570,
+        durationMinutes: 30,
+      ),
+    );
+
+    await harness.mount(
+      tester,
+      const RecurringRailPanel(),
+      language: AppLanguage.en,
+    );
+
+    expect(find.text('Wed · 30 min · Enabled'), findsOneWidget);
+    // 阴性对照：英文态下一旦漏出中文星期名（旧 `WeekdayMask.label` 的行为），
+    // 这条就会红 —— 它是本波判据，不是装饰。
+    expect(find.textContaining('周'), findsNothing);
+
+    await _flushTimers(tester);
+  });
+
+  testWidgets('英文态对话框：整词与逐日拼接都用英文，且中文星期不出现', (WidgetTester tester) async {
+    _useTallSurface(tester);
+    final harness = _Harness.create();
+    await harness.mount(
+      tester,
+      const _DialogHost(),
+      language: AppLanguage.en,
+    );
+
+    await tester.tap(find.text('打开添加循环任务'));
+    await _settle(tester);
+
+    // 默认掩码 = 工作日 ∪ {创建日} = 工作日 ⇒ 走整词 getter `workdays`。
+    expect(find.text('Weekdays'), findsOneWidget);
+    expect(find.textContaining('周'), findsNothing);
+
+    // 关掉周二/周四/周五 ⇒ 掩码剩下周一+周三 ⇒ 走逐日拼接 + 英文分隔符 `, `。
+    for (final int weekday in <int>[2, 4, 5]) {
+      await tester.tap(
+        find.byKey(ValueKey<String>('recurring-dialog-weekday-$weekday')),
+      );
+      await tester.pump();
+    }
+    expect(find.text('Mon, Wed'), findsOneWidget);
+    expect(find.textContaining('周'), findsNothing);
 
     await _flushTimers(tester);
   });
