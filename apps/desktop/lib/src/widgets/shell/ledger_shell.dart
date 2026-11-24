@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/theme_tokens.dart';
 import 'key_bar.dart';
 import 'ledger_paper.dart';
@@ -26,12 +27,12 @@ class LedgerShell extends StatelessWidget {
   /// 创建骨架。
   const LedgerShell({
     required this.content,
-    this.navItems = kShellNavItems,
+    this.navItems,
     this.currentNavId,
     this.onNavSelected,
     this.railPanels = const <ShellRailPanel>[],
     this.secondaryRailPanels = const <ShellRailPanel>[],
-    this.keyHints = kShellKeyHints,
+    this.keyHints,
     this.dock,
     this.pinnedHeader,
     super.key,
@@ -55,8 +56,8 @@ class LedgerShell extends StatelessWidget {
   /// 账页正文。
   final Widget content;
 
-  /// 导航项。
-  final List<ShellNavItem> navItems;
+  /// 导航项；`null` ⇒ 按当前语言现搭（[shellNavItemsFor]）。
+  final List<ShellNavItem>? navItems;
 
   /// 当前页 id。
   final String? currentNavId;
@@ -73,7 +74,8 @@ class LedgerShell extends StatelessWidget {
   /// 快捷键清单内容：渲染在右轨的「快捷键」面板里（`KeyHintList`）。
   ///
   /// 底部快捷键条已按 Task 56 诉求③删除，这份清单不再在壳层底部出现第二份。
-  final List<ShellKeyHint> keyHints;
+  /// `null` ⇒ 按当前语言现搭（[shellKeyHintsFor]）。
+  final List<ShellKeyHint>? keyHints;
 
   /// 壳层最底部的全宽独立布局行（今日页放习惯打卡条）。
   ///
@@ -95,22 +97,37 @@ class LedgerShell extends StatelessWidget {
     final bool narrow = viewportWidth < narrowBreakpoint;
     final bool wide = viewportWidth >= wideBreakpoint;
 
+    // 文案表从 context 取（`L10nScope`；取不到时回落中文态，理由见
+    // [shellLocalizationsOf]）。导航项与快捷键清单在这里现搭 ⇒ 壳层不持有
+    // 任何硬编码文案。
+    final AppLocalizations t = shellLocalizationsOf(context);
+    final List<ShellNavItem> resolvedNavItems =
+        navItems ?? shellNavItemsFor(t);
+    final List<ShellKeyHint> resolvedKeyHints =
+        keyHints ?? shellKeyHintsFor(t);
+
     final List<ShellRailPanel> panels = <ShellRailPanel>[
       ...railPanels,
-      if (keyHints.isNotEmpty)
+      if (resolvedKeyHints.isNotEmpty)
         ShellRailPanel(
-          title: '快捷键',
-          child: KeyHintList(hints: keyHints),
+          title: t.shellShortcutsTitle,
+          child: KeyHintList(hints: resolvedKeyHints),
         ),
     ];
 
     return Material(
       color: context.tokens.paper,
-      child: narrow ? _buildNarrow(context, panels) : _buildWide(context, wide, panels),
+      child: narrow
+          ? _buildNarrow(context, resolvedNavItems, panels)
+          : _buildWide(context, wide, resolvedNavItems, panels),
     );
   }
 
-  Widget _buildNarrow(BuildContext context, List<ShellRailPanel> panels) {
+  Widget _buildNarrow(
+    BuildContext context,
+    List<ShellNavItem> navItems,
+    List<ShellRailPanel> panels,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -145,7 +162,12 @@ class LedgerShell extends StatelessWidget {
     );
   }
 
-  Widget _buildWide(BuildContext context, bool wide, List<ShellRailPanel> panels) {
+  Widget _buildWide(
+    BuildContext context,
+    bool wide,
+    List<ShellNavItem> navItems,
+    List<ShellRailPanel> panels,
+  ) {
     final List<Widget> columns = <Widget>[
       Expanded(
         child: LedgerPaper(

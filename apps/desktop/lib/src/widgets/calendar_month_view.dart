@@ -1,6 +1,8 @@
 import 'package:core_data/core_data.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
 import '../theme/app_tokens.dart';
 
 /// 月历网格（spec §8.1）。
@@ -31,6 +33,7 @@ class CalendarMonthView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final AppLocalizations l10n = _l10nOf(context);
     final byDate = <String, CalendarDaySummary>{
       for (final day in days) day.date: day,
     };
@@ -40,12 +43,11 @@ class CalendarMonthView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(month, style: theme.textTheme.titleLarge),
+        Text(l10n.calendarMonthLabel(month), style: theme.textTheme.titleLarge),
         const SizedBox(height: 8),
         Row(
           children: [
-            for (final label
-                in const <String>['一', '二', '三', '四', '五', '六', '日'])
+            for (final label in l10n.calendarWeekdaysShort)
               Expanded(
                 child: Center(
                   child: Text(label, style: theme.textTheme.labelSmall),
@@ -73,6 +75,15 @@ class CalendarMonthView extends StatelessWidget {
     );
   }
 }
+
+/// 取当前语言的文案表。
+///
+/// 既有测试（`test\calendar_month_view_test.dart`）直接在本控件外面套一个
+/// `MaterialApp`、**不套** `L10nScope` ⇒ 硬取会抛 FlutterError 打挂既有测试。
+/// 口径与 `widgets\shell\app_top_bar.dart` 一致：取不到 scope 时回落中文态。
+AppLocalizations _l10nOf(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+    AppLocalizations.zh;
 
 /// 日号（不补零）：`2026-11-07` → `7`。
 String _dayNumber(String date) {
@@ -143,7 +154,19 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = context.tokens;
+    final AppLocalizations l10n = _l10nOf(context);
     final day = summary;
+
+    // 英文态的「今天」角标是**单词** `Today`（5 字符），中文态是单字 `今`。
+    //
+    // 角标贴在格内**右上角**、而日号**居中** ⇒ 两者落在同一条竖直带上：
+    // 单字角标（11.5px）与日号（28.2px）只在极窄格子里擦边，单词角标
+    // （57.5px）则必然与日号相交（实测 420 / 600 / 800 三档都相交，
+    // 见 `reports\task61-f6-today-badge.md`）。
+    //
+    // 中文态**原样保留**（逐像素不变）；英文态把角标挪到日号**下方**单独一行，
+    // 竖直方向彻底错开 —— 与形状徽标同行，格高仍是两行（不引入 RenderFlex 溢出）。
+    final bool todayOnOwnLine = _isToday && l10n.language == AppLanguage.en;
 
     Widget content = Container(
       constraints: const BoxConstraints(minHeight: 38),
@@ -171,7 +194,9 @@ class _DayCell extends StatelessWidget {
                   fontWeight: _isToday ? FontWeight.w600 : null,
                 ),
               ),
-              if (day != null)
+              if (todayOnOwnLine)
+                _todayLabelLine(theme, t, l10n, day?.badge)
+              else if (day != null)
                 Text(
                   day.badge,
                   style: theme.textTheme.labelSmall?.copyWith(
@@ -180,12 +205,12 @@ class _DayCell extends StatelessWidget {
                 ),
             ],
           ),
-          if (_isToday)
+          if (_isToday && !todayOnOwnLine)
             Positioned(
               top: 0,
               right: 0,
               child: Text(
-                '今',
+                l10n.calendarTodayBadge,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: t.ink,
                   fontWeight: FontWeight.w700,
@@ -214,6 +239,43 @@ class _DayCell extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppTokens.radius),
       child: content,
+    );
+  }
+
+  /// 英文态的「今天」角标：日号**下方**单独一行（与形状徽标同行）。
+  ///
+  /// - `softWrap: false` + `overflow: ellipsis`：单词比格宽还长时**不折行** ——
+  ///   折行会把这一行撑成两行，格高（46px 可用）随即不够，第三行直接 RenderFlex
+  ///   溢出；单行 + 省略号则最多一行、绝不溢出；
+  /// - `Flexible` + `TextAlign.center`：单词在剩余宽度里居中，且永远不越出格子。
+  Widget _todayLabelLine(
+    ThemeData theme,
+    ThemeTokens t,
+    AppLocalizations l10n,
+    String? shapeBadge,
+  ) {
+    return Row(
+      children: [
+        if (shapeBadge != null)
+          Text(
+            shapeBadge,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: t.meta,
+            ),
+          ),
+        Flexible(
+          child: Text(
+            l10n.calendarTodayBadge,
+            textAlign: TextAlign.center,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: t.ink,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

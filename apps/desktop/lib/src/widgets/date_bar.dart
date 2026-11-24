@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:core_data/core_data.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
 import '../providers.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
@@ -47,6 +49,7 @@ class DateBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = context.tokens;
+    final AppLocalizations l10n = _l10nOf(context);
     final date = ref.watch(selectedDateProvider);
     final today = ref.watch(todayProvider);
     final isPast = date.compareTo(today) < 0;
@@ -71,7 +74,7 @@ class DateBar extends ConsumerWidget {
           // `‹` / `›`：相对**选中日**前后一天。
           _GhostButton(
             key: const ValueKey('date-bar-prev'),
-            tooltip: '前一天',
+            tooltip: l10n.calendarPrevDay,
             label: '‹',
             onPressed: () =>
                 ref.read(selectedDateProvider.notifier).state = prevDate,
@@ -83,7 +86,7 @@ class DateBar extends ConsumerWidget {
               fit: BoxFit.scaleDown,
               child: _TitleButton(
                 key: const ValueKey('date-bar-title'),
-                title: dateTitle(date),
+                title: l10n.calendarDateTitle(date),
                 onPressed: () {
                   final void Function(String date)? callback = onPickDate;
                   if (callback != null) {
@@ -98,7 +101,7 @@ class DateBar extends ConsumerWidget {
           const SizedBox(width: 6),
           _GhostButton(
             key: const ValueKey('date-bar-next'),
-            tooltip: '后一天',
+            tooltip: l10n.calendarNextDay,
             label: '›',
             onPressed: () =>
                 ref.read(selectedDateProvider.notifier).state = nextDate,
@@ -106,13 +109,25 @@ class DateBar extends ConsumerWidget {
           // 只读状态徽标（过去 = 补录模式 / 未来 = 预排），不是可切换按钮。
           if (isPast || isFuture) ...<Widget>[
             const SizedBox(width: 8),
-            _StateBadge(text: isPast ? '补录模式' : '预排'),
+            _StateBadge(
+              text: isPast ? l10n.calendarBackfillMode : l10n.calendarPrePlanMode,
+            ),
           ],
         ],
       ),
     );
   }
 }
+
+/// 取当前语言的文案表。
+///
+/// 既有测试（`test\date_bar_test.dart` / `test\task49_datebar_test.dart`）直接
+/// 在本控件外面套 `MaterialApp` + `ProviderScope`、**不套** `L10nScope` ⇒ 硬取
+/// 会抛 FlutterError 打挂既有测试。口径与 `widgets\shell\app_top_bar.dart`
+/// 一致：取不到 scope 时回落中文态。
+AppLocalizations _l10nOf(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+    AppLocalizations.zh;
 
 /// 原型 `.dbtn`：ghost 按钮（`--card` 底 + 1px `--hair` 边，hover 换
 /// `--hair-strong`）。**不**用 Material `TextButton` / `IconButton`，

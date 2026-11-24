@@ -2,6 +2,8 @@ import 'package:core_data/core_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
 import '../providers.dart';
 import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
@@ -49,6 +51,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     final today = ref.watch(todayProvider);
     final summary = ref.watch(calendarMonthProvider(_month));
     final t = context.tokens;
+    final AppLocalizations l10n = _l10nOf(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,7 +68,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Text(
-                    '日历',
+                    l10n.calendarPageTitle,
                     style: TextStyle(
                       fontFamily: AppFonts.display,
                       fontFamilyFallback: AppFonts.displayFallback,
@@ -77,7 +80,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _month,
+                    l10n.calendarMonthLabel(_month),
                     style: TextStyle(
                       fontFamily: AppFonts.mono,
                       fontFamilyFallback: AppFonts.monoFallback,
@@ -94,14 +97,14 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
             const SizedBox(width: AppTokens.gapCard),
             _MonthButton(
               key: const ValueKey<String>('calendar-prev-month'),
-              tooltip: '上个月',
+              tooltip: l10n.calendarPrevMonth,
               glyph: '‹',
               onPressed: () => _shiftMonth(-1),
             ),
             const SizedBox(width: 6),
             _MonthButton(
               key: const ValueKey<String>('calendar-next-month'),
-              tooltip: '下个月',
+              tooltip: l10n.calendarNextMonth,
               glyph: '›',
               onPressed: () => _shiftMonth(1),
             ),
@@ -168,6 +171,15 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     }
   }
 }
+
+/// 取当前语言的文案表。
+///
+/// 测试里单独构造本页（`test\calendar_page_test.dart` 直接把本页塞进路由）
+/// 时上方没有 [L10nScope] ⇒ 硬取会抛 FlutterError 打挂既有测试。
+/// 口径与 `widgets\shell\app_top_bar.dart` 一致：取不到 scope 时回落中文态。
+AppLocalizations _l10nOf(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+    AppLocalizations.zh;
 
 /// 翻月按钮（替换 `IconButton` 的默认视觉）。
 ///

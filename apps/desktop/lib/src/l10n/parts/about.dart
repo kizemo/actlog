@@ -104,7 +104,8 @@ abstract class AboutL10n {
   // 这几条**暂时寄放**在关于页 part 上：`l10n\app_localizations.dart` 与
   // `l10n\parts\common.dart` 都不在 W1 写集内，而 `AppLocalizations` 由各 part
   // 的 mixin 组合而成 ⇒ 只在 `about.dart` 里加 getter 才能被自动继承。
-  // 键前缀已改用 `shell-`，等 `parts\shell.dart` 立项时整体挪过去。
+  // 键前缀已改用 `shell-`。Task 61 的 `parts\shell.dart` 只新增外壳 chrome 的 23 条，
+  // 这 9 条仍寄放在本文件；整体搬迁属纯位置调整（要动 about.dart 与计数口径），另立批次。
 
   /// 窗口标题与托盘 tooltip（zh 带产品名，en 只留品牌）。
   String get appTitle;

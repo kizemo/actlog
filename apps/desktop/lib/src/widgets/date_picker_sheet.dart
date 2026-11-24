@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 
 import 'package:core_data/core_data.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/l10n_scope.dart';
 import '../theme/app_tokens.dart';
 import 'chip_row.dart';
 
@@ -164,141 +166,162 @@ class _DatePickerSheetState extends State<DatePickerSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final AppLocalizations l10n = _l10nOf(context);
     final todayIso = today();
     final grid =
         buildMonthGrid(_month, today: todayIso, weekStart: widget.weekStart);
 
     return AlertDialog(
+      // Task 61 补轮：英文态的芯片更长（实测芯片条 302×98，中文态 279.1×30）
+      // ⇒ 内容列自然高 432.6px，超过弹层给内容的 368px 上限 ⇒ 纵向溢出 65px。
+      // 口径：**内容自带滚动视图**（标题与动作按钮条留在原地），
+      // 不砍英文文案、不砍芯片、不砍月历网格。
+      // 中文态内容自然高 364.6px < 368px ⇒ 视口高度 = 内容自然高 ⇒ 不滚动
+      // ⇒ 中文态布局与改前逐像素一致。
+      //
+      // 为什么不用框架自带的 `AlertDialog(scrollable: true)`：它把标题与内容
+      // 一起塞进 `SingleChildScrollView`，弹层外层的 `IntrinsicWidth` 会向下
+      // 问视口的固有尺寸 ⇒ 本 SDK 触发
+      // `RenderShrinkWrappingViewport does not support returning intrinsic
+      // dimensions.`。这里的滚动视图被**定宽的 `SizedBox`** 包住 ⇒ 固有宽度
+      // 计算在 `SizedBox` 处短路（`RenderConstrainedBox` 遇 tight width 直接
+      // 返回 `minWidth`、不再问子节点）⇒ 不会问视口 ⇒ 不触发该断言。
       title: Row(
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
-            tooltip: '上一月',
+            tooltip: l10n.calendarPickerPrevMonth,
             onPressed: () => _shiftMonth(-1),
           ),
           Expanded(
             child: Text(
-              _month,
+              l10n.calendarMonthLabel(_month),
               textAlign: TextAlign.center,
               style: theme.textTheme.titleLarge,
             ),
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right),
-            tooltip: '下一月',
+            tooltip: l10n.calendarPickerNextMonth,
             onPressed: () => _shiftMonth(1),
           ),
         ],
       ),
       content: SizedBox(
         width: 360,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ChipRow(
-              options: <ChipOption>[
-                const ChipOption(key: 'today', label: '今天'),
-                const ChipOption(key: 'yesterday', label: '昨天'),
-                const ChipOption(key: 'before', label: '前天'),
-                const ChipOption(key: 'tomorrow', label: '明天'),
-                const ChipOption(key: 'week', label: '本周内'),
-                if (widget.allowNoDeadline)
-                  const ChipOption(key: 'none', label: '无期限'),
-              ],
-              selected: <String>{if (_activeChip.isNotEmpty) _activeChip},
-              onChanged: (next) {
-                if (next.isEmpty) {
-                  return;
-                }
-                final key = next.first;
-                setState(() {
-                  _activeChip = key;
-                  _noDeadline = key == 'none';
-                  _selected = switch (key) {
-                    'today' => todayIso,
-                    'yesterday' => shiftIsoDate(todayIso, -1),
-                    'before' => shiftIsoDate(todayIso, -2),
-                    'tomorrow' => shiftIsoDate(todayIso, 1),
-                    'week' => _weekEnd(todayIso),
-                    _ => _selected,
-                  };
-                });
-              },
-            ),
-            const SizedBox(height: 10),
-            Shortcuts(
-              shortcuts: <ShortcutActivator, Intent>{
-                const SingleActivator(LogicalKeyboardKey.pageUp):
-                    const _MonthIntent(-1),
-                const SingleActivator(LogicalKeyboardKey.pageDown):
-                    const _MonthIntent(1),
-              },
-              child: Actions(
-                actions: <Type, Action<Intent>>{
-                  _MonthIntent: _MonthAction(onInvoke: _shiftMonth),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ChipRow(
+                options: <ChipOption>[
+                  ChipOption(key: 'today', label: l10n.calendarToday),
+                  ChipOption(key: 'yesterday', label: l10n.calendarYesterday),
+                  ChipOption(
+                    key: 'before',
+                    label: l10n.calendarDayBeforeYesterday,
+                  ),
+                  ChipOption(key: 'tomorrow', label: l10n.calendarTomorrow),
+                  ChipOption(key: 'week', label: l10n.calendarThisWeek),
+                  if (widget.allowNoDeadline)
+                    ChipOption(key: 'none', label: l10n.calendarNoDeadline),
+                ],
+                selected: <String>{if (_activeChip.isNotEmpty) _activeChip},
+                onChanged: (next) {
+                  if (next.isEmpty) {
+                    return;
+                  }
+                  final key = next.first;
+                  setState(() {
+                    _activeChip = key;
+                    _noDeadline = key == 'none';
+                    _selected = switch (key) {
+                      'today' => todayIso,
+                      'yesterday' => shiftIsoDate(todayIso, -1),
+                      'before' => shiftIsoDate(todayIso, -2),
+                      'tomorrow' => shiftIsoDate(todayIso, 1),
+                      'week' => _weekEnd(todayIso),
+                      _ => _selected,
+                    };
+                  });
                 },
-                child: Focus(
-                  focusNode: _gridFocus,
-                  autofocus: true,
-                  onKeyEvent: _handleKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          for (final label in const <String>[
-                            '一',
-                            '二',
-                            '三',
-                            '四',
-                            '五',
-                            '六',
-                            '日',
-                          ])
-                            Expanded(
-                              child: Center(
-                                child: Text(label, style: theme.textTheme.labelSmall),
+              ),
+              const SizedBox(height: 10),
+              Shortcuts(
+                shortcuts: <ShortcutActivator, Intent>{
+                  const SingleActivator(LogicalKeyboardKey.pageUp):
+                      const _MonthIntent(-1),
+                  const SingleActivator(LogicalKeyboardKey.pageDown):
+                      const _MonthIntent(1),
+                },
+                child: Actions(
+                  actions: <Type, Action<Intent>>{
+                    _MonthIntent: _MonthAction(onInvoke: _shiftMonth),
+                  },
+                  child: Focus(
+                    focusNode: _gridFocus,
+                    autofocus: true,
+                    onKeyEvent: _handleKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            for (final label in l10n.calendarWeekdaysShort)
+                              Expanded(
+                                child: Center(
+                                  child: Text(label, style: theme.textTheme.labelSmall),
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
-                      GridView.count(
-                        key: const ValueKey('month-grid'),
-                        crossAxisCount: 7,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          for (final cell in grid)
-                            _DayCell(
-                              key: ValueKey('day-${cell.date}'),
-                              cell: cell,
-                              selected: cell.date == _selected,
-                              onTap: () => _selectDate(cell.date),
-                            ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                        GridView.count(
+                          key: const ValueKey('month-grid'),
+                          crossAxisCount: 7,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            for (final cell in grid)
+                              _DayCell(
+                                key: ValueKey('day-${cell.date}'),
+                                cell: cell,
+                                selected: cell.date == _selected,
+                                onTap: () => _selectDate(cell.date),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _commit,
-          child: const Text('确定'),
+          child: Text(l10n.confirm),
         ),
       ],
     );
   }
 }
+
+/// 取当前语言的文案表。
+///
+/// 既有测试（`test\date_picker_sheet_test.dart`）直接在本控件外面套一个
+/// `MaterialApp`、**不套** `L10nScope` ⇒ 硬取会抛 FlutterError 打挂既有测试。
+/// 口径与 `widgets\shell\app_top_bar.dart` 一致：取不到 scope 时回落中文态。
+AppLocalizations _l10nOf(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+    AppLocalizations.zh;
 
 class _MonthIntent extends Intent {
   const _MonthIntent(this.delta);

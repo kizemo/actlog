@@ -13,6 +13,7 @@
 //   parts\habit.dart         习惯打卡（W5）
 //   parts\dialog.dart        对话框（W6）
 //   parts\projects.dart      项目页（Task 56）
+//   parts\shell.dart         应用外壳：导航 / 快捷键 / 右轨面板（Task 61）
 //
 // 为什么拆：一次波次只搬一个模块的文案，八波并行时各自只碰自己那一个 part，
 // 不会再在同一个大文件里互相撞写。拆分**不改变**任何一条 getter 的名字、签名与
@@ -39,6 +40,7 @@ import 'parts/domain.dart';
 import 'parts/habit.dart';
 import 'parts/projects.dart';
 import 'parts/settings.dart';
+import 'parts/shell.dart';
 import 'parts/timeline.dart';
 import 'parts/today.dart';
 
@@ -78,7 +80,8 @@ abstract class AppLocalizations
         TimelineL10n,
         HabitL10n,
         DialogL10n,
-        ProjectsL10n {
+        ProjectsL10n,
+        ShellL10n {
   /// 子类构造。
   const AppLocalizations();
 
@@ -129,7 +132,7 @@ abstract class AppLocalizations
   AppLanguage get language;
 }
 
-/// 简体中文文案表：把 10 个 zh mixin 拼起来。
+/// 简体中文文案表：把 11 个 zh mixin 拼起来。
 class _AppLocalizationsZh extends AppLocalizations
     with
         SettingsZhL10n,
@@ -141,12 +144,13 @@ class _AppLocalizationsZh extends AppLocalizations
         TimelineZhL10n,
         HabitZhL10n,
         DialogZhL10n,
-        ProjectsZhL10n {
+        ProjectsZhL10n,
+        ShellZhL10n {
   const _AppLocalizationsZh();
   @override AppLanguage get language => AppLanguage.zh;
 }
 
-/// English 文案表：把 10 个 en mixin 拼起来。
+/// English 文案表：把 11 个 en mixin 拼起来。
 class _AppLocalizationsEn extends AppLocalizations
     with
         SettingsEnL10n,
@@ -158,7 +162,8 @@ class _AppLocalizationsEn extends AppLocalizations
         TimelineEnL10n,
         HabitEnL10n,
         DialogEnL10n,
-        ProjectsEnL10n {
+        ProjectsEnL10n,
+        ShellEnL10n {
   const _AppLocalizationsEn();
   @override AppLanguage get language => AppLanguage.en;
 }

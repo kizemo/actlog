@@ -4,8 +4,8 @@
 // 为什么这些放在 test\ 而不是 lib\：它只为测试服务，进 lib 就是又造一层生产代码
 // 里的转发（本项目明令不要 `AppStrings.xxx => t.xxx` 那种壳）。
 //
-// `l10nAccessors` 是**测试数据**：把 131 条 getter 一条一条列成「键 → 取值闭包」
-// （列表型 2 条在 `l10nListAccessors`）。
+// `l10nAccessors` 是**测试数据**：把 170 条 getter 一条一条列成「键 → 取值闭包」
+// （列表型 3 条在 `l10nListAccessors`）。
 // 有了它，测试才能不看 getter 名地遍历全部文案（校验非空、校验中英不同、校验
 // 键数与条数一致）。新增 getter 时两侧都要加一行 —— 少了就会在
 // `l10n_base_test.dart` 的「条数一致」用例上红。
@@ -24,7 +24,7 @@ import 'package:actlog/src/l10n/l10n_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 131 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
+/// 170 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
 final Map<String, String Function(AppLocalizations)> l10nAccessors =
     <String, String Function(AppLocalizations)>{
   // 设置页 35 条
@@ -110,6 +110,35 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.shellTrayShow: (AppLocalizations t) => t.trayShow,
   L10nKeys.shellTrayHide: (AppLocalizations t) => t.trayHide,
   L10nKeys.shellTrayQuit: (AppLocalizations t) => t.trayQuit,
+  // 应用外壳 23 条（Task 61：左导航 / 快捷键面板 / 快捷键说明 / 右轨面板）
+  L10nKeys.shellNavToday: (AppLocalizations t) => t.shellNavToday,
+  L10nKeys.shellNavInbox: (AppLocalizations t) => t.shellNavInbox,
+  L10nKeys.shellNavHabits: (AppLocalizations t) => t.shellNavHabits,
+  L10nKeys.shellNavProjects: (AppLocalizations t) => t.shellNavProjects,
+  L10nKeys.shellNavCalendar: (AppLocalizations t) => t.shellNavCalendar,
+  L10nKeys.shellNavSettings: (AppLocalizations t) => t.shellNavSettings,
+  L10nKeys.shellShortcutsTitle: (AppLocalizations t) => t.shellShortcutsTitle,
+  L10nKeys.shellPageSwitch: (AppLocalizations t) => t.shellPageSwitch,
+  L10nKeys.shellKeyAddEntry: (AppLocalizations t) => t.shellKeyAddEntry,
+  L10nKeys.shellKeyCheckFirstHabit: (AppLocalizations t) =>
+      t.shellKeyCheckFirstHabit,
+  L10nKeys.shellKeySwitchDate: (AppLocalizations t) => t.shellKeySwitchDate,
+  L10nKeys.shellKeyToggleCheck: (AppLocalizations t) => t.shellKeyToggleCheck,
+  L10nKeys.shellKeyExpandBackfill: (AppLocalizations t) =>
+      t.shellKeyExpandBackfill,
+  L10nKeys.shellKeyClosePopup: (AppLocalizations t) => t.shellKeyClosePopup,
+  L10nKeys.shellKeySwitchTab: (AppLocalizations t) => t.shellKeySwitchTab,
+  L10nKeys.shellKeyGoProjects: (AppLocalizations t) => t.shellKeyGoProjects,
+  L10nKeys.shellPanelTodoList: (AppLocalizations t) => t.shellPanelTodoList,
+  L10nKeys.shellPanelAddTodo: (AppLocalizations t) => t.shellPanelAddTodo,
+  L10nKeys.shellPanelHabitOverview: (AppLocalizations t) =>
+      t.shellPanelHabitOverview,
+  L10nKeys.shellPanelAddHabit: (AppLocalizations t) => t.shellPanelAddHabit,
+  L10nKeys.shellPanelRecurringTasks: (AppLocalizations t) =>
+      t.shellPanelRecurringTasks,
+  L10nKeys.shellPanelAddRecurringTask: (AppLocalizations t) =>
+      t.shellPanelAddRecurringTask,
+  L10nKeys.shellPanelLoopHint: (AppLocalizations t) => t.shellPanelLoopHint,
   // 跨页共用 7 条
   L10nKeys.commonCancel: (AppLocalizations t) => t.cancel,
   L10nKeys.commonConfirm: (AppLocalizations t) => t.confirm,
@@ -203,9 +232,29 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.projectsDomainLearning,
   L10nKeys.projectsDomainSocial: (AppLocalizations t) => t.projectsDomainSocial,
   L10nKeys.projectsDomainHealth: (AppLocalizations t) => t.projectsDomainHealth,
+  // 日历与日期 16 条（Task 61：日历页 / 月视图 / 日期条 / 日期选择弹层）
+  L10nKeys.calendarPageTitle: (AppLocalizations t) => t.calendarPageTitle,
+  L10nKeys.calendarPrevMonth: (AppLocalizations t) => t.calendarPrevMonth,
+  L10nKeys.calendarNextMonth: (AppLocalizations t) => t.calendarNextMonth,
+  L10nKeys.calendarTodayBadge: (AppLocalizations t) => t.calendarTodayBadge,
+  L10nKeys.calendarPrevDay: (AppLocalizations t) => t.calendarPrevDay,
+  L10nKeys.calendarNextDay: (AppLocalizations t) => t.calendarNextDay,
+  L10nKeys.calendarBackfillMode: (AppLocalizations t) => t.calendarBackfillMode,
+  L10nKeys.calendarPrePlanMode: (AppLocalizations t) => t.calendarPrePlanMode,
+  L10nKeys.calendarPickerPrevMonth: (AppLocalizations t) =>
+      t.calendarPickerPrevMonth,
+  L10nKeys.calendarPickerNextMonth: (AppLocalizations t) =>
+      t.calendarPickerNextMonth,
+  L10nKeys.calendarToday: (AppLocalizations t) => t.calendarToday,
+  L10nKeys.calendarYesterday: (AppLocalizations t) => t.calendarYesterday,
+  L10nKeys.calendarDayBeforeYesterday: (AppLocalizations t) =>
+      t.calendarDayBeforeYesterday,
+  L10nKeys.calendarTomorrow: (AppLocalizations t) => t.calendarTomorrow,
+  L10nKeys.calendarThisWeek: (AppLocalizations t) => t.calendarThisWeek,
+  L10nKeys.calendarNoDeadline: (AppLocalizations t) => t.calendarNoDeadline,
 };
 
-/// 列表型 getter（`List<String>`）的访问器表（2 条）。
+/// 列表型 getter（`List<String>`）的访问器表（3 条）。
 ///
 /// 与 `l10nAccessors` 同一套键空间，只是取值返回 `List<String>`，所以单列一张
 /// 表，避免把 `Map<String, String Function(...)>` 撑成动态类型。
@@ -213,6 +262,8 @@ final Map<String, List<String> Function(AppLocalizations)> l10nListAccessors =
     <String, List<String> Function(AppLocalizations)>{
   L10nKeys.aboutToc: (AppLocalizations t) => t.aboutToc,
   L10nKeys.aboutChangelog: (AppLocalizations t) => t.aboutChangelog,
+  L10nKeys.calendarWeekdaysShort: (AppLocalizations t) =>
+      t.calendarWeekdaysShort,
 };
 
 /// 允许中英同值的键（白名单）。

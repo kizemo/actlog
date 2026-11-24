@@ -24,38 +24,45 @@ import 'l10n_harness.dart';
 
 void main() {
   group('键表结构', () {
-    test('131 条 getter 全部登记在对照表里', () {
-      expect(L10nKeys.byGetter.length, 131);
-      expect(l10nAccessors.length, 131);
+    test('170 条 getter 全部登记在对照表里', () {
+      expect(L10nKeys.byGetter.length, 170);
+      expect(l10nAccessors.length, 170);
       // `byGetter` 是「getter 名 → 键」，访问器表是「键 → 取值」，所以这里比
       // 的是 `byGetter` 的**值**集合（都是 kebab 键）。
       expect(l10nAccessors.keys.toSet(), L10nKeys.byGetter.values.toSet());
     });
 
-    test('2 条列表型 getter 全部登记在列表表里', () {
-      expect(L10nKeys.byListGetter.length, 2);
-      expect(l10nListAccessors.length, 2);
+    test('3 条列表型 getter 全部登记在列表表里', () {
+      expect(L10nKeys.byListGetter.length, 3);
+      expect(l10nListAccessors.length, 3);
       expect(
         l10nListAccessors.keys.toSet(),
         L10nKeys.byListGetter.values.toSet(),
       );
     });
 
-    test('4 条插值方法登记在方法表里', () {
-      expect(L10nKeys.byMethod.length, 4);
+    test('6 条插值方法登记在方法表里', () {
+      expect(L10nKeys.byMethod.length, 6);
       expect(
         L10nKeys.byMethod.keys.toSet(),
-        <String>{'hoursCount', 'minutesCount', 'deferredDays', 'moodScoreLabel'},
+        <String>{
+          'hoursCount',
+          'minutesCount',
+          'deferredDays',
+          'moodScoreLabel',
+          'calendarMonthLabel',
+          'calendarDateTitle',
+        },
       );
     });
 
-    test('全部键值不重复（131 + 2 + 4 = 137）', () {
+    test('全部键值不重复（170 + 3 + 6 = 179）', () {
       final Set<String> all = <String>{
         ...L10nKeys.byGetter.values,
         ...L10nKeys.byListGetter.values,
         ...L10nKeys.byMethod.values,
       };
-      expect(all.length, 137);
+      expect(all.length, 179);
     });
 
     test('键一律 kebab-case（小写字母数字，单横线分隔）', () {
@@ -81,13 +88,18 @@ void main() {
               key.startsWith('common-') ||
               key.startsWith('shell-') ||
               key.startsWith('projects-') ||
-              key.startsWith('domain-'),
+              key.startsWith('domain-') ||
+              key.startsWith('calendar-'),
           isTrue,
           reason: 'getter 键必须以模块前缀开头：$key',
         );
       }
       for (final String key in L10nKeys.byMethod.values) {
-        expect(key.startsWith('domain-'), isTrue, reason: '方法键缺前缀：$key');
+        expect(
+          key.startsWith('domain-') || key.startsWith('calendar-'),
+          isTrue,
+          reason: '方法键缺前缀：$key',
+        );
       }
     });
   });

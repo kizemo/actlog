@@ -24,6 +24,7 @@ import 'widgets/quick_todo_dialog.dart';
 import 'widgets/recurring_rail_panel.dart';
 import 'widgets/recurring_task_dialog.dart';
 import 'widgets/shell/app_top_bar.dart';
+import 'widgets/shell/key_bar.dart';
 import 'widgets/shell/ledger_shell.dart';
 import 'widgets/shell/tool_rail.dart';
 import 'widgets/timeline/todo_rail_panel.dart';
@@ -376,35 +377,40 @@ class _NavIntent extends Intent {
 /// * 习惯 ⇒ [showHabitQuickDialog]；
 /// * 循环任务 ⇒ [showRecurringTaskDialog]（保存后立刻幂等物化当前选中日）。
 /// 末块「闭环提示」不动，也不带动作位。
+///
+/// 口径（Task 61）：面板标题与动作位文案走 l10n（英文界面下这块右轨零中文）。
+/// 文案表从 context 取（`L10nScope`）；取不到时回落中文态，理由与理由见
+/// [shellLocalizationsOf]（既有测试直接构造这份清单、不套 `L10nScope`）。
 List<ShellRailPanel> todayRailPanels(BuildContext context) {
+  final AppLocalizations t = shellLocalizationsOf(context);
   return <ShellRailPanel>[
     ShellRailPanel(
-      title: '待办列表',
+      title: t.shellPanelTodoList,
       trailing: RailAddButton(
         key: const ValueKey<String>('rail-add-todo'),
-        label: '添加待办',
+        label: t.shellPanelAddTodo,
         onPressed: () => showQuickTodoDialog(context),
       ),
       child: const TodoRailPanel(),
     ),
     ShellRailPanel(
-      title: '习惯速览',
+      title: t.shellPanelHabitOverview,
       trailing: RailAddButton(
         key: const ValueKey<String>('rail-add-habit'),
-        label: '添加习惯',
+        label: t.shellPanelAddHabit,
         onPressed: () => showHabitQuickDialog(context),
       ),
       child: const HabitOverviewPanel(),
     ),
     ShellRailPanel(
-      title: '循环任务',
+      title: t.shellPanelRecurringTasks,
       trailing: RailAddButton(
         key: const ValueKey<String>('rail-add-recurring'),
-        label: '添加循环任务',
+        label: t.shellPanelAddRecurringTask,
         onPressed: () => showRecurringTaskDialog(context),
       ),
       child: const RecurringRailPanel(),
     ),
-    const ShellRailPanel(title: '闭环提示', child: LoopHintPanel()),
+    ShellRailPanel(title: t.shellPanelLoopHint, child: const LoopHintPanel()),
   ];
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/l10n_scope.dart';
 import '../../theme/app_fonts.dart';
 import '../../theme/density_profile.dart';
 import '../../theme/theme_tokens.dart';
@@ -37,6 +39,9 @@ class ShellKeyHint {
 /// 「把这一行加进 / 拿出今日计划」的说法——本应用里这一行本来就在今日计划里，
 /// 再这么说会误导用户；两者的动作等价（原型那边的计数 == 本应用 `done` 计数），
 /// 只取更准的说法。差异登记在 Task 20 的 worker 报告里。
+///
+/// 口径（Task 61）：这一份**中文常量**保留不动（既有测试直接断言它），
+/// 但运行期不再用它渲染 —— 渲染走 [shellKeyHintsFor]，按当前语言现搭。
 const List<ShellKeyHint> kShellKeyHints = <ShellKeyHint>[
   ShellKeyHint(keys: <String>['Ctrl+N'], label: '＋ 手写一条'),
   ShellKeyHint(keys: <String>['Ctrl+D'], label: '打卡第一条未打习惯'),
@@ -46,6 +51,37 @@ const List<ShellKeyHint> kShellKeyHints = <ShellKeyHint>[
   ShellKeyHint(keys: <String>['Esc'], label: '关闭弹层'),
   ShellKeyHint(keys: <String>['Ctrl+1…4'], label: '切页'),
   ShellKeyHint(keys: <String>['Ctrl+5'], label: '切到项目'),
+];
+
+/// 取当前语言的文案表；不在 [L10nScope] 之下时回落中文态。
+///
+/// 口径与 `widgets\shell\app_top_bar.dart` 同一形状：既有 widget 测试直接构造
+/// 本目录的控件、**不套** `L10nScope`，用 `AppLocalizations.of(context)`
+/// （缺失即抛 `FlutterError`）会把那些用例打挂；取不到 scope 时回落中文态。
+/// 生产路径（应用根 widget 挂了 `L10nScope`）永远拿得到真实语言，
+/// 所以「回落中文」只在测试与孤立构造场景发生。
+///
+/// 为什么住在 `key_bar.dart`：壳层三个文件（`nav_rail.dart` / `key_bar.dart` /
+/// `ledger_shell.dart`）互相引用，`key_bar.dart` 是唯一被另外两个**都已 import**
+/// 的底层文件 ⇒ 放这里不产生新的 import 环，也不新造第三套取法。
+AppLocalizations shellLocalizationsOf(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
+    AppLocalizations.zh;
+
+/// 运行时构建 8 条快捷键说明（文案走 l10n）。
+///
+/// `const` 顶层列表不能在编译期常量里调 `t.xxx`，所以运行期的清单在这里现搭；
+/// zh 态的取值与 [kShellKeyHints] 逐字相同（那一份常量保留下来，供既有测试
+/// 直接断言，也留作中文快照）。
+List<ShellKeyHint> shellKeyHintsFor(AppLocalizations t) => <ShellKeyHint>[
+  ShellKeyHint(keys: <String>['Ctrl+N'], label: t.shellKeyAddEntry),
+  ShellKeyHint(keys: <String>['Ctrl+D'], label: t.shellKeyCheckFirstHabit),
+  ShellKeyHint(keys: <String>['←→'], label: t.shellKeySwitchDate),
+  ShellKeyHint(keys: <String>['Space'], label: t.shellKeyToggleCheck),
+  ShellKeyHint(keys: <String>['Enter'], label: t.shellKeyExpandBackfill),
+  ShellKeyHint(keys: <String>['Esc'], label: t.shellKeyClosePopup),
+  ShellKeyHint(keys: <String>['Ctrl+1…4'], label: t.shellKeySwitchTab),
+  ShellKeyHint(keys: <String>['Ctrl+5'], label: t.shellKeyGoProjects),
 ];
 
 /// 键帽（等价原型 `kbd`）。
@@ -99,14 +135,16 @@ class KeyCap extends StatelessWidget {
 /// 只作提示，不承载任何点击。
 class KeyBar extends StatelessWidget {
   /// 创建快捷键条。
-  const KeyBar({this.hints = kShellKeyHints, super.key});
+  const KeyBar({this.hints, super.key});
 
-  /// 快捷键清单。
-  final List<ShellKeyHint> hints;
+  /// 快捷键清单；`null` ⇒ 按当前语言现搭（[shellKeyHintsFor]）。
+  final List<ShellKeyHint>? hints;
 
   @override
   Widget build(BuildContext context) {
     final ThemeTokens tokens = context.tokens;
+    final List<ShellKeyHint> resolved =
+        hints ?? shellKeyHintsFor(shellLocalizationsOf(context));
     final double labelSize =
         Theme.of(context).textTheme.labelSmall?.fontSize ??
         DensityProfile.comfortable.labelSize;
@@ -122,7 +160,7 @@ class KeyBar extends StatelessWidget {
         runSpacing: 7,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
-          for (final ShellKeyHint hint in hints)
+          for (final ShellKeyHint hint in resolved)
             _KeyHintItem(hint: hint, labelSize: labelSize),
         ],
       ),
@@ -164,25 +202,27 @@ class _KeyHintItem extends StatelessWidget {
 
 /// 右轨「快捷键」面板里的竖排清单。
 ///
-/// 与 [KeyBar] 共用同一份 [kShellKeyHints]，因此面板里显示的全是真实快捷键，
-/// 不存在占位按钮。
+/// 与 [KeyBar] 共用同一份清单（都由 [shellKeyHintsFor] 按当前语言现搭），
+/// 因此面板里显示的全是真实快捷键，不存在占位按钮。
 class KeyHintList extends StatelessWidget {
   /// 创建竖排快捷键清单。
-  const KeyHintList({this.hints = kShellKeyHints, super.key});
+  const KeyHintList({this.hints, super.key});
 
-  /// 快捷键清单。
-  final List<ShellKeyHint> hints;
+  /// 快捷键清单；`null` ⇒ 按当前语言现搭（[shellKeyHintsFor]）。
+  final List<ShellKeyHint>? hints;
 
   @override
   Widget build(BuildContext context) {
     final ThemeTokens tokens = context.tokens;
+    final List<ShellKeyHint> resolved =
+        hints ?? shellKeyHintsFor(shellLocalizationsOf(context));
     final double labelSize =
         Theme.of(context).textTheme.labelSmall?.fontSize ??
         DensityProfile.comfortable.labelSize;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        for (final ShellKeyHint hint in hints)
+        for (final ShellKeyHint hint in resolved)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Row(

@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「131 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「170 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -220,8 +220,8 @@ abstract final class L10nKeys {
   static const String aboutReleases = 'about-releases';
 
   // ---------------------------------------------------------------------------
-  // 外壳（窗口标题 / 顶栏 / 托盘，9 条；暂寄 parts\about.dart，待 parts\shell.dart
-  // 立项时整体挪走）
+  // 外壳（窗口标题 / 顶栏 / 托盘，9 条；暂寄 parts\about.dart —— Task 61 的
+  // parts\shell.dart 已立项，但这 9 条本轮**未**迁过去）
   // ---------------------------------------------------------------------------
 
   /// 窗口标题（含英文标识）。
@@ -250,6 +250,81 @@ abstract final class L10nKeys {
 
   /// 托盘菜单：退出。
   static const String shellTrayQuit = 'shell-tray-quit';
+
+  // ---------------------------------------------------------------------------
+  // 应用外壳（parts\shell.dart，23 条：左导航 6 项 / 快捷键面板与 8 条快捷键说明 /
+  // 导航底注「页面切换」/ 右轨 4 个面板的 7 条文案）
+  // ---------------------------------------------------------------------------
+
+  /// 左导航：日志。
+  static const String shellNavToday = 'shell-nav-today';
+
+  /// 左导航：待办池。
+  static const String shellNavInbox = 'shell-nav-inbox';
+
+  /// 左导航：习惯。
+  static const String shellNavHabits = 'shell-nav-habits';
+
+  /// 左导航：项目。
+  static const String shellNavProjects = 'shell-nav-projects';
+
+  /// 左导航：日历。
+  static const String shellNavCalendar = 'shell-nav-calendar';
+
+  /// 左导航：设置。
+  static const String shellNavSettings = 'shell-nav-settings';
+
+  /// 右轨「快捷键」面板标题。
+  static const String shellShortcutsTitle = 'shell-shortcuts-title';
+
+  /// 导航底注：页面切换。
+  static const String shellPageSwitch = 'shell-page-switch';
+
+  /// 快捷键：＋ 手写一条。
+  static const String shellKeyAddEntry = 'shell-key-add-entry';
+
+  /// 快捷键：打卡第一条未打习惯。
+  static const String shellKeyCheckFirstHabit = 'shell-key-check-first-habit';
+
+  /// 快捷键：切日期。
+  static const String shellKeySwitchDate = 'shell-key-switch-date';
+
+  /// 快捷键：勾选 / 取消勾选。
+  static const String shellKeyToggleCheck = 'shell-key-toggle-check';
+
+  /// 快捷键：展开回填。
+  static const String shellKeyExpandBackfill = 'shell-key-expand-backfill';
+
+  /// 快捷键：关闭弹层。
+  static const String shellKeyClosePopup = 'shell-key-close-popup';
+
+  /// 快捷键：切页。
+  static const String shellKeySwitchTab = 'shell-key-switch-tab';
+
+  /// 快捷键：切到项目。
+  static const String shellKeyGoProjects = 'shell-key-go-projects';
+
+  /// 右轨面板：待办列表。
+  static const String shellPanelTodoList = 'shell-panel-todo-list';
+
+  /// 右轨面板：添加待办。
+  static const String shellPanelAddTodo = 'shell-panel-add-todo';
+
+  /// 右轨面板：习惯速览。
+  static const String shellPanelHabitOverview = 'shell-panel-habit-overview';
+
+  /// 右轨面板：添加习惯。
+  static const String shellPanelAddHabit = 'shell-panel-add-habit';
+
+  /// 右轨面板：循环任务。
+  static const String shellPanelRecurringTasks = 'shell-panel-recurring-tasks';
+
+  /// 右轨面板：添加循环任务。
+  static const String shellPanelAddRecurringTask =
+      'shell-panel-add-recurring-task';
+
+  /// 右轨面板：闭环提示。
+  static const String shellPanelLoopHint = 'shell-panel-loop-hint';
 
   // ---------------------------------------------------------------------------
   // 跨页共用（parts\common.dart，7 条）
@@ -487,11 +562,76 @@ abstract final class L10nKeys {
   static const String projectsDomainHealth = 'projects-domain-health';
 
   // ---------------------------------------------------------------------------
+  // 日历与日期（parts\calendar.dart，19 条：16 条无参 getter + 1 条列表型
+  // getter + 2 条插值方法）
+  // ---------------------------------------------------------------------------
+  // 中文取值逐字等于改动前的字面量；英文取值是新译文案（完整对照表见
+  // `reports\task61-calendar-getters.md`）。
+
+  /// 日历页标题。
+  static const String calendarPageTitle = 'calendar-page-title';
+
+  /// 翻月按钮：上个月。
+  static const String calendarPrevMonth = 'calendar-prev-month';
+
+  /// 翻月按钮：下个月。
+  static const String calendarNextMonth = 'calendar-next-month';
+
+  /// 月历格右上角的「今天」角标。
+  static const String calendarTodayBadge = 'calendar-today-badge';
+
+  /// 日期条左箭头：前一天。
+  static const String calendarPrevDay = 'calendar-prev-day';
+
+  /// 日期条右箭头：后一天。
+  static const String calendarNextDay = 'calendar-next-day';
+
+  /// 日期条只读徽标：过去日（补录模式）。
+  static const String calendarBackfillMode = 'calendar-backfill-mode';
+
+  /// 日期条只读徽标：未来日（预排）。
+  static const String calendarPrePlanMode = 'calendar-pre-plan-mode';
+
+  /// 弹层翻月按钮：上一月。
+  static const String calendarPickerPrevMonth = 'calendar-picker-prev-month';
+
+  /// 弹层翻月按钮：下一月。
+  static const String calendarPickerNextMonth = 'calendar-picker-next-month';
+
+  /// 快捷芯片：今天。
+  static const String calendarToday = 'calendar-today';
+
+  /// 快捷芯片：昨天。
+  static const String calendarYesterday = 'calendar-yesterday';
+
+  /// 快捷芯片：前天。
+  static const String calendarDayBeforeYesterday =
+      'calendar-day-before-yesterday';
+
+  /// 快捷芯片：明天。
+  static const String calendarTomorrow = 'calendar-tomorrow';
+
+  /// 快捷芯片：本周内。
+  static const String calendarThisWeek = 'calendar-this-week';
+
+  /// 快捷芯片：无期限。
+  static const String calendarNoDeadline = 'calendar-no-deadline';
+
+  /// 星期短名（列表型 getter，7 条）。
+  static const String calendarWeekdaysShort = 'calendar-weekdays-short';
+
+  /// 插值方法：月份标题（`yyyy-MM` → 当前语言的月份标题）。
+  static const String calendarMonthLabel = 'calendar-month-label';
+
+  /// 插值方法：日期标题（`yyyy-MM-dd` → 当前语言的日期标题）。
+  static const String calendarDateTitle = 'calendar-date-title';
+
+  // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（131 条，覆盖 `AppLocalizations` 全部无参 String getter；
-  /// 另有 2 条列表型 getter 在 `byListGetter`）。
+  /// getter 名 → 键（170 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// 另有 3 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
   static const Map<String, String> byGetter = <String, String>{
@@ -590,6 +730,30 @@ abstract final class L10nKeys {
     'trayShow': shellTrayShow,
     'trayHide': shellTrayHide,
     'trayQuit': shellTrayQuit,
+    // 应用外壳 23 条（Task 61：左导航 / 快捷键面板 / 快捷键说明 / 右轨面板）
+    'shellNavToday': shellNavToday,
+    'shellNavInbox': shellNavInbox,
+    'shellNavHabits': shellNavHabits,
+    'shellNavProjects': shellNavProjects,
+    'shellNavCalendar': shellNavCalendar,
+    'shellNavSettings': shellNavSettings,
+    'shellShortcutsTitle': shellShortcutsTitle,
+    'shellPageSwitch': shellPageSwitch,
+    'shellKeyAddEntry': shellKeyAddEntry,
+    'shellKeyCheckFirstHabit': shellKeyCheckFirstHabit,
+    'shellKeySwitchDate': shellKeySwitchDate,
+    'shellKeyToggleCheck': shellKeyToggleCheck,
+    'shellKeyExpandBackfill': shellKeyExpandBackfill,
+    'shellKeyClosePopup': shellKeyClosePopup,
+    'shellKeySwitchTab': shellKeySwitchTab,
+    'shellKeyGoProjects': shellKeyGoProjects,
+    'shellPanelTodoList': shellPanelTodoList,
+    'shellPanelAddTodo': shellPanelAddTodo,
+    'shellPanelHabitOverview': shellPanelHabitOverview,
+    'shellPanelAddHabit': shellPanelAddHabit,
+    'shellPanelRecurringTasks': shellPanelRecurringTasks,
+    'shellPanelAddRecurringTask': shellPanelAddRecurringTask,
+    'shellPanelLoopHint': shellPanelLoopHint,
     // 项目页 42 条（Task 56 的 17 条 + Task 57 的 11 条 + 补轮 3 条 +
     // Task 59 的 11 条）
     'projectsTitle': projectsTitle,
@@ -636,22 +800,42 @@ abstract final class L10nKeys {
     'projectsDomainLearning': projectsDomainLearning,
     'projectsDomainSocial': projectsDomainSocial,
     'projectsDomainHealth': projectsDomainHealth,
+    // 日历与日期 16 条（Task 61：日历页 / 月视图 / 日期条 / 日期选择弹层）
+    'calendarPageTitle': calendarPageTitle,
+    'calendarPrevMonth': calendarPrevMonth,
+    'calendarNextMonth': calendarNextMonth,
+    'calendarTodayBadge': calendarTodayBadge,
+    'calendarPrevDay': calendarPrevDay,
+    'calendarNextDay': calendarNextDay,
+    'calendarBackfillMode': calendarBackfillMode,
+    'calendarPrePlanMode': calendarPrePlanMode,
+    'calendarPickerPrevMonth': calendarPickerPrevMonth,
+    'calendarPickerNextMonth': calendarPickerNextMonth,
+    'calendarToday': calendarToday,
+    'calendarYesterday': calendarYesterday,
+    'calendarDayBeforeYesterday': calendarDayBeforeYesterday,
+    'calendarTomorrow': calendarTomorrow,
+    'calendarThisWeek': calendarThisWeek,
+    'calendarNoDeadline': calendarNoDeadline,
   };
 
-  /// 列表型 getter 名 → 键（2 条；`byGetter` 只收 String getter）。
+  /// 列表型 getter 名 → 键（3 条；`byGetter` 只收 String getter）。
   ///
   /// 列表型 getter（`List<String>`）无法塞进 `Map<String, String>`，单列一张表，
   /// 好让测试同样能遍历「键一条不少 + 中英两态都非空且不同」。
   static const Map<String, String> byListGetter = <String, String>{
     'aboutToc': aboutToc,
     'aboutChangelog': aboutChangelog,
+    'calendarWeekdaysShort': calendarWeekdaysShort,
   };
 
-  /// 插值方法名 → 键（4 条）。
+  /// 插值方法名 → 键（6 条）。
   static const Map<String, String> byMethod = <String, String>{
     'hoursCount': domainHoursCount,
     'minutesCount': domainMinutesCount,
     'deferredDays': domainDeferredDays,
     'moodScoreLabel': domainMoodScoreLabel,
+    'calendarMonthLabel': calendarMonthLabel,
+    'calendarDateTitle': calendarDateTitle,
   };
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_fonts.dart';
 import '../../theme/app_tokens.dart';
 import '../../theme/density_profile.dart';
@@ -28,6 +29,9 @@ class ShellNavItem {
 /// 原型固定的 6 项主导航。
 ///
 /// 六项都有真实落点（Task 56 起「项目」页落地，不再是禁用项）。
+///
+/// 口径（Task 61）：这一份**中文常量**保留不动（既有测试直接断言它），
+/// 但运行期不再用它渲染 —— 渲染走 [shellNavItemsFor]，按当前语言现搭。
 const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   ShellNavItem(id: 'today', label: '日志'),
   ShellNavItem(id: 'inbox', label: '待办池'),
@@ -35,6 +39,21 @@ const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   ShellNavItem(id: 'projects', label: '项目'),
   ShellNavItem(id: 'calendar', label: '日历'),
   ShellNavItem(id: 'settings', label: '设置'),
+];
+
+/// 运行时构建 6 项主导航（文案走 l10n）。
+///
+/// `const` 顶层列表不能在编译期常量里调 `t.xxx`，所以运行期的清单在这里现搭；
+/// zh 态的取值与 [kShellNavItems] 逐字相同（那一份常量保留下来，供既有测试
+/// 直接断言，也留作中文快照）。项的 id / 启用态与常量那份完全一致 ⇒ 导航行为
+/// 不因本地化而变。
+List<ShellNavItem> shellNavItemsFor(AppLocalizations t) => <ShellNavItem>[
+  ShellNavItem(id: 'today', label: t.shellNavToday),
+  ShellNavItem(id: 'inbox', label: t.shellNavInbox),
+  ShellNavItem(id: 'habits', label: t.shellNavHabits),
+  ShellNavItem(id: 'projects', label: t.shellNavProjects),
+  ShellNavItem(id: 'calendar', label: t.shellNavCalendar),
+  ShellNavItem(id: 'settings', label: t.shellNavSettings),
 ];
 
 /// 左主导航（等价原型 `nav.nav`）。
@@ -45,7 +64,7 @@ const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
 class NavRail extends StatelessWidget {
   /// 创建主导航。
   const NavRail({
-    this.items = kShellNavItems,
+    this.items,
     this.currentId,
     this.onSelected,
     this.horizontal = false,
@@ -55,8 +74,8 @@ class NavRail extends StatelessWidget {
   /// 竖排栏宽（`--nav-w`）。
   static const double width = 214;
 
-  /// 导航项列表。
-  final List<ShellNavItem> items;
+  /// 导航项列表；`null` ⇒ 按当前语言现搭（[shellNavItemsFor]）。
+  final List<ShellNavItem>? items;
 
   /// 当前页 id；命中项渲染 ink 洗底。
   final String? currentId;
@@ -69,13 +88,21 @@ class NavRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return horizontal ? _buildBar(context) : _buildColumn(context);
+    final AppLocalizations t = shellLocalizationsOf(context);
+    final List<ShellNavItem> resolvedItems = items ?? shellNavItemsFor(t);
+    return horizontal
+        ? _buildBar(context, t, resolvedItems)
+        : _buildColumn(context, t, resolvedItems);
   }
 
-  Widget _buildColumn(BuildContext context) {
+  Widget _buildColumn(
+    BuildContext context,
+    AppLocalizations t,
+    List<ShellNavItem> items,
+  ) {
     final ThemeTokens tokens = context.tokens;
     final List<Widget> children = <Widget>[
-      _Brand(showSubtitle: true, padded: true),
+      _Brand(t: t, showSubtitle: true, padded: true),
       const SizedBox(height: 8),
     ];
     for (int i = 0; i < items.length; i++) {
@@ -93,7 +120,7 @@ class NavRail extends StatelessWidget {
     }
     children
       ..add(const Spacer())
-      ..add(const _NavFoot());
+      ..add(_NavFoot(t: t));
     return Container(
       width: width,
       padding: const EdgeInsets.fromLTRB(14, 18, 14, 12),
@@ -115,7 +142,11 @@ class NavRail extends StatelessWidget {
     );
   }
 
-  Widget _buildBar(BuildContext context) {
+  Widget _buildBar(
+    BuildContext context,
+    AppLocalizations t,
+    List<ShellNavItem> items,
+  ) {
     final ThemeTokens tokens = context.tokens;
     return Container(
       width: double.infinity,
@@ -134,9 +165,9 @@ class NavRail extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: _Brand(showSubtitle: false, padded: false),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _Brand(t: t, showSubtitle: false, padded: false),
             ),
             for (int i = 0; i < items.length; i++)
               Padding(
@@ -156,10 +187,24 @@ class NavRail extends StatelessWidget {
 }
 
 /// 品牌块（`div.brand`）：知行日志 / actlog。
+///
+/// 主标题走 `t.appName`（zh `知行日志` / en `actlog`）；副标题 `actlog` **只在
+/// 中文态显示** —— 英文态主标题本身就是 `actlog`，两行同字就是重复（Task 61
+/// 已登记的取舍，不为它新增 getter）。
 class _Brand extends StatelessWidget {
-  const _Brand({required this.showSubtitle, required this.padded});
+  const _Brand({
+    required this.t,
+    required this.showSubtitle,
+    required this.padded,
+  });
 
+  /// 当前语言的文案表。
+  final AppLocalizations t;
+
+  /// 是否显示副标题行（横排模式下不显示）。
   final bool showSubtitle;
+
+  /// 是否带品牌块的边框与内边距。
   final bool padded;
 
   @override
@@ -182,7 +227,7 @@ class _Brand extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(
-            '知行日志',
+            t.appName,
             style: TextStyle(
               fontFamily: AppFonts.display,
               fontFamilyFallback: AppFonts.displayFallback,
@@ -193,7 +238,7 @@ class _Brand extends StatelessWidget {
               color: tokens.ink,
             ),
           ),
-          if (showSubtitle) ...<Widget>[
+          if (showSubtitle && t.language == AppLanguage.zh) ...<Widget>[
             const SizedBox(height: 3),
             Text(
               'actlog',
@@ -286,15 +331,27 @@ class _NavRowState extends State<_NavRow> {
             ),
           ),
           const SizedBox(width: 9),
-          Text(
-            widget.item.label,
-            style: TextStyle(
-              fontFamily: AppFonts.body,
-              fontFamilyFallback: AppFonts.bodyFallback,
-              fontSize: 14.5,
-              height: 1.35,
-              color: labelColor,
-              fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
+          // 标签用 `Flexible`（**松**配合），不是写死宽度，也不是 `Expanded`：
+          // * 中文标签只有 2–3 个汉字（实测 29.5 / 44.25px），远小于净宽 169px
+          //   ⇒ 松配合下它仍按自身宽度渲染，**中文态逐像素不变**（同宽同位置）；
+          // * 英文标签更长（实测最长 `To-do Pool` 147.5px，净宽 169px ⇒ 硬排
+          //   溢出 6.3px）⇒ 松配合把「序号盒 + 间隔」之外的空间整块留给标签
+          //   （上限 141.25px），超出就**换行**，既不截断也不丢字形；
+          // * 用 `Expanded`（紧配合）会把中文标签的盒子也拉成 141.25px 宽，
+          //   中文态的字形位置虽不变、盒子却变了 ⇒ 不用。
+          // 横排模式（< 1280）那行在**横向滚动视图**里 ⇒ 主轴无界 ⇒
+          // `Flexible` 退化成非弹性子件（标签仍按自身宽度排），行为与改前一致。
+          Flexible(
+            child: Text(
+              widget.item.label,
+              style: TextStyle(
+                fontFamily: AppFonts.body,
+                fontFamilyFallback: AppFonts.bodyFallback,
+                fontSize: 14.5,
+                height: 1.35,
+                color: labelColor,
+                fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
+              ),
             ),
           ),
         ],
@@ -359,7 +416,10 @@ class _NavRowState extends State<_NavRow> {
 /// 宽度断行在不同字体度量下位置并不相同（真机拉丁字形窄、测试环境宽），
 /// 靠「量一下会不会正好放得下」只会得到一台机器上成立、另一台上不成立的结果。
 class _NavFoot extends StatelessWidget {
-  const _NavFoot();
+  const _NavFoot({required this.t});
+
+  /// 当前语言的文案表。
+  final AppLocalizations t;
 
   /// 大字号档阈值（相对基准字号的缩放倍数）。
   static const double largeTextScale = 1.5;
@@ -408,7 +468,7 @@ class _NavFoot extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
           // 「页面切换」本身是 4 个字，最窄也只断成两字一行，不会留孤字。
-          Text('页面切换', style: textStyle),
+          Text(t.shellPageSwitch, style: textStyle),
           if (largeText)
             // 撑满整行 ⇒ 独占一行（第 2 行「Ctrl + 1」）。
             Row(mainAxisSize: MainAxisSize.max, children: <Widget>[keyGroup])

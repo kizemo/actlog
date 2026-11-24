@@ -9268,3 +9268,121 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
 5. 派**独立 verifier**（只读、≠ 实现者）复验 60.4a–i ⇒ 处置缺陷。
 6. 台账同步（C4 六件）+ 计划 §60.4 等长打勾 + `AGENTS.md` R2 基线与 R3 分发真源行更新。
 7. commit + push（`AHEAD=0` / `BEHIND=0`）⇒ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。
+
+---
+
+## 61. Task 61 · 全应用英文化批次一（外壳本地化补漏 + 日历与日期 W2）（2026-11-24，控制器）
+
+### 61.1 背景与目标
+
+**上一轮收口后的真实状态（控制器亲验，2026-11-24 上午）**：
+
+1. **计划里唯一还开着的产品线 backlog = §47**（全应用中英双语 l10n）—— §47.6 复选框清单仍有 **4 项未打勾**：
+   `- [ ] 47.1 W2 日历与日期` / `- [ ] 47.1 W3…W8 六波` / `- [ ] 47.3 chip_row_visual_test + scale200_overflow_test` / `- [ ] 47.2 W9 全量 en 态 g1–g4 + 死 key 清理 + 基线定稿 + 删 @Deprecated`；
+   且 `l10n\parts\{today,calendar,timeline,habit,dialog}.dart` 至今是**空骨架**（`String get` 计数 = 0），
+   实际有 getter 的只有 `about.dart`(105) / `settings.dart`(105) / `projects.dart`(126) / `common.dart`(21) / `domain.dart`(36)。
+2. **Task 60 登记的遗留项 = §47 W1「外壳与入口」未迁完的那一块** —— 真机英文帧实测整屏 18 条中文**全部落在应用外壳**：
+   品牌「知行日志」/ 左导航 6 项 / 右轨快捷键面板（标题 + 8 条说明）/ 「页面切换」/ 右轨 4 个面板 7 条。
+   坐实行号：`widgets\shell\nav_rail.dart:185`（品牌）、`:31-38`（6 项导航）、`:411`（页面切换）、
+   `widgets\shell\key_bar.dart:40-49`（8 条说明）、`widgets\shell\ledger_shell.dart:102`（快捷键标题）、
+   `app.dart:382/385/391/394/400/403/408`（右轨 7 条）。
+3. **「深色主题 Task 41 独立排期」是陈旧指针** —— 控制器实测：计划 §41（`:7885`）**17 项复选框全部 `[x]`**，
+   深浅主题开关端到端已实现（`theme\app_theme.dart:26/29` light/dark、`app.dart:152-153` `darkTheme` + `themeMode`、
+   `providers.dart:237/441` 持久化、设置页三档 UI），`AppTokens` 只剩 9 个**尺寸**成员（无颜色）⇒ **不构成深色主题风险**。
+   ⇒ `progress.md` / `handoff.md` 里那两处「深色主题独立排期」**本轮订正为陈旧指针**（只改台账文字，**不动产品代码**）。
+
+**本轮目标（两件，缺一不可）**：
+- **① 外壳补漏**：左导航 6 项 + 品牌标题 + 快捷键面板标题 + 8 条快捷键说明 + 「页面切换」+ 右轨 7 条 ⇒ **英文界面外壳零中文**（闭合 Task 60 遗留）；
+- **①-b 宣称口径（控制器 2026-11-24 精确化）**：本轮只保证「**本批次覆盖的 23 条外壳 chrome 文案在英文态零中文**」；**不得**宣称「英文界面零中文」—— 右轨 4 个面板的**标题**已本地化，但其**空态 / 内容区**文案（today / timeline 域，如 `暂无待办`（`widgets\timeline\todo_rail_panel.dart:44`）、`所选日没有排程习惯`（`pages\today_page.dart:803`）、`计划缺口` / `回填缺口`（`pages\today_page.dart:921-922`））**仍为中文**，属 §47 **W3–W8 backlog**，本轮不覆盖。
+- **② W2 日历与日期**：日历页与月视图的 UI 文案迁入 l10n（zh **逐字不变** + en 新译文）。
+
+**本轮不做（明确划界，避免被当成已完成）**：W3–W8 六波、47.3 测试改造、W9 收尾（en 态全量 g1–g4 + 死 key 清理 + 基线定稿 + 删 `@Deprecated`）—— 全部**留在 backlog**，逐批推进。
+
+### 61.2 控制器口径裁决
+
+- **① 零 schema 变更、零新增依赖、零 `packages\**` 改动、零新增 `ChipRow` / 不改公共组件。**
+- **② 派工真源 = 派工书**，不是本节正文：`.superpowers\sdd\2026-11-07-b1-flutter-implementation\waves\task61-batch1.md`
+  （含 **23 条外壳 getter 的逐字契约表**（getter 名 / 键名 / zh / en）、写集表、每个 worker 的验收条件）。
+- **③ zh 文案逐字不变**是本批次能并行开工的**前提**：既有 zh 测试按字面量断言 ⇒ zh 取值不变 ⇒ **既有测试天然不破**（仍须实测）。
+  en 译文在本批次首次落地（外壳此前**完全没有** nav / key-hint getter）。
+- **④ 品牌标题不新增 getter**：复用既有 `t.appName`（zh `知行日志` / en `actlog`）⇒ 外壳新 getter 恰 **23 条**（不含品牌）。
+- **⑤ `const` 顶层列表本地化**：`kShellNavItems` / `kShellKeyHints` 是 `const` 顶层 list，**不能**调 `t.xxx`
+  ⇒ 改为**运行时构建**（`shellNavItemsFor(t)` / `shellKeyHintsFor(t)`），`LedgerShell` 的 `navItems` / `keyHints` 默认值改 `null`，
+  在 `build` 里按 context 取 `t` 填充；**`const` 常量保留不删**（既有测试可能引用），运行期不再使用。
+- **⑥ 品牌区英文差异（已知取舍，已披露）**：主标题改 `t.appName` 后英文下会是 `actlog` + 副标题 `actlog` 重复两行
+  ⇒ 副标题行**仅在中文时显示**（英文下主标题已是 `actlog`）。**不为消掉它新增 getter。**
+- **⑦ 登记权集中**：本批次 `l10n_keys.dart` / `l10n_harness.dart` / `l10n_base_test.dart` / `app_localizations.dart`
+  是**共享写集** ⇒ 拆成**两轮**：worker A 先做外壳 23 条（131→154 / 137→160），worker D 第二轮登记 calendar getter（**D 在 A、C 之后开工**）。
+- **⑧ 键名规则**：kebab-case 小写；getter 名 = 键名 CamelCase；新 getter 一律带 `shell*` / `calendar*` 语义前缀，**不得复用既有名**。
+- **⑨ 测试断言禁同义反复**（§47.3 铁律 1）：禁 `find.text(t.xxx)`，必须断**字面量** + **英文态阴性对照**（`find.text('中文')` ⇒ `findsNothing`）。
+- **⑩ 门禁一律控制器亲跑**；worker **禁跑** analyze/test/build（并发假红）、**禁 git 写操作**。
+- **⑪ 计划 §47 的 4 项复选框本轮不打勾**：本轮只闭合 §47 的 **W1 补漏 + W2 两波**，W3–W8 / 47.3 / W9 仍未完成 ⇒ §47 复选框**保持未勾**，台账如实登记。
+
+### 61.3 写集表（Task 61 独占路径 · worker 只能写自己那一行）
+
+| # | 路径 | 归属 | 允许的改动 |
+|---|---|---|---|
+| A1 | `apps\desktop\lib\src\l10n\parts\shell.dart`（**新建**） | worker A | 外壳 23 条 getter（zh+en，形状照 `parts\settings.dart`） |
+| A2 | `apps\desktop\lib\src\l10n\l10n_keys.dart` | worker A | 23 条 key 常量 + `byGetter` 加 23 行 |
+| A3 | `apps\desktop\test\l10n_harness.dart` | worker A | `l10nAccessors` 加 23 行 |
+| A4 | `apps\desktop\test\l10n_base_test.dart` | worker A | 计数 `131→154` / `137→160`（含测试标题数字） |
+| A5 | `apps\desktop\lib\src\l10n\app_localizations.dart` | worker A | import + zh/en 两个子类 mixin 各一行 + 顶部 part 清单注释加一行 |
+| B1 | `apps\desktop\lib\src\widgets\shell\nav_rail.dart` | worker B | 左导航 6 项 + 品牌标题 + 「页面切换」 |
+| B2 | `apps\desktop\lib\src\widgets\shell\key_bar.dart` | worker B | 8 条快捷键说明 |
+| B3 | `apps\desktop\lib\src\widgets\shell\ledger_shell.dart` | worker B | 「快捷键」面板标题 + navItems/keyHints 本地化注入点 |
+| B4 | `apps\desktop\lib\src\app.dart` | worker B | 右轨 4 个面板 7 条文案 |
+| B5 | `apps\desktop\test\task61_l10n_shell_test.dart`（**新建**） | worker B | 外壳 zh/en 双态用例（≥ 8 例） |
+| C1 | `apps\desktop\lib\src\l10n\parts\calendar.dart` | worker C | 填掉空骨架：日历/日期 getter（zh+en） |
+| C2 | `apps\desktop\lib\src\pages\calendar_page.dart` | worker C | 日历页 UI 文案改走 l10n |
+| C3 | `apps\desktop\lib\src\widgets\calendar_month_view.dart` | worker C | 月视图 UI 文案改走 l10n |
+| C4 | `apps\desktop\test\task61_l10n_calendar_test.dart`（**新建**） | worker C | 日历 zh/en 双态用例（≥ 6 例） |
+| C0 | `reports\task61-calendar-getters.md`（**新建**） | worker C | calendar getter 名 → 键 → zh → en 对照表（供 D 登记） |
+| C5a | `apps\desktop\lib\src\widgets\date_bar.dart` | worker C（**额外迁移**） | 日期条 UI 文案改走 l10n（控制器派工后扩展写集；旧白名单已含该路径） |
+| C5b | `apps\desktop\lib\src\widgets\date_picker_sheet.dart` | worker C（**额外迁移**） | 日期弹层 UI 文案改走 l10n（控制器派工后扩展写集） |
+| A6 | `apps\desktop\lib\src\l10n\parts\about.dart` | worker A（追加轮） | **仅订正陈旧注释**（9 条寄放 getter 仍在 about.dart，整体搬迁需单独批次）；**一个字面量都不许改** |
+| D1–D4 | `l10n_keys.dart` / `l10n_harness.dart` / `l10n_base_test.dart` /（必要时）`app_localizations.dart` | worker D（**第二轮**） | 登记 calendar getter + 计数改到 `131+23+N_cal` / `137+23+N_cal` |
+| C5 | `reports\task51-gate.ps1` | 控制器 | `$patterns` 追加 3 条白名单（见 61.5 ①）；**纯 ASCII / CRLF / 无 BOM** |
+| C6 | `reports\task61-recon.md` | 控制器 | 本轮侦察报告落盘 |
+| C7 | `AGENTS.md` / `handoff.md` / `progress.md` / `docs\B1_验收记录.md` / 计划本节 / `docs\task40\项目页规划.md` | 控制器 | 台账同步 + R2 基线 + R3 分发真源行 + 订正陈旧指针 |
+
+**门禁 `$patterns` 必加三条**（否则 `OUT_OF_SET>0` 判红）：`'apps/desktop/lib/src/l10n/parts/shell.dart'`、`'apps/desktop/test/task61_*.dart'`、`'reports/task61-*'`。**实测补正（控制器，2026-11-24）**：worker 落地后实际新触碰了 5 个既有文件 ⇒ 本轮共加 **8 条**（另加 `l10n/parts/calendar.dart`、`pages/calendar_page.dart`、`widgets/calendar_month_view.dart`、`l10n/parts/about.dart`、`widgets/date_picker_sheet.dart`；`widgets/date_bar.dart` 旧白名单第 118 行已含）⇒ `$patterns` 合计 **86 条**。
+**`packages/**` 一律算越界**（`task51-gate.ps1:209`）⇒ 本轮零 `packages\**` 改动。
+
+### 61.4 验收判据（复选框清单 · 只有控制器能打勾，等长替换 `- [ ] ` → `- [x] `）
+
+- [x] **61.4a 外壳零中文（静态）**：`nav_rail.dart` / `key_bar.dart` / `ledger_shell.dart` / `app.dart` 中**不再有硬编码中文 UI 字面量**
+      （本轮认定的 24 处：品牌 1 + 导航 6 + 「页面切换」1 + 快捷键标题 1 + 8 条说明 + 右轨 7 条 ⇒ 实测按**内容**核对，不按行号）。
+- [x] **61.4b 外壳双语一致**：zh 态渲染结果与改动前**逐字一致**（左导航 6 项 / 品牌 + 副标题 / 快捷键标题 / 8 条说明 / 「页面切换」/ 右轨 7 条）；
+      en 态显示 §61.2 派工书表格里的 23 条 en 文案。
+- [x] **61.4c W2 日历双语**：日历页 + 月视图的 UI 文案**零硬编码中文**；zh 取值逐字不变；en 译文齐全；
+      **locale-sensitive 格式**（年/月/星期）走既有插值机制（`byMethod` / `byListGetter`）而**非 widget 内手写**。
+- [x] **61.4d l10n 计数自洽**：`byGetter.length == l10nAccessors.length == 131 + 23 + N_getter`；
+      `131 + 23 + N_getter + 列表型 + 方法型 == 全部键值不重复` 那条断言的数字**全部改到位**（含测试标题）。
+- [x] **61.4e 阴性对照**：新增用例在 en 态断言中文文案 `findsNothing`（外壳与日历各至少一条），**证明装置有判别力**。
+- [x] **61.4f 门禁**：四包 `analyze` 逐字 `No issues found!`；desktop 全量用例数 = **本轮实测新数**（精确等值）、零回退；
+      core_data 204 / core_db 71 / core_domain 62；`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`。
+- [x] **61.4g 出货与装机**：`reports\task51-ship.ps1 -Stage build` → `-Stage ship` 两阶段 ⇒ `SHIP_VERDICT=PASS`；
+      装机 `data\app.so` 与构建树三项逐字相同 ⇒ **R3 分发真源行更新**。
+- [x] **61.4h 英文态真机帧**：沙箱第二实例（`settings.locale='en'`）取帧 ⇒ **外壳区零中文**（品牌 / 左导航 / 右轨快捷键面板 / 「页面切换」/ 右轨 4 面板）；
+      **锁屏 / 桌面守卫不过 ⇒ 如实登记「未判定」，不判 PASS/FAIL**。
+- [ ] **61.4i 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项须如实登记）；
+      计划 §61 等长打勾 + `AGENTS.md` R2 基线 / §7 快照 / R3 分发真源行 + `handoff.md` §69 + `progress.md` +
+      `docs\B1_验收记录.md` + `docs\task40\项目页规划.md`；commit + push ⇒ `AHEAD=0` / `BEHIND=0`。
+- [x] **61.4j 陈旧指针订正**：`progress.md` / `handoff.md` 里「深色主题 Task 41 独立排期」**订正为陈旧指针**
+      （Task 41 已闭环，17 项复选框全勾，深浅开关端到端已实现）—— **只改台账文字，不动产品代码**；
+      并把 §47 剩余 backlog（**W3–W8 + 47.3 + W9**）如实登记为未完成项。
+
+### 61.5 收口顺序（硬顺序，不得跳步）
+
+1. 控制器：写本节 §61（C7）→ 落盘侦察报告 C6 → 改 `reports\task51-gate.ps1` 追加 3 条白名单（C5）→ 自查命中、纯 ASCII / CRLF / 无 BOM。
+2. **并行派 worker A（W1–W5：l10n 底座 + 外壳 getter + 登记）、worker B（W6–W10：外壳 UI + 用例）、worker C（W11–W14：日历 l10n + UI + 用例 + 对照表）**；
+   写集互斥（A 只碰 l10n 五件、B 只碰 shell 四件 + 用例、C 只碰日历三件 + 用例 + 对照表）。
+   派工书把 **23 条 getter 的逐字契约**定死（§61.2 ② + 派工书 §3.2）；**两侧均禁改 `packages\**`、禁 git 写操作、禁跑 analyze/test/build** ⇒ 门禁由控制器亲跑。
+3. 三 worker 回报 ⇒ **派 worker D**（第二轮：读 `parts\calendar.dart` + 对照表 ⇒ 登记 calendar getter + 改计数）⇒
+   控制器**亲跑** `flutter analyze`（desktop）确认两侧接口齐备 + 跑全量门禁
+   （**先 `Move-Item` 挪走 `apps\desktop\build\test_cache\build`**，否则 OS Error 183 挂死）⇒ `GATE_VERDICT=PASS`，
+   desktop 用例数 **= 实测新数**（`-ExpectDesktopTests <新数>`；脚本内 `$baseline=596` 是陈旧常量，`DESKTOP_DELTA` **不得**当本轮增量）。
+4. 出货两阶段（`-Stage build` → `-Stage ship`）+ 装机核对 + **英文态真机帧**（**锁屏 / 桌面守卫不过 ⇒ 如实登记「未判定」**）。
+5. 派**独立 verifier**（只读、≠ 实现者）复验 61.4a–j ⇒ 处置缺陷。
+6. 台账同步（C7）+ 计划 §61.4 等长打勾 + `AGENTS.md` R2 基线与 R3 分发真源行更新。
+7. commit + push（`AHEAD=0` / `BEHIND=0`）⇒ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。
