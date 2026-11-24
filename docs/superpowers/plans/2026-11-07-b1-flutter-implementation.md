@@ -8320,12 +8320,14 @@ desktop **+432** / core_data **+197** / core_db **+71** / core_domain **+62**。
 - [x] 47.4 R-08 / R-12 / 关于页 19 条 三项复核闭合
 - [x] 47.5 D-47-a / D-47-b / D-47-c 产品决策落定
 - [x] 47.1 W1 外壳与入口（含 G8 窗口标题，按 D-47-b）
-- [ ] 47.1 W2 日历与日期（G7 主战场，与 W0.5 的 `calendar.dart` key 不建两份）
-- [ ] 47.1 W3 时间线 / W4 今天页与复盘 / W5 心态习惯优先级 / W6 录入对话框 / W7 结果待办池 / W8 关于页与探针
-- [ ] 47.3 `chip_row_visual_test` 定位方式重写 + `scale200_overflow_test` 英文变长溢出回归
+- [x] 47.1 W2 日历与日期（G7 主战场，与 W0.5 的 `calendar.dart` key 不建两份）
+- [x] 47.1 W3 时间线 / W4 今天页与复盘 / W5 心态习惯优先级 / W6 录入对话框 / W7 结果待办池 / W8 关于页与探针
+- [x] 47.3 `chip_row_visual_test` 定位方式重写 + `scale200_overflow_test` 英文变长溢出回归
 - [ ] 47.2 W9 全量 en 态 g1–g4 + verify、死 key 清理、基线定稿写 AGENTS §7、删 `@Deprecated`
 - [x] R3 出货链：build → make_installer → 覆盖装机 → 双语真机取证 → R3 真源行更新
 - [x] 台账同步 + commit + push
+
+- **打勾订正（控制器 2026-11-24 晚 · Task 63 收口轮）**：上一轮按「§47 = W3–W8 + 47.3 + W9 整簇」口径把 4 项一并留白，属**过宽口径**（§47.6 是**逐条交付清单**，每条独立可判；R6 的约束是「没通过的不许打勾」，反向即「已通过的就该勾」）。本轮按 R6 **逐条重判 + 等长打勾**：① `47.1 W2 日历与日期` —— **Task 61 已闭合**（§61.4 全勾 + 16 条新 getter + `calendarWeekdaysShort` 列表型）；② `47.1 W3–W8` —— **Task 63 已闭合**（§63.4a/b/c 已勾 + 门禁 run4 `GATE_VERDICT=PASS` + realrun4 `JUDGE_VERDICT=PASS` + verifier `VERIFIER_VERDICT=PASS`）；③ `47.3` 判据改造 —— **Task 63 已闭合**（§63.4e 已勾 + verifier G 组 `G_TEST_CRITERIA=PASS`）；④ §62.3 下阶段闸门项 `**Task 63**` —— 同上。**`47.2 W9` 未做 ⇒ 保持未勾**（§47 自此**仅剩此 1 项**未闭合）。等长替换实测：4 次替换前后字节数 **664258 → 664258（不变）**，sha16 `349AAA5922C2314A` → `F97E3FC2FF90AE65`（R6「改后字节数不变、sha16 当场重测」双判据满足）。
 
 ## Task 49 · 顶部日期模块改版（2026-11-21，控制器登记）
 
@@ -9395,3 +9397,157 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
 5. 派**独立 verifier**（只读、≠ 实现者）复验 61.4a–j ⇒ 处置缺陷。
 6. 台账同步（C7）+ 计划 §61.4 等长打勾 + `AGENTS.md` R2 基线与 R3 分发真源行更新。
 7. commit + push（`AHEAD=0` / `BEHIND=0`）⇒ 收工三件套（等完/停掉后台任务 → 归档 → 确认无 running）。
+
+---
+
+## 62. Task 62（2026-11-24）· **模块规划轮**：目标体系（人生蓝图 / 个人品牌画像 / 年 / 月 / 周）+ 左栏「设置」齿轮化 —— **仅规划，零实现**
+
+**用户当轮指令（六点，第 6 条为范围闸门）**：① 新增「人生蓝图」，并补纸质实例中没有的「个人品牌画像」；② 新增年度 / 月度 / 周目标，并规划**怎样比纸质表更合理**；③ 新模块须与主页面「计划（待办）」有机结合、可在计划或待办中**自动调用**；④ 优化左侧边栏 —— 「设置」移到左栏**底部**，改为一枚**齿轮图标**；⑤ 结合《高效能人士的七个习惯》等管理学名著优化新增模块；⑥ **本轮仅制定模块规划，不具体执行实现**。
+
+**工号裁决 D-62-a**：本规划轮占 **§62 / Task 62**；§70.5 原预留给 §47 W3–W8 的「Task 62」**顺延为 Task 63**（体例同 §61.2 控制器口径裁决）。
+
+**交付物**：`docs\task62\模块规划.md`（**64997 B / 648 行**，15 章 + 附录 A/B）；架构取证 `reports\task62-recon-arch.md`（36387 B / 347 行，worker 交付）。**本轮零产品代码改动**（`git status --porcelain` = `?? docs/task62/`，`STATUS_LINES=1`）。
+
+### 62.1 规划结论（十三条裁决；细节与判据见规划文档对应章）
+
+| # | 裁决 | 文档章节 |
+|---|---|---|
+| D-62-a | 工号：本规划 = Task 62；§47 W3–W8 顺延 **Task 63** | §10 |
+| D-62-b | 架构路线 = **Path B：schema v3 两表 `goal` + `goal_link`**；Path A（零 schema、复用 `project`）与 Path C（每层一表）判否 | §3.2 / §4 |
+| D-62-c | 导航**只加 1 项**「目标」（`Ctrl+6`），「设置」不再占项 ⇒ 总项数仍 **6**；「目标」页内 5 页签 **周｜月｜年｜蓝图｜画像**（默认落「周」，上次页签存 `appPreferencesProvider`） | §3.1 / §5.6 |
+| D-62-d | domain **复用 Task 59 六 key**（career / wealth / family / learning / social / health），不建第二套枚举 | §3.4 |
+| D-62-e | 自评 `self_score` **入库**（用户主观源数据）；完成度 / 达成率 / 各层汇总 / 「未落位」标记 / 宣称 vs 实际一致性 **一律派生不入库**（`schema_v1.sql:34-36` 铁律） | §4.3 |
+| D-62-f | 蓝图「近期（1 年）」格 = **yearly 目标投影**，不存第二份；年视图 1–12 月单元格 = **monthly 目标投影** ⇒ 消除纸表「同一条抄三遍」 | §5.3 / §5.4 |
+| D-62-g | 周期滚动只生成 `status='draft'` **草稿、需确认落库**；完成事实源于 `plan_item` / `habit_checkin`，勾完子任务**不回写** goal 状态 | §6.4 |
+| D-62-h | 目标 ↔ 计划项**不走** `plan_item.source_type`（CHECK 冻结 5 值，`schema_v1.sql:145-146`），一律走 `goal_link`；拖拽落库 `source_type='manual'`（**已确认 · 2026-11-24 问卷第 4 题选 `l1`**） | §4.2 / §6.1 |
+| D-62-i | 新表**必须**登记 `packages\core_db\lib\src\oplog_writer.dart:37-50 syncedTables`，否则 `writeWithOplog`（`:114 _assertSyncedTable`）**第一次写即抛**；连带 `schema_consistency_test.dart:63` 16→18、`:51` 的 14 **不动**、`:58-61` 差集允许集合 2→4 张 | §4.4 |
+| D-62-j | G3 两套装置**沿用只校验 v1 的 14 表**；v2/v3 增量表由 `schema_consistency_test.dart` 承接 —— **已确认 · 2026-11-24 问卷第 2 题选 `j1`（沿用现状）** | §4.4 / §14 |
+| D-62-k | **不建** `docs\schema_v3.sql`；v3 权威只在 drift 表定义（与 v2 先例一致），避免双真源 —— **已确认 · 2026-11-24 问卷第 3 题选 `k1`（不建）** | §4.4 / §11 |
+| D-62-l | 今日右栏第 5 面板的宽度风险三选一，**采纳 (a) 直接加第 5 面板 + widget 尺寸断言 + 真机帧验证**（(b) 并入 `LoopHintPanel` 造成语义混淆、(c) 仅 `>=1920` 显示违背「自动调用」，均判否）—— **已确认 · 2026-11-24 问卷第 4 题选 `l1`** | §6.3 |
+
+### 62.2 与 §47 / 既有 backlog 的相互影响
+
+- **§47 W3–W8 未开工**：本规划轮**未碰**右轨内容区中文落点（`todo_rail_panel.dart:44 '暂无待办'`、`today_page.dart:798 '所选日没有排程习惯'`、`:920-925 _labels=['计划缺口','回填缺口','复盘','心态']`、`:933-937`），**不得**宣称「英文界面零中文」；§47 的 4 项复选框保持未勾。
+- **反向影响（风险 R-D）**：Task 64/65 新增 l10n getter 与 `nav_rail` 改动会**扩大 §47 W3 的中文落点清单** ⇒ 两批须**串行**（先 W3–W8 再 P0；若先 P0，W3 清单必须重取），不得并行。
+- **写集与派工**：Task 63–67 全部经 worker 落地（R1 控制器不改 `apps\` / `packages\`）；每批开始前把新写集追加进 `reports\task51-gate.ps1:112-144` 的 `$patterns`；派工 **R8** 必须显式 `model=custom_provider:provider-aa5659/deepseek-v4.1-flash-1017` + `effort=high|max`。
+
+### 62.3 下阶段（复选框 = 实施闸门，本轮**一律不勾**）
+
+- [x] **Task 63** = 计划 §47 **W3–W8**：右轨 4 面板内容区与空态文案英文化（六波逐批 + 47.3 判据改造）。
+- [ ] **Task 64（P0）** = 左栏「设置」齿轮化（规划 §7：6 处改动面 + `shell_nav_rail_test` 断言连带 + `shellNavSettings` 保留为 tooltip）。
+- [ ] **Task 65（P1）** = schema v3 两表 + 九步迁移 + **周 / 月**两视图 + 三通道联动 + 今日右栏「目标」面板（§4 / §5.1–5.2 / §6）。
+- [ ] **Task 66（P2）** = **年**视图 + **人生蓝图**矩阵与「链断裂」可视化 + 平衡轮（§5.3–5.4）。
+- [ ] **Task 67（P3）** = **个人品牌画像** 10 切面 + 一致性看板（§5.5 / §8）。
+- [ ] 实施前补齐规划 §14 的 **12 项待核实**（2026-11-24 问卷已闭合其中 3 项：G3 只校验 v1、不建 `schema_v3.sql`、D-62-h/l 联动与右栏形态的用户接受度 ⇒ **仍开放 9 项**）：`shell_nav_rail_test.dart` 断言文本、`key_bar` 与 nav 是否共用同一份清单、`_buildBar` 横排末尾结构、`l10n_keys.dart` 登记表结构、`providers_recurring.dart` 语义、`recurring_task` 是否支持 yearly、`project_increment` 三列可否 NULL、sync 引擎是否存在 `syncedTables` 之外的第二处表清单、`TableNames` 常量真源与 drift 生成流程。
+
+### 62.4 问卷留痕（2026-11-24 · `ask_c872a3158ee510b38da84244` · 四题全答）
+
+| 题 | 选项 | 结果落点 |
+|---|---|---|
+| 下一批次先动哪个 | **`t63`** = Task 63 = §47 **W3–W8** 英文化 | §62.3 第 1 项定为下一批；与 R-D 串行约束一致（新增 getter 的批次一律排在 W3–W8 之后） |
+| D-62-j · G3 是否跟进 v3 | **`j1`** = 沿用现状，G3 只校验 v1 十四表 | 升格为已确认 |
+| D-62-k · 是否建 `docs\schema_v3.sql` | **`k1`** = 不建，v3 权威只落 drift 表定义 | 升格为已确认 |
+| D-62-h + D-62-l · 联动与右栏 | **`l1`** = `goal_link` 关联 + 右栏直接加第 5 面板 | 两项同时升格为已确认 |
+
+- **工号顺延（D-62-a）**：用户答完四题未提异议 ⇒ 「本规划轮 = §62 / Task 62，原 handoff §70.5 预留给 W3–W8 的 Task 62 顺延为 Task 63」**按生效记录**。注意这是「无异议」而非独立选项，属较弱留痕。
+- **本轮仍零产品代码改动**（R1：`apps\` / `packages\` 一字未动），故无 analyze / test / 门禁 / 真机数字可登记；§62.3 与 §47 的复选框**一律未勾**（无通过证据可勾）。
+- **开工闸门**：用户第 6 条原话「本轮仅制定模块规划，不具体执行实现」构成范围闸门；问卷第 1 题只确定**顺序**，不等于授权立即实施 ⇒ Task 63 须待用户一句话放行。
+
+---
+
+## 63. Task 63（2026-11-24）· 全应用英文化批次二：§47 **W3–W8** 六波 + 47.3 判据改造
+
+### 63.1 背景与目标
+
+**上一轮收口后的真实状态（控制器亲验，2026-11-24 15:30）**：
+
+1. **计划里唯一还开着的产品线 backlog 仍是 §47**。§47.6 复选框清单 4 项未勾：
+   `- [ ] 47.1 W3…W8 六波` / `- [ ] 47.3 chip_row_visual_test + scale200_overflow_test` /
+   `- [ ] 47.2 W9 全量 en 态 g1–g4 + 死 key 清理 + 基线定稿 + 删 @Deprecated`。
+   （`47.1 W2 日历与日期` 已由 Task 61 闭合。）
+2. **Task 61 已把外壳 + 日历做完**，英文态「外壳区零中文」成立，但**右轨 4 面板的空态 / 内容区**仍是中文：
+   `widgets\timeline\todo_rail_panel.dart:36/:38/:44 '暂无待办'`（W3 落点）、
+   `pages\today_page.dart:795/:798/:803 '所选日没有排程习惯'`（W4 落点）、
+   `pages\today_page.dart:920-925 _labels=['计划缺口','回填缺口','复盘','心态']` 与 `:933-937`（W4 落点）。
+   ⇒ **W3–W8 完成前不得宣称「英文界面零中文」**（AGENTS.md R5 证据纪律）。
+3. **l10n 底座现状（控制器实测）**：`l10n\parts\` 11 个 part 中 4 个仍是**空骨架** ——
+   `timeline.dart` / `today.dart` / `habit.dart` / `dialog.dart` 的 `String get` 计数 **= 0**；
+   已有 getter 的：`about.dart` 105 / `calendar.dart` 48 / `common.dart` 21 / `domain.dart` 36 /
+   `projects.dart` 126 / `settings.dart` 105 / `shell.dart` 69（**计数含 abstract + zh + en 三段**，实际条数 = 计数 ÷ 3）。
+4. **登记计数真源（控制器实测）**：`test\l10n_base_test.dart:27/:59` = **170 条 getter / 3 条列表型 / 6 条插值方法 / 合计 179 键**
+   （`byGetter.length == 170`；`l10nAccessors.length == 170`；`byListGetter.length == 3`；`byMethod.length == 6`；
+   `byMethod` 键集合 = `hoursCount` / `minutesCount` / `deferredDays` / `moodScoreLabel` / `calendarMonthLabel` / `calendarDateTitle`）。
+5. **★ 关键简化（控制器实测，本批次最重要的一条）**：`app_localizations.dart:35-45` 的 import 与
+   `:136-151`（zh）/ `:154-169`（en）的 mixin 列表**已包含全部 11 个 part**（含 4 个空骨架）
+   ⇒ **W3–W8 不需要新建 part 文件，也不需要改 `app_localizations.dart`**（除非新增 part 家族）。
+   ⇒ **共享写集缩到 3 个文件**：`l10n\l10n_keys.dart` / `test\l10n_harness.dart` / `test\l10n_base_test.dart`。
+6. **R-12 已闭合（控制器本轮实测）**：`tools\**` 全量 `*.ps1` **按中文文本 grep = 零命中** ⇒ en 态不会误报门禁。
+7. **§47.2 波次表（计划 `:8278-8290`）**：W3 时间线 10 文件 / 60 条 / 待迁 56；
+   W4 今天页与复盘 4 文件 / 58 条 / 待迁 58；W5 心态·习惯·优先级 8 文件 / 76 条 / 待迁 75；
+   W6 录入对话框 4 文件 / 85 条 / 待迁 85；W7 结果与待办池 3 文件 / 53 条 / 待迁 53；
+   W8 关于页与探针 3 文件 / 23 条 / 待迁 22。**合计待迁 349 条**。
+
+**本轮目标**：
+
+- **① W3–W8 六波**（§47.2 波次表口径）全部迁入 l10n：zh 取值**逐字不变** + en 新译文 ⇒ **右轨 4 面板空态 / 内容区 + 全应用剩余 UI 文案零中文**。
+- **② 47.3 测试改造**：`chip_row_visual_test` 定位方式重写 + `scale200_overflow_test` 英文变长溢出回归。
+- **③ 收口口径**：英文态真机帧 + 门禁全绿 + 台账闭合。
+
+### 63.2 控制器口径裁决
+
+- **① 派工真源 = 派工书**：`.superpowers\sdd\2026-11-07-b1-flutter-implementation\waves\task63-batch2.md`
+  （含各波 getter 的**逐字契约表**、写集表、每 worker 的验收条件）；计划正文不复制契约表。
+- **② zh 文案逐字不变**是本批次能并行开工的前提（既有 zh 测试按字面量断言 ⇒ 逐字不变 ⇒ 既有测试天然不破，仍须实测）。
+- **③ 禁改区**：`packages\core_domain\lib\src\result_note.dart`（**控制器 2026-11-24 实测修正路径** —— Task 61 派工书写的 `apps\desktop\lib\src\widgets\result_note.dart` **在当前树里不存在**；
+  真源在 `packages\core_domain`，`:59` 的 `_segment = RegExp(r'^\[(结论|原因|下一步)\](.+)$')` 把中文标签写成**存储格式前缀**（落库即 `[结论]`）
+  ⇒ 翻它 = **静默破坏历史数据解析**。`packages\**` 整片本就是禁改区（门禁 `:227` 一律算越界））；
+  `tools\**`；台账文件（除控制器）。
+- **④ 六波按 part 归属切分**：W3→`parts\timeline.dart`、W4→`parts\today.dart`、
+  W5→`parts\habit.dart`（+ 心态/优先级归属由侦察结论定）、W6→`parts\dialog.dart`、
+  W7→`parts\result.dart`（**新建**，结果与待办池）、W8→`parts\about.dart`（**追加**，关于页与探针）。
+- **⑤ 登记集中制**：`l10n_keys.dart` / `l10n_harness.dart` / `l10n_base_test.dart` 是**共享写集** ⇒ 各波 worker **只交 part + UI + 用例 + getter 对照表**，
+  登记由**最后一轮单独 worker** 统一做（照 Task 61 的 worker D 模式），避免并发抢写与计数错乱。
+- **⑥ 键名规则**：kebab-case + getter 名 = 键名 CamelCase + 语义前缀（`timeline*` / `today*` / `habit*` / `dialog*` / `result*` / `priority*` / `mood*`），
+  **不得复用既有名**（既有 170 条见 `l10n_keys.dart`）。
+- **⑦ locale-sensitive 格式**（年/月/星期、日期拼接、时间区间）**必须走既有插值机制**
+  （`byMethod` / `byListGetter`），**禁**在 widget 里手写 `'2026年11月'` 这类含语言结构的字符串。
+- **⑧ 门禁一律控制器亲跑**：worker **禁跑** analyze / test / build（并发假红）、**禁 git 写操作**。
+- **⑨ §47 的复选框本轮不打勾**：W3–W8 六波 + 47.3 + W9 三项全做完才可能闭合；W9（en 态全量 g1–g4 + 死 key 清理 + 基线定稿 + 删 `@Deprecated`）
+  **本轮明确不做**（另立 Task 64 之后的独立批次），故 §47 的 4 项复选框**本轮保持未勾**，台账如实登记。
+- **⑩ R-D 串行约束**：Task 64/65（新增 l10n getter 与 `nav_rail` 改动）**不得与本批次并行** ⇒ 本批次期间不派 64/65。
+
+### 63.3 写集表（Task 63 独占路径 · worker 只能写自己那一行）
+
+> 完整表见派工书 §2；此处只登记控制器侧门禁白名单与共享写集归属。
+
+| # | 路径 | 归属 | 允许的改动 |
+|---|---|---|---|
+| S1 | `apps\desktop\lib\src\l10n\l10n_keys.dart` | **登记轮 worker（唯一）** | 各波 getter 的 key 常量 + `byGetter` / `byListGetter` / `byMethod` 登记 |
+| S2 | `apps\desktop\test\l10n_harness.dart` | **登记轮 worker（唯一）** | `l10nAccessors` / `l10nListAccessors` 登记 |
+| S3 | `apps\desktop\test\l10n_base_test.dart` | **登记轮 worker（唯一）** | 计数断言（170 / 3 / 6 / 179 → 新数） |
+| C1 | `reports\task51-gate.ps1` | 控制器 | `$patterns` 追加 Task 63 白名单（**已加 6 条**：3 个 part + `task63_*.dart` + `reports/task63-*` + 注释行） |
+| C2 | `reports\task63-recon-w3w8.md` | worker（侦察） | W3–W8 落点清单与 getter 对照表 |
+| C3 | `reports\task63-ledger\*` | 控制器 | 台账片段 |
+| C4 | 计划本节 / `handoff.md` / `progress.md` / `docs\B1_验收记录.md` / `AGENTS.md` | 控制器 | 台账同步 + R2 基线 + §7 快照 |
+
+**门禁白名单现状（控制器实测，2026-11-24）**：`reports\task51-gate.ps1` = **14748 B / CRLF 327 / LF-only 0 / 无 BOM / 非 ASCII 字节 0**；
+新增 6 条位于 `:222-227`（`parts\timeline.dart` / `parts\habit.dart` / `parts\dialog.dart` / `task63_*.dart` / `reports\task63-*` + 注释）。
+`parts\today.dart`（`:184`）、`parts\about.dart`（`:218`）、`l10n_keys.dart`（`:177`）、`l10n_harness.dart`（`:190`）、
+`l10n_base_test.dart`（`:189`）**已在旧白名单**。
+
+### 63.4 验收判据（复选框清单 · 只有控制器能打勾，等长替换 `- [ ] ` → `- [x] `）
+
+- [x] **63.4a W3–W8 六波静态零中文**：W3–W8 覆盖到的文件里**不再有硬编码中文 UI 字面量**（按内容核对，不按行号；协议常量 / 调试异常 / 存储格式正则除外）。
+- [x] **63.4b zh 逐字不变**：迁入 l10n 的每一条 zh 取值与改动前**逐字相同**；既有 zh 测试零回退。
+- [x] **63.4c 双语一致**：en 态六波覆盖范围**零中文**；新增用例 zh/en 双态各断各自文案 + **英文态中文阴性对照** `findsNothing`（§47.3 铁律 1·2）。
+- [x] **63.4d 登记自洽**：`byGetter.length == l10nAccessors.length == 170 + N_getter`；
+      `byListGetter.length == 3 + N_list`；`byMethod.length == 6 + N_method`；合计键数 = 三者之和，**全部改到位**（含测试标题里的数字）。
+- [x] **63.4e 47.3 测试改造**：`chip_row_visual_test` 定位方式重写完毕；`scale200_overflow_test` 英文变长溢出回归**有判别性断言**。
+- [x] **63.4f 门禁**：四包 `analyze` 逐字 `No issues found!`（**逐包跑**）；desktop 全量用例数 = **本轮实测新数**（精确等值，零回退）；
+      core_data 204 / core_db 71 / core_domain 62；`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`。
+- [x] **63.4g 英文态真机帧**：沙箱第二实例（`settings.locale='en'`）取帧 ⇒ 六波覆盖区**零中文**；
+      **锁屏 / 桌面守卫不过 ⇒ 如实登记「未判定」，不判 PASS/FAIL**（`reports\task60-realdevice-recipe.md`）。
+- [x] **63.4h 独立复验 + 台账落库**：verifier 会话 **≠ 实现者**、只读，总判 `PASS`（未判定项如实登记）；
+      计划 §63 等长打勾 + `AGENTS.md` R2 基线 / §7 快照 + `handoff.md` §72 + `progress.md` Task 63 段 + `docs\B1_验收记录.md`。
+- [ ] **63.4i 收口提交与推送**：commit + push ⇒ `AHEAD=0` / `BEHIND=0`（**推送受阻时按 §61.4i 的「两条路都试」口径**）。
+- [x] **63.4j 宣称口径**：**W9 未做 ⇒ 不得宣称「英文界面零中文」**；只能声明「§47 W3–W8 覆盖范围零中文」。
