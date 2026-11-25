@@ -1854,6 +1854,44 @@ abstract final class L10nKeys {
   /// 蓝图页：确认写入待办的动作。
   static const String goalBlueprintConfirmTodos = 'goal-blueprint-confirm-todos';
 
+  /// 蓝图格：新建目标入口（B8-W1）。
+  static const String goalBlueprintAddGoal = 'goal-blueprint-add-goal';
+
+  /// 蓝图卡片：编辑入口。
+  static const String goalBlueprintEditGoal = 'goal-blueprint-edit-goal';
+
+  /// 蓝图卡片：删除入口 + 二次确认框标题。
+  static const String goalBlueprintDeleteGoal = 'goal-blueprint-delete-goal';
+
+  /// 蓝图：目标保存成功提示。
+  static const String goalBlueprintGoalSaved = 'goal-blueprint-goal-saved';
+
+  /// 蓝图：目标删除成功提示。
+  static const String goalBlueprintGoalDeleted = 'goal-blueprint-goal-deleted';
+
+  /// 蓝图表单：领域。
+  static const String goalBlueprintFieldDomain = 'goal-blueprint-field-domain';
+
+  /// 蓝图表单：档位。
+  static const String goalBlueprintFieldHorizon = 'goal-blueprint-field-horizon';
+
+  /// 蓝图表单：备注。
+  static const String goalBlueprintFieldNote = 'goal-blueprint-field-note';
+
+  /// 蓝图表单：关键词。
+  static const String goalBlueprintFieldKeywords =
+      'goal-blueprint-field-keywords';
+
+  /// 蓝图表单：期限（`YYYY-MM-DD`）。
+  static const String goalBlueprintFieldDue = 'goal-blueprint-field-due';
+
+  /// 蓝图表单：未设置（领域置空）。
+  static const String goalBlueprintFieldUnset = 'goal-blueprint-field-unset';
+
+  /// 蓝图表单：期限格式非法提示。
+  static const String goalBlueprintFieldDueInvalid =
+      'goal-blueprint-field-due-invalid';
+
   /// 蓝图页平衡轮区块标题（纯派生，不落库）。
   static const String goalBlueprintBalanceSection =
       'goal-blueprint-balance-section';
@@ -2056,6 +2094,19 @@ abstract final class L10nKeys {
     'goalBlueprintBalanceSection': goalBlueprintBalanceSection,
     'goalBlueprintBalanceEmpty': goalBlueprintBalanceEmpty,
     'goalBlueprintBalanceHabit': goalBlueprintBalanceHabit,
+    // 蓝图页目标编辑 12 条（B8-W1）
+    'goalBlueprintAddGoal': goalBlueprintAddGoal,
+    'goalBlueprintEditGoal': goalBlueprintEditGoal,
+    'goalBlueprintDeleteGoal': goalBlueprintDeleteGoal,
+    'goalBlueprintGoalSaved': goalBlueprintGoalSaved,
+    'goalBlueprintGoalDeleted': goalBlueprintGoalDeleted,
+    'goalBlueprintFieldDomain': goalBlueprintFieldDomain,
+    'goalBlueprintFieldHorizon': goalBlueprintFieldHorizon,
+    'goalBlueprintFieldNote': goalBlueprintFieldNote,
+    'goalBlueprintFieldKeywords': goalBlueprintFieldKeywords,
+    'goalBlueprintFieldDue': goalBlueprintFieldDue,
+    'goalBlueprintFieldUnset': goalBlueprintFieldUnset,
+    'goalBlueprintFieldDueInvalid': goalBlueprintFieldDueInvalid,
     // 应用外壳 25 条（Task 61 的 23 条 + Task 64 的 2 条：导航「目标」/ 快捷键「切到目标」）
     'shellNavToday': shellNavToday,
     'shellNavInbox': shellNavInbox,

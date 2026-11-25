@@ -10,6 +10,9 @@
 //     也没有任何 `tracks` 执行实体时，角标显示「未落位」；可一键「拆成 3 条待办」
 //     （走 `TodoRepository.create`）。
 //  4. **空格合法**：矩阵不校验、不强制、不给红字（计划 §5.4 末句）。
+//  5. **编辑入口（B8-W1）**：`onAddGoal` / `onEditGoal` / `onDeleteGoal` 三个回调
+//     全部**可选**（默认 null）。不传时本矩阵的渲染与 Task 66 时期**逐字一致**
+//     （AGENTS §5 坑 48：新增参数不得改变既有调用点的行为）。
 //
 // 本模块**不使用 Material 图标**（`Icons.`），新增 0 处。
 // =============================================================================
@@ -46,6 +49,9 @@ class GoalBlueprintMatrix extends StatefulWidget {
     required this.serves,
     required this.tracksCount,
     required this.onSplitTodos,
+    this.onAddGoal,
+    this.onEditGoal,
+    this.onDeleteGoal,
     super.key,
   });
 
@@ -63,6 +69,21 @@ class GoalBlueprintMatrix extends StatefulWidget {
 
   /// 「拆成 3 条待办」回调。
   final void Function(GoalRow goal) onSplitTodos;
+
+  /// 空格子里的「+ 新建目标」回调（领域 + 所在档位由格子带入）。
+  ///
+  /// null = **不渲染**这个入口（坑 48：默认行为与 Task 66 逐字一致）。
+  final void Function(String domainKey, GoalHorizon horizon)? onAddGoal;
+
+  /// 目标卡片上的「编辑」回调。
+  ///
+  /// null = 不渲染（同上）。
+  final void Function(GoalRow goal)? onEditGoal;
+
+  /// 目标卡片上的「删除」回调（调用方负责二次确认）。
+  ///
+  /// null = 不渲染（同上）。
+  final void Function(GoalRow goal)? onDeleteGoal;
 
   /// 档位顺序（终极 → 近期）。
   static List<GoalHorizon> get horizons => GoalHorizon.values.toList()
@@ -140,10 +161,12 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                 Padding(
                   padding: const EdgeInsets.all(4),
                   child: _cell(
-                    row.cells[horizon] ?? const <GoalRow>[],
-                    bodyStyle,
-                    metaStyle,
-                    warnStyle,
+                    goals: row.cells[horizon] ?? const <GoalRow>[],
+                    domainKey: row.domainKey,
+                    horizon: horizon,
+                    bodyStyle: bodyStyle,
+                    metaStyle: metaStyle,
+                    warnStyle: warnStyle,
                   ),
                 ),
             ],
@@ -161,18 +184,51 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     GoalHorizon.near => widget.t.goalBlueprintHorizonNear,
   };
 
+  /// 档位 → key 片段（与枚举名一致：`career-ultimate` / `learning-short`）。
+  String _horizonKey(GoalHorizon horizon) => switch (horizon) {
+    GoalHorizon.ultimate => 'ultimate',
+    GoalHorizon.long => 'long',
+    GoalHorizon.mid => 'mid',
+    GoalHorizon.short => 'short',
+    GoalHorizon.near => 'near',
+  };
+
   /// 一个格子：列出该格的目标（空格子只留占位，**合法**）。
-  Widget _cell(
-    List<GoalRow> goals,
-    TextStyle? bodyStyle,
-    TextStyle? metaStyle,
-    TextStyle? warnStyle,
-  ) {
+  Widget _cell({
+    required List<GoalRow> goals,
+    required String domainKey,
+    required GoalHorizon horizon,
+    required TextStyle? bodyStyle,
+    required TextStyle? metaStyle,
+    required TextStyle? warnStyle,
+  }) {
     if (goals.isEmpty) {
-      return Text(
+      final Text empty = Text(
         widget.t.goalBlueprintEmptyCell,
         key: const ValueKey<String>('goal-blueprint-empty-cell'),
         style: metaStyle,
+      );
+      if (widget.onAddGoal == null) {
+        // 没传回调 ⇒ 与 Task 66 时期**逐字一致**（坑 48）。
+        return empty;
+      }
+      // 占位文字照旧渲染（空格合法），只在它下面补一个「+ 新建目标」入口。
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          empty,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              key: ValueKey<String>(
+                'goal-blueprint-add-$domainKey-${_horizonKey(horizon)}',
+              ),
+              onPressed: () => widget.onAddGoal!(domainKey, horizon),
+              child: Text(widget.t.goalBlueprintAddGoal),
+            ),
+          ),
+        ],
       );
     }
     return Column(
@@ -214,6 +270,27 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               child: Text(widget.t.goalBlueprintSplitTodos),
             ),
           ),
+          // 编辑/删除只管**蓝图目标**：近期列里混进来的年目标属于年页，
+          // 在 07 页改它的档位会把 `horizon` 写成一个不该有的值。
+          if (goal.kind == GoalKind.blueprint &&
+              (widget.onEditGoal != null || widget.onDeleteGoal != null))
+            Wrap(
+              spacing: 4,
+              children: <Widget>[
+                if (widget.onEditGoal != null)
+                  TextButton(
+                    key: ValueKey<String>('goal-blueprint-edit-${goal.id}'),
+                    onPressed: () => widget.onEditGoal!(goal),
+                    child: Text(widget.t.goalBlueprintEditGoal),
+                  ),
+                if (widget.onDeleteGoal != null)
+                  TextButton(
+                    key: ValueKey<String>('goal-blueprint-delete-${goal.id}'),
+                    onPressed: () => widget.onDeleteGoal!(goal),
+                    child: Text(widget.t.goalBlueprintDeleteGoal),
+                  ),
+              ],
+            ),
         ],
       ],
     );

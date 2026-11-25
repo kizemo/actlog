@@ -73,6 +73,14 @@
 
 **执行顺序不可乱**：W3 依赖 W1/W2 提供替代编辑面 —— 先撤入口后补能力会让产品出现「哪都建不了目标」的空窗。
 
+**B8-W1 写集授权（控制器裁决 2026-11-25，依 R1「必须改而计划表没写的文件，先由控制器显式追加一行并留档」）**：W1 复核坐实「格内 + 新建目标」与「卡片编辑 / 删除」在只改上表 B8-W1 那一行的前提下**物理上不可实现** —— 格子与卡片 100% 由 `widgets\goal_blueprint_matrix.dart` 渲染（`_cell:165-220` 是唯一渲染入口），而 `GoalBlueprintMatrix` 的构造入参只有 `t / rows / serves / tracksCount / onSplitTodos`（`:43-50`），页面侧无任何注入点。现追加 4 个文件进 B8-W1 写集：`apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart`、`apps\desktop\lib\src\l10n\l10n_keys.dart`、`apps\desktop\test\l10n_base_test.dart`、`apps\desktop\test\l10n_harness.dart`（每条新词条必须联动这三者，`l10n_base_test.dart:27-29` 硬断 `L10nKeys.byGetter.length == 511` 且要求访问器表与键表集合全等）。旁证：门禁 `reports\task51-gate.ps1` 的白名单已含 `apps/desktop/lib/src/widgets/goal*`、`l10n_keys.dart`、`l10n_base_test.dart`、`l10n_harness.dart` ⇒ 不会报 `OUT_OF_SET`，缺的只是本表这一行；`task73_*` 测试 pattern 已由控制器追加。`GoalBlueprintMatrix` 全仓唯一构造点 = `pages\goals_blueprint_page.dart:247`（`:152` 只用静态 `horizons`）⇒ 给它加可选回调零外溢，不触碰 W2/W3 写集。
+
+**共享 goal 编辑表单落点（控制器裁决）**：W1 **私有**实现在 `pages\goals_blueprint_page.dart` 内，**不**新建 `widgets\goals\`；W2 抽取为共享组件时再建该目录（W2 写集已含 `widgets\goals\`）。理由：W1 建目录会与 W2 写集重叠、制造并发写冲突；D-8-e「由所在格子预填 `domain`+`horizon`」口径不变。
+
+**W1 台账订正的三处事实（以盘上源码为准，派工书原文作废）**：① 卡片 key 实为 `goal-blueprint-cell-${goal.id}`（`goal_blueprint_matrix.dart:184`），不是 `goal-blueprint-cell-<domain>-<horizon>`；② 空态 key 实为 `goal-blueprint-empty-cell`（`:172-176`），且空格子只渲染一个 `Text`、无按钮位；③ `createGoal` 返回 `Future<String>`（新 id）而非 `Future<Goal>`，`updateGoal` 是位置参数 `goalId` + `Set<GoalField> clear`（`goal_store.dart:403 / :498 / :616`）。
+
+**门禁期望测试数**：`-ExpectDesktopTests` 以 907 + W1 实增用例数为准（W1 交付时报告实数；台账里出现的 911 未经实测，不得直接采信）。
+
 ## 5. 验收判据（每棒通用）
 
 1. 逐包 `analyze` 逐字 `No issues found!`；desktop 测试数**精确等值**当前基线 + 本棒新增数（跑 `reports\task51-gate.ps1` 必须显式 `-ExpectDesktopTests`，§5 坑 86）。

@@ -307,6 +307,42 @@ abstract class GoalsL10n {
 
   /// 蓝图页平衡轮：习惯打卡标签。
   String get goalBlueprintBalanceHabit;
+
+  /// 蓝图格：新建目标入口（B8-W1）。
+  String get goalBlueprintAddGoal;
+
+  /// 蓝图卡片：编辑入口。
+  String get goalBlueprintEditGoal;
+
+  /// 蓝图卡片：删除入口 + 二次确认框标题。
+  String get goalBlueprintDeleteGoal;
+
+  /// 蓝图：目标保存成功提示。
+  String get goalBlueprintGoalSaved;
+
+  /// 蓝图：目标删除成功提示。
+  String get goalBlueprintGoalDeleted;
+
+  /// 蓝图表单：领域。
+  String get goalBlueprintFieldDomain;
+
+  /// 蓝图表单：档位。
+  String get goalBlueprintFieldHorizon;
+
+  /// 蓝图表单：备注。
+  String get goalBlueprintFieldNote;
+
+  /// 蓝图表单：关键词。
+  String get goalBlueprintFieldKeywords;
+
+  /// 蓝图表单：期限（`YYYY-MM-DD`）。
+  String get goalBlueprintFieldDue;
+
+  /// 蓝图表单：未设置（领域置空）。
+  String get goalBlueprintFieldUnset;
+
+  /// 蓝图表单：期限格式非法提示（`YYYY-MM-DD`）。
+  String get goalBlueprintFieldDueInvalid;
 }
 
 /// 目标页文案：简体中文。
@@ -577,6 +613,42 @@ mixin GoalsZhL10n implements GoalsL10n {
 
   @override
   String get goalBlueprintBalanceHabit => '习惯打卡';
+
+  @override
+  String get goalBlueprintAddGoal => '新建目标';
+
+  @override
+  String get goalBlueprintEditGoal => '编辑目标';
+
+  @override
+  String get goalBlueprintDeleteGoal => '删除目标';
+
+  @override
+  String get goalBlueprintGoalSaved => '目标已保存';
+
+  @override
+  String get goalBlueprintGoalDeleted => '目标已删除';
+
+  @override
+  String get goalBlueprintFieldDomain => '领域';
+
+  @override
+  String get goalBlueprintFieldHorizon => '档位';
+
+  @override
+  String get goalBlueprintFieldNote => '备注';
+
+  @override
+  String get goalBlueprintFieldKeywords => '关键词';
+
+  @override
+  String get goalBlueprintFieldDue => '期限';
+
+  @override
+  String get goalBlueprintFieldUnset => '未设置';
+
+  @override
+  String get goalBlueprintFieldDueInvalid => '日期格式应为 YYYY-MM-DD';
 }
 
 /// 目标页文案：English。
@@ -854,4 +926,40 @@ mixin GoalsEnL10n implements GoalsL10n {
 
   @override
   String get goalBlueprintBalanceHabit => 'Habit check-ins';
+
+  @override
+  String get goalBlueprintAddGoal => 'New goal';
+
+  @override
+  String get goalBlueprintEditGoal => 'Edit goal';
+
+  @override
+  String get goalBlueprintDeleteGoal => 'Delete goal';
+
+  @override
+  String get goalBlueprintGoalSaved => 'Goal saved';
+
+  @override
+  String get goalBlueprintGoalDeleted => 'Goal deleted';
+
+  @override
+  String get goalBlueprintFieldDomain => 'Domain';
+
+  @override
+  String get goalBlueprintFieldHorizon => 'Horizon';
+
+  @override
+  String get goalBlueprintFieldNote => 'Note';
+
+  @override
+  String get goalBlueprintFieldKeywords => 'Keywords';
+
+  @override
+  String get goalBlueprintFieldDue => 'Due date';
+
+  @override
+  String get goalBlueprintFieldUnset => 'Not set';
+
+  @override
+  String get goalBlueprintFieldDueInvalid => 'Use the YYYY-MM-DD format';
 }
