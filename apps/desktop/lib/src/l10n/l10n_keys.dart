@@ -1618,8 +1618,7 @@ abstract final class L10nKeys {
   /// 上游面板：空态。
   static const String goalsUpstreamEmpty = 'goal-upstream-empty';
 
-  /// 上游面板：添加到计划的动作位。
-  static const String goalsUpstreamAddMenu = 'goal-upstream-add-menu';
+  
 
   /// 周视图区块标题。
   static const String goalsWeekSection = 'goal-week-section';
@@ -2014,7 +2013,6 @@ abstract final class L10nKeys {
     'goalsUpstreamWeekTitle': goalsUpstreamWeekTitle,
     'goalsUpstreamAddHint': goalsUpstreamAddHint,
     'goalsUpstreamEmpty': goalsUpstreamEmpty,
-    'goalsUpstreamAddMenu': goalsUpstreamAddMenu,
     'goalsWeekSection': goalsWeekSection,
     'goalsWeekEmpty': goalsWeekEmpty,
     'goalsColumnOrder': goalsColumnOrder,

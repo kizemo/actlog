@@ -217,7 +217,7 @@ void main() {
     expect(find.text(en.goalsUpstreamEmpty), findsOneWidget);
   });
 
-  test('六个上游文案 getter 中英都非空（本棒只消费，不许自补文案）', () {
+  test('五个上游文案 getter 中英都非空（本棒只消费，不许自补文案）', () {
     for (final AppLocalizations t in <AppLocalizations>[
       AppLocalizations.zh,
       AppLocalizations.en,
@@ -227,7 +227,6 @@ void main() {
       expect(t.goalsUpstreamWeekTitle, isNotEmpty);
       expect(t.goalsUpstreamAddHint, isNotEmpty);
       expect(t.goalsUpstreamEmpty, isNotEmpty);
-      expect(t.goalsUpstreamAddMenu, isNotEmpty);
     }
   });
 }

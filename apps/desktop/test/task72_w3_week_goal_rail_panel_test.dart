@@ -1,17 +1,20 @@
 // apps/desktop/test/task72_w3_week_goal_rail_panel_test.dart
 //
-// Task 72 / B7 需求 4 第一条通道：今日右栏第 5 面板「未完成周目标」。
+// Task 72 / B7 需求 4 第一条通道 → B8-W3 撤回写入：今日右栏第 5 面板
+// 「未完成周目标」已退化为**只读展示**（用户裁决「保留只读展示」，
+// 见 `docs/b8-scope-decision.md` U1）。点击 / 拖拽两条写入口全部撤掉。
 //
 // 盯四件事：
-//   1. 空态不造假：没有未完成周目标时只出提示 + 空态，不出任何可拖条目；
-//   2. 只列**未完成周**目标：已完成（`status == done`）与非周粒度（`daily`）都不出现；
-//   3. 拖拽 payload 逐字 `goal://<goalId>`（日格 `DragTarget` 靠它分流）；
-//   4. 点击即加入当天计划，且**同一天重复点只落一条**（幂等）；
-//      落位接在当日最后一条计划之后的下一个 30 分钟整点。
+//   1. 空态不造假：没有未完成周目标时只出空态文案，且旧的
+//      「点击或拖拽添加到当前周期」提示已随写入口一起撤掉；
+//   2. 只列**未完成周**目标：已完成（`status == done`）与非周粒度（`monthly`）都不出现，
+//      且条目不再是拖拽源；
+//   3. 点击条目**零写入**：不建计划行、不建 `goal_link`、不弹任何确认框；
+//   4. 只读结构守卫：面板里既没有 `Draggable`（拖拽源）也没有 `InkWell`（点击），
+//      条目仍是「最多两行 + 省略号」的纯文本。
 //
-// 全部走真库 + 真 provider（不 mock）：幂等判据是「该目标的活 `goal_link`
-// （`target_type='plan_item'`）∩ 该日未被软删的 `plan_item` id」非空，
-// 只有真仓储才能验证它。
+// 全部走真库 + 真 provider（不 mock）：第 3 条要证明「读库之后什么都没写」，
+// 只有真仓储才能给出这个证据。
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
 import 'package:core_domain/core_domain.dart';
@@ -22,13 +25,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/data/goal_store.dart';
 import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/providers.dart';
-import 'package:actlog/src/widgets/timeline/slot_state.dart';
-import 'package:actlog/src/widgets/timeline/timeline_store.dart';
 import 'package:actlog/src/widgets/week_goal_rail_panel.dart';
 
 import 'l10n_harness.dart';
 
-/// 固定「今天」与选中日：点击通道读 `selectedDateProvider` 落计划。
+/// 固定「今天」与选中日：只读面板不该再读它们写库，但壳依赖仍在。
 const String _today = '2026-11-09';
 const String _selected = '2026-11-09';
 
@@ -106,7 +107,7 @@ Future<void> _flushTimers(WidgetTester tester) async {
 void main() {
   final AppLocalizations zh = AppLocalizations.zh;
 
-  testWidgets('B7/W3：没有未完成周目标时只有提示 + 空态，没有可拖条目', (
+  testWidgets('B8/W3：没有未完成周目标时只有空态，没有添加提示也没有可拖条目', (
     WidgetTester tester,
   ) async {
     _useTallSurface(tester);
@@ -114,16 +115,17 @@ void main() {
     await h.mount(tester);
     await _settle(tester);
 
-    expect(find.byKey(_kHint), findsOneWidget);
-    expect(find.text(zh.goalsUpstreamAddHint), findsOneWidget);
     expect(find.byKey(_kEmpty), findsOneWidget);
     expect(find.text(zh.goalsUpstreamEmpty), findsOneWidget);
+    // 写入口撤掉后，这条提示（「点击或拖拽添加到当前周期」）不许再留在今日页。
+    expect(find.byKey(_kHint), findsNothing);
+    expect(find.text(zh.goalsUpstreamAddHint), findsNothing);
     expect(find.byType(Draggable<String>), findsNothing);
 
     await _flushTimers(tester);
   });
 
-  testWidgets('B7/W3：只列未完成**周**目标，已完成与非周粒度都不出现', (
+  testWidgets('B8/W3：只列未完成**周**目标，且条目不再是拖拽源', (
     WidgetTester tester,
   ) async {
     _useTallSurface(tester);
@@ -143,23 +145,17 @@ void main() {
     await _settle(tester);
 
     expect(find.byKey(_kEmpty), findsNothing);
+    expect(find.byKey(ValueKey<String>('week-goal-$openId')), findsOneWidget);
     expect(find.text('把周报告写完'), findsOneWidget);
     expect(find.text('上周已经收尾的事'), findsNothing);
-    expect(find.text('日目标不该出现在这里'), findsNothing);
-
-    // 第二条通道的前提：拖拽 payload 逐字 `goal://<goalId>`。
-    final Draggable<String> draggable = tester.widget<Draggable<String>>(
-      find.ancestor(
-        of: find.byKey(ValueKey<String>('week-goal-$openId')),
-        matching: find.byType(Draggable<String>),
-      ),
-    );
-    expect(draggable.data, 'goal://$openId');
+    expect(find.text('月目标不该出现在这里'), findsNothing);
+    // B8/W3：条目只剩展示，`goal://<id>` 这个 payload 不再由今日页产出。
+    expect(find.byType(Draggable<String>), findsNothing);
 
     await _flushTimers(tester);
   });
 
-  testWidgets('B7/W3：点击即加入当天计划，再点一次只落一条（幂等）', (
+  testWidgets('B8/W3：点击条目零写入——不建计划行、不建目标关联、不弹确认框', (
     WidgetTester tester,
   ) async {
     _useTallSurface(tester);
@@ -173,66 +169,71 @@ void main() {
     await h.mount(tester);
     await _settle(tester);
 
-    final ValueKey<String> tile = ValueKey<String>('week-goal-$goalId');
-    await tester.tap(find.byKey(tile));
+    final Finder tile = find.byKey(ValueKey<String>('week-goal-$goalId'));
+    expect(tile, findsOneWidget);
+    // 用 `tapAt` 而不是 `tap`：要的就是「真指针按在条目位置上」也不该发生任何事，
+    // 而不是断言某个手势回调存在。
+    await tester.tapAt(tester.getCenter(tile));
     await _settle(tester);
 
-    final List<PlanItemData> rows = await h.repos.planItem.listByDate(_selected);
-    expect(rows, hasLength(1), reason: '点一次只落一条计划行');
-    final PlanItemData row = rows.single;
-    expect(row.title, '复盘 B7');
-    expect(row.detail, '把三条通道都跑一遍');
-    expect(row.sourceType, 'manual');
-    // 计划行恒 `pending`：从目标加进来的是「还没做的安排」，不是回填。
-    expect(row.status, 'pending');
-    expect(row.plannedStart, kGridStartHour * 60);
-    expect(row.plannedEnd, kGridStartHour * 60 + 30);
-
-    final List<GoalLinkRow> links = await h.goals.listLinks(goalId);
-    final List<GoalLinkRow> planLinks = links
-        .where((GoalLinkRow l) => l.targetType == GoalTargetType.planItem)
-        .toList(growable: false);
-    expect(planLinks, hasLength(1), reason: '目标 ↔ 计划项走 goal_link 一条');
-    expect(planLinks.single.targetId, row.id);
-
-    // 第二次点击：同一天已有活着的关联 ⇒ 一行都不写。
-    await tester.tap(find.byKey(tile));
-    await _settle(tester);
-    expect(await h.repos.planItem.listByDate(_selected), hasLength(1));
-    expect(await h.goals.listLinks(goalId), hasLength(1));
+    expect(
+      await h.repos.planItem.listByDate(_selected),
+      isEmpty,
+      reason: '只读面板点一下不许落计划行',
+    );
+    expect(
+      await h.goals.listLinks(goalId),
+      isEmpty,
+      reason: '也不许写 goal_link（点一次一条都没有）',
+    );
+    expect(find.byType(AlertDialog), findsNothing, reason: '点击不再弹任何浮层');
+    expect(
+      find.byType(Draggable<String>),
+      findsNothing,
+      reason: '点击也不该顺手把条目变成拖拽源',
+    );
 
     await _flushTimers(tester);
   });
 
-  testWidgets('B7/W3：落位接在当日最后一条计划之后的下一个 30 分钟整点', (
+  testWidgets('B8/W3：只读结构守卫——面板内无可点 / 可拖控件，条目是两行省略纯文本', (
     WidgetTester tester,
   ) async {
     _useTallSurface(tester);
     final _Harness h = _Harness.create();
-    // 09:00–10:15 已经有一条安排 ⇒ 新条目应落在 10:30。
-    await TimelineStore(h.repos).createManual(
-      date: _selected,
-      title: '既有安排',
-      startMinute: 9 * 60,
-      endMinute: 10 * 60 + 15,
-    );
     final String goalId = await h.goals.createGoal(
       kind: GoalKind.weekly,
-      title: '接着往下排',
+      title: '只读展示这条',
     );
+    await h.goals.createGoal(kind: GoalKind.weekly, title: '第二条也要列出来');
 
     await h.mount(tester);
     await _settle(tester);
-    await tester.tap(find.byKey(ValueKey<String>('week-goal-$goalId')));
-    await _settle(tester);
 
-    final List<PlanItemData> rows = await h.repos.planItem.listByDate(_selected);
-    expect(rows, hasLength(2));
-    final PlanItemData added = rows.firstWhere(
-      (PlanItemData r) => r.title == '接着往下排',
+    final Finder panel = find.byType(WeekGoalRailPanel);
+    expect(
+      find.descendant(of: panel, matching: find.byType(InkWell)),
+      findsNothing,
+      reason: '点击写入口已撤：面板里不许再有 InkWell',
     );
-    expect(added.plannedStart, 10 * 60 + 30);
-    expect(added.plannedEnd, 11 * 60);
+    expect(
+      find.descendant(of: panel, matching: find.byType(Draggable<String>)),
+      findsNothing,
+      reason: '拖拽写入口已撤：面板里不许再有 Draggable',
+    );
+    // 两条都要列出来（不是只剩一条），说明只读列表本身还完整。
+    expect(find.byKey(ValueKey<String>('week-goal-$goalId')), findsOneWidget);
+    expect(find.text('第二条也要列出来'), findsOneWidget);
+
+    final Text title = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(ValueKey<String>('week-goal-$goalId')),
+        matching: find.byType(Text),
+      ),
+    );
+    expect(title.data, '只读展示这条');
+    expect(title.maxLines, 2);
+    expect(title.overflow, TextOverflow.ellipsis);
 
     await _flushTimers(tester);
   });

@@ -122,7 +122,7 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.goalsUpstreamWeekTitle,
   L10nKeys.goalsUpstreamAddHint: (AppLocalizations t) => t.goalsUpstreamAddHint,
   L10nKeys.goalsUpstreamEmpty: (AppLocalizations t) => t.goalsUpstreamEmpty,
-  L10nKeys.goalsUpstreamAddMenu: (AppLocalizations t) => t.goalsUpstreamAddMenu,
+  
   L10nKeys.goalsWeekSection: (AppLocalizations t) => t.goalsWeekSection,
   L10nKeys.goalsWeekEmpty: (AppLocalizations t) => t.goalsWeekEmpty,
   L10nKeys.goalsColumnOrder: (AppLocalizations t) => t.goalsColumnOrder,

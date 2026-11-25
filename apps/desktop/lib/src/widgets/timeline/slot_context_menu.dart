@@ -39,16 +39,10 @@ class SlotMenuHabit extends SlotMenuChoice {
   final HabitData habit;
 }
 
-/// 未完成周目标入格：先弹勾选浮层（可多选），确认后逐条加入当天计划。
+/// 一格上的右键菜单：`手填` / `待办` / `习惯` 三条路。
 ///
-/// 本变体不带数据：可选的周目标由调用方在弹浮层时现取
-/// （`weekOpenGoalsProvider`），这里只负责表达「用户选了这条路」。
-class SlotMenuGoals extends SlotMenuChoice {
-  /// 创建选择。
-  const SlotMenuGoals();
-}
-
-/// 一格上的右键菜单：`手填` / `待办` / `习惯` / `周目标` 四条路。
+/// B8-W3 起不再有第 4 条「未完成周目标」：今日页的目标写入口已按用户裁决
+/// 全部撤掉（`docs/b8-scope-decision.md` U1），周目标在右栏只读展示。
 ///
 /// 「已排期」的待办不出现在待办分支里 —— 它已经在格子上了，再点一次只会
 /// 造出第二条指向同一待办的计划行（待办池的徽标与这里共用同一份派生结果）。
@@ -151,18 +145,7 @@ class SlotContextMenu extends StatelessWidget {
                     onTap: () =>
                         Navigator.of(context).pop(SlotMenuHabit(habit)),
                   ),
-              const SizedBox(height: AppTokens.gapCard),
-              // Task 72 / B7：把「未完成周目标」接进日计划。可选项由调用方
-              // 现取（`weekOpenGoalsProvider`），本菜单只给一个入口。
-              _GroupHeader(l10n.goalsUpstreamWeekTitle),
-              _ChoiceTile(
-                key: const ValueKey<String>('slot-menu-goals'),
-                icon: Icons.flag_outlined,
-                label: l10n.goalsUpstreamAddMenu,
-                onTap: () =>
-                    Navigator.of(context).pop(const SlotMenuGoals()),
-              ),
-            ],
+              ],
           ),
         ),
       ),

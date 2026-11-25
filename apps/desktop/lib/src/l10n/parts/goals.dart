@@ -57,8 +57,7 @@ abstract class GoalsL10n {
   /// 上游面板：空态。
   String get goalsUpstreamEmpty;
 
-  /// 上游面板：添加到计划的动作位。
-  String get goalsUpstreamAddMenu;
+  
 
   // --- 周视图 -------------------------------------------------------------
 
@@ -378,9 +377,6 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalsUpstreamEmpty => '暂无未完成目标';
 
   @override
-  String get goalsUpstreamAddMenu => '添加到计划';
-
-  @override
   String get goalsWeekSection => '本周目标';
 
   @override
@@ -682,9 +678,6 @@ mixin GoalsEnL10n implements GoalsL10n {
 
   @override
   String get goalsUpstreamEmpty => 'No open goals';
-
-  @override
-  String get goalsUpstreamAddMenu => 'Add to plan';
 
   @override
   String get goalsWeekSection => 'Weekly goals';
