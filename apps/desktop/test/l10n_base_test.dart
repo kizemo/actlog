@@ -24,9 +24,9 @@ import 'l10n_harness.dart';
 
 void main() {
   group('键表结构', () {
-    test('417 条 getter 全部登记在对照表里', () {
-      expect(L10nKeys.byGetter.length, 417);
-      expect(l10nAccessors.length, 417);
+    test('503 条 getter 全部登记在对照表里', () {
+      expect(L10nKeys.byGetter.length, 503);
+      expect(l10nAccessors.length, 503);
       // `byGetter` 是「getter 名 → 键」，访问器表是「键 → 取值」，所以这里比
       // 的是 `byGetter` 的**值**集合（都是 kebab 键）。
       expect(l10nAccessors.keys.toSet(), L10nKeys.byGetter.values.toSet());
@@ -108,13 +108,13 @@ void main() {
       );
     });
 
-    test('全部键值不重复（417 + 4 + 53 = 474）', () {
+    test('全部键值不重复（503 + 4 + 53 = 560）', () {
       final Set<String> all = <String>{
         ...L10nKeys.byGetter.values,
         ...L10nKeys.byListGetter.values,
         ...L10nKeys.byMethod.values,
       };
-      expect(all.length, 474);
+      expect(all.length, 560);
     });
 
     test('键一律 kebab-case（小写字母数字，单横线分隔）', () {
@@ -140,6 +140,7 @@ void main() {
               key.startsWith('common-') ||
               key.startsWith('shell-') ||
               key.startsWith('projects-') ||
+              key.startsWith('goal-') ||
               key.startsWith('domain-') ||
               key.startsWith('calendar-') ||
               key.startsWith('timeline-') ||

@@ -24,8 +24,8 @@ void main() {
   });
 
   group('白名单', () {
-    test('syncedTables = 12 张同步表', () {
-      expect(syncedTables.length, 12);
+    test('syncedTables = 14 张同步表', () {
+      expect(syncedTables.length, 14);
       expect(
         syncedTables,
         containsAll(<String>[
@@ -42,6 +42,9 @@ void main() {
           // v2：规则与物化凭证都必须同步，否则换设备会重新物化出重复条目。
           'recurring_task',
           'recurring_occurrence',
+          // v3：目标与关联都必须同步，否则换设备会看不到自己的目标体系。
+          'goal',
+          'goal_link',
         ]),
       );
     });
@@ -49,7 +52,7 @@ void main() {
     test('派生表 / 本机表不在白名单里', () {
       expect(localOnlyTables, <String>{'habit_score', 'sync_state', 'snapshot_meta'});
       expect(syncedTables.intersection(localOnlyTables), isEmpty);
-      expect(allTables.length, 16);
+      expect(allTables.length, 18);
       expect(isSyncedTable('habit_score'), isFalse);
       expect(isSyncedTable('sync_state'), isFalse);
       expect(isSyncedTable('snapshot_meta'), isFalse);
@@ -156,7 +159,7 @@ void main() {
         await writer.recordUpsert(table, 'id-$index', <String, Object?>{'x': index});
         index++;
       }
-      expect(await db.select(db.oplog).get(), hasLength(12));
+      expect(await db.select(db.oplog).get(), hasLength(14));
     });
   });
 

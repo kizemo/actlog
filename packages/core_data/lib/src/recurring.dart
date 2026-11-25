@@ -11,7 +11,7 @@
 //   只有库层算数 —— 事务内的「先查后写」在 SQLite 里已经串行化，但唯一约束
 //   才是并发/重入下不会多出两行计划条目的**证明**。
 //
-// 同步：两张表都已纳入 oplog 白名单（`syncedTables`，共 12 张），规则与实例
+// 同步：两张表都已纳入 oplog 白名单（`syncedTables`，共 14 张），规则与实例
 //   都进账本。物化时 occurrence 走单次 `writeWithOplog`（table=`recurring_occurrence`），
 //   `plan_item` 的落痕由 `PlanItemRepository.createScheduled` 自己负责 ——
 //   一行一笔，不双写。

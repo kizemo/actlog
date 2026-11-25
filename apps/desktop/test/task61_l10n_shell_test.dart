@@ -38,7 +38,7 @@ const List<String> _zhNavLabels = <String>[
   '习惯',
   '项目',
   '日历',
-  '设置',
+  '目标',
 ];
 
 /// 左主导航 6 项的英文文案（en 态逐字）。
@@ -48,10 +48,10 @@ const List<String> _enNavLabels = <String>[
   'Habits',
   'Projects',
   'Calendar',
-  'Settings',
+  'Goals',
 ];
 
-/// 8 条快捷键说明的中文文案（zh 态逐字，含全角 `＋` 与斜杠两侧空格）。
+/// 9 条快捷键说明的中文文案（zh 态逐字，含全角 `＋` 与斜杠两侧空格）。
 const List<String> _zhKeyLabels = <String>[
   '＋ 手写一条',
   '打卡第一条未打习惯',
@@ -61,9 +61,10 @@ const List<String> _zhKeyLabels = <String>[
   '关闭弹层',
   '切页',
   '切到项目',
+  '切到目标',
 ];
 
-/// 8 条快捷键说明的英文文案（en 态逐字）。
+/// 9 条快捷键说明的英文文案（en 态逐字）。
 const List<String> _enKeyLabels = <String>[
   '+ Add an entry',
   'Check the first unchecked habit',
@@ -73,6 +74,7 @@ const List<String> _enKeyLabels = <String>[
   'Close popup',
   'Switch tab',
   'Go to Projects',
+  'Go to Goals',
 ];
 
 /// 右轨 4 个面板的中文标题（zh 态逐字，顺序即展示顺序）。

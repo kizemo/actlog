@@ -1,7 +1,7 @@
 // =============================================================================
 // l10n part：项目页（Task 56）
 // =============================================================================
-// 48 条，全部是无参 String getter（不新增插值方法 ⇒ 本 part 不进 `byMethod`）。
+// 49 条，全部是无参 String getter（不新增插值方法 ⇒ 本 part 不进 `byMethod`）。
 // 带数量的两条（「未排期 {n} 条」/「{n} 个项目」）与带 id 的两条（「任务 {id} 不存在」
 // /「项目 {id} 不存在」）用占位符，由页面侧 `replaceAll` 插值。
 //
@@ -138,7 +138,7 @@ abstract class ProjectsL10n {
   // 校验失败 / 实体缺失文案
   //
   // 出处：`pages\projects_page.dart`（表单内联校验与日期校验）与
-  // `data\project_store.dart`（任务 / 项目缺失）。
+  // `data\project_store.dart`（任务 / 项目缺失 / 来源类型校验）。
   // ---------------------------------------------------------------------------
 
   /// 校验失败：日期不是 `YYYY-MM-DD` 格式。
@@ -152,6 +152,9 @@ abstract class ProjectsL10n {
 
   /// 校验失败：任务标题为空。
   String get projectsTaskTitleRequired;
+
+  /// 校验失败：排期来源类型既不是 `project` 也不是 `increment`。
+  String get projectsSourceTypeInvalid;
 
   /// 校验失败：增量没有写进展。
   String get projectsProgressRequired;
@@ -299,6 +302,9 @@ mixin ProjectsZhL10n implements ProjectsL10n {
 
   @override
   String get projectsTaskTitleRequired => '任务标题不能为空';
+
+  @override
+  String get projectsSourceTypeInvalid => '只接受 project / increment';
 
   @override
   String get projectsProgressRequired => '至少写一句这次推进了什么';
@@ -450,6 +456,10 @@ mixin ProjectsEnL10n implements ProjectsL10n {
 
   @override
   String get projectsTaskTitleRequired => 'Task title cannot be empty';
+
+  @override
+  String get projectsSourceTypeInvalid =>
+      'Only project / increment is accepted';
 
   @override
   String get projectsProgressRequired =>

@@ -1,17 +1,19 @@
 // apps/desktop/test/shell_key_hints_test.dart
 //
 // Task 20（裁定 K1 / K2 / K3 / K8）守键条清单本身：
-// ① **恰好 8 条**，顺序与原型一致（A1；Task 56 起「项目」页落地，
-//    `Ctrl+5` 有真实落点 ⇒ 从 7 条变 8 条，`Ctrl+1…3` 同时更正为 `Ctrl+1…4`）；
+// ① **恰好 9 条**，顺序与原型一致（A1；Task 56 起「项目」页落地，
+//    `Ctrl+5` 有真实落点 ⇒ 从 7 条变 8 条，`Ctrl+1…3` 同时更正为 `Ctrl+1…4`；
+//    Task 65 UI 半批起「目标」页落地，`Ctrl+6` 有真实落点 ⇒ 再变 9 条）；
 // ② `Esc` 的来源写成事实，不再指向本仓里指不到的地方（A2）——
 //    上一版注释写的是「某宿主文件的 `DefaultShortcuts` + `ModalRoute` 的
 //    `_DismissModalAction`」，本仓既没有 `DefaultShortcuts`，也没有那个私有类，
 //    是一条**假引用**；
-// ③ 8 条文案里不许出现原型那种「把这一行加进 / 拿出今日计划」的说法，
-//    也不许出现 `Ctrl+1…6`（三项导航无落点 ⇒ 宣称到 6 就是假提示）（A11）。
+// ③ 9 条文案里不许出现原型那种「把这一行加进 / 拿出今日计划」的说法，
+//    也不许出现 `Ctrl+1…6`（「切页」只覆盖 Ctrl+1…4；Ctrl+5 / Ctrl+6 各有
+//    单条落点，合并成「Ctrl+1…6」就是假提示）（A11）。
 //
 // 判定口径：键条文案 = `kShellKeyHints` 这一份常量（键帽 + 说明），
-// 底栏与右轨「快捷键」面板共用它，所以断言这一份就等于断言渲染出来的那 8 条。
+// 底栏与右轨「快捷键」面板共用它，所以断言这一份就等于断言渲染出来的那 9 条。
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -20,7 +22,7 @@ import 'package:actlog/src/widgets/shell/key_bar.dart';
 /// 键条源文件（纯文本断言用；测试的工作目录是包根目录）。
 File _sourceFile() => File('lib/src/widgets/shell/key_bar.dart');
 
-/// 8 条的键帽（顺序即渲染顺序）。
+/// 9 条的键帽（顺序即渲染顺序）。
 const List<List<String>> _expectedKeys = <List<String>>[
   <String>['Ctrl+N'],
   <String>['Ctrl+D'],
@@ -30,9 +32,10 @@ const List<List<String>> _expectedKeys = <List<String>>[
   <String>['Esc'],
   <String>['Ctrl+1…4'],
   <String>['Ctrl+5'],
+  <String>['Ctrl+6'],
 ];
 
-/// 8 条的动作说明（顺序同上）。
+/// 9 条的动作说明（顺序同上）。
 const List<String> _expectedLabels = <String>[
   '＋ 手写一条',
   '打卡第一条未打习惯',
@@ -42,16 +45,17 @@ const List<String> _expectedLabels = <String>[
   '关闭弹层',
   '切页',
   '切到项目',
+  '切到目标',
 ];
 
 void main() {
-  test('A1：键条恰好 8 条，键帽与说明逐条相等、顺序固定', () {
-    expect(kShellKeyHints, hasLength(8));
+  test('A1：键条恰好 9 条，键帽与说明逐条相等、顺序固定', () {
+    expect(kShellKeyHints, hasLength(9));
     expect(
       kShellKeyHints.map((ShellKeyHint hint) => hint.keys).toList(),
       _expectedKeys,
       reason: '键帽顺序必须是 Ctrl+N / Ctrl+D / ←→ / Space / Enter / Esc / '
-          'Ctrl+1…4 / Ctrl+5',
+          'Ctrl+1…4 / Ctrl+5 / Ctrl+6',
     );
     expect(
       kShellKeyHints.map((ShellKeyHint hint) => hint.label).toList(),
@@ -70,11 +74,13 @@ void main() {
     expect(kShellKeyHints.first.keys, <String>['Ctrl+N']);
   });
 
-  test('A1：切页那条覆盖 Ctrl+1…4（今日 / 待办池 / 习惯 / 日历），项目是 Ctrl+5', () {
+  test('A1：切页那条覆盖 Ctrl+1…4（今日 / 待办池 / 习惯 / 日历），项目是 Ctrl+5、目标是 Ctrl+6', () {
     expect(kShellKeyHints[6].keys, <String>['Ctrl+1…4']);
     expect(kShellKeyHints[6].label, '切页');
-    expect(kShellKeyHints.last.keys, <String>['Ctrl+5']);
-    expect(kShellKeyHints.last.label, '切到项目');
+    expect(kShellKeyHints[7].keys, <String>['Ctrl+5']);
+    expect(kShellKeyHints[7].label, '切到项目');
+    expect(kShellKeyHints.last.keys, <String>['Ctrl+6']);
+    expect(kShellKeyHints.last.label, '切到目标');
   });
 
   test('A2：Esc 的来源写成事实，不指本仓里指不到的地方', () {
@@ -101,7 +107,7 @@ void main() {
     expect(src.contains('ModalRoute'), isTrue);
   });
 
-  test('A11：8 条文案里没有「加进 / 拿出今日计划」式说法，也没有 Ctrl+1…6', () {
+  test('A11：9 条文案里没有「加进 / 拿出今日计划」式说法，也没有 Ctrl+1…6', () {
     for (final ShellKeyHint hint in kShellKeyHints) {
       for (final String key in hint.keys) {
         expect(key.contains('排入'), isFalse, reason: '键帽 $key 不许用原型那套说法');
@@ -109,7 +115,8 @@ void main() {
         expect(
           key.contains('Ctrl+1…6'),
           isFalse,
-          reason: '习惯 / 项目两项无落点（设置页有落点但键条只到 3），不能宣称到 6',
+          reason: '「切页」那条只覆盖 Ctrl+1…4；Ctrl+5 / Ctrl+6 各有单条落点，'
+              '不能合并成「Ctrl+1…6」',
         );
       }
       expect(hint.label.contains('排入'), isFalse);

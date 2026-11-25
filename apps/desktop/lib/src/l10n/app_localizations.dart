@@ -13,6 +13,7 @@
 //   parts\habit.dart         习惯打卡（W5）
 //   parts\dialog.dart        对话框（W6）
 //   parts\projects.dart      项目页（Task 56）
+//   parts\goals.dart         目标页（Task 65 UI 半批 B1）
 //   parts\shell.dart         应用外壳：导航 / 快捷键 / 右轨面板（Task 61）
 //
 // 为什么拆：一次波次只搬一个模块的文案，八波并行时各自只碰自己那一个 part，
@@ -37,6 +38,7 @@ import 'parts/calendar.dart';
 import 'parts/common.dart';
 import 'parts/dialog.dart';
 import 'parts/domain.dart';
+import 'parts/goals.dart';
 import 'parts/habit.dart';
 import 'parts/projects.dart';
 import 'parts/settings.dart';
@@ -81,6 +83,7 @@ abstract class AppLocalizations
         HabitL10n,
         DialogL10n,
         ProjectsL10n,
+        GoalsL10n,
         ShellL10n {
   /// 子类构造。
   const AppLocalizations();
@@ -145,6 +148,7 @@ class _AppLocalizationsZh extends AppLocalizations
         HabitZhL10n,
         DialogZhL10n,
         ProjectsZhL10n,
+        GoalsZhL10n,
         ShellZhL10n {
   const _AppLocalizationsZh();
   @override AppLanguage get language => AppLanguage.zh;
@@ -163,6 +167,7 @@ class _AppLocalizationsEn extends AppLocalizations
         HabitEnL10n,
         DialogEnL10n,
         ProjectsEnL10n,
+        GoalsEnL10n,
         ShellEnL10n {
   const _AppLocalizationsEn();
   @override AppLanguage get language => AppLanguage.en;

@@ -46,7 +46,7 @@ $env:FLUTTER_STORAGE_BASE_URL='https://storage.flutter-io.cn'
 | 判据 | 通过标准 |
 |---|---|
 | `flutter analyze`（desktop） | **逐字** `No issues found!`。error / warning / **info** 全 0。**不许**用「数 info 关键词」代替 |
-| desktop 全量 `flutter test` | 当前基线 **+836**，零回退。基线阶梯（逐波实测）：539(Task 48) → 560(W0.5 +21) → 562(W1 +2) → 566(W1c-2b +4) → 570(W1c-3 +4) → 575(W1d +5) → 580(Task 49 +5) → 649(Task 55) → 664(Task 56 +15) → **666(Task 56 收口 B1 回归 +2)** → **682(Task 57 收口补轮 +5)** → **686(Task 57 收口补轮二 +4)** → **700(Task 59 +14)** → **736(Task 61 +27)** → **709(Task 60 +9)** → **834(Task 63 +98)** → **836(Task 68 +2)**；+207 是 Task 21 补测 A8/A9 之前的旧基线 |
+| desktop 全量 `flutter test` | 当前基线 **+836**，零回退。基线阶梯（逐波实测）：539(Task 48) → 560(W0.5 +21) → 562(W1 +2) → 566(W1c-2b +4) → 570(W1c-3 +4) → 575(W1d +5) → 580(Task 49 +5) → 649(Task 55) → 664(Task 56 +15) → **666(Task 56 收口 B1 回归 +2)** → **682(Task 57 收口补轮 +5)** → **686(Task 57 收口补轮二 +4)** → **700(Task 59 +14)** → **709(Task 60 +9)** → **736(Task 61 +27)** → **834(Task 63 +98)** → **836(Task 68 +2)**；+207 是 Task 21 补测 A8/A9 之前的旧基线 |
 | core_data 全量 `dart test` | **+204**（2026-11-20 实测；旧记 +175 已过期） |
 | 越界比对 | `VIOLATIONS=0`（sha diff + mtime 窗口双判据） |
 | `.ps1` 脚本 | **纯 ASCII**（中文一律 `[char]0x....` 码点拼），CRLF，无 BOM；**门禁已内建判据**（Task 57 收口补轮三起）：`reports\task57-ps1-ascii-scan.ps1` 扫描 `reports\**\*.ps1` + `tools\**\*.ps1`，期望 `PS1_ASCII_VIOLATIONS=0` |

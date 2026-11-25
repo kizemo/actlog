@@ -23,7 +23,7 @@ part 'connection.g.dart';
 
 /// ActLog 数据库。
 ///
-/// 16 张表（schema v1 的 14 张 + v2 新增的 2 张循环任务表），
+/// 18 张表（schema v1 的 14 张 + v2 新增 2 张循环任务表 + v3 新增 2 张目标表），
 /// schema 版本见 [currentSchemaVersion]。
 @DriftDatabase(
   tables: [
@@ -43,6 +43,8 @@ part 'connection.g.dart';
     SnapshotMeta,
     RecurringTask,
     RecurringOccurrence,
+    Goal,
+    GoalLink,
   ],
 )
 class ActLogDatabase extends _$ActLogDatabase {

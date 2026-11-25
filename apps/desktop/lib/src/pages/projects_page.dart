@@ -31,6 +31,43 @@ import '../widgets/gantt_chart.dart';
 import '../widgets/outcome_composer.dart';
 import '../widgets/project_domain_stats_panel.dart';
 
+/// 把异常变成一句给用户看的话（可本地化）。
+///
+/// 数据层只带**错误码**（[ProjectValidationError]）不带文案 ⇒ 这里按码查
+/// l10n 表，英文态下不会露中文。类型化异常（[MissingEntityException]）同样
+/// 在这里查表拼句；`{id}` 在这里插值。
+///
+/// 放在文件顶层（而不是私有 state 里）是为了让测试能直接调它断言「英文态零
+/// CJK / 中文态逐字不变」，不必驱动整个页面。
+String projectErrorMessage(AppLocalizations t, Object error) {
+  if (error is MissingEntityException) {
+    final String template =
+        error.kind == MissingEntityException.milestoneKind
+            ? t.projectsMilestoneMissing
+            : t.projectsProjectMissing;
+    return template.replaceAll('{id}', error.id);
+  }
+  if (error is ProjectValidationError) {
+    switch (error.code) {
+      case ProjectValidationError.nameRequired:
+        return t.projectsNameRequired;
+      case ProjectValidationError.taskTitleRequired:
+        return t.projectsTaskTitleRequired;
+      case ProjectValidationError.sourceTypeInvalid:
+        return t.projectsSourceTypeInvalid;
+      case ProjectValidationError.dateFormatInvalid:
+        return t.projectsInvalidDateFormat;
+    }
+  }
+  if (error is ArgumentError) {
+    return '${error.message}';
+  }
+  if (error is FormatException) {
+    return error.message;
+  }
+  return '$error';
+}
+
 /// 项目页：多项目 / 每项目多任务 / 自绘甘特图。
 class ProjectsPage extends ConsumerStatefulWidget {
   /// 创建项目页。
@@ -295,22 +332,8 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
   ///
   /// [t] 是 l10n 句柄：类型化异常（[MissingEntityException]）在这里查表拼句
   /// —— 数据层不带中文，英文态才不会露中文；`{id}` 在这里插值。
-  static String _messageOf(AppLocalizations t, Object error) {
-    if (error is MissingEntityException) {
-      final String template =
-          error.kind == MissingEntityException.milestoneKind
-              ? t.projectsMilestoneMissing
-              : t.projectsProjectMissing;
-      return template.replaceAll('{id}', error.id);
-    }
-    if (error is ArgumentError) {
-      return '${error.message}';
-    }
-    if (error is FormatException) {
-      return error.message;
-    }
-    return '$error';
-  }
+  static String _messageOf(AppLocalizations t, Object error) =>
+      projectErrorMessage(t, error);
 
   /// 取可选日历日；空串 ⇒ `null`（未填）；不是 `YYYY-MM-DD` 或日期不存在 ⇒ 抛。
   ///

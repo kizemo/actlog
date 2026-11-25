@@ -11,5 +11,6 @@ library;
 
 export 'src/entities.dart';
 export 'src/enums.dart';
+export 'src/goal.dart';
 export 'src/recurring_task.dart';
 export 'src/result_note.dart';

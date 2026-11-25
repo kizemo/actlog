@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../theme/app_fonts.dart';
 import '../../theme/app_tokens.dart';
 import '../../theme/density_profile.dart';
+import '../goal_gear_button.dart';
 import 'key_bar.dart';
 
 /// 一个主导航项。
@@ -32,13 +33,15 @@ class ShellNavItem {
 ///
 /// 口径（Task 61）：这一份**中文常量**保留不动（既有测试直接断言它），
 /// 但运行期不再用它渲染 —— 渲染走 [shellNavItemsFor]，按当前语言现搭。
+/// 口径（Task 64）：第 6 项由「设置」换成「目标」；「设置」沉底成齿轮
+/// （见 [GoalGearButton]），左栏**项数仍是 6**。
 const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   ShellNavItem(id: 'today', label: '日志'),
   ShellNavItem(id: 'inbox', label: '待办池'),
   ShellNavItem(id: 'habits', label: '习惯'),
   ShellNavItem(id: 'projects', label: '项目'),
   ShellNavItem(id: 'calendar', label: '日历'),
-  ShellNavItem(id: 'settings', label: '设置'),
+  ShellNavItem(id: 'goals', label: '目标'),
 ];
 
 /// 运行时构建 6 项主导航（文案走 l10n）。
@@ -53,7 +56,7 @@ List<ShellNavItem> shellNavItemsFor(AppLocalizations t) => <ShellNavItem>[
   ShellNavItem(id: 'habits', label: t.shellNavHabits),
   ShellNavItem(id: 'projects', label: t.shellNavProjects),
   ShellNavItem(id: 'calendar', label: t.shellNavCalendar),
-  ShellNavItem(id: 'settings', label: t.shellNavSettings),
+  ShellNavItem(id: 'goals', label: t.shellNavGoals),
 ];
 
 /// 左主导航（等价原型 `nav.nav`）。
@@ -120,6 +123,18 @@ class NavRail extends StatelessWidget {
     }
     children
       ..add(const Spacer())
+      // 「设置」沉底成齿轮（Task 64）：位置在底注之上，仍是左栏第 6 个可点元素。
+      ..add(
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 8, left: 6),
+          child: GoalGearButton(
+            tooltip: t.shellNavSettings,
+            onPressed: onSelected == null
+                ? null
+                : () => onSelected!('settings'),
+          ),
+        ),
+      )
       ..add(_NavFoot(t: t));
     return Container(
       width: width,
@@ -179,6 +194,16 @@ class NavRail extends StatelessWidget {
                   onSelected: onSelected,
                 ),
               ),
+            // 「设置」沉底成齿轮（Task 64）：横排模式下挂在行末。
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: GoalGearButton(
+                tooltip: t.shellNavSettings,
+                onPressed: onSelected == null
+                    ? null
+                    : () => onSelected!('settings'),
+              ),
+            ),
           ],
         ),
       ),
@@ -400,16 +425,19 @@ class _NavRowState extends State<_NavRow> {
   static String _pad2(int value) => value < 10 ? '0$value' : '$value';
 }
 
-/// 导航底注（`.nav-foot`）：页面切换 Ctrl + 1 … 5。
+/// 导航底注（`.nav-foot`）：页面切换 Ctrl + 1 … 6。
 ///
 /// 口径（Task 20 · N1 / B2 + Task 56）：只宣称**真实存在**的 `Ctrl+1`–`Ctrl+5`
-/// （今日 / 待办池 / 习惯 / 日历 / 项目）。`Ctrl+6` 没有落点 ⇒ 写「… 6」
-/// 就是假提示。字符总数仍为 12（`页面切换`4 + `Ctrl`4 + `+`1 + `1`1 + `…`1 + `5`1）。
+/// （今日 / 待办池 / 习惯 / 日历 / 项目）。
+///
+/// 口径（Task 64）：「目标」页落地 ⇒ 底注同步为 `Ctrl+1`–`Ctrl+6`
+/// （今日 / 待办池 / 习惯 / 日历 / 项目 / 目标）。字符总数仍为 12
+/// （`页面切换`4 + `Ctrl`4 + `+`1 + `1`1 + `…`1 + `6`1）。
 ///
 /// 排版分两档：
-/// * 常规档：一个 `Wrap`，与原型一致（「页面切换 Ctrl + 1 … 5」排成一行）。
+/// * 常规档：一个 `Wrap`，与原型一致（「页面切换 Ctrl + 1 … 6」排成一行）。
 /// * 大字号档（缩放 ≥ 1.5×，如 `ACTLOG_TEXT_SCALE=2`）：三行堆叠 ——
-///   「页面切换」/「Ctrl + 1」/「… 5」，第 3 行**必须有内容**。
+///   「页面切换」/「Ctrl + 1」/「… 6」，第 3 行**必须有内容**。
 ///
 /// 换行点由**结构**保证，不靠像素宽度碰运气：复合单位用
 /// `Row(mainAxisSize: max)` 撑满整行，外层 `Wrap` 必然让它独占一行。
@@ -452,7 +480,7 @@ class _NavFoot extends StatelessWidget {
       ],
     );
     final Widget keyRun = _NavKeyRun(
-      children: <Widget>[Text('…', style: textStyle), const KeyCap('5')],
+      children: <Widget>[Text('…', style: textStyle), const KeyCap('6')],
     );
 
     return Container(

@@ -75,6 +75,12 @@ abstract final class TableNames {
 
   /// 循环任务在某一天的实例（schema v2 新增）。
   static const String recurringOccurrence = 'recurring_occurrence';
+
+  /// 目标（schema v3 新增；5 种 kind 共表）。
+  static const String goal = 'goal';
+
+  /// 目标关联（schema v3 新增；多态指针，不建外键）。
+  static const String goalLink = 'goal_link';
 }
 
 /// 用户配置（键值对，同步）。
@@ -1122,6 +1128,213 @@ class RecurringOccurrence extends Table {
     'CONSTRAINT recurring_occurrence_plan_item_fk '
         'FOREIGN KEY (plan_item_id) REFERENCES plan_item (id) '
         'ON DELETE SET NULL',
+  ];
+}
+
+// =============================================================================
+// schema v3 新增：目标体系（goal / goal_link）
+// =============================================================================
+// 为什么不复用 `project`（硬理由，先读再改）：
+//   1. `project` **没有 parent_id**，撑不起「蓝图格 → 年 → 月 → 周」四级链；
+//   2. `project` 的语义是「长线项目」，`goal` 的语义是「愿景 + 周期」，
+//      两者都带「状态」但状态机不同（`goal` 没有 `paused`，见 core_domain
+//      的 `GoalStatus`），混在一张表里两页都会改不动；
+//   3. 目标与计划项的关联**不扩** `plan_item.source_type`（CHECK 已冻结五值），
+//      一律走 `goal_link`。
+//
+// 为什么一张表装 5 种 kind（而不是每层一张）：
+//   5 种目标的列几乎相同（title/note/period/score/review），拆表会让跨层
+//   「链」查询要 5 表 UNION，而且每加一层就要再改一次 schema。
+//
+// 索引为什么是**偏索引**（`WHERE deleted_at IS NULL`）：
+//   本项目的软删一律写墓碑（`deleted_at`），几乎所有查询都带
+//   `deleted_at IS NULL`；偏索引把墓碑行排除在索引外，索引体积与扫描都更小。
+//   ⚠️ drift 的 `@TableIndex` 注解**不支持 WHERE 子句**，只有
+//   `@TableIndex.sql(...)` 能写原始 CREATE INDEX 语句；索引名由 SQL 语句
+//   里的名字决定（drift_dev 从 `CreateIndexStatement.createdName` 取），
+//   因此**迁移分支里的索引名必须与这里的 SQL 逐字一致**，否则升级后的库
+//   会静默缺索引（见 migrations.dart 的 schemaV3EntityNames）。
+// =============================================================================
+
+/// 目标（同步；5 种 kind 共表）。
+@TableIndex.sql(
+  'CREATE INDEX idx_goal_kind_period ON goal (kind, period_start) '
+  'WHERE deleted_at IS NULL',
+)
+@TableIndex.sql(
+  'CREATE INDEX idx_goal_parent ON goal (parent_id) '
+  'WHERE deleted_at IS NULL',
+)
+@TableIndex.sql(
+  'CREATE INDEX idx_goal_domain ON goal (domain, kind) '
+  'WHERE deleted_at IS NULL',
+)
+class Goal extends Table {
+  /// 表名。
+  @override
+  String get tableName => 'goal';
+
+  /// 主键。
+  @override
+  Set<Column> get primaryKey => {id};
+
+  /// 实体 ID（UUIDv7 文本）。
+  TextColumn get id => text()();
+
+  /// 目标形态：blueprint / brand / yearly / monthly / weekly。
+  TextColumn get kind => text()();
+
+  /// 目标一句话（必须本人撰写）。
+  TextColumn get title => text()();
+
+  /// 展开说明 / 愿景描述。
+  TextColumn get note => text().nullable()();
+
+  /// 关键词（蓝图「手段」层；其余 kind 复用为标签串）。
+  TextColumn get keywords => text().nullable()();
+
+  /// 上级目标 id；空 = 顶层（仿 reminder 不建外键）。
+  TextColumn get parentId => text().nullable()();
+
+  /// 领域 key（Task 59 六 key；空 = 未分类）。
+  TextColumn get domain => text().nullable()();
+
+  /// 蓝图档位 1..5；其余 kind 为空。
+  IntColumn get horizon => integer().nullable()();
+
+  /// 品牌画像切面；其余 kind 为空。
+  TextColumn get facet => text().nullable()();
+
+  /// 周期起点（Unix 毫秒 UTC；非周期目标 = 建档时刻）。
+  IntColumn get periodStart => integer().withDefault(const Constant(0))();
+
+  /// 周期终点（Unix 毫秒 UTC）。
+  IntColumn get periodEnd => integer().nullable()();
+
+  /// 周内完成期限（Unix 毫秒）。
+  IntColumn get dueDate => integer().nullable()();
+
+  /// 四象限 1..4（复用 `Quadrant`）。
+  IntColumn get quadrant => integer().nullable()();
+
+  /// ABC 优先级 A/B/C（复用 `PriorityAbc`）。
+  TextColumn get priorityAbc => text().nullable()();
+
+  /// 状态：draft / active / done / cancelled。
+  TextColumn get status => text().withDefault(const Constant('active'))();
+
+  /// 用户自评 0..10（源数据，入库）；空 = 未评。
+  IntColumn get selfScore => integer().nullable()();
+
+  /// 未完成原因 / 障碍。
+  TextColumn get reviewNote => text().nullable()();
+
+  /// 改进措施 / 克服对策。
+  TextColumn get improveNote => text().nullable()();
+
+  /// 取消线（Unix 毫秒）。
+  IntColumn get archivedAt => integer().nullable()();
+
+  /// 创建时刻（Unix 毫秒）。
+  IntColumn get createdAt => integer()();
+
+  /// 最后更新时刻（Unix 毫秒）。
+  IntColumn get updatedAt => integer()();
+
+  /// 删除时刻（Unix 毫秒）；非空 = 墓碑。
+  IntColumn get deletedAt => integer().nullable()();
+
+  /// 最后写入本行的设备 ID。
+  TextColumn get originDeviceId => text()();
+
+  /// 本地修订号。
+  IntColumn get rev => integer().withDefault(const Constant(1))();
+
+  /// 具名约束（v3 新增；`docs/schema_v1.sql` 里没有这张表）。
+  @override
+  List<String> get customConstraints => const [
+    "CONSTRAINT goal_kind_check CHECK (kind IN "
+        "('blueprint','brand','yearly','monthly','weekly'))",
+    "CONSTRAINT goal_status_check CHECK (status IN "
+        "('draft','active','done','cancelled'))",
+    'CONSTRAINT goal_horizon_check '
+        'CHECK (horizon IS NULL OR horizon BETWEEN 1 AND 5)',
+    'CONSTRAINT goal_self_score_check '
+        'CHECK (self_score IS NULL OR self_score BETWEEN 0 AND 10)',
+    'CONSTRAINT goal_quadrant_check '
+        'CHECK (quadrant IS NULL OR quadrant BETWEEN 1 AND 4)',
+    "CONSTRAINT goal_priority_abc_check CHECK (priority_abc IS NULL OR "
+        "priority_abc IN ('A','B','C'))",
+    'CONSTRAINT goal_period_end_check '
+        'CHECK (period_end IS NULL OR period_end >= period_start)',
+    "CONSTRAINT goal_archived_at_check "
+        "CHECK (status = 'done' OR archived_at IS NULL)",
+  ];
+}
+
+/// 目标关联（同步；多态指针，不建外键，仿 `reminder`）。
+///
+/// 唯一约束是**整表唯一**（不带 `WHERE deleted_at IS NULL`）：墓碑行仍然占着
+/// `(goal_id, target_type, target_id)` 这个槽位，所以「重新关联」必须
+/// **复用那一行并清掉墓碑**，而不是再插一行（否则撞唯一约束）。
+@TableIndex.sql(
+  'CREATE INDEX idx_goal_link_goal ON goal_link (goal_id) '
+  'WHERE deleted_at IS NULL',
+)
+@TableIndex.sql(
+  'CREATE INDEX idx_goal_link_target ON goal_link (target_type, target_id) '
+  'WHERE deleted_at IS NULL',
+)
+class GoalLink extends Table {
+  /// 表名。
+  @override
+  String get tableName => 'goal_link';
+
+  /// 主键。
+  @override
+  Set<Column> get primaryKey => {id};
+
+  /// 实体 ID（UUIDv7 文本）。
+  TextColumn get id => text()();
+
+  /// 所属目标 id（不建外键）。
+  TextColumn get goalId => text()();
+
+  /// 关联目标类型：todo / plan_item / project / increment / habit / goal。
+  TextColumn get targetType => text()();
+
+  /// 关联目标 id（多态指针）。
+  TextColumn get targetId => text()();
+
+  /// 关系语义：serves / derives / tracks / references。
+  TextColumn get relation => text().withDefault(const Constant('serves'))();
+
+  /// 创建时刻（Unix 毫秒）。
+  IntColumn get createdAt => integer()();
+
+  /// 最后更新时刻（Unix 毫秒）。
+  IntColumn get updatedAt => integer()();
+
+  /// 删除时刻（Unix 毫秒）；非空 = 墓碑。
+  IntColumn get deletedAt => integer().nullable()();
+
+  /// 最后写入本行的设备 ID。
+  TextColumn get originDeviceId => text()();
+
+  /// 本地修订号。
+  IntColumn get rev => integer().withDefault(const Constant(1))();
+
+  /// 具名约束（v3 新增）。
+  @override
+  List<String> get customConstraints => const [
+    "CONSTRAINT goal_link_target_type_check CHECK (target_type IN "
+        "('todo','plan_item','project','increment','habit','goal'))",
+    "CONSTRAINT goal_link_relation_check CHECK (relation IN "
+        "('serves','derives','tracks','references'))",
+    "CONSTRAINT goal_link_no_self_check "
+        "CHECK (target_type != 'goal' OR target_id != goal_id)",
+    'CONSTRAINT goal_link_target_unique '
+        'UNIQUE (goal_id, target_type, target_id)',
   ];
 }
 

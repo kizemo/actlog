@@ -38,6 +38,11 @@ abstract class ShellL10n {
   /// 左导航：设置。
   String get shellNavSettings;
 
+  /// 左导航：目标。
+  ///
+  /// Task 64 起「设置」沉底成齿轮（左栏项数仍是 6），第 6 项换成「目标」。
+  String get shellNavGoals;
+
   // --- 面板标题 / 导航底注 ---------------------------------------------------
 
   /// 右轨「快捷键」面板标题。
@@ -71,6 +76,9 @@ abstract class ShellL10n {
 
   /// 快捷键：切到项目。
   String get shellKeyGoProjects;
+
+  /// 快捷键：切到目标。
+  String get shellKeyGoGoals;
 
   // --- 右轨 4 个面板的 7 条文案 ----------------------------------------------
 
@@ -117,6 +125,9 @@ mixin ShellZhL10n implements ShellL10n {
   String get shellNavSettings => '设置';
 
   @override
+  String get shellNavGoals => '目标';
+
+  @override
   String get shellShortcutsTitle => '快捷键';
 
   @override
@@ -145,6 +156,9 @@ mixin ShellZhL10n implements ShellL10n {
 
   @override
   String get shellKeyGoProjects => '切到项目';
+
+  @override
+  String get shellKeyGoGoals => '切到目标';
 
   @override
   String get shellPanelTodoList => '待办列表';
@@ -189,6 +203,9 @@ mixin ShellEnL10n implements ShellL10n {
   String get shellNavSettings => 'Settings';
 
   @override
+  String get shellNavGoals => 'Goals';
+
+  @override
   String get shellShortcutsTitle => 'Shortcuts';
 
   @override
@@ -217,6 +234,9 @@ mixin ShellEnL10n implements ShellL10n {
 
   @override
   String get shellKeyGoProjects => 'Go to Projects';
+
+  @override
+  String get shellKeyGoGoals => 'Go to Goals';
 
   @override
   String get shellPanelTodoList => 'To-do list';

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/app_tokens.dart';
 import 'package:actlog/src/theme/density_profile.dart';
+import 'package:actlog/src/widgets/goal_gear_button.dart';
 import 'package:actlog/src/widgets/shell/key_bar.dart';
 import 'package:actlog/src/widgets/shell/nav_rail.dart';
 
@@ -101,7 +102,7 @@ void main() {
     await _pumpNav(tester);
 
     expect(NavRail.width, 214);
-    for (final String label in <String>['日志', '待办池', '习惯', '项目', '日历', '设置']) {
+    for (final String label in <String>['日志', '待办池', '习惯', '项目', '日历', '目标']) {
       expect(find.text(label), findsOneWidget, reason: '缺少导航项 $label');
     }
     for (final String index in <String>['01', '02', '03', '04', '05', '06']) {
@@ -118,8 +119,9 @@ void main() {
     final List<String> tapped = <String>[];
     await _pumpNav(tester, onSelected: tapped.add);
 
-    // Task 56 起「项目」也启用 ⇒ 6 个可点项各一个 InkWell。
-    expect(find.byType(InkWell), findsNWidgets(6));
+    // Task 56 起「项目」也启用 ⇒ 6 个可点项各一个 InkWell；
+    // Task 64 起「设置」沉底成齿轮 ⇒ 再加 1 个 InkWell（共 7 个可点元素）。
+    expect(find.byType(InkWell), findsNWidgets(7));
 
     await tester.tap(find.text('待办池'));
     await tester.pump();
@@ -133,8 +135,9 @@ void main() {
     await tester.pump();
     expect(tapped, <String>['inbox', 'habits', 'calendar']);
 
-    // 设置页现在有真实落点（Task 39 指令 7）。
-    await tester.tap(find.text('设置'));
+    // 设置页现在有真实落点（Task 39 指令 7）；Task 64 起「设置」不再是导航项，
+    // 沉底成自绘齿轮，点击仍回调 `settings`。
+    await tester.tap(find.byType(GoalGearButton));
     await tester.pump();
     expect(tapped, <String>['inbox', 'habits', 'calendar', 'settings']);
 
@@ -247,8 +250,9 @@ void main() {
     expect(find.widgetWithText(KeyCap, 'Ctrl'), findsOneWidget);
     expect(find.widgetWithText(KeyCap, '1'), findsOneWidget);
     // B2（2026-11-12 T10）：习惯页落地后 `Ctrl+1…4` 全有落点，键帽由 '3' 同步为 '4'；
-    // Task 56 起「项目」也落地（`Ctrl+5`），底注随之同步为 `Ctrl+1…5`。
-    expect(find.widgetWithText(KeyCap, '5'), findsOneWidget);
+    // Task 56 起「项目」也落地（`Ctrl+5`）；Task 65 UI 半批起「目标」也落地
+    // （`Ctrl+6`），底注随之同步为 `Ctrl+1…6`。
+    expect(find.widgetWithText(KeyCap, '6'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // 底注外层是一个 `Wrap`；组内还有嵌套 `Wrap`，所以按「直接子项里有

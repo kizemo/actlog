@@ -25,15 +25,18 @@ import 'tables.dart';
 
 /// 参与同步的表（白名单）—— 只有这些表会产生 oplog 记录。
 ///
-/// 共 12 张：settings, day_log, plan_item, todo, habit, habit_checkin,
+/// 共 14 张：settings, day_log, plan_item, todo, habit, habit_checkin,
 /// project, project_milestone, project_increment, reminder,
-/// recurring_task, recurring_occurrence。
+/// recurring_task, recurring_occurrence, goal, goal_link。
 ///
 /// 两张 recurring 表必须同步，理由不是「看着该同步」而是**数据一致性**：
 /// · `recurring_task` 是用户定义，跨设备必须一致，否则换台机器规则凭空消失；
 /// · `recurring_occurrence` 是物化凭证，不同步 ⇒ 新设备认为「一条都没物化过」
 ///   ⇒ 再物化一次 ⇒ `plan_item`（同步表，原有条目会被拉回来）里出现**重复条目**。
 ///   凭证必须跟规则一起走，缺一不可。
+///
+/// 两张 goal 表同样必须同步：目标是用户亲手撰写的数据，`goal_link` 是跨层
+/// 「对齐链」的载体 —— 不同步则换设备后链条断裂，且**不会报错**。
 const Set<String> syncedTables = <String>{
   TableNames.settings,
   TableNames.dayLog,
@@ -47,6 +50,8 @@ const Set<String> syncedTables = <String>{
   TableNames.reminder,
   TableNames.recurringTask,
   TableNames.recurringOccurrence,
+  TableNames.goal,
+  TableNames.goalLink,
 };
 
 /// 本机表（派生 / 游标 / 快照）—— **绝不入 oplog**。
@@ -56,7 +61,7 @@ const Set<String> localOnlyTables = <String>{
   TableNames.snapshotMeta,
 };
 
-/// 全部 16 张表。
+/// 全部 18 张表。
 const Set<String> allTables = <String>{
   ...syncedTables,
   ...localOnlyTables,

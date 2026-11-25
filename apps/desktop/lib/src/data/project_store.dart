@@ -59,6 +59,38 @@ class MissingEntityException implements Exception {
   String toString() => 'MissingEntityException(kind: $kind, id: $id)';
 }
 
+/// 校验失败的可判别异常：数据层只给**错误码**，不带任何面向用户的文案。
+///
+/// 为什么不把中文写在数据层：数据层不知道当前语言，中文一上屏，英文态就会
+/// 露中文。这里只给码，面向用户的那一句由界面层查 l10n 表拼（先例：
+/// [MissingEntityException]）。
+///
+/// 继承 [ArgumentError]：既有调用点按 `ArgumentError` 断言参数不合法，继承
+/// 之后那些断言照样成立；[code] 让界面层能把同一个异常映射到对应语言的那句。
+class ProjectValidationError extends ArgumentError {
+  /// 构造。
+  ProjectValidationError(this.code, {Object? invalidValue, String? name})
+      : super.value(invalidValue, name, code);
+
+  /// 错误码（取值见本类的静态常量）。
+  final String code;
+
+  /// 错误码：项目名称为空。
+  static const String nameRequired = 'project.name.required';
+
+  /// 错误码：任务标题为空。
+  static const String taskTitleRequired = 'project.task_title.required';
+
+  /// 错误码：排期来源类型既不是 `project` 也不是 `increment`。
+  static const String sourceTypeInvalid = 'project.source_type.invalid';
+
+  /// 错误码：日期不是 `YYYY-MM-DD` 格式。
+  static const String dateFormatInvalid = 'project.date_format.invalid';
+
+  @override
+  String toString() => 'ProjectValidationError(code: $code)';
+}
+
 /// 一条任务（`project_milestone` 的一行）。
 class MilestoneRow {
   /// 构造。
@@ -306,7 +338,11 @@ class ProjectStore {
   }) async {
     final String trimmed = name.trim();
     if (trimmed.isEmpty) {
-      throw ArgumentError.value(name, 'name', '项目名称不能为空');
+      throw ProjectValidationError(
+        ProjectValidationError.nameRequired,
+        invalidValue: name,
+        name: 'name',
+      );
     }
     if (startDate != null) {
       Validate.calendarDate(startDate, 'startDate');
@@ -362,7 +398,11 @@ class ProjectStore {
   }) async {
     final String trimmed = title.trim();
     if (trimmed.isEmpty) {
-      throw ArgumentError.value(title, 'title', '任务标题不能为空');
+      throw ProjectValidationError(
+        ProjectValidationError.taskTitleRequired,
+        invalidValue: title,
+        name: 'title',
+      );
     }
     if (targetDate != null) {
       Validate.calendarDate(targetDate, 'targetDate');
@@ -551,10 +591,10 @@ class ProjectStore {
     Validate.calendarDate(date, 'date');
     if (sourceType != PlanSourceType.project &&
         sourceType != PlanSourceType.increment) {
-      throw ArgumentError.value(
-        sourceType,
-        'sourceType',
-        '只接受 project / increment',
+      throw ProjectValidationError(
+        ProjectValidationError.sourceTypeInvalid,
+        invalidValue: sourceType,
+        name: 'sourceType',
       );
     }
     final int start = startMinute ?? await _nextStartMinute(date);
@@ -949,7 +989,11 @@ bool milestoneOverdue(MilestoneRow milestone, String todayIso) {
 DateTime _utcOfIso(String iso) {
   final List<String> parts = iso.split('-');
   if (parts.length != 3) {
-    throw ArgumentError.value(iso, 'iso', '日期必须是 YYYY-MM-DD 格式');
+    throw ProjectValidationError(
+      ProjectValidationError.dateFormatInvalid,
+      invalidValue: iso,
+      name: 'iso',
+    );
   }
   return DateTime.utc(
     int.parse(parts[0]),

@@ -43,7 +43,7 @@ void main() {
       referenceDb.close();
     });
 
-    test('表集合完全一致（v1 的 14 张 + v2 新增 2 张）', () async {
+    test('表集合完全一致（v1 的 14 张 + v2 新增 2 张 + v3 新增 2 张）', () async {
       final driftTables = await _userTables(driftDb);
       final referenceTables = await _userTables(referenceDb);
 
@@ -53,14 +53,14 @@ void main() {
         driftTables.where(referenceTables.contains).toList(),
         referenceTables,
       );
-      // 多出来的只允许是 v2 的两张：`docs` 目前没有 schema_v2.sql，
-      // 所以这里用「白名单」而不是第二份 DDL 做对照。
+      // 多出来的只允许是 v2 / v3 新增的四张：`docs` 目前没有 schema_v2.sql
+      // 与 schema_v3.sql，所以这里用「白名单」而不是第二份 DDL 做对照。
       expect(
         driftTables.where((t) => !referenceTables.contains(t)).toList(),
-        <String>['recurring_occurrence', 'recurring_task'],
-        reason: 'v2 只允许新增循环任务的两张表',
+        <String>['goal', 'goal_link', 'recurring_occurrence', 'recurring_task'],
+        reason: 'v2 只允许新增循环任务的两张表，v3 只允许新增目标的两张表',
       );
-      expect(driftTables.length, 16);
+      expect(driftTables.length, 18);
     });
 
     test('v2 新表的索引都已建出（迁移里手工建的那 4 个）', () async {
@@ -76,6 +76,24 @@ void main() {
         <String>{
           'idx_recurring_occurrence_date',
           'idx_recurring_occurrence_updated_at',
+        },
+      );
+    });
+
+    test('v3 新表的索引都已建出（迁移里手工建的那 5 个偏索引）', () async {
+      expect(
+        (await _indexes(driftDb, 'goal')).keys.toSet(),
+        <String>{
+          'idx_goal_kind_period',
+          'idx_goal_parent',
+          'idx_goal_domain',
+        },
+      );
+      expect(
+        (await _indexes(driftDb, 'goal_link')).keys.toSet(),
+        <String>{
+          'idx_goal_link_goal',
+          'idx_goal_link_target',
         },
       );
     });

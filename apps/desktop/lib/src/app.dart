@@ -9,6 +9,7 @@ import 'l10n/app_localizations.dart';
 import 'l10n/l10n_scope.dart';
 import 'pages/about_page.dart';
 import 'pages/calendar_page.dart';
+import 'pages/goals_page.dart';
 import 'pages/habits_page.dart';
 import 'pages/projects_page.dart';
 import 'pages/settings_page.dart';
@@ -164,6 +165,7 @@ class _ActLogAppState extends State<ActLogApp> {
         routes: <String, WidgetBuilder>{
           '/todo': (_) => const ShellHost(initialNavId: 'inbox'),
           '/calendar': (_) => const ShellHost(initialNavId: 'calendar'),
+          '/goals': (_) => const ShellHost(initialNavId: 'goals'),
           '/settings': (_) => const ShellHost(initialNavId: 'settings'),
           '/about': (_) => const _AboutRoute(),
         },
@@ -196,10 +198,10 @@ class _AboutRoute extends StatelessWidget {
 /// 自绘顶栏 [AppTopBar] 挂在本组件里、`LedgerShell` **之上**（不是塞进壳内部），
 /// 窗口动作全部转给 `desktop_shell.dart` 的模块级函数，壳本身完全不感知窗口。
 ///
-/// 五个页面（今日 / 待办池 / 习惯 / 日历 / 设置）都是**内容体**，不带
+/// 各页面（今日 / 待办池 / 习惯 / 项目 / 日历 / 目标 / 设置）都是**内容体**，不带
 /// `Scaffold`；导航点击只切本组件的 `_nav` 状态，不做路由 push —— 否则每点
 /// 一次就叠一层壳。
-/// `/todo`、`/calendar`、`/settings`、`/about` 保留为**深链入口**：前三个各自
+/// `/todo`、`/calendar`、`/goals`、`/settings`、`/about` 保留为**深链入口**：前四个各自
 /// 创建一个带初始导航项的宿主，`/about` 走壳外的 `_AboutRoute`（关于页没有
 /// 导航项，只在设置页与深链里可达）。
 class ShellHost extends StatefulWidget {
@@ -246,6 +248,8 @@ class _ShellHostState extends State<ShellHost> {
             _NavIntent('calendar'),
         SingleActivator(LogicalKeyboardKey.digit5, control: true):
             _NavIntent('projects'),
+        SingleActivator(LogicalKeyboardKey.digit6, control: true):
+            _NavIntent('goals'),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -338,6 +342,7 @@ class _ShellHostState extends State<ShellHost> {
         onDayPicked: () => setState(() => _nav = ShellHost.kTodayNavId),
       ),
       'settings' => const SettingsPage(),
+      'goals' => const GoalsPage(),
       // 项目页内容体没有自己的宿主栈，点增量「查看原文」后由壳层回今日页。
       'projects' => ProjectsPage(
         onOpenDayLog: () => setState(() => _nav = ShellHost.kTodayNavId),
@@ -355,14 +360,14 @@ class _ShellHostState extends State<ShellHost> {
   }
 }
 
-/// 「切页」意图（`Ctrl+1…5`，键条最后两条）。
+/// 「切页」意图（`Ctrl+1…6`，键条最后三条）。
 ///
-/// 只认有落点的导航项：今日 / 待办池 / 习惯 / 日历 / 项目。设置页虽有落点，
-/// 但键条与快捷键只承诺这五条 ⇒ 不实现 `Ctrl+6`（留没实现的提示就是假提示）。
+/// 只认有落点的导航项：今日 / 待办池 / 习惯 / 日历 / 项目 / 目标。设置页虽有
+/// 落点，但它沉底成齿轮、不占编号 ⇒ 键条与快捷键不承诺它。
 class _NavIntent extends Intent {
   const _NavIntent(this.navId);
 
-  /// 目标导航项 id（`today` / `inbox` / `habits` / `calendar` / `projects`）。
+  /// 目标导航项 id（`today` / `inbox` / `habits` / `calendar` / `projects` / `goals`）。
   final String navId;
 }
 

@@ -12364,6 +12364,1976 @@ class RecurringOccurrenceCompanion
   }
 }
 
+class $GoalTable extends Goal with TableInfo<$GoalTable, GoalData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GoalTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _keywordsMeta = const VerificationMeta(
+    'keywords',
+  );
+  @override
+  late final GeneratedColumn<String> keywords = GeneratedColumn<String>(
+    'keywords',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _domainMeta = const VerificationMeta('domain');
+  @override
+  late final GeneratedColumn<String> domain = GeneratedColumn<String>(
+    'domain',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _horizonMeta = const VerificationMeta(
+    'horizon',
+  );
+  @override
+  late final GeneratedColumn<int> horizon = GeneratedColumn<int>(
+    'horizon',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _facetMeta = const VerificationMeta('facet');
+  @override
+  late final GeneratedColumn<String> facet = GeneratedColumn<String>(
+    'facet',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _periodStartMeta = const VerificationMeta(
+    'periodStart',
+  );
+  @override
+  late final GeneratedColumn<int> periodStart = GeneratedColumn<int>(
+    'period_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _periodEndMeta = const VerificationMeta(
+    'periodEnd',
+  );
+  @override
+  late final GeneratedColumn<int> periodEnd = GeneratedColumn<int>(
+    'period_end',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<int> dueDate = GeneratedColumn<int>(
+    'due_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quadrantMeta = const VerificationMeta(
+    'quadrant',
+  );
+  @override
+  late final GeneratedColumn<int> quadrant = GeneratedColumn<int>(
+    'quadrant',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priorityAbcMeta = const VerificationMeta(
+    'priorityAbc',
+  );
+  @override
+  late final GeneratedColumn<String> priorityAbc = GeneratedColumn<String>(
+    'priority_abc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('active'),
+  );
+  static const VerificationMeta _selfScoreMeta = const VerificationMeta(
+    'selfScore',
+  );
+  @override
+  late final GeneratedColumn<int> selfScore = GeneratedColumn<int>(
+    'self_score',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reviewNoteMeta = const VerificationMeta(
+    'reviewNote',
+  );
+  @override
+  late final GeneratedColumn<String> reviewNote = GeneratedColumn<String>(
+    'review_note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _improveNoteMeta = const VerificationMeta(
+    'improveNote',
+  );
+  @override
+  late final GeneratedColumn<String> improveNote = GeneratedColumn<String>(
+    'improve_note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _originDeviceIdMeta = const VerificationMeta(
+    'originDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> originDeviceId = GeneratedColumn<String>(
+    'origin_device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
+  @override
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    kind,
+    title,
+    note,
+    keywords,
+    parentId,
+    domain,
+    horizon,
+    facet,
+    periodStart,
+    periodEnd,
+    dueDate,
+    quadrant,
+    priorityAbc,
+    status,
+    selfScore,
+    reviewNote,
+    improveNote,
+    archivedAt,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    originDeviceId,
+    rev,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'goal';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GoalData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('keywords')) {
+      context.handle(
+        _keywordsMeta,
+        keywords.isAcceptableOrUnknown(data['keywords']!, _keywordsMeta),
+      );
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
+    if (data.containsKey('domain')) {
+      context.handle(
+        _domainMeta,
+        domain.isAcceptableOrUnknown(data['domain']!, _domainMeta),
+      );
+    }
+    if (data.containsKey('horizon')) {
+      context.handle(
+        _horizonMeta,
+        horizon.isAcceptableOrUnknown(data['horizon']!, _horizonMeta),
+      );
+    }
+    if (data.containsKey('facet')) {
+      context.handle(
+        _facetMeta,
+        facet.isAcceptableOrUnknown(data['facet']!, _facetMeta),
+      );
+    }
+    if (data.containsKey('period_start')) {
+      context.handle(
+        _periodStartMeta,
+        periodStart.isAcceptableOrUnknown(
+          data['period_start']!,
+          _periodStartMeta,
+        ),
+      );
+    }
+    if (data.containsKey('period_end')) {
+      context.handle(
+        _periodEndMeta,
+        periodEnd.isAcceptableOrUnknown(data['period_end']!, _periodEndMeta),
+      );
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    }
+    if (data.containsKey('quadrant')) {
+      context.handle(
+        _quadrantMeta,
+        quadrant.isAcceptableOrUnknown(data['quadrant']!, _quadrantMeta),
+      );
+    }
+    if (data.containsKey('priority_abc')) {
+      context.handle(
+        _priorityAbcMeta,
+        priorityAbc.isAcceptableOrUnknown(
+          data['priority_abc']!,
+          _priorityAbcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('self_score')) {
+      context.handle(
+        _selfScoreMeta,
+        selfScore.isAcceptableOrUnknown(data['self_score']!, _selfScoreMeta),
+      );
+    }
+    if (data.containsKey('review_note')) {
+      context.handle(
+        _reviewNoteMeta,
+        reviewNote.isAcceptableOrUnknown(data['review_note']!, _reviewNoteMeta),
+      );
+    }
+    if (data.containsKey('improve_note')) {
+      context.handle(
+        _improveNoteMeta,
+        improveNote.isAcceptableOrUnknown(
+          data['improve_note']!,
+          _improveNoteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('origin_device_id')) {
+      context.handle(
+        _originDeviceIdMeta,
+        originDeviceId.isAcceptableOrUnknown(
+          data['origin_device_id']!,
+          _originDeviceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originDeviceIdMeta);
+    }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GoalData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GoalData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      keywords: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}keywords'],
+      ),
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
+      domain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}domain'],
+      ),
+      horizon: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}horizon'],
+      ),
+      facet: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}facet'],
+      ),
+      periodStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}period_start'],
+      )!,
+      periodEnd: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}period_end'],
+      ),
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}due_date'],
+      ),
+      quadrant: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}quadrant'],
+      ),
+      priorityAbc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}priority_abc'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      selfScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}self_score'],
+      ),
+      reviewNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}review_note'],
+      ),
+      improveNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}improve_note'],
+      ),
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      originDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}origin_device_id'],
+      )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+    );
+  }
+
+  @override
+  $GoalTable createAlias(String alias) {
+    return $GoalTable(attachedDatabase, alias);
+  }
+}
+
+class GoalData extends DataClass implements Insertable<GoalData> {
+  /// 实体 ID（UUIDv7 文本）。
+  final String id;
+
+  /// 目标形态：blueprint / brand / yearly / monthly / weekly。
+  final String kind;
+
+  /// 目标一句话（必须本人撰写）。
+  final String title;
+
+  /// 展开说明 / 愿景描述。
+  final String? note;
+
+  /// 关键词（蓝图「手段」层；其余 kind 复用为标签串）。
+  final String? keywords;
+
+  /// 上级目标 id；空 = 顶层（仿 reminder 不建外键）。
+  final String? parentId;
+
+  /// 领域 key（Task 59 六 key；空 = 未分类）。
+  final String? domain;
+
+  /// 蓝图档位 1..5；其余 kind 为空。
+  final int? horizon;
+
+  /// 品牌画像切面；其余 kind 为空。
+  final String? facet;
+
+  /// 周期起点（Unix 毫秒 UTC；非周期目标 = 建档时刻）。
+  final int periodStart;
+
+  /// 周期终点（Unix 毫秒 UTC）。
+  final int? periodEnd;
+
+  /// 周内完成期限（Unix 毫秒）。
+  final int? dueDate;
+
+  /// 四象限 1..4（复用 `Quadrant`）。
+  final int? quadrant;
+
+  /// ABC 优先级 A/B/C（复用 `PriorityAbc`）。
+  final String? priorityAbc;
+
+  /// 状态：draft / active / done / cancelled。
+  final String status;
+
+  /// 用户自评 0..10（源数据，入库）；空 = 未评。
+  final int? selfScore;
+
+  /// 未完成原因 / 障碍。
+  final String? reviewNote;
+
+  /// 改进措施 / 克服对策。
+  final String? improveNote;
+
+  /// 取消线（Unix 毫秒）。
+  final int? archivedAt;
+
+  /// 创建时刻（Unix 毫秒）。
+  final int createdAt;
+
+  /// 最后更新时刻（Unix 毫秒）。
+  final int updatedAt;
+
+  /// 删除时刻（Unix 毫秒）；非空 = 墓碑。
+  final int? deletedAt;
+
+  /// 最后写入本行的设备 ID。
+  final String originDeviceId;
+
+  /// 本地修订号。
+  final int rev;
+  const GoalData({
+    required this.id,
+    required this.kind,
+    required this.title,
+    this.note,
+    this.keywords,
+    this.parentId,
+    this.domain,
+    this.horizon,
+    this.facet,
+    required this.periodStart,
+    this.periodEnd,
+    this.dueDate,
+    this.quadrant,
+    this.priorityAbc,
+    required this.status,
+    this.selfScore,
+    this.reviewNote,
+    this.improveNote,
+    this.archivedAt,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.originDeviceId,
+    required this.rev,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['kind'] = Variable<String>(kind);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || keywords != null) {
+      map['keywords'] = Variable<String>(keywords);
+    }
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    if (!nullToAbsent || domain != null) {
+      map['domain'] = Variable<String>(domain);
+    }
+    if (!nullToAbsent || horizon != null) {
+      map['horizon'] = Variable<int>(horizon);
+    }
+    if (!nullToAbsent || facet != null) {
+      map['facet'] = Variable<String>(facet);
+    }
+    map['period_start'] = Variable<int>(periodStart);
+    if (!nullToAbsent || periodEnd != null) {
+      map['period_end'] = Variable<int>(periodEnd);
+    }
+    if (!nullToAbsent || dueDate != null) {
+      map['due_date'] = Variable<int>(dueDate);
+    }
+    if (!nullToAbsent || quadrant != null) {
+      map['quadrant'] = Variable<int>(quadrant);
+    }
+    if (!nullToAbsent || priorityAbc != null) {
+      map['priority_abc'] = Variable<String>(priorityAbc);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || selfScore != null) {
+      map['self_score'] = Variable<int>(selfScore);
+    }
+    if (!nullToAbsent || reviewNote != null) {
+      map['review_note'] = Variable<String>(reviewNote);
+    }
+    if (!nullToAbsent || improveNote != null) {
+      map['improve_note'] = Variable<String>(improveNote);
+    }
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['origin_device_id'] = Variable<String>(originDeviceId);
+    map['rev'] = Variable<int>(rev);
+    return map;
+  }
+
+  GoalCompanion toCompanion(bool nullToAbsent) {
+    return GoalCompanion(
+      id: Value(id),
+      kind: Value(kind),
+      title: Value(title),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      keywords: keywords == null && nullToAbsent
+          ? const Value.absent()
+          : Value(keywords),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      domain: domain == null && nullToAbsent
+          ? const Value.absent()
+          : Value(domain),
+      horizon: horizon == null && nullToAbsent
+          ? const Value.absent()
+          : Value(horizon),
+      facet: facet == null && nullToAbsent
+          ? const Value.absent()
+          : Value(facet),
+      periodStart: Value(periodStart),
+      periodEnd: periodEnd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(periodEnd),
+      dueDate: dueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueDate),
+      quadrant: quadrant == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quadrant),
+      priorityAbc: priorityAbc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priorityAbc),
+      status: Value(status),
+      selfScore: selfScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(selfScore),
+      reviewNote: reviewNote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reviewNote),
+      improveNote: improveNote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(improveNote),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      originDeviceId: Value(originDeviceId),
+      rev: Value(rev),
+    );
+  }
+
+  factory GoalData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GoalData(
+      id: serializer.fromJson<String>(json['id']),
+      kind: serializer.fromJson<String>(json['kind']),
+      title: serializer.fromJson<String>(json['title']),
+      note: serializer.fromJson<String?>(json['note']),
+      keywords: serializer.fromJson<String?>(json['keywords']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      domain: serializer.fromJson<String?>(json['domain']),
+      horizon: serializer.fromJson<int?>(json['horizon']),
+      facet: serializer.fromJson<String?>(json['facet']),
+      periodStart: serializer.fromJson<int>(json['periodStart']),
+      periodEnd: serializer.fromJson<int?>(json['periodEnd']),
+      dueDate: serializer.fromJson<int?>(json['dueDate']),
+      quadrant: serializer.fromJson<int?>(json['quadrant']),
+      priorityAbc: serializer.fromJson<String?>(json['priorityAbc']),
+      status: serializer.fromJson<String>(json['status']),
+      selfScore: serializer.fromJson<int?>(json['selfScore']),
+      reviewNote: serializer.fromJson<String?>(json['reviewNote']),
+      improveNote: serializer.fromJson<String?>(json['improveNote']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      originDeviceId: serializer.fromJson<String>(json['originDeviceId']),
+      rev: serializer.fromJson<int>(json['rev']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'kind': serializer.toJson<String>(kind),
+      'title': serializer.toJson<String>(title),
+      'note': serializer.toJson<String?>(note),
+      'keywords': serializer.toJson<String?>(keywords),
+      'parentId': serializer.toJson<String?>(parentId),
+      'domain': serializer.toJson<String?>(domain),
+      'horizon': serializer.toJson<int?>(horizon),
+      'facet': serializer.toJson<String?>(facet),
+      'periodStart': serializer.toJson<int>(periodStart),
+      'periodEnd': serializer.toJson<int?>(periodEnd),
+      'dueDate': serializer.toJson<int?>(dueDate),
+      'quadrant': serializer.toJson<int?>(quadrant),
+      'priorityAbc': serializer.toJson<String?>(priorityAbc),
+      'status': serializer.toJson<String>(status),
+      'selfScore': serializer.toJson<int?>(selfScore),
+      'reviewNote': serializer.toJson<String?>(reviewNote),
+      'improveNote': serializer.toJson<String?>(improveNote),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'originDeviceId': serializer.toJson<String>(originDeviceId),
+      'rev': serializer.toJson<int>(rev),
+    };
+  }
+
+  GoalData copyWith({
+    String? id,
+    String? kind,
+    String? title,
+    Value<String?> note = const Value.absent(),
+    Value<String?> keywords = const Value.absent(),
+    Value<String?> parentId = const Value.absent(),
+    Value<String?> domain = const Value.absent(),
+    Value<int?> horizon = const Value.absent(),
+    Value<String?> facet = const Value.absent(),
+    int? periodStart,
+    Value<int?> periodEnd = const Value.absent(),
+    Value<int?> dueDate = const Value.absent(),
+    Value<int?> quadrant = const Value.absent(),
+    Value<String?> priorityAbc = const Value.absent(),
+    String? status,
+    Value<int?> selfScore = const Value.absent(),
+    Value<String?> reviewNote = const Value.absent(),
+    Value<String?> improveNote = const Value.absent(),
+    Value<int?> archivedAt = const Value.absent(),
+    int? createdAt,
+    int? updatedAt,
+    Value<int?> deletedAt = const Value.absent(),
+    String? originDeviceId,
+    int? rev,
+  }) => GoalData(
+    id: id ?? this.id,
+    kind: kind ?? this.kind,
+    title: title ?? this.title,
+    note: note.present ? note.value : this.note,
+    keywords: keywords.present ? keywords.value : this.keywords,
+    parentId: parentId.present ? parentId.value : this.parentId,
+    domain: domain.present ? domain.value : this.domain,
+    horizon: horizon.present ? horizon.value : this.horizon,
+    facet: facet.present ? facet.value : this.facet,
+    periodStart: periodStart ?? this.periodStart,
+    periodEnd: periodEnd.present ? periodEnd.value : this.periodEnd,
+    dueDate: dueDate.present ? dueDate.value : this.dueDate,
+    quadrant: quadrant.present ? quadrant.value : this.quadrant,
+    priorityAbc: priorityAbc.present ? priorityAbc.value : this.priorityAbc,
+    status: status ?? this.status,
+    selfScore: selfScore.present ? selfScore.value : this.selfScore,
+    reviewNote: reviewNote.present ? reviewNote.value : this.reviewNote,
+    improveNote: improveNote.present ? improveNote.value : this.improveNote,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    originDeviceId: originDeviceId ?? this.originDeviceId,
+    rev: rev ?? this.rev,
+  );
+  GoalData copyWithCompanion(GoalCompanion data) {
+    return GoalData(
+      id: data.id.present ? data.id.value : this.id,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      title: data.title.present ? data.title.value : this.title,
+      note: data.note.present ? data.note.value : this.note,
+      keywords: data.keywords.present ? data.keywords.value : this.keywords,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      domain: data.domain.present ? data.domain.value : this.domain,
+      horizon: data.horizon.present ? data.horizon.value : this.horizon,
+      facet: data.facet.present ? data.facet.value : this.facet,
+      periodStart: data.periodStart.present
+          ? data.periodStart.value
+          : this.periodStart,
+      periodEnd: data.periodEnd.present ? data.periodEnd.value : this.periodEnd,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      quadrant: data.quadrant.present ? data.quadrant.value : this.quadrant,
+      priorityAbc: data.priorityAbc.present
+          ? data.priorityAbc.value
+          : this.priorityAbc,
+      status: data.status.present ? data.status.value : this.status,
+      selfScore: data.selfScore.present ? data.selfScore.value : this.selfScore,
+      reviewNote: data.reviewNote.present
+          ? data.reviewNote.value
+          : this.reviewNote,
+      improveNote: data.improveNote.present
+          ? data.improveNote.value
+          : this.improveNote,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDeviceId: data.originDeviceId.present
+          ? data.originDeviceId.value
+          : this.originDeviceId,
+      rev: data.rev.present ? data.rev.value : this.rev,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalData(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('keywords: $keywords, ')
+          ..write('parentId: $parentId, ')
+          ..write('domain: $domain, ')
+          ..write('horizon: $horizon, ')
+          ..write('facet: $facet, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('quadrant: $quadrant, ')
+          ..write('priorityAbc: $priorityAbc, ')
+          ..write('status: $status, ')
+          ..write('selfScore: $selfScore, ')
+          ..write('reviewNote: $reviewNote, ')
+          ..write('improveNote: $improveNote, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDeviceId: $originDeviceId, ')
+          ..write('rev: $rev')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    kind,
+    title,
+    note,
+    keywords,
+    parentId,
+    domain,
+    horizon,
+    facet,
+    periodStart,
+    periodEnd,
+    dueDate,
+    quadrant,
+    priorityAbc,
+    status,
+    selfScore,
+    reviewNote,
+    improveNote,
+    archivedAt,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    originDeviceId,
+    rev,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GoalData &&
+          other.id == this.id &&
+          other.kind == this.kind &&
+          other.title == this.title &&
+          other.note == this.note &&
+          other.keywords == this.keywords &&
+          other.parentId == this.parentId &&
+          other.domain == this.domain &&
+          other.horizon == this.horizon &&
+          other.facet == this.facet &&
+          other.periodStart == this.periodStart &&
+          other.periodEnd == this.periodEnd &&
+          other.dueDate == this.dueDate &&
+          other.quadrant == this.quadrant &&
+          other.priorityAbc == this.priorityAbc &&
+          other.status == this.status &&
+          other.selfScore == this.selfScore &&
+          other.reviewNote == this.reviewNote &&
+          other.improveNote == this.improveNote &&
+          other.archivedAt == this.archivedAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDeviceId == this.originDeviceId &&
+          other.rev == this.rev);
+}
+
+class GoalCompanion extends UpdateCompanion<GoalData> {
+  final Value<String> id;
+  final Value<String> kind;
+  final Value<String> title;
+  final Value<String?> note;
+  final Value<String?> keywords;
+  final Value<String?> parentId;
+  final Value<String?> domain;
+  final Value<int?> horizon;
+  final Value<String?> facet;
+  final Value<int> periodStart;
+  final Value<int?> periodEnd;
+  final Value<int?> dueDate;
+  final Value<int?> quadrant;
+  final Value<String?> priorityAbc;
+  final Value<String> status;
+  final Value<int?> selfScore;
+  final Value<String?> reviewNote;
+  final Value<String?> improveNote;
+  final Value<int?> archivedAt;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int?> deletedAt;
+  final Value<String> originDeviceId;
+  final Value<int> rev;
+  final Value<int> rowid;
+  const GoalCompanion({
+    this.id = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.title = const Value.absent(),
+    this.note = const Value.absent(),
+    this.keywords = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.horizon = const Value.absent(),
+    this.facet = const Value.absent(),
+    this.periodStart = const Value.absent(),
+    this.periodEnd = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.quadrant = const Value.absent(),
+    this.priorityAbc = const Value.absent(),
+    this.status = const Value.absent(),
+    this.selfScore = const Value.absent(),
+    this.reviewNote = const Value.absent(),
+    this.improveNote = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDeviceId = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GoalCompanion.insert({
+    required String id,
+    required String kind,
+    required String title,
+    this.note = const Value.absent(),
+    this.keywords = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.horizon = const Value.absent(),
+    this.facet = const Value.absent(),
+    this.periodStart = const Value.absent(),
+    this.periodEnd = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.quadrant = const Value.absent(),
+    this.priorityAbc = const Value.absent(),
+    this.status = const Value.absent(),
+    this.selfScore = const Value.absent(),
+    this.reviewNote = const Value.absent(),
+    this.improveNote = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.deletedAt = const Value.absent(),
+    required String originDeviceId,
+    this.rev = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       kind = Value(kind),
+       title = Value(title),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       originDeviceId = Value(originDeviceId);
+  static Insertable<GoalData> custom({
+    Expression<String>? id,
+    Expression<String>? kind,
+    Expression<String>? title,
+    Expression<String>? note,
+    Expression<String>? keywords,
+    Expression<String>? parentId,
+    Expression<String>? domain,
+    Expression<int>? horizon,
+    Expression<String>? facet,
+    Expression<int>? periodStart,
+    Expression<int>? periodEnd,
+    Expression<int>? dueDate,
+    Expression<int>? quadrant,
+    Expression<String>? priorityAbc,
+    Expression<String>? status,
+    Expression<int>? selfScore,
+    Expression<String>? reviewNote,
+    Expression<String>? improveNote,
+    Expression<int>? archivedAt,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? deletedAt,
+    Expression<String>? originDeviceId,
+    Expression<int>? rev,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (kind != null) 'kind': kind,
+      if (title != null) 'title': title,
+      if (note != null) 'note': note,
+      if (keywords != null) 'keywords': keywords,
+      if (parentId != null) 'parent_id': parentId,
+      if (domain != null) 'domain': domain,
+      if (horizon != null) 'horizon': horizon,
+      if (facet != null) 'facet': facet,
+      if (periodStart != null) 'period_start': periodStart,
+      if (periodEnd != null) 'period_end': periodEnd,
+      if (dueDate != null) 'due_date': dueDate,
+      if (quadrant != null) 'quadrant': quadrant,
+      if (priorityAbc != null) 'priority_abc': priorityAbc,
+      if (status != null) 'status': status,
+      if (selfScore != null) 'self_score': selfScore,
+      if (reviewNote != null) 'review_note': reviewNote,
+      if (improveNote != null) 'improve_note': improveNote,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDeviceId != null) 'origin_device_id': originDeviceId,
+      if (rev != null) 'rev': rev,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GoalCompanion copyWith({
+    Value<String>? id,
+    Value<String>? kind,
+    Value<String>? title,
+    Value<String?>? note,
+    Value<String?>? keywords,
+    Value<String?>? parentId,
+    Value<String?>? domain,
+    Value<int?>? horizon,
+    Value<String?>? facet,
+    Value<int>? periodStart,
+    Value<int?>? periodEnd,
+    Value<int?>? dueDate,
+    Value<int?>? quadrant,
+    Value<String?>? priorityAbc,
+    Value<String>? status,
+    Value<int?>? selfScore,
+    Value<String?>? reviewNote,
+    Value<String?>? improveNote,
+    Value<int?>? archivedAt,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int?>? deletedAt,
+    Value<String>? originDeviceId,
+    Value<int>? rev,
+    Value<int>? rowid,
+  }) {
+    return GoalCompanion(
+      id: id ?? this.id,
+      kind: kind ?? this.kind,
+      title: title ?? this.title,
+      note: note ?? this.note,
+      keywords: keywords ?? this.keywords,
+      parentId: parentId ?? this.parentId,
+      domain: domain ?? this.domain,
+      horizon: horizon ?? this.horizon,
+      facet: facet ?? this.facet,
+      periodStart: periodStart ?? this.periodStart,
+      periodEnd: periodEnd ?? this.periodEnd,
+      dueDate: dueDate ?? this.dueDate,
+      quadrant: quadrant ?? this.quadrant,
+      priorityAbc: priorityAbc ?? this.priorityAbc,
+      status: status ?? this.status,
+      selfScore: selfScore ?? this.selfScore,
+      reviewNote: reviewNote ?? this.reviewNote,
+      improveNote: improveNote ?? this.improveNote,
+      archivedAt: archivedAt ?? this.archivedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDeviceId: originDeviceId ?? this.originDeviceId,
+      rev: rev ?? this.rev,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (keywords.present) {
+      map['keywords'] = Variable<String>(keywords.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(domain.value);
+    }
+    if (horizon.present) {
+      map['horizon'] = Variable<int>(horizon.value);
+    }
+    if (facet.present) {
+      map['facet'] = Variable<String>(facet.value);
+    }
+    if (periodStart.present) {
+      map['period_start'] = Variable<int>(periodStart.value);
+    }
+    if (periodEnd.present) {
+      map['period_end'] = Variable<int>(periodEnd.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<int>(dueDate.value);
+    }
+    if (quadrant.present) {
+      map['quadrant'] = Variable<int>(quadrant.value);
+    }
+    if (priorityAbc.present) {
+      map['priority_abc'] = Variable<String>(priorityAbc.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (selfScore.present) {
+      map['self_score'] = Variable<int>(selfScore.value);
+    }
+    if (reviewNote.present) {
+      map['review_note'] = Variable<String>(reviewNote.value);
+    }
+    if (improveNote.present) {
+      map['improve_note'] = Variable<String>(improveNote.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (originDeviceId.present) {
+      map['origin_device_id'] = Variable<String>(originDeviceId.value);
+    }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalCompanion(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('title: $title, ')
+          ..write('note: $note, ')
+          ..write('keywords: $keywords, ')
+          ..write('parentId: $parentId, ')
+          ..write('domain: $domain, ')
+          ..write('horizon: $horizon, ')
+          ..write('facet: $facet, ')
+          ..write('periodStart: $periodStart, ')
+          ..write('periodEnd: $periodEnd, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('quadrant: $quadrant, ')
+          ..write('priorityAbc: $priorityAbc, ')
+          ..write('status: $status, ')
+          ..write('selfScore: $selfScore, ')
+          ..write('reviewNote: $reviewNote, ')
+          ..write('improveNote: $improveNote, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDeviceId: $originDeviceId, ')
+          ..write('rev: $rev, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GoalLinkTable extends GoalLink
+    with TableInfo<$GoalLinkTable, GoalLinkData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GoalLinkTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
+  @override
+  late final GeneratedColumn<String> goalId = GeneratedColumn<String>(
+    'goal_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetTypeMeta = const VerificationMeta(
+    'targetType',
+  );
+  @override
+  late final GeneratedColumn<String> targetType = GeneratedColumn<String>(
+    'target_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetIdMeta = const VerificationMeta(
+    'targetId',
+  );
+  @override
+  late final GeneratedColumn<String> targetId = GeneratedColumn<String>(
+    'target_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _relationMeta = const VerificationMeta(
+    'relation',
+  );
+  @override
+  late final GeneratedColumn<String> relation = GeneratedColumn<String>(
+    'relation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('serves'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _originDeviceIdMeta = const VerificationMeta(
+    'originDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> originDeviceId = GeneratedColumn<String>(
+    'origin_device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
+  @override
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    goalId,
+    targetType,
+    targetId,
+    relation,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    originDeviceId,
+    rev,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'goal_link';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GoalLinkData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('goal_id')) {
+      context.handle(
+        _goalIdMeta,
+        goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_goalIdMeta);
+    }
+    if (data.containsKey('target_type')) {
+      context.handle(
+        _targetTypeMeta,
+        targetType.isAcceptableOrUnknown(data['target_type']!, _targetTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_targetTypeMeta);
+    }
+    if (data.containsKey('target_id')) {
+      context.handle(
+        _targetIdMeta,
+        targetId.isAcceptableOrUnknown(data['target_id']!, _targetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_targetIdMeta);
+    }
+    if (data.containsKey('relation')) {
+      context.handle(
+        _relationMeta,
+        relation.isAcceptableOrUnknown(data['relation']!, _relationMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('origin_device_id')) {
+      context.handle(
+        _originDeviceIdMeta,
+        originDeviceId.isAcceptableOrUnknown(
+          data['origin_device_id']!,
+          _originDeviceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originDeviceIdMeta);
+    }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GoalLinkData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GoalLinkData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      goalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}goal_id'],
+      )!,
+      targetType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_type'],
+      )!,
+      targetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_id'],
+      )!,
+      relation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relation'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      originDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}origin_device_id'],
+      )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+    );
+  }
+
+  @override
+  $GoalLinkTable createAlias(String alias) {
+    return $GoalLinkTable(attachedDatabase, alias);
+  }
+}
+
+class GoalLinkData extends DataClass implements Insertable<GoalLinkData> {
+  /// 实体 ID（UUIDv7 文本）。
+  final String id;
+
+  /// 所属目标 id（不建外键）。
+  final String goalId;
+
+  /// 关联目标类型：todo / plan_item / project / increment / habit / goal。
+  final String targetType;
+
+  /// 关联目标 id（多态指针）。
+  final String targetId;
+
+  /// 关系语义：serves / derives / tracks / references。
+  final String relation;
+
+  /// 创建时刻（Unix 毫秒）。
+  final int createdAt;
+
+  /// 最后更新时刻（Unix 毫秒）。
+  final int updatedAt;
+
+  /// 删除时刻（Unix 毫秒）；非空 = 墓碑。
+  final int? deletedAt;
+
+  /// 最后写入本行的设备 ID。
+  final String originDeviceId;
+
+  /// 本地修订号。
+  final int rev;
+  const GoalLinkData({
+    required this.id,
+    required this.goalId,
+    required this.targetType,
+    required this.targetId,
+    required this.relation,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.originDeviceId,
+    required this.rev,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['goal_id'] = Variable<String>(goalId);
+    map['target_type'] = Variable<String>(targetType);
+    map['target_id'] = Variable<String>(targetId);
+    map['relation'] = Variable<String>(relation);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    map['origin_device_id'] = Variable<String>(originDeviceId);
+    map['rev'] = Variable<int>(rev);
+    return map;
+  }
+
+  GoalLinkCompanion toCompanion(bool nullToAbsent) {
+    return GoalLinkCompanion(
+      id: Value(id),
+      goalId: Value(goalId),
+      targetType: Value(targetType),
+      targetId: Value(targetId),
+      relation: Value(relation),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      originDeviceId: Value(originDeviceId),
+      rev: Value(rev),
+    );
+  }
+
+  factory GoalLinkData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GoalLinkData(
+      id: serializer.fromJson<String>(json['id']),
+      goalId: serializer.fromJson<String>(json['goalId']),
+      targetType: serializer.fromJson<String>(json['targetType']),
+      targetId: serializer.fromJson<String>(json['targetId']),
+      relation: serializer.fromJson<String>(json['relation']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      originDeviceId: serializer.fromJson<String>(json['originDeviceId']),
+      rev: serializer.fromJson<int>(json['rev']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'goalId': serializer.toJson<String>(goalId),
+      'targetType': serializer.toJson<String>(targetType),
+      'targetId': serializer.toJson<String>(targetId),
+      'relation': serializer.toJson<String>(relation),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+      'originDeviceId': serializer.toJson<String>(originDeviceId),
+      'rev': serializer.toJson<int>(rev),
+    };
+  }
+
+  GoalLinkData copyWith({
+    String? id,
+    String? goalId,
+    String? targetType,
+    String? targetId,
+    String? relation,
+    int? createdAt,
+    int? updatedAt,
+    Value<int?> deletedAt = const Value.absent(),
+    String? originDeviceId,
+    int? rev,
+  }) => GoalLinkData(
+    id: id ?? this.id,
+    goalId: goalId ?? this.goalId,
+    targetType: targetType ?? this.targetType,
+    targetId: targetId ?? this.targetId,
+    relation: relation ?? this.relation,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    originDeviceId: originDeviceId ?? this.originDeviceId,
+    rev: rev ?? this.rev,
+  );
+  GoalLinkData copyWithCompanion(GoalLinkCompanion data) {
+    return GoalLinkData(
+      id: data.id.present ? data.id.value : this.id,
+      goalId: data.goalId.present ? data.goalId.value : this.goalId,
+      targetType: data.targetType.present
+          ? data.targetType.value
+          : this.targetType,
+      targetId: data.targetId.present ? data.targetId.value : this.targetId,
+      relation: data.relation.present ? data.relation.value : this.relation,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDeviceId: data.originDeviceId.present
+          ? data.originDeviceId.value
+          : this.originDeviceId,
+      rev: data.rev.present ? data.rev.value : this.rev,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalLinkData(')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('targetType: $targetType, ')
+          ..write('targetId: $targetId, ')
+          ..write('relation: $relation, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDeviceId: $originDeviceId, ')
+          ..write('rev: $rev')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    goalId,
+    targetType,
+    targetId,
+    relation,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    originDeviceId,
+    rev,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GoalLinkData &&
+          other.id == this.id &&
+          other.goalId == this.goalId &&
+          other.targetType == this.targetType &&
+          other.targetId == this.targetId &&
+          other.relation == this.relation &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDeviceId == this.originDeviceId &&
+          other.rev == this.rev);
+}
+
+class GoalLinkCompanion extends UpdateCompanion<GoalLinkData> {
+  final Value<String> id;
+  final Value<String> goalId;
+  final Value<String> targetType;
+  final Value<String> targetId;
+  final Value<String> relation;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int?> deletedAt;
+  final Value<String> originDeviceId;
+  final Value<int> rev;
+  final Value<int> rowid;
+  const GoalLinkCompanion({
+    this.id = const Value.absent(),
+    this.goalId = const Value.absent(),
+    this.targetType = const Value.absent(),
+    this.targetId = const Value.absent(),
+    this.relation = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDeviceId = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GoalLinkCompanion.insert({
+    required String id,
+    required String goalId,
+    required String targetType,
+    required String targetId,
+    this.relation = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.deletedAt = const Value.absent(),
+    required String originDeviceId,
+    this.rev = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       goalId = Value(goalId),
+       targetType = Value(targetType),
+       targetId = Value(targetId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       originDeviceId = Value(originDeviceId);
+  static Insertable<GoalLinkData> custom({
+    Expression<String>? id,
+    Expression<String>? goalId,
+    Expression<String>? targetType,
+    Expression<String>? targetId,
+    Expression<String>? relation,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? deletedAt,
+    Expression<String>? originDeviceId,
+    Expression<int>? rev,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (goalId != null) 'goal_id': goalId,
+      if (targetType != null) 'target_type': targetType,
+      if (targetId != null) 'target_id': targetId,
+      if (relation != null) 'relation': relation,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDeviceId != null) 'origin_device_id': originDeviceId,
+      if (rev != null) 'rev': rev,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GoalLinkCompanion copyWith({
+    Value<String>? id,
+    Value<String>? goalId,
+    Value<String>? targetType,
+    Value<String>? targetId,
+    Value<String>? relation,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int?>? deletedAt,
+    Value<String>? originDeviceId,
+    Value<int>? rev,
+    Value<int>? rowid,
+  }) {
+    return GoalLinkCompanion(
+      id: id ?? this.id,
+      goalId: goalId ?? this.goalId,
+      targetType: targetType ?? this.targetType,
+      targetId: targetId ?? this.targetId,
+      relation: relation ?? this.relation,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDeviceId: originDeviceId ?? this.originDeviceId,
+      rev: rev ?? this.rev,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (goalId.present) {
+      map['goal_id'] = Variable<String>(goalId.value);
+    }
+    if (targetType.present) {
+      map['target_type'] = Variable<String>(targetType.value);
+    }
+    if (targetId.present) {
+      map['target_id'] = Variable<String>(targetId.value);
+    }
+    if (relation.present) {
+      map['relation'] = Variable<String>(relation.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (originDeviceId.present) {
+      map['origin_device_id'] = Variable<String>(originDeviceId.value);
+    }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GoalLinkCompanion(')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('targetType: $targetType, ')
+          ..write('targetId: $targetId, ')
+          ..write('relation: $relation, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDeviceId: $originDeviceId, ')
+          ..write('rev: $rev, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$ActLogDatabase extends GeneratedDatabase {
   _$ActLogDatabase(QueryExecutor e) : super(e);
   $ActLogDatabaseManager get managers => $ActLogDatabaseManager(this);
@@ -12388,6 +14358,8 @@ abstract class _$ActLogDatabase extends GeneratedDatabase {
   late final $RecurringTaskTable recurringTask = $RecurringTaskTable(this);
   late final $RecurringOccurrenceTable recurringOccurrence =
       $RecurringOccurrenceTable(this);
+  late final $GoalTable goal = $GoalTable(this);
+  late final $GoalLinkTable goalLink = $GoalLinkTable(this);
   late final Index idxSettingsUpdatedAt = Index(
     'idx_settings_updated_at',
     'CREATE INDEX idx_settings_updated_at ON settings (updated_at)',
@@ -12524,6 +14496,26 @@ abstract class _$ActLogDatabase extends GeneratedDatabase {
     'idx_recurring_occurrence_updated_at',
     'CREATE INDEX idx_recurring_occurrence_updated_at ON recurring_occurrence (updated_at)',
   );
+  late final Index idxGoalKindPeriod = Index(
+    'idx_goal_kind_period',
+    'CREATE INDEX idx_goal_kind_period ON goal (kind, period_start) WHERE deleted_at IS NULL',
+  );
+  late final Index idxGoalParent = Index(
+    'idx_goal_parent',
+    'CREATE INDEX idx_goal_parent ON goal (parent_id) WHERE deleted_at IS NULL',
+  );
+  late final Index idxGoalDomain = Index(
+    'idx_goal_domain',
+    'CREATE INDEX idx_goal_domain ON goal (domain, kind) WHERE deleted_at IS NULL',
+  );
+  late final Index idxGoalLinkGoal = Index(
+    'idx_goal_link_goal',
+    'CREATE INDEX idx_goal_link_goal ON goal_link (goal_id) WHERE deleted_at IS NULL',
+  );
+  late final Index idxGoalLinkTarget = Index(
+    'idx_goal_link_target',
+    'CREATE INDEX idx_goal_link_target ON goal_link (target_type, target_id) WHERE deleted_at IS NULL',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12545,6 +14537,8 @@ abstract class _$ActLogDatabase extends GeneratedDatabase {
     snapshotMeta,
     recurringTask,
     recurringOccurrence,
+    goal,
+    goalLink,
     idxSettingsUpdatedAt,
     idxDayLogUpdatedAt,
     idxPlanItemDate,
@@ -12579,6 +14573,11 @@ abstract class _$ActLogDatabase extends GeneratedDatabase {
     idxRecurringTaskUpdatedAt,
     idxRecurringOccurrenceDate,
     idxRecurringOccurrenceUpdatedAt,
+    idxGoalKindPeriod,
+    idxGoalParent,
+    idxGoalDomain,
+    idxGoalLinkGoal,
+    idxGoalLinkTarget,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -20275,6 +22274,885 @@ typedef $$RecurringOccurrenceTableProcessedTableManager =
       RecurringOccurrenceData,
       PrefetchHooks Function({bool taskId, bool planItemId})
     >;
+typedef $$GoalTableCreateCompanionBuilder = GoalCompanion Function({
+  required String id,
+  required String kind,
+  required String title,
+  Value<String?> note,
+  Value<String?> keywords,
+  Value<String?> parentId,
+  Value<String?> domain,
+  Value<int?> horizon,
+  Value<String?> facet,
+  Value<int> periodStart,
+  Value<int?> periodEnd,
+  Value<int?> dueDate,
+  Value<int?> quadrant,
+  Value<String?> priorityAbc,
+  Value<String> status,
+  Value<int?> selfScore,
+  Value<String?> reviewNote,
+  Value<String?> improveNote,
+  Value<int?> archivedAt,
+  required int createdAt,
+  required int updatedAt,
+  Value<int?> deletedAt,
+  required String originDeviceId,
+  Value<int> rev,
+  Value<int> rowid,
+});
+typedef $$GoalTableUpdateCompanionBuilder = GoalCompanion Function({
+  Value<String> id,
+  Value<String> kind,
+  Value<String> title,
+  Value<String?> note,
+  Value<String?> keywords,
+  Value<String?> parentId,
+  Value<String?> domain,
+  Value<int?> horizon,
+  Value<String?> facet,
+  Value<int> periodStart,
+  Value<int?> periodEnd,
+  Value<int?> dueDate,
+  Value<int?> quadrant,
+  Value<String?> priorityAbc,
+  Value<String> status,
+  Value<int?> selfScore,
+  Value<String?> reviewNote,
+  Value<String?> improveNote,
+  Value<int?> archivedAt,
+  Value<int> createdAt,
+  Value<int> updatedAt,
+  Value<int?> deletedAt,
+  Value<String> originDeviceId,
+  Value<int> rev,
+  Value<int> rowid,
+});
+
+class $$GoalTableFilterComposer extends Composer<_$ActLogDatabase, $GoalTable> {
+  $$GoalTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get keywords => $composableBuilder(
+    column: $table.keywords,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get horizon => $composableBuilder(
+    column: $table.horizon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get facet => $composableBuilder(
+    column: $table.facet,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get quadrant => $composableBuilder(
+    column: $table.quadrant,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get priorityAbc => $composableBuilder(
+    column: $table.priorityAbc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get selfScore => $composableBuilder(
+    column: $table.selfScore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reviewNote => $composableBuilder(
+    column: $table.reviewNote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get improveNote => $composableBuilder(
+    column: $table.improveNote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originDeviceId => $composableBuilder(
+    column: $table.originDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GoalTableOrderingComposer
+    extends Composer<_$ActLogDatabase, $GoalTable> {
+  $$GoalTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get keywords => $composableBuilder(
+    column: $table.keywords,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get horizon => $composableBuilder(
+    column: $table.horizon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get facet => $composableBuilder(
+    column: $table.facet,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get periodEnd => $composableBuilder(
+    column: $table.periodEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get quadrant => $composableBuilder(
+    column: $table.quadrant,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get priorityAbc => $composableBuilder(
+    column: $table.priorityAbc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get selfScore => $composableBuilder(
+    column: $table.selfScore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reviewNote => $composableBuilder(
+    column: $table.reviewNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get improveNote => $composableBuilder(
+    column: $table.improveNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originDeviceId => $composableBuilder(
+    column: $table.originDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GoalTableAnnotationComposer
+    extends Composer<_$ActLogDatabase, $GoalTable> {
+  $$GoalTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get keywords =>
+      $composableBuilder(column: $table.keywords, builder: (column) => column);
+
+  GeneratedColumn<String> get parentId =>
+      $composableBuilder(column: $table.parentId, builder: (column) => column);
+
+  GeneratedColumn<String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
+
+  GeneratedColumn<int> get horizon =>
+      $composableBuilder(column: $table.horizon, builder: (column) => column);
+
+  GeneratedColumn<String> get facet =>
+      $composableBuilder(column: $table.facet, builder: (column) => column);
+
+  GeneratedColumn<int> get periodStart => $composableBuilder(
+    column: $table.periodStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get periodEnd =>
+      $composableBuilder(column: $table.periodEnd, builder: (column) => column);
+
+  GeneratedColumn<int> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<int> get quadrant =>
+      $composableBuilder(column: $table.quadrant, builder: (column) => column);
+
+  GeneratedColumn<String> get priorityAbc => $composableBuilder(
+    column: $table.priorityAbc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get selfScore =>
+      $composableBuilder(column: $table.selfScore, builder: (column) => column);
+
+  GeneratedColumn<String> get reviewNote => $composableBuilder(
+    column: $table.reviewNote,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get improveNote => $composableBuilder(
+    column: $table.improveNote,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDeviceId => $composableBuilder(
+    column: $table.originDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+}
+
+class $$GoalTableTableManager
+    extends
+        RootTableManager<
+          _$ActLogDatabase,
+          $GoalTable,
+          GoalData,
+          $$GoalTableFilterComposer,
+          $$GoalTableOrderingComposer,
+          $$GoalTableAnnotationComposer,
+          $$GoalTableCreateCompanionBuilder,
+          $$GoalTableUpdateCompanionBuilder,
+          (GoalData, BaseReferences<_$ActLogDatabase, $GoalTable, GoalData>),
+          GoalData,
+          PrefetchHooks Function()
+        > {
+  $$GoalTableTableManager(_$ActLogDatabase db, $GoalTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GoalTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GoalTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GoalTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> keywords = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
+                Value<String?> domain = const Value.absent(),
+                Value<int?> horizon = const Value.absent(),
+                Value<String?> facet = const Value.absent(),
+                Value<int> periodStart = const Value.absent(),
+                Value<int?> periodEnd = const Value.absent(),
+                Value<int?> dueDate = const Value.absent(),
+                Value<int?> quadrant = const Value.absent(),
+                Value<String?> priorityAbc = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int?> selfScore = const Value.absent(),
+                Value<String?> reviewNote = const Value.absent(),
+                Value<String?> improveNote = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> originDeviceId = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GoalCompanion(
+                id: id,
+                kind: kind,
+                title: title,
+                note: note,
+                keywords: keywords,
+                parentId: parentId,
+                domain: domain,
+                horizon: horizon,
+                facet: facet,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                dueDate: dueDate,
+                quadrant: quadrant,
+                priorityAbc: priorityAbc,
+                status: status,
+                selfScore: selfScore,
+                reviewNote: reviewNote,
+                improveNote: improveNote,
+                archivedAt: archivedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                originDeviceId: originDeviceId,
+                rev: rev,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String kind,
+                required String title,
+                Value<String?> note = const Value.absent(),
+                Value<String?> keywords = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
+                Value<String?> domain = const Value.absent(),
+                Value<int?> horizon = const Value.absent(),
+                Value<String?> facet = const Value.absent(),
+                Value<int> periodStart = const Value.absent(),
+                Value<int?> periodEnd = const Value.absent(),
+                Value<int?> dueDate = const Value.absent(),
+                Value<int?> quadrant = const Value.absent(),
+                Value<String?> priorityAbc = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int?> selfScore = const Value.absent(),
+                Value<String?> reviewNote = const Value.absent(),
+                Value<String?> improveNote = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+                Value<int?> deletedAt = const Value.absent(),
+                required String originDeviceId,
+                Value<int> rev = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GoalCompanion.insert(
+                id: id,
+                kind: kind,
+                title: title,
+                note: note,
+                keywords: keywords,
+                parentId: parentId,
+                domain: domain,
+                horizon: horizon,
+                facet: facet,
+                periodStart: periodStart,
+                periodEnd: periodEnd,
+                dueDate: dueDate,
+                quadrant: quadrant,
+                priorityAbc: priorityAbc,
+                status: status,
+                selfScore: selfScore,
+                reviewNote: reviewNote,
+                improveNote: improveNote,
+                archivedAt: archivedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                originDeviceId: originDeviceId,
+                rev: rev,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$GoalTable, GoalData>(table),
+                  BaseReferences<_$ActLogDatabase, $GoalTable, GoalData>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GoalTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ActLogDatabase,
+      $GoalTable,
+      GoalData,
+      $$GoalTableFilterComposer,
+      $$GoalTableOrderingComposer,
+      $$GoalTableAnnotationComposer,
+      $$GoalTableCreateCompanionBuilder,
+      $$GoalTableUpdateCompanionBuilder,
+      (GoalData, BaseReferences<_$ActLogDatabase, $GoalTable, GoalData>),
+      GoalData,
+      PrefetchHooks Function()
+    >;
+typedef $$GoalLinkTableCreateCompanionBuilder = GoalLinkCompanion Function({
+  required String id,
+  required String goalId,
+  required String targetType,
+  required String targetId,
+  Value<String> relation,
+  required int createdAt,
+  required int updatedAt,
+  Value<int?> deletedAt,
+  required String originDeviceId,
+  Value<int> rev,
+  Value<int> rowid,
+});
+typedef $$GoalLinkTableUpdateCompanionBuilder = GoalLinkCompanion Function({
+  Value<String> id,
+  Value<String> goalId,
+  Value<String> targetType,
+  Value<String> targetId,
+  Value<String> relation,
+  Value<int> createdAt,
+  Value<int> updatedAt,
+  Value<int?> deletedAt,
+  Value<String> originDeviceId,
+  Value<int> rev,
+  Value<int> rowid,
+});
+
+class $$GoalLinkTableFilterComposer
+    extends Composer<_$ActLogDatabase, $GoalLinkTable> {
+  $$GoalLinkTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get goalId => $composableBuilder(
+    column: $table.goalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetType => $composableBuilder(
+    column: $table.targetType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetId => $composableBuilder(
+    column: $table.targetId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relation => $composableBuilder(
+    column: $table.relation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originDeviceId => $composableBuilder(
+    column: $table.originDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GoalLinkTableOrderingComposer
+    extends Composer<_$ActLogDatabase, $GoalLinkTable> {
+  $$GoalLinkTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get goalId => $composableBuilder(
+    column: $table.goalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetType => $composableBuilder(
+    column: $table.targetType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetId => $composableBuilder(
+    column: $table.targetId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relation => $composableBuilder(
+    column: $table.relation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originDeviceId => $composableBuilder(
+    column: $table.originDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GoalLinkTableAnnotationComposer
+    extends Composer<_$ActLogDatabase, $GoalLinkTable> {
+  $$GoalLinkTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get goalId =>
+      $composableBuilder(column: $table.goalId, builder: (column) => column);
+
+  GeneratedColumn<String> get targetType => $composableBuilder(
+    column: $table.targetType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get targetId =>
+      $composableBuilder(column: $table.targetId, builder: (column) => column);
+
+  GeneratedColumn<String> get relation =>
+      $composableBuilder(column: $table.relation, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDeviceId => $composableBuilder(
+    column: $table.originDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+}
+
+class $$GoalLinkTableTableManager
+    extends
+        RootTableManager<
+          _$ActLogDatabase,
+          $GoalLinkTable,
+          GoalLinkData,
+          $$GoalLinkTableFilterComposer,
+          $$GoalLinkTableOrderingComposer,
+          $$GoalLinkTableAnnotationComposer,
+          $$GoalLinkTableCreateCompanionBuilder,
+          $$GoalLinkTableUpdateCompanionBuilder,
+          (
+            GoalLinkData,
+            BaseReferences<_$ActLogDatabase, $GoalLinkTable, GoalLinkData>,
+          ),
+          GoalLinkData,
+          PrefetchHooks Function()
+        > {
+  $$GoalLinkTableTableManager(_$ActLogDatabase db, $GoalLinkTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GoalLinkTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GoalLinkTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GoalLinkTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> goalId = const Value.absent(),
+                Value<String> targetType = const Value.absent(),
+                Value<String> targetId = const Value.absent(),
+                Value<String> relation = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
+                Value<String> originDeviceId = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GoalLinkCompanion(
+                id: id,
+                goalId: goalId,
+                targetType: targetType,
+                targetId: targetId,
+                relation: relation,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                originDeviceId: originDeviceId,
+                rev: rev,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String goalId,
+                required String targetType,
+                required String targetId,
+                Value<String> relation = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+                Value<int?> deletedAt = const Value.absent(),
+                required String originDeviceId,
+                Value<int> rev = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GoalLinkCompanion.insert(
+                id: id,
+                goalId: goalId,
+                targetType: targetType,
+                targetId: targetId,
+                relation: relation,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                originDeviceId: originDeviceId,
+                rev: rev,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$GoalLinkTable, GoalLinkData>(table),
+                  BaseReferences<
+                    _$ActLogDatabase,
+                    $GoalLinkTable,
+                    GoalLinkData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GoalLinkTableProcessedTableManager =
+    ProcessedTableManager<
+      _$ActLogDatabase,
+      $GoalLinkTable,
+      GoalLinkData,
+      $$GoalLinkTableFilterComposer,
+      $$GoalLinkTableOrderingComposer,
+      $$GoalLinkTableAnnotationComposer,
+      $$GoalLinkTableCreateCompanionBuilder,
+      $$GoalLinkTableUpdateCompanionBuilder,
+      (
+        GoalLinkData,
+        BaseReferences<_$ActLogDatabase, $GoalLinkTable, GoalLinkData>,
+      ),
+      GoalLinkData,
+      PrefetchHooks Function()
+    >;
 
 class $ActLogDatabaseManager {
   final _$ActLogDatabase _db;
@@ -20310,4 +23188,7 @@ class $ActLogDatabaseManager {
       $$RecurringTaskTableTableManager(_db, _db.recurringTask);
   $$RecurringOccurrenceTableTableManager get recurringOccurrence =>
       $$RecurringOccurrenceTableTableManager(_db, _db.recurringOccurrence);
+  $$GoalTableTableManager get goal => $$GoalTableTableManager(_db, _db.goal);
+  $$GoalLinkTableTableManager get goalLink =>
+      $$GoalLinkTableTableManager(_db, _db.goalLink);
 }

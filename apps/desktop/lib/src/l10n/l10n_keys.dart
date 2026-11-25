@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「417 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「445 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -265,6 +265,9 @@ abstract final class L10nKeys {
   /// 左导航：设置。
   static const String shellNavSettings = 'shell-nav-settings';
 
+  /// 左导航：目标（Task 64：第 6 项由「设置」换成「目标」）。
+  static const String shellNavGoals = 'shell-nav-goals';
+
   /// 右轨「快捷键」面板标题。
   static const String shellShortcutsTitle = 'shell-shortcuts-title';
 
@@ -294,6 +297,9 @@ abstract final class L10nKeys {
 
   /// 快捷键：切到项目。
   static const String shellKeyGoProjects = 'shell-key-go-projects';
+
+  /// 快捷键：切到目标（Task 65 UI 半批：Ctrl+6）。
+  static const String shellKeyGoGoals = 'shell-key-go-goals';
 
   /// 右轨面板：待办列表。
   static const String shellPanelTodoList = 'shell-panel-todo-list';
@@ -515,7 +521,7 @@ abstract final class L10nKeys {
   static const String domainRecurringNone = 'domain-recurring-none';
 
   // ---------------------------------------------------------------------------
-  // 项目页（parts\projects.dart，48 条）
+  // 项目页（parts\projects.dart，49 条）
   // ---------------------------------------------------------------------------
 
   /// 项目页标题。
@@ -679,6 +685,10 @@ abstract final class L10nKeys {
 
   /// 项目不存在（`{id}` 由页面插值）。
   static const String projectsProjectMissing = 'projects-project-missing';
+
+  /// 校验失败：排期来源类型既不是 `project` 也不是 `increment`。
+  static const String projectsSourceTypeInvalid =
+      'projects-source-type-invalid';
 
   // ---------------------------------------------------------------------------
   // 日历与日期（parts\calendar.dart，19 条：16 条无参 getter + 1 条列表型
@@ -1569,10 +1579,272 @@ abstract final class L10nKeys {
   static const String dialogPoolScheduled = 'dialog-pool-scheduled';
 
   // ---------------------------------------------------------------------------
+  // 目标页（parts\goals.dart，25 条；Task 65 UI 半批 B1）
+  // ---------------------------------------------------------------------------
+
+  /// 目标页标题。
+  static const String goalsTitle = 'goal-title';
+
+  /// 页签：周。
+  static const String goalsTabWeek = 'goal-tab-week';
+
+  /// 页签：月。
+  static const String goalsTabMonth = 'goal-tab-month';
+
+  /// 页签：年。
+  static const String goalsTabYear = 'goal-tab-year';
+
+  /// 页签：蓝图。
+  static const String goalsTabBlueprint = 'goal-tab-blueprint';
+
+  /// 周视图区块标题。
+  static const String goalsWeekSection = 'goal-week-section';
+
+  /// 周视图空态。
+  static const String goalsWeekEmpty = 'goal-week-empty';
+
+  /// 周视图表头：优先顺序。
+  static const String goalsColumnOrder = 'goal-column-order';
+
+  /// 周视图表头：目标。
+  static const String goalsColumnGoal = 'goal-column-goal';
+
+  /// 周视图表头：象限。
+  static const String goalsColumnQuadrant = 'goal-column-quadrant';
+
+  /// 周视图表头：完成期限。
+  static const String goalsColumnDue = 'goal-column-due';
+
+  /// 周视图表头：完成。
+  static const String goalsColumnDone = 'goal-column-done';
+
+  /// 周视图表头：服务于。
+  static const String goalsColumnServes = 'goal-column-serves';
+
+  /// 完成度标签。
+  static const String goalsCompletion = 'goal-completion';
+
+  /// 关联计划项标签。
+  static const String goalsPlanItems = 'goal-plan-items';
+
+  /// 未落位标记。
+  static const String goalsUnplaced = 'goal-unplaced';
+
+  /// 草稿滚动区标题。
+  static const String goalsDraftSection = 'goal-draft-section';
+
+  /// 草稿滚动区空态。
+  static const String goalsDraftEmpty = 'goal-draft-empty';
+
+  /// 草稿滚动区：确认写入按钮。
+  static const String goalsDraftConfirm = 'goal-draft-confirm';
+
+  /// 草稿写入成功后的提示。
+  static const String goalsDraftSaved = 'goal-draft-saved';
+
+  /// 滚动候选来源：结转。
+  static const String goalsDraftCarryOver = 'goal-draft-carry-over';
+
+  /// 滚动候选来源：由本月目标派生。
+  static const String goalsDraftFromMonthly = 'goal-draft-from-monthly';
+
+  /// 月页骨架占位。
+  static const String goalsPlaceholderMonth = 'goal-placeholder-month';
+
+  /// 年页骨架占位。
+  static const String goalsPlaceholderYear = 'goal-placeholder-year';
+
+  /// 蓝图页骨架占位。
+  static const String goalsPlaceholderBlueprint = 'goal-placeholder-blueprint';
+
+  // ---------------------------------------------------------------------------
+  // 目标页 B2（parts\goals.dart，58 条；Task 66 UI 半批 B2）
+  // ---------------------------------------------------------------------------
+
+  /// 目标状态：草稿。
+  static const String goalStatusDraft = 'goal-status-draft';
+
+  /// 目标状态：进行中。
+  static const String goalStatusActive = 'goal-status-active';
+
+  /// 目标状态：已完成。
+  static const String goalStatusDone = 'goal-status-done';
+
+  /// 目标状态：已取消。
+  static const String goalStatusCancelled = 'goal-status-cancelled';
+
+  /// 自评标签（用户自评，不是达成率）。
+  static const String goalSelfScore = 'goal-self-score';
+
+  /// 待确认草稿区标题（草稿只落在本页，点确认才落库）。
+  static const String goalDraftPending = 'goal-draft-pending';
+
+  /// 月页顶部年度汇总条标题。
+  static const String goalMonthYearBar = 'goal-month-year-bar';
+
+  /// 月页「上月复盘」区块标题。
+  static const String goalMonthReviewSection = 'goal-month-review-section';
+
+  /// 月页「上月复盘」空态。
+  static const String goalMonthReviewEmpty = 'goal-month-review-empty';
+
+  /// 月页复盘行：未完成原因标签。
+  static const String goalMonthReviewReason = 'goal-month-review-reason';
+
+  /// 月页复盘行：未完成原因缺失的提示（只提示，不阻断）。
+  static const String goalMonthReviewReasonMissing =
+      'goal-month-review-reason-missing';
+
+  /// 月页复盘行：改进措施标签。
+  static const String goalMonthImprove = 'goal-month-improve';
+
+  /// 月页复盘行：改进措施为空时的占位。
+  static const String goalMonthImproveEmpty = 'goal-month-improve-empty';
+
+  /// 月页复盘行：转为本月目标草稿的动作。
+  static const String goalMonthConvertDraft = 'goal-month-convert-draft';
+
+  /// 月页「本月目标」区块标题。
+  static const String goalMonthGoalsSection = 'goal-month-goals-section';
+
+  /// 月页「本月目标」空态。
+  static const String goalMonthGoalsEmpty = 'goal-month-goals-empty';
+
+  /// 月页表头：类别。
+  static const String goalMonthColumnCategory = 'goal-month-column-category';
+
+  /// 月页表头：序号。
+  static const String goalMonthColumnIndex = 'goal-month-column-index';
+
+  /// 月页表头：方法和措施。
+  static const String goalMonthColumnMethods = 'goal-month-column-methods';
+
+  /// 月页表头：完成。
+  static const String goalMonthColumnDone = 'goal-month-column-done';
+
+  /// 月页行标记：没有上层目标的「临时事项」。
+  static const String goalMonthAdHoc = 'goal-month-ad-hoc';
+
+  /// 月页行标记：服务于某个年目标。
+  static const String goalMonthServesYearly = 'goal-month-serves-yearly';
+
+  /// 月页滚动候选空态。
+  static const String goalMonthDraftEmpty = 'goal-month-draft-empty';
+
+  /// 年页「年度目标」区块标题。
+  static const String goalYearGoalsSection = 'goal-year-goals-section';
+
+  /// 年页「年度目标」空态。
+  static const String goalYearGoalsEmpty = 'goal-year-goals-empty';
+
+  /// 年页表一头：起止时间。
+  static const String goalYearColumnPeriod = 'goal-year-column-period';
+
+  /// 年页表二标题：月度展开（1–12 月）。
+  static const String goalYearMonthsSection = 'goal-year-months-section';
+
+  /// 年页表二列头：月目标。
+  static const String goalYearMonthColumn = 'goal-year-month-column';
+
+  /// 年页表二空格：该月未展开。
+  static const String goalYearCellEmpty = 'goal-year-cell-empty';
+
+  /// 年页表二空格输入框的提示文案。
+  static const String goalYearCellInputHint = 'goal-year-cell-input-hint';
+
+  /// 年页表二空格：加入待确认草稿的动作。
+  static const String goalYearCellAddDraft = 'goal-year-cell-add-draft';
+
+  /// 年页「年度复盘」区块标题。
+  static const String goalYearReviewSection = 'goal-year-review-section';
+
+  /// 年页年度复盘：完成项数标签。
+  static const String goalYearReviewDone = 'goal-year-review-done';
+
+  /// 年页年度复盘：自评总分标签。
+  static const String goalYearReviewScoreTotal = 'goal-year-review-score-total';
+
+  /// 年页年度复盘：自评均值标签。
+  static const String goalYearReviewScoreAverage =
+      'goal-year-review-score-average';
+
+  /// 年页年度复盘：自评口径说明（用户自评，不是达成率）。
+  static const String goalYearReviewSelfNote = 'goal-year-review-self-note';
+
+  /// 年页「80/20 视角」区块标题（只呈现，不评分、不排名）。
+  static const String goalYear8020Section = 'goal-year-8020-section';
+
+  /// 年页「80/20 视角」空态。
+  static const String goalYear8020Empty = 'goal-year-8020-empty';
+
+  /// 年页「80/20 视角」：执行记录条数单位。
+  static const String goalYear8020Tracks = 'goal-year-8020-tracks';
+
+  /// 年页滚动候选空态。
+  static const String goalYearDraftEmpty = 'goal-year-draft-empty';
+
+  /// 蓝图页矩阵区块标题。
+  static const String goalBlueprintMatrixSection =
+      'goal-blueprint-matrix-section';
+
+  /// 蓝图页矩阵行头：目标。
+  static const String goalBlueprintColumnGoal = 'goal-blueprint-column-goal';
+
+  /// 蓝图档位：终极。
+  static const String goalBlueprintHorizonUltimate =
+      'goal-blueprint-horizon-ultimate';
+
+  /// 蓝图档位：远期。
+  static const String goalBlueprintHorizonLong = 'goal-blueprint-horizon-long';
+
+  /// 蓝图档位：中期。
+  static const String goalBlueprintHorizonMid = 'goal-blueprint-horizon-mid';
+
+  /// 蓝图档位：短期。
+  static const String goalBlueprintHorizonShort = 'goal-blueprint-horizon-short';
+
+  /// 蓝图档位：近期（1 年）。
+  static const String goalBlueprintHorizonNear = 'goal-blueprint-horizon-near';
+
+  /// 蓝图格为空时的占位（空格合法，不报错）。
+  static const String goalBlueprintEmptyCell = 'goal-blueprint-empty-cell';
+
+  /// 蓝图页说明：整行留空合法。
+  static const String goalBlueprintBlankRowHint = 'goal-blueprint-blank-row-hint';
+
+  /// 蓝图页说明：近期列的数据来源（与年视图同一份数据）。
+  static const String goalBlueprintNearSource = 'goal-blueprint-near-source';
+
+  /// 蓝图格：做法条数单位。
+  static const String goalBlueprintActionsCount = 'goal-blueprint-actions-count';
+
+  /// 蓝图格展开：周目标标签。
+  static const String goalBlueprintWeeklyTarget = 'goal-blueprint-weekly-target';
+
+  /// 蓝图格：拆成 3 条待办的动作。
+  static const String goalBlueprintSplitTodos = 'goal-blueprint-split-todos';
+
+  /// 蓝图页：待确认待办区标题。
+  static const String goalBlueprintPendingTodos = 'goal-blueprint-pending-todos';
+
+  /// 蓝图页：确认写入待办的动作。
+  static const String goalBlueprintConfirmTodos = 'goal-blueprint-confirm-todos';
+
+  /// 蓝图页平衡轮区块标题（纯派生，不落库）。
+  static const String goalBlueprintBalanceSection =
+      'goal-blueprint-balance-section';
+
+  /// 蓝图页平衡轮空态。
+  static const String goalBlueprintBalanceEmpty = 'goal-blueprint-balance-empty';
+
+  /// 蓝图页平衡轮：习惯打卡标签。
+  static const String goalBlueprintBalanceHabit = 'goal-blueprint-balance-habit';
+
+  // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（417 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// getter 名 → 键（503 条，覆盖 `AppLocalizations` 全部无参 String getter；
   /// 另有 4 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
@@ -1669,13 +1941,99 @@ abstract final class L10nKeys {
     'trayShow': shellTrayShow,
     'trayHide': shellTrayHide,
     'trayQuit': shellTrayQuit,
-    // 应用外壳 23 条（Task 61：左导航 / 快捷键面板 / 快捷键说明 / 右轨面板）
+    // 目标页 25 条（Task 65 UI 半批 B1：页壳 / 周视图 / 草稿滚动区）
+    'goalsTitle': goalsTitle,
+    'goalsTabWeek': goalsTabWeek,
+    'goalsTabMonth': goalsTabMonth,
+    'goalsTabYear': goalsTabYear,
+    'goalsTabBlueprint': goalsTabBlueprint,
+    'goalsWeekSection': goalsWeekSection,
+    'goalsWeekEmpty': goalsWeekEmpty,
+    'goalsColumnOrder': goalsColumnOrder,
+    'goalsColumnGoal': goalsColumnGoal,
+    'goalsColumnQuadrant': goalsColumnQuadrant,
+    'goalsColumnDue': goalsColumnDue,
+    'goalsColumnDone': goalsColumnDone,
+    'goalsColumnServes': goalsColumnServes,
+    'goalsCompletion': goalsCompletion,
+    'goalsPlanItems': goalsPlanItems,
+    'goalsUnplaced': goalsUnplaced,
+    'goalsDraftSection': goalsDraftSection,
+    'goalsDraftEmpty': goalsDraftEmpty,
+    'goalsDraftConfirm': goalsDraftConfirm,
+    'goalsDraftSaved': goalsDraftSaved,
+    'goalsDraftCarryOver': goalsDraftCarryOver,
+    'goalsDraftFromMonthly': goalsDraftFromMonthly,
+    'goalsPlaceholderMonth': goalsPlaceholderMonth,
+    'goalsPlaceholderYear': goalsPlaceholderYear,
+    'goalsPlaceholderBlueprint': goalsPlaceholderBlueprint,
+    // Task 66 UI 半批 B2：状态 4 + 共用 2 + 月 17 + 年 17 + 蓝图 18
+    'goalStatusDraft': goalStatusDraft,
+    'goalStatusActive': goalStatusActive,
+    'goalStatusDone': goalStatusDone,
+    'goalStatusCancelled': goalStatusCancelled,
+    'goalSelfScore': goalSelfScore,
+    'goalDraftPending': goalDraftPending,
+    'goalMonthYearBar': goalMonthYearBar,
+    'goalMonthReviewSection': goalMonthReviewSection,
+    'goalMonthReviewEmpty': goalMonthReviewEmpty,
+    'goalMonthReviewReason': goalMonthReviewReason,
+    'goalMonthReviewReasonMissing': goalMonthReviewReasonMissing,
+    'goalMonthImprove': goalMonthImprove,
+    'goalMonthImproveEmpty': goalMonthImproveEmpty,
+    'goalMonthConvertDraft': goalMonthConvertDraft,
+    'goalMonthGoalsSection': goalMonthGoalsSection,
+    'goalMonthGoalsEmpty': goalMonthGoalsEmpty,
+    'goalMonthColumnCategory': goalMonthColumnCategory,
+    'goalMonthColumnIndex': goalMonthColumnIndex,
+    'goalMonthColumnMethods': goalMonthColumnMethods,
+    'goalMonthColumnDone': goalMonthColumnDone,
+    'goalMonthAdHoc': goalMonthAdHoc,
+    'goalMonthServesYearly': goalMonthServesYearly,
+    'goalMonthDraftEmpty': goalMonthDraftEmpty,
+    'goalYearGoalsSection': goalYearGoalsSection,
+    'goalYearGoalsEmpty': goalYearGoalsEmpty,
+    'goalYearColumnPeriod': goalYearColumnPeriod,
+    'goalYearMonthsSection': goalYearMonthsSection,
+    'goalYearMonthColumn': goalYearMonthColumn,
+    'goalYearCellEmpty': goalYearCellEmpty,
+    'goalYearCellInputHint': goalYearCellInputHint,
+    'goalYearCellAddDraft': goalYearCellAddDraft,
+    'goalYearReviewSection': goalYearReviewSection,
+    'goalYearReviewDone': goalYearReviewDone,
+    'goalYearReviewScoreTotal': goalYearReviewScoreTotal,
+    'goalYearReviewScoreAverage': goalYearReviewScoreAverage,
+    'goalYearReviewSelfNote': goalYearReviewSelfNote,
+    'goalYear8020Section': goalYear8020Section,
+    'goalYear8020Empty': goalYear8020Empty,
+    'goalYear8020Tracks': goalYear8020Tracks,
+    'goalYearDraftEmpty': goalYearDraftEmpty,
+    'goalBlueprintMatrixSection': goalBlueprintMatrixSection,
+    'goalBlueprintColumnGoal': goalBlueprintColumnGoal,
+    'goalBlueprintHorizonUltimate': goalBlueprintHorizonUltimate,
+    'goalBlueprintHorizonLong': goalBlueprintHorizonLong,
+    'goalBlueprintHorizonMid': goalBlueprintHorizonMid,
+    'goalBlueprintHorizonShort': goalBlueprintHorizonShort,
+    'goalBlueprintHorizonNear': goalBlueprintHorizonNear,
+    'goalBlueprintEmptyCell': goalBlueprintEmptyCell,
+    'goalBlueprintBlankRowHint': goalBlueprintBlankRowHint,
+    'goalBlueprintNearSource': goalBlueprintNearSource,
+    'goalBlueprintActionsCount': goalBlueprintActionsCount,
+    'goalBlueprintWeeklyTarget': goalBlueprintWeeklyTarget,
+    'goalBlueprintSplitTodos': goalBlueprintSplitTodos,
+    'goalBlueprintPendingTodos': goalBlueprintPendingTodos,
+    'goalBlueprintConfirmTodos': goalBlueprintConfirmTodos,
+    'goalBlueprintBalanceSection': goalBlueprintBalanceSection,
+    'goalBlueprintBalanceEmpty': goalBlueprintBalanceEmpty,
+    'goalBlueprintBalanceHabit': goalBlueprintBalanceHabit,
+    // 应用外壳 25 条（Task 61 的 23 条 + Task 64 的 2 条：导航「目标」/ 快捷键「切到目标」）
     'shellNavToday': shellNavToday,
     'shellNavInbox': shellNavInbox,
     'shellNavHabits': shellNavHabits,
     'shellNavProjects': shellNavProjects,
     'shellNavCalendar': shellNavCalendar,
     'shellNavSettings': shellNavSettings,
+    'shellNavGoals': shellNavGoals,
     'shellShortcutsTitle': shellShortcutsTitle,
     'shellPageSwitch': shellPageSwitch,
     'shellKeyAddEntry': shellKeyAddEntry,
@@ -1686,6 +2044,7 @@ abstract final class L10nKeys {
     'shellKeyClosePopup': shellKeyClosePopup,
     'shellKeySwitchTab': shellKeySwitchTab,
     'shellKeyGoProjects': shellKeyGoProjects,
+    'shellKeyGoGoals': shellKeyGoGoals,
     'shellPanelTodoList': shellPanelTodoList,
     'shellPanelAddTodo': shellPanelAddTodo,
     'shellPanelHabitOverview': shellPanelHabitOverview,
@@ -1746,6 +2105,7 @@ abstract final class L10nKeys {
     'projectsProgressRequired': projectsProgressRequired,
     'projectsMilestoneMissing': projectsMilestoneMissing,
     'projectsProjectMissing': projectsProjectMissing,
+    'projectsSourceTypeInvalid': projectsSourceTypeInvalid,
     // 日历与日期 16 条（Task 61：日历页 / 月视图 / 日期条 / 日期选择弹层）
     'calendarPageTitle': calendarPageTitle,
     'calendarPrevMonth': calendarPrevMonth,

@@ -9434,9 +9434,9 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
 ### 62.3 下阶段（复选框 = 实施闸门，本轮**一律不勾**）
 
 - [x] **Task 63** = 计划 §47 **W3–W8**：右轨 4 面板内容区与空态文案英文化（六波逐批 + 47.3 判据改造）。
-- [ ] **Task 64（P0）** = 左栏「设置」齿轮化（规划 §7：6 处改动面 + `shell_nav_rail_test` 断言连带 + `shellNavSettings` 保留为 tooltip）。
+- [x] **Task 64（P0）** = 左栏「设置」齿轮化（规划 §7：6 处改动面 + `shell_nav_rail_test` 断言连带 + `shellNavSettings` 保留为 tooltip）。
 - [ ] **Task 65（P1）** = schema v3 两表 + 九步迁移 + **周 / 月**两视图 + 三通道联动 + 今日右栏「目标」面板（§4 / §5.1–5.2 / §6）。
-- [ ] **Task 66（P2）** = **年**视图 + **人生蓝图**矩阵与「链断裂」可视化 + 平衡轮（§5.3–5.4）。
+- [x] **Task 66（P2）** = **年**视图 + **人生蓝图**矩阵与「链断裂」可视化 + 平衡轮（§5.3–5.4）。
 - [ ] **Task 67（P3）** = **个人品牌画像** 10 切面 + 一致性看板（§5.5 / §8）。
 - [ ] 实施前补齐规划 §14 的 **12 项待核实**（2026-11-24 问卷已闭合其中 3 项：G3 只校验 v1、不建 `schema_v3.sql`、D-62-h/l 联动与右栏形态的用户接受度 ⇒ **仍开放 9 项**）：`shell_nav_rail_test.dart` 断言文本、`key_bar` 与 nav 是否共用同一份清单、`_buildBar` 横排末尾结构、`l10n_keys.dart` 登记表结构、`providers_recurring.dart` 语义、`recurring_task` 是否支持 yearly、`project_increment` 三列可否 NULL、sync 引擎是否存在 `syncedTables` 之外的第二处表清单、`TableNames` 常量真源与 drift 生成流程。
 
@@ -9634,7 +9634,7 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
 - **构成（521 = 450 + 68 + 3）**：
   - **450 条** = 3 套中文格言数据（`lib\src\data\quote_set_character.dart` 150 / `quote_set_mastery.dart` 150 / `quote_set_success.dart` 150）⇒ 属**数据内容**，是否翻译属产品决策。
   - **68 条** = 绕过 l10n 的 UI 文案 / 字形。高危面：`widgets\shell\nav_rail.dart:36-41`（6 条导航项）、`widgets\shell\key_bar.dart:46-53`（8 条快捷键提示）、`widgets\outcome_composer.dart:28-56`（21 条）、`widgets\domain_chips.dart:22-27` + `:72-82`（12 条，**且与 l10n 的 domain 键重复定义**）、`widgets\est_duration_text.dart:17-29`（5 条单位）、`pages\projects_page.dart`（5 条表单校验）、`widgets\habit_quick_dialog.dart:200` + `pages\habits_page.dart:230` + `widgets\habit_section.dart:158`（3 条「次」单位）、`widgets\gantt_chart.dart:84/85/192`（3 条）、`widgets\timeline\slot_fill.dart:85-86`（2 条）。
-  - **3 条** = En mixin 泄漏：`parts\dialog.dart:894/960`（全角 `＋` U+FF0B，按 `parts\dialog.dart:17` 仓内约定属**按钮字形**非文案）、`parts\settings.dart:257`（`简体中文` = 语言名母语自称）。
+  - **3 条** = En mixin 泄漏：`parts\dialog.dart:1048/1174`（全角 `＋` U+FF0B，按 `parts\dialog.dart:17` 仓内约定属**按钮字形**非文案）、`parts\settings.dart:239`（`简体中文` = 语言名母语自称）。
 - **判读**：`§68.4b` 的判据是「英文态可见的中文 UI 字面量 = 0（扫描面 = `apps\desktop\lib\**` 全量）」⇒ **本轮实测 521 条 ⇒ 判据不成立 ⇒ `68.4b` 不打勾**。
 - **连带后果（必须连坐）**：`68.4b` 未闭合 ⇒ `68.4i` 宣称口径**不升级** ⇒ **`§47.2 W9` 不打勾** ⇒ 对外只声明「**§47 W3–W8 覆盖范围零中文**」，**不得**宣称「英文界面零中文」。
 - **下一批次候选范围（本轮只登记、不启动）**：
@@ -9648,7 +9648,7 @@ Task 59 落地了「新建项目可选领域」+「领域分布」读侧面板�
 
 **① 门禁第六轮**（`reports\task68-gate-run3.log`，`RUN_AT=2026-11-24 21:57:47` / `HEAD=01b6339`）= `GATE_VERDICT=PASS` / `GATE_FAILURES=0` / desktop **`TESTS=836` = `DESKTOP_EXPECTED=836`** / core_data **204** / core_db **71** / core_domain **62** / 四包 `ANALYZE=VERBATIM` / `VIOLATIONS=0` / **`OUT_OF_SET=0`** / `GATE_EXCLUDED=2` / `PS1_SCANNED=493` / `PS1_NEW_NON_ASCII=0` / `PS1_ASCII_VIOLATIONS=0` / `AHEAD=0`。前两轮对照见 §68.5 第 6 条。
 
-**② `68.4f` 英文真机帧**（`reports\task68-realrun1\` + `reports\task68-en-judge.txt`）：release 构建 `BUILD_EXIT=0`（AOT 快照 `apps\desktop\build\windows\x64\runner\Release\data\app.so` mtime **2026-11-24 21:49:26** / 8,749,960 B；本轮 12 个 Dart 文件 mtime **全部早于**该时刻 ⇒ **帧内即本轮代码**，非旧 exe）；沙箱种子 `reports\task59-j\sandbox-userdata`（库内已有 **active=1、未删除、`weekday_mask=31`（= 工作日）**、`start_minute=570` 的循环任务「早会」）⇒ 改动前英文帧应显「工作日」，改动后应显「Weekdays」。采集 5 帧 + 6 份 OCR（`CAPTURE_VERDICT=PARTIAL`，唯一缺口 `s1` 系**设计使然**的 `s0-navref` 重复帧，与 Task 63 realrun4 同因）。**三条判据**：① 英文帧 OCR 命中 **`工作日` = 0**（6/6 帧逐文件 grep，`WORKDAY_HITS=0`）；② 英文态右轨面板**实测显示 `Weekdays`**（`s0-navref-ocr.txt` / `s6-entry-ocr.txt`，坐标 `2089,514`，位于 `Recurring tasks` 面板内）；③ `JUDGE_VERDICT=PASS` / `JUDGE_NEEDLE_HITS=0` / `JUDGE_SHELL_CJK=0` / **`JUDGE_RAIL_CJK=0`** / 六帧 `FRAME_RESULT` 全 PASS。
+**② `68.4f` 英文真机帧**（`reports\task68-realrun1\` + `reports\task68-en-judge.txt`）：release 构建 `BUILD_EXIT=0`（AOT 快照 `apps\desktop\build\windows\x64\runner\Release\data\app.so` mtime **2026-11-24 21:49:26** / 8,749,960 B；本轮 12 个 Dart 文件 mtime **全部早于**该时刻 ⇒ **帧内即本轮代码**，非旧 exe）；沙箱种子 `reports\task59-j\sandbox-userdata`（库内已有 **active=1、未删除、`weekday_mask=31`（= 工作日）**、`start_minute=570` 的循环任务「早会」）⇒ 改动前英文帧应显「工作日」，改动后应显「Weekdays」。采集 5 帧 + 6 份 OCR（`CAPTURE_VERDICT=PARTIAL`，唯一缺口 `s1` 系**设计使然**的 `s0-navref` 重复帧，与 Task 63 realrun4 同因）。**三条判据**：① 英文帧 OCR 命中 **`工作日` = 0**（6/6 帧逐文件 grep；逐帧实测记号 = `reports\task68-en-judge.txt` 的 **6 行 `FRAME_NEEDLE_HITS=0`**，判定器汇总 `JUDGE_NEEDLE_HITS=0`）；② 英文态右轨面板**实测显示 `Weekdays`**（`s0-navref-ocr.txt` / `s6-entry-ocr.txt`，坐标 `2089,514`，位于 `Recurring tasks` 面板内）；③ `JUDGE_VERDICT=PASS` / `JUDGE_NEEDLE_HITS=0` / `JUDGE_SHELL_CJK=0` / **`JUDGE_RAIL_CJK=0`** / 六帧 `FRAME_RESULT` 全 PASS。
 **诚实登记**：帧内残留 CJK = **种子用户内容**「早会」（种子库自带中文用户数据，**非 UI 字面量**）+ OCR 单字误识（`to` → `到` 等）⇒ 归入「英文态不可见 / 非 UI 字面量」口径，**不计入 `68.4b` 的 UI 字面量判定**。
 **静态可达性旁证**：全仓 `.dart` 中 `工作日` 的**唯一字符串字面量** = `apps\desktop\lib\src\l10n\parts\domain.dart:299`（**zh mixin** `String get workdays => '工作日';`），En mixin 对应值为 `Weekdays` ⇒ 英文态渲染路径不可能出现该词（zh mixin 只在 zh locale 实例化）。
 

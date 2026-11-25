@@ -31,8 +31,9 @@ import 'package:drift/drift.dart';
 ///
 /// schema v1 = 14 张表（权威 DDL：docs/schema_v1.sql，已 FROZEN）。
 /// schema v2 = v1 + 2 张循环任务表（recurring_task / recurring_occurrence）。
+/// schema v3 = v2 + 2 张目标表（goal / goal_link）。
 /// 改动结构 = 版本号 +1 + 迁移分支，不允许原地改既有表的定义。
-const int currentSchemaVersion = 2;
+const int currentSchemaVersion = 3;
 
 /// v2 新增的 schema 实体（两张表 + 各自的索引）。
 ///
@@ -47,6 +48,28 @@ const Set<String> schemaV2EntityNames = <String>{
   'idx_recurring_task_updated_at',
   'idx_recurring_occurrence_date',
   'idx_recurring_occurrence_updated_at',
+};
+
+/// v3 新增的 schema 实体（两张表 + 五个偏索引）。
+///
+/// 与 v2 同款纪律：**索引名必须逐字**写在这里，否则升级后的库会缺索引
+/// （`Migrator.createTable` 不建索引，只有 `createAll` 才会遍历索引实体）。
+///
+/// 五个偏索引对应 `tables.dart` 里 `Goal` / `GoalLink` 上的 `@TableIndex.sql`：
+///   · idx_goal_kind_period  ON goal (kind, period_start)
+///   · idx_goal_parent        ON goal (parent_id)
+///   · idx_goal_domain        ON goal (domain, kind)
+///   · idx_goal_link_goal     ON goal_link (goal_id)
+///   · idx_goal_link_target   ON goal_link (target_type, target_id)
+/// 五者都带 `WHERE deleted_at IS NULL`（软删墓碑不进索引）。
+const Set<String> schemaV3EntityNames = <String>{
+  'goal',
+  'goal_link',
+  'idx_goal_kind_period',
+  'idx_goal_parent',
+  'idx_goal_domain',
+  'idx_goal_link_goal',
+  'idx_goal_link_target',
 };
 
 /// 权威 DDL 文件路径（仓库相对路径）。
@@ -72,23 +95,31 @@ MigrationStrategy buildMigrationStrategy({
     // v0 = 尚无正式发布版本的历史空库（结构上等同于空库），因此 v0 → v2
     // 直接建全表即可，不需要搬数据。
     // v1 → v2 是**增量**迁移：只补两张循环任务表，既有 14 张表的数据一行不动。
+    // v2 → v3 同理：只补两张目标表。
+    //
+    // 为什么不早退：早退会让「v1 → v3」这种跨版本的升级**跳过 v2 那一步**
+    // （结果就是库里没有 recurring_task 表，却已经标成 v3）。所以这里改成
+    // 「按版本逐段补」，每段都补齐后再往下走。
     onUpgrade: (Migrator m, int from, int to) async {
       if (from < 1 && to >= 1) {
         await m.createAll();
         return;
       }
+      var upgraded = false;
       if (from < 2 && to >= 2) {
         // 注意：`Migrator.createTable` **不建索引** —— 只有 `createAll` 才会
         // 遍历 `Index` 实体。所以这里按 entityName 精确挑出 v2 实体（两张表 +
         // 四个索引）逐个 create()，否则升级后的库会缺索引。
-        for (final entity in m.database.allSchemaEntities) {
-          if (schemaV2EntityNames.contains(entity.entityName)) {
-            await m.create(entity);
-          }
-        }
-        return;
+        await _createEntities(m, schemaV2EntityNames);
+        upgraded = true;
       }
-      throw StateError('未实现的迁移路径：v$from → v$to');
+      if (from < 3 && to >= 3) {
+        await _createEntities(m, schemaV3EntityNames);
+        upgraded = true;
+      }
+      if (!upgraded) {
+        throw StateError('未实现的迁移路径：v$from → v$to');
+      }
     },
 
     // 打开后、第一条业务查询前的钩子。
@@ -96,4 +127,19 @@ MigrationStrategy buildMigrationStrategy({
       await beforeOpenHook?.call();
     },
   );
+}
+
+/// 按实体名精确建出若干 schema 实体（表 + 索引）。
+///
+/// 为什么不能直接用 `m.createAll()`：那会把**所有**表重建一遍，
+/// 而升级路径只允许新增实体、既有表一行不动。
+///
+/// 为什么必须显式列出索引：`Migrator.createTable` 只建表，
+/// 索引是独立的 schema 实体，漏掉就静默无索引（计划 §14 风险 R-A）。
+Future<void> _createEntities(Migrator m, Set<String> entityNames) async {
+  for (final entity in m.database.allSchemaEntities) {
+    if (entityNames.contains(entity.entityName)) {
+      await m.create(entity);
+    }
+  }
 }

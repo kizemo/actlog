@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import 'app_version.dart';
+import 'data/goal_store.dart';
 import 'l10n/app_localizations.dart';
 import 'theme/density_profile.dart';
 import 'widgets/timeline/slot_state.dart';
@@ -251,6 +252,29 @@ const String settingsKeyDailyEndHour = 'daily_end_hour';
 /// 设置键：界面密度（`compact` / `comfortable` / `roomy`）。
 const String settingsKeyDensity = 'density';
 
+/// 设置键：目标页上次停留的页签（`week` / `month` / `year` / `blueprint`）。
+const String settingsKeyGoalsTab = 'goals_tab';
+
+/// 目标页页签 id：周（默认）。
+const String kGoalsTabWeek = 'week';
+
+/// 目标页页签 id：月。
+const String kGoalsTabMonth = 'month';
+
+/// 目标页页签 id：年。
+const String kGoalsTabYear = 'year';
+
+/// 目标页页签 id：蓝图。
+const String kGoalsTabBlueprint = 'blueprint';
+
+/// 目标页的四个页签 id（顺序即展示顺序）。
+const List<String> kGoalsTabIds = <String>[
+  kGoalsTabWeek,
+  kGoalsTabMonth,
+  kGoalsTabYear,
+  kGoalsTabBlueprint,
+];
+
 /// 「恢复默认」要写回的键（不含 `priority_display_mode`：那项另有既有样板）。
 const List<String> kAllPreferenceKeys = <String>[
   settingsKeyThemeMode,
@@ -259,6 +283,7 @@ const List<String> kAllPreferenceKeys = <String>[
   settingsKeyDailyStartHour,
   settingsKeyDailyEndHour,
   settingsKeyDensity,
+  settingsKeyGoalsTab,
 ];
 
 /// 偏好快照。
@@ -275,6 +300,7 @@ class AppPreferences {
     required this.dailyStartHour,
     required this.dailyEndHour,
     required this.density,
+    required this.goalsTab,
   });
 
   /// 默认值 = 参数化之前应用的实际行为。
@@ -288,6 +314,7 @@ class AppPreferences {
     dailyStartHour: kGridStartHour,
     dailyEndHour: kGridEndHour,
     density: DensityProfile.comfortable,
+    goalsTab: kGoalsTabWeek,
   );
 
   /// 主题模式。
@@ -308,6 +335,9 @@ class AppPreferences {
   /// 界面密度。
   final DensityProfile density;
 
+  /// 目标页上次停留的页签（`week` / `month` / `year` / `blueprint`）。
+  final String goalsTab;
+
   /// 每天计划窗口（网格裁剪用）。
   DayWindow get dayWindow => DayWindow.fromHours(dailyStartHour, dailyEndHour);
 
@@ -322,6 +352,7 @@ class AppPreferences {
     int? dailyStartHour,
     int? dailyEndHour,
     DensityProfile? density,
+    String? goalsTab,
   }) {
     return AppPreferences(
       themeMode: themeMode ?? this.themeMode,
@@ -330,6 +361,7 @@ class AppPreferences {
       dailyStartHour: dailyStartHour ?? this.dailyStartHour,
       dailyEndHour: dailyEndHour ?? this.dailyEndHour,
       density: density ?? this.density,
+      goalsTab: goalsTab ?? this.goalsTab,
     );
   }
 
@@ -365,6 +397,13 @@ class AppPreferences {
     final int? parsed = int.tryParse((code ?? '').trim());
     return (parsed ?? fallback).clamp(low, high);
   }
+
+  /// 解析目标页页签 id；无法识别回落「周」。
+  ///
+  /// 为什么不抛异常：页签 id 是**纯展示状态**，认错了就当用户没选过，
+  /// 比把设置页炸掉好。
+  static String parseGoalsTab(String? code) =>
+      kGoalsTabIds.contains(code) ? code! : kGoalsTabWeek;
 }
 
 /// 读取全部偏好（任何异常 ⇒ 默认值，绝不把设置页炸掉）。
@@ -376,6 +415,7 @@ final appPreferencesProvider = FutureProvider<AppPreferences>((ref) async {
   final String? start = await settings.get(settingsKeyDailyStartHour);
   final String? end = await settings.get(settingsKeyDailyEndHour);
   final String? density = await settings.get(settingsKeyDensity);
+  final String? goalsTab = await settings.get(settingsKeyGoalsTab);
 
   final int startHour = AppPreferences.parseHour(
     start,
@@ -396,6 +436,7 @@ final appPreferencesProvider = FutureProvider<AppPreferences>((ref) async {
     dailyStartHour: startHour,
     dailyEndHour: endHour > startHour ? endHour : (startHour + 1).clamp(1, 24),
     density: AppPreferences.parseDensity(density),
+    goalsTab: AppPreferences.parseGoalsTab(goalsTab),
   );
 });
 
@@ -460,6 +501,10 @@ class PreferencesStore {
   Future<void> setDensity(DensityProfile density) =>
       write(settingsKeyDensity, density.name);
 
+  /// 目标页上次停留的页签。
+  Future<void> setGoalsTab(String tabId) =>
+      write(settingsKeyGoalsTab, AppPreferences.parseGoalsTab(tabId));
+
   /// 恢复默认：把全部偏好键写回默认值（没有 delete 方法，只能写回）。
   Future<void> resetToDefaults() async {
     await setThemeMode(AppPreferences.defaults.themeMode);
@@ -470,11 +515,81 @@ class PreferencesStore {
       AppPreferences.defaults.dailyEndHour,
     );
     await setDensity(AppPreferences.defaults.density);
+    await setGoalsTab(AppPreferences.defaults.goalsTab);
     await _settings.setPriorityDisplayMode(PriorityDisplayMode.quadrant);
     _ref.invalidate(appPreferencesProvider);
     _ref.invalidate(priorityDisplayModeProvider);
   }
 }
+
+// =============================================================================
+// Task 65 · 目标页数据通道（读侧 provider + 两个可测的写入口）
+// =============================================================================
+// 写侧只暴露两个**函数型** provider（[goalsTabSaverProvider] /
+// [goalDraftSaverProvider]）：界面层通过它们写，测试把它们 override 成记录器，
+// 于是「页签记忆」与「草稿确认」这两条写路径不需要真数据库就能断言。
+//
+// 纪律：滚动候选**只算不写**（[goalWeeklyDraftsProvider] 走
+// `rollWeeklyDrafts`），落库只发生在用户点了确认之后（走
+// [goalDraftSaverProvider] → `saveWeeklyDrafts`，落库状态是 `draft`）。
+// =============================================================================
+
+/// 目标仓储（数据层通道）。
+final goalStoreProvider = Provider<GoalStore>(
+  (ref) => GoalStore(ref.watch(repositoriesProvider)),
+);
+
+/// 当前周周期（ISO 周；按**本地日历日**推导）。
+///
+/// 为什么不能直接拿 `DateTime.now()`：周期口径是 UTC（[GoalPeriod]），而
+/// 「本周」是用户视角的本地日历周。直接用当前时刻，在 UTC+8 下会把周一
+/// 凌晨算进上一周。这里取本地日历日**中午**对应的 UTC 时刻 —— 任何时区
+/// 下它都落在同一个日历日上，于是 ISO 周号与本地日历周一致。
+final goalCurrentWeekProvider = Provider<GoalPeriod>((ref) {
+  final DateTime local = DateTime.parse(ref.watch(todayProvider));
+  final int millis = DateTime.utc(
+    local.year,
+    local.month,
+    local.day,
+    12,
+  ).millisecondsSinceEpoch;
+  return GoalPeriod.fromStartMillis(millis, GoalPeriodUnit.week);
+});
+
+/// 本周目标视图（右块「本周目标」表的读模型）。
+final goalWeekViewProvider = FutureProvider<GoalWeekView>((ref) async {
+  final GoalStore store = ref.watch(goalStoreProvider);
+  final GoalPeriod period = ref.watch(goalCurrentWeekProvider);
+  return store.weekView(period);
+});
+
+/// 本周滚动候选（**只算不写**：库里 0 增量）。
+final goalWeeklyDraftsProvider = FutureProvider<List<GoalDraft>>((ref) async {
+  final GoalStore store = ref.watch(goalStoreProvider);
+  final GoalPeriod period = ref.watch(goalCurrentWeekProvider);
+  return store.rollWeeklyDrafts(period);
+});
+
+/// 记住目标页上次停留的页签（界面层点页签时调用）。
+///
+/// 写成函数型 provider 是为了可测：测试 override 成记录器即可断言
+/// 「点页签 ⇒ 记住页签」，不需要真数据库。
+final goalsTabSaverProvider = Provider<Future<void> Function(String tabId)>((
+  ref,
+) {
+  final PreferencesStore store = ref.read(preferencesStoreProvider);
+  return store.setGoalsTab;
+});
+
+/// 保存滚动草稿（**只有用户点了确认才调用**）。
+///
+/// 落库状态是 `draft`（激活由用户后续决定），落库前必须先经过
+/// [goalWeeklyDraftsProvider] 的「只算」结果。
+final goalDraftSaverProvider =
+    Provider<Future<int> Function(List<GoalDraft> drafts)>((ref) {
+  final GoalStore store = ref.watch(goalStoreProvider);
+  return store.saveWeeklyDrafts;
+});
 
 // -----------------------------------------------------------------------------
 // 系统集成（开机启动 / 桌面快捷方式 / 打开链接）
