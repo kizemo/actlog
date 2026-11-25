@@ -88,9 +88,7 @@ Future<_RawGoal?> _goalById(ActLogDatabase db, String id) async {
 /// 按标题回读目标（用于断言「恰好新增了一条」）。
 Future<List<_RawGoal>> _goalsByTitle(ActLogDatabase db, String title) async {
   final List<QueryRow> rows = await db
-      .customSelect(
-        'SELECT $_goalColumns FROM goal WHERE title = \'$title\'',
-      )
+      .customSelect('SELECT $_goalColumns FROM goal WHERE title = \'$title\'')
       .get();
   return <_RawGoal>[for (final QueryRow r in rows) _fromRow(r.data)];
 }
@@ -213,84 +211,86 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T1 格内新建：只填标题也落在所在格的 domain+horizon（D-8-e）',
-      (WidgetTester tester) async {
-        await _seed(store);
-        await _pumpBlueprint(tester, repos: repos);
+  testWidgets('T1 格内新建：只填标题也落在所在格的 domain+horizon（D-8-e）', (
+    WidgetTester tester,
+  ) async {
+    await _seed(store);
+    await _pumpBlueprint(tester, repos: repos);
 
-        final AppLocalizations zh = AppLocalizations.zh;
-        // learning × 短期 这一格本来是空的 ⇒ 入口 key 带领域 + 档位。
-        expect(
-          find.byKey(const ValueKey<String>('goal-blueprint-add-learning-short')),
-          findsOneWidget,
-          reason: '空格子里要有「+ 新建目标」入口：${zh.goalBlueprintAddGoal}',
-        );
-        await _tapKey(
-          tester,
-          const ValueKey<String>('goal-blueprint-add-learning-short'),
-        );
+    final AppLocalizations zh = AppLocalizations.zh;
+    // B9-W2：矩阵一次只渲染一个档位 ⇒ 先切到「短期」标签页再找那一格。
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-tab-short'));
+    // learning × 短期 这一格本来是空的 ⇒ 入口 key 带领域 + 档位。
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-add-learning-short')),
+      findsOneWidget,
+      reason: '空格子里要有「+ 新建目标」入口：${zh.goalBlueprintAddGoal}',
+    );
+    await _tapKey(
+      tester,
+      const ValueKey<String>('goal-blueprint-add-learning-short'),
+    );
 
-        // 表单必须已经带着所在格的领域 + 档位打开（不靠用户重选）。
-        final DropdownButtonFormField<String> domain = tester
-            .widget<DropdownButtonFormField<String>>(
-              find.byKey(const ValueKey<String>('goal-blueprint-form-domain')),
-            );
-        expect(domain.initialValue, 'learning', reason: '领域没预填所在格 ⇒ D-8-e 破');
-        final DropdownButtonFormField<GoalHorizon?> horizon = tester
-            .widget<DropdownButtonFormField<GoalHorizon?>>(
-              find.byKey(const ValueKey<String>('goal-blueprint-form-horizon')),
-            );
-        expect(horizon.initialValue, GoalHorizon.short);
+    // 表单必须已经带着所在格的领域 + 档位打开（不靠用户重选）。
+    final DropdownButtonFormField<String> domain = tester
+        .widget<DropdownButtonFormField<String>>(
+          find.byKey(const ValueKey<String>('goal-blueprint-form-domain')),
+        );
+    expect(domain.initialValue, 'learning', reason: '领域没预填所在格 ⇒ D-8-e 破');
+    final DropdownButtonFormField<GoalHorizon?> horizon = tester
+        .widget<DropdownButtonFormField<GoalHorizon?>>(
+          find.byKey(const ValueKey<String>('goal-blueprint-form-horizon')),
+        );
+    expect(horizon.initialValue, GoalHorizon.short);
 
-        await tester.enterText(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
-          '学会游泳',
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
-          '先练憋气',
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-keywords')),
-          '游泳,呼吸',
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-due')),
-          '2026-12-31',
-        );
-        await _tapKey(
-          tester,
-          const ValueKey<String>('goal-blueprint-form-save'),
-        );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
+      '学会游泳',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
+      '先练憋气',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-keywords')),
+      '游泳,呼吸',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-due')),
+      '2026-12-31',
+    );
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-save'));
 
-        final List<_RawGoal> created = await _goalsByTitle(db, '学会游泳');
-        expect(created.length, 1, reason: '保存后 SQLite 里应恰好新增一条目标');
-        final _RawGoal g = created.single;
-        expect(g.kind, 'blueprint', reason: '07 页建的必须是蓝图目标');
-        expect(g.domain, 'learning', reason: '领域 = 所在格（回读 SQLite）');
-        expect(g.horizon, GoalHorizon.ultimate.value + 3, reason: '短期存 4');
-        expect(g.note, '先练憋气');
-        expect(g.keywords, '游泳,呼吸');
-        expect(_dayOf(g.dueDate), '2026-12-31', reason: '期限要落库成毫秒');
-        expect(g.deletedAt, isNull, reason: '新建不是删除');
-        expect(
-          find.byKey(const ValueKey<String>('goal-blueprint-goal-saved')),
-          findsOneWidget,
-          reason: '写库成功要给用户可见反馈：${zh.goalBlueprintGoalSaved}',
-        );
-        // 新目标要立刻出现在原来那一格。
-        expect(
-          find.byKey(ValueKey<String>('goal-blueprint-cell-${g.title.hashCode}')),
-          findsNothing,
-          reason: '哨兵断言：cell key 用的是目标 id，不是标题',
-        );
-      });
+    final List<_RawGoal> created = await _goalsByTitle(db, '学会游泳');
+    expect(created.length, 1, reason: '保存后 SQLite 里应恰好新增一条目标');
+    final _RawGoal g = created.single;
+    expect(g.kind, 'blueprint', reason: '07 页建的必须是蓝图目标');
+    expect(g.domain, 'learning', reason: '领域 = 所在格（回读 SQLite）');
+    expect(g.horizon, GoalHorizon.ultimate.value + 3, reason: '短期存 4');
+    expect(g.note, '先练憋气');
+    expect(g.keywords, '游泳,呼吸');
+    expect(_dayOf(g.dueDate), '2026-12-31', reason: '期限要落库成毫秒');
+    expect(g.deletedAt, isNull, reason: '新建不是删除');
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-goal-saved')),
+      findsOneWidget,
+      reason: '写库成功要给用户可见反馈：${zh.goalBlueprintGoalSaved}',
+    );
+    // 新目标要立刻出现在原来那一格。
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-cell-${g.title.hashCode}')),
+      findsNothing,
+      reason: '哨兵断言：cell key 用的是目标 id，不是标题',
+    );
+  });
 
   testWidgets('T1b 新建表单点取消 ⇒ 库里 0 增量', (WidgetTester tester) async {
     await _seed(store);
     final int before = (await store.listGoals()).length;
     await _pumpBlueprint(tester, repos: repos);
 
+    // B9-W2：先切到「远期」标签页（family × 远期那格是空的）。
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-tab-long'));
     await _tapKey(
       tester,
       const ValueKey<String>('goal-blueprint-add-family-long'),
@@ -299,10 +299,7 @@ void main() {
       find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
       '不该存在的一条',
     );
-    await _tapKey(
-      tester,
-      const ValueKey<String>('goal-blueprint-form-cancel'),
-    );
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-cancel'));
 
     expect(
       find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
@@ -313,115 +310,105 @@ void main() {
     expect(await _goalsByTitle(db, '不该存在的一条'), isEmpty);
   });
 
-  testWidgets('T2 卡片编辑：预填既有值；领域选「未设置」要真的写回 NULL',
-      (WidgetTester tester) async {
-        final _Seed seed = await _seed(store);
-        await _pumpBlueprint(tester, repos: repos);
+  testWidgets('T2 卡片编辑：预填既有值；领域选「未设置」要真的写回 NULL', (WidgetTester tester) async {
+    final _Seed seed = await _seed(store);
+    await _pumpBlueprint(tester, repos: repos);
 
-        expect(
-          find.byKey(ValueKey<String>('goal-blueprint-edit-${seed.bpId}')),
-          findsOneWidget,
-          reason: '目标卡片上要有「编辑」入口',
-        );
-        await _tapKey(
-          tester,
-          ValueKey<String>('goal-blueprint-edit-${seed.bpId}'),
-        );
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-edit-${seed.bpId}')),
+      findsOneWidget,
+      reason: '目标卡片上要有「编辑」入口',
+    );
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-edit-${seed.bpId}'));
 
-        final TextField titleField = tester.widget<TextField>(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
-        );
-        expect(
-          titleField.controller?.text,
-          '终极蓝图',
-          reason: '编辑表单必须预填既有标题（这是「编辑」不是「新建」）',
-        );
-        final TextField noteField = tester.widget<TextField>(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
-        );
-        expect(noteField.controller?.text, '原备注');
+    final TextField titleField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
+    );
+    expect(
+      titleField.controller?.text,
+      '终极蓝图',
+      reason: '编辑表单必须预填既有标题（这是「编辑」不是「新建」）',
+    );
+    final TextField noteField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
+    );
+    expect(noteField.controller?.text, '原备注');
 
-        await tester.enterText(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
-          '终极蓝图（已改）',
-        );
-        // 领域下拉改成「未设置」⇒ 走 clear:{GoalField.domain}。
-        await _tapKey(
-          tester,
-          const ValueKey<String>('goal-blueprint-form-domain'),
-        );
-        final AppLocalizations zh = AppLocalizations.zh;
-        await tester.tap(find.text(zh.goalBlueprintFieldUnset).last);
-        await tester.pumpAndSettle();
-        await _tapKey(
-          tester,
-          const ValueKey<String>('goal-blueprint-form-save'),
-        );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
+      '终极蓝图（已改）',
+    );
+    // 领域下拉改成「未设置」⇒ 走 clear:{GoalField.domain}。
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-domain'));
+    final AppLocalizations zh = AppLocalizations.zh;
+    await tester.tap(find.text(zh.goalBlueprintFieldUnset).last);
+    await tester.pumpAndSettle();
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-save'));
 
-        final _RawGoal? g = await _goalById(db, seed.bpId);
-        expect(g, isNotNull);
-        expect(g!.title, '终极蓝图（已改）', reason: '改动要落到同一行，不是新建一行');
-        expect(
-          g.domain,
-          isNull,
-          reason: '表单里清掉领域必须写 NULL：'
-              'updateGoal 传 null 的语义是「不动」，只有 clear:{GoalField.domain} 才置空',
-        );
-        expect(g.horizon, GoalHorizon.ultimate.value, reason: '没碰档位 ⇒ 原值保留（预填生效）');
-        expect(g.note, '原备注', reason: '没改的备注不许被表单抹掉');
-        expect(g.keywords, '原关键词');
-        expect(
-          find.byKey(const ValueKey<String>('goal-blueprint-goal-saved')),
-          findsOneWidget,
-        );
-      });
+    final _RawGoal? g = await _goalById(db, seed.bpId);
+    expect(g, isNotNull);
+    expect(g!.title, '终极蓝图（已改）', reason: '改动要落到同一行，不是新建一行');
+    expect(
+      g.domain,
+      isNull,
+      reason:
+          '表单里清掉领域必须写 NULL：'
+          'updateGoal 传 null 的语义是「不动」，只有 clear:{GoalField.domain} 才置空',
+    );
+    expect(g.horizon, GoalHorizon.ultimate.value, reason: '没碰档位 ⇒ 原值保留（预填生效）');
+    expect(g.note, '原备注', reason: '没改的备注不许被表单抹掉');
+    expect(g.keywords, '原关键词');
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-goal-saved')),
+      findsOneWidget,
+    );
+  });
 
-  testWidgets('T3 删除要二次确认：取消不触库；确认后写墓碑且卡片消失',
-      (WidgetTester tester) async {
-        final _Seed seed = await _seed(store);
-        await _pumpBlueprint(tester, repos: repos);
+  testWidgets('T3 删除要二次确认：取消不触库；确认后写墓碑且卡片消失', (WidgetTester tester) async {
+    final _Seed seed = await _seed(store);
+    await _pumpBlueprint(tester, repos: repos);
 
-        await _tapKey(
-          tester,
-          ValueKey<String>('goal-blueprint-delete-${seed.bpId}'),
-        );
-        expect(
-          find.byKey(const ValueKey<String>('goal-blueprint-delete-confirm')),
-          findsOneWidget,
-          reason: '删除必须先弹二次确认，不能一点就删',
-        );
-        await _tapKey(
-          tester,
-          const ValueKey<String>('goal-blueprint-delete-cancel'),
-        );
-        expect(
-          (await _goalById(db, seed.bpId))!.deletedAt,
-          isNull,
-          reason: '确认框点取消就不许触库',
-        );
+    await _tapKey(
+      tester,
+      ValueKey<String>('goal-blueprint-delete-${seed.bpId}'),
+    );
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-delete-confirm')),
+      findsOneWidget,
+      reason: '删除必须先弹二次确认，不能一点就删',
+    );
+    await _tapKey(
+      tester,
+      const ValueKey<String>('goal-blueprint-delete-cancel'),
+    );
+    expect(
+      (await _goalById(db, seed.bpId))!.deletedAt,
+      isNull,
+      reason: '确认框点取消就不许触库',
+    );
 
-        await _tapKey(
-          tester,
-          ValueKey<String>('goal-blueprint-delete-${seed.bpId}'),
-        );
-        await _tapKey(
-          tester,
-          const ValueKey<String>('goal-blueprint-delete-confirm'),
-        );
+    await _tapKey(
+      tester,
+      ValueKey<String>('goal-blueprint-delete-${seed.bpId}'),
+    );
+    await _tapKey(
+      tester,
+      const ValueKey<String>('goal-blueprint-delete-confirm'),
+    );
 
-        final _RawGoal? after = await _goalById(db, seed.bpId);
-        expect(after, isNotNull, reason: '删除是软删：行要留在表里靠 deleted_at 同步');
-        expect(after!.deletedAt, isNotNull, reason: '墓碑时间必须写上');
-        expect(
-          find.byKey(ValueKey<String>('goal-blueprint-cell-${seed.bpId}')),
-          findsNothing,
-          reason: '确认后矩阵里不能再看到这条目标',
-        );
-        expect(
-          find.byKey(const ValueKey<String>('goal-blueprint-goal-deleted')),
-          findsOneWidget,
-        );
-      });
+    final _RawGoal? after = await _goalById(db, seed.bpId);
+    expect(after, isNotNull, reason: '删除是软删：行要留在表里靠 deleted_at 同步');
+    expect(after!.deletedAt, isNotNull, reason: '墓碑时间必须写上');
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-cell-${seed.bpId}')),
+      findsNothing,
+      reason: '确认后矩阵里不能再看到这条目标',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-goal-deleted')),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('T4a 三个回调都不传 ⇒ 矩阵一个新按钮都不渲染', (WidgetTester tester) async {
     final _Seed seed = await _seed(store);
@@ -458,6 +445,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // B9-W2：4 个标签页是矩阵自带的外壳，不依赖任何回调。
+    for (final String horizonKey in <String>[
+      'ultimate',
+      'long',
+      'mid',
+      'short',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>('goal-blueprint-tab-$horizonKey')),
+        findsOneWidget,
+      );
+    }
+
     // 既有内容一字不变地还在。
     expect(
       find.byKey(ValueKey<String>('goal-blueprint-cell-${seed.bpId}')),
@@ -481,6 +481,11 @@ void main() {
       findsNothing,
       reason: '有目标的格子不该出现「新建」入口，且没传回调时更不该有',
     );
+    expect(
+      find.text('+'),
+      findsNothing,
+      reason: '不传 onAddGoal ⇒ 空格子连「+」都不渲染（坑 48）',
+    );
   });
 
   testWidgets('T4b 英文态：表单与二次确认框里不残留中文', (WidgetTester tester) async {
@@ -488,6 +493,8 @@ void main() {
     await _pumpBlueprint(tester, repos: repos, language: AppLanguage.en);
 
     final RegExp cjk = RegExp(r'[\u3400-\u9fff\uf900-\ufaff]');
+    // B9-W2：social × 中期那格先要切到「中期」标签页才存在。
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-tab-mid'));
     await _tapKey(
       tester,
       const ValueKey<String>('goal-blueprint-add-social-mid'),
@@ -504,11 +511,13 @@ void main() {
       }
       expect(cjk.hasMatch(s), isFalse, reason: '英文态表单漏出中文：$s');
     }
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-cancel'));
+
+    // 删的靶子是 career × 终极 ⇒ 先切回「终极」标签页（上一步停在中档）。
     await _tapKey(
       tester,
-      const ValueKey<String>('goal-blueprint-form-cancel'),
+      const ValueKey<String>('goal-blueprint-tab-ultimate'),
     );
-
     await _tapKey(
       tester,
       ValueKey<String>('goal-blueprint-delete-${seed.bpId}'),
@@ -529,5 +538,86 @@ void main() {
       tester,
       const ValueKey<String>('goal-blueprint-delete-cancel'),
     );
+  });
+
+  testWidgets('N1 B9-W2：切遍 4 个标签页都不出现 near 新建入口', (WidgetTester tester) async {
+    await _seed(store);
+    await _pumpBlueprint(tester, repos: repos);
+
+    for (final String horizonKey in <String>[
+      'ultimate',
+      'long',
+      'mid',
+      'short',
+    ]) {
+      await _tapKey(tester, ValueKey<String>('goal-blueprint-tab-$horizonKey'));
+      for (final String domain in <String>[
+        'career',
+        'wealth',
+        'family',
+        'learning',
+        'social',
+        'health',
+      ]) {
+        expect(
+          find.byKey(ValueKey<String>('goal-blueprint-add-$domain-near')),
+          findsNothing,
+          reason: 'D-9-b：近期列并入短期页后不再有 near 新建入口（$domain/$horizonKey）',
+        );
+      }
+    }
+  });
+
+  testWidgets('N2 B9-W2：短期页里的 near 蓝图目标也有铅笔与拆分', (WidgetTester tester) async {
+    await _seed(store);
+    final String nearId = await store.createGoal(
+      kind: GoalKind.blueprint,
+      title: '一年蓝图',
+      domain: 'career',
+      horizon: GoalHorizon.near,
+    );
+    await _pumpBlueprint(tester, repos: repos);
+
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-tab-short'));
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-cell-$nearId')),
+      findsOneWidget,
+      reason: 'near 蓝图并入短期页',
+    );
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-edit-$nearId')),
+      findsOneWidget,
+      reason: '所有蓝图目标（含 near）都有铅笔',
+    );
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-split-$nearId')),
+      findsOneWidget,
+      reason: '所有蓝图目标（含 near）都有拆分',
+    );
+  });
+
+  testWidgets('N3 B9-W2：加号 / 铅笔 / 拆分三个紧凑按钮统一 28×28', (
+    WidgetTester tester,
+  ) async {
+    final _Seed seed = await _seed(store);
+    await _pumpBlueprint(tester, repos: repos);
+
+    final IconButton add = tester.widget<IconButton>(
+      find.byKey(const ValueKey<String>('goal-blueprint-add-wealth-ultimate')),
+    );
+    final IconButton edit = tester.widget<IconButton>(
+      find.byKey(ValueKey<String>('goal-blueprint-edit-${seed.bpId}')),
+    );
+    final IconButton split = tester.widget<IconButton>(
+      find.byKey(ValueKey<String>('goal-blueprint-split-${seed.bpId}')),
+    );
+
+    for (final IconButton button in <IconButton>[add, edit, split]) {
+      expect(button.constraints?.maxWidth, 28);
+      expect(button.constraints?.maxHeight, 28);
+    }
+    // 两个图标按钮的 iconSize 收紧到 16（加号是文字，用默认字号）。
+    expect(edit.iconSize, 16);
+    expect(split.iconSize, 16);
   });
 }

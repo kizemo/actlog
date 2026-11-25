@@ -25,8 +25,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 523 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
-final Map<String, String Function(AppLocalizations)> l10nAccessors =
-    <String, String Function(AppLocalizations)>{
+final Map<String, String Function(AppLocalizations)>
+l10nAccessors = <String, String Function(AppLocalizations)>{
   // 设置页 32 条
   L10nKeys.settingsTitle: (AppLocalizations t) => t.settingsTitle,
   L10nKeys.settingsSubtitle: (AppLocalizations t) => t.settingsSubtitle,
@@ -122,7 +122,7 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.goalsUpstreamWeekTitle,
   L10nKeys.goalsUpstreamAddHint: (AppLocalizations t) => t.goalsUpstreamAddHint,
   L10nKeys.goalsUpstreamEmpty: (AppLocalizations t) => t.goalsUpstreamEmpty,
-  
+
   L10nKeys.goalsWeekSection: (AppLocalizations t) => t.goalsWeekSection,
   L10nKeys.goalsWeekEmpty: (AppLocalizations t) => t.goalsWeekEmpty,
   L10nKeys.goalsColumnOrder: (AppLocalizations t) => t.goalsColumnOrder,
@@ -139,8 +139,10 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.goalsDraftConfirm: (AppLocalizations t) => t.goalsDraftConfirm,
   L10nKeys.goalsDraftSaved: (AppLocalizations t) => t.goalsDraftSaved,
   L10nKeys.goalsDraftCarryOver: (AppLocalizations t) => t.goalsDraftCarryOver,
-  L10nKeys.goalsDraftFromMonthly: (AppLocalizations t) => t.goalsDraftFromMonthly,
-  L10nKeys.goalsPlaceholderMonth: (AppLocalizations t) => t.goalsPlaceholderMonth,
+  L10nKeys.goalsDraftFromMonthly: (AppLocalizations t) =>
+      t.goalsDraftFromMonthly,
+  L10nKeys.goalsPlaceholderMonth: (AppLocalizations t) =>
+      t.goalsPlaceholderMonth,
   L10nKeys.goalsPlaceholderYear: (AppLocalizations t) => t.goalsPlaceholderYear,
   L10nKeys.goalsPlaceholderBlueprint: (AppLocalizations t) =>
       t.goalsPlaceholderBlueprint,
@@ -155,12 +157,15 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.goalMonthReviewSection: (AppLocalizations t) =>
       t.goalMonthReviewSection,
   L10nKeys.goalMonthReviewEmpty: (AppLocalizations t) => t.goalMonthReviewEmpty,
-  L10nKeys.goalMonthReviewReason: (AppLocalizations t) => t.goalMonthReviewReason,
+  L10nKeys.goalMonthReviewReason: (AppLocalizations t) =>
+      t.goalMonthReviewReason,
   L10nKeys.goalMonthReviewReasonMissing: (AppLocalizations t) =>
       t.goalMonthReviewReasonMissing,
   L10nKeys.goalMonthImprove: (AppLocalizations t) => t.goalMonthImprove,
-  L10nKeys.goalMonthImproveEmpty: (AppLocalizations t) => t.goalMonthImproveEmpty,
-  L10nKeys.goalMonthConvertDraft: (AppLocalizations t) => t.goalMonthConvertDraft,
+  L10nKeys.goalMonthImproveEmpty: (AppLocalizations t) =>
+      t.goalMonthImproveEmpty,
+  L10nKeys.goalMonthConvertDraft: (AppLocalizations t) =>
+      t.goalMonthConvertDraft,
   L10nKeys.goalMonthGoalsSection: (AppLocalizations t) =>
       t.goalMonthGoalsSection,
   L10nKeys.goalMonthGoalsEmpty: (AppLocalizations t) => t.goalMonthGoalsEmpty,
@@ -171,18 +176,21 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.goalMonthColumnMethods,
   L10nKeys.goalMonthColumnDone: (AppLocalizations t) => t.goalMonthColumnDone,
   L10nKeys.goalMonthAdHoc: (AppLocalizations t) => t.goalMonthAdHoc,
-  L10nKeys.goalMonthServesYearly: (AppLocalizations t) => t.goalMonthServesYearly,
+  L10nKeys.goalMonthServesYearly: (AppLocalizations t) =>
+      t.goalMonthServesYearly,
   L10nKeys.goalMonthDraftEmpty: (AppLocalizations t) => t.goalMonthDraftEmpty,
   L10nKeys.goalYearGoalsSection: (AppLocalizations t) => t.goalYearGoalsSection,
   L10nKeys.goalYearGoalsEmpty: (AppLocalizations t) => t.goalYearGoalsEmpty,
   L10nKeys.goalYearColumnPeriod: (AppLocalizations t) => t.goalYearColumnPeriod,
-  L10nKeys.goalYearMonthsSection: (AppLocalizations t) => t.goalYearMonthsSection,
+  L10nKeys.goalYearMonthsSection: (AppLocalizations t) =>
+      t.goalYearMonthsSection,
   L10nKeys.goalYearMonthColumn: (AppLocalizations t) => t.goalYearMonthColumn,
   L10nKeys.goalYearCellEmpty: (AppLocalizations t) => t.goalYearCellEmpty,
   L10nKeys.goalYearCellInputHint: (AppLocalizations t) =>
       t.goalYearCellInputHint,
   L10nKeys.goalYearCellAddDraft: (AppLocalizations t) => t.goalYearCellAddDraft,
-  L10nKeys.goalYearReviewSection: (AppLocalizations t) => t.goalYearReviewSection,
+  L10nKeys.goalYearReviewSection: (AppLocalizations t) =>
+      t.goalYearReviewSection,
   L10nKeys.goalYearReviewDone: (AppLocalizations t) => t.goalYearReviewDone,
   L10nKeys.goalYearReviewScoreTotal: (AppLocalizations t) =>
       t.goalYearReviewScoreTotal,
@@ -194,8 +202,6 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.goalYear8020Empty: (AppLocalizations t) => t.goalYear8020Empty,
   L10nKeys.goalYear8020Tracks: (AppLocalizations t) => t.goalYear8020Tracks,
   L10nKeys.goalYearDraftEmpty: (AppLocalizations t) => t.goalYearDraftEmpty,
-  L10nKeys.goalBlueprintMatrixSection: (AppLocalizations t) =>
-      t.goalBlueprintMatrixSection,
   L10nKeys.goalBlueprintColumnGoal: (AppLocalizations t) =>
       t.goalBlueprintColumnGoal,
   L10nKeys.goalBlueprintHorizonUltimate: (AppLocalizations t) =>
@@ -208,18 +214,12 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.goalBlueprintHorizonShort,
   L10nKeys.goalBlueprintHorizonNear: (AppLocalizations t) =>
       t.goalBlueprintHorizonNear,
-  L10nKeys.goalBlueprintEmptyCell: (AppLocalizations t) =>
-      t.goalBlueprintEmptyCell,
   L10nKeys.goalBlueprintBlankRowHint: (AppLocalizations t) =>
       t.goalBlueprintBlankRowHint,
-  L10nKeys.goalBlueprintNearSource: (AppLocalizations t) =>
-      t.goalBlueprintNearSource,
   L10nKeys.goalBlueprintActionsCount: (AppLocalizations t) =>
       t.goalBlueprintActionsCount,
   L10nKeys.goalBlueprintWeeklyTarget: (AppLocalizations t) =>
       t.goalBlueprintWeeklyTarget,
-  L10nKeys.goalBlueprintSplitTodos: (AppLocalizations t) =>
-      t.goalBlueprintSplitTodos,
   L10nKeys.goalBlueprintPendingTodos: (AppLocalizations t) =>
       t.goalBlueprintPendingTodos,
   L10nKeys.goalBlueprintConfirmTodos: (AppLocalizations t) =>
@@ -232,6 +232,11 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.goalBlueprintBalanceHabit,
   // 蓝图页目标编辑 12 条（B8-W1）
   L10nKeys.goalBlueprintAddGoal: (AppLocalizations t) => t.goalBlueprintAddGoal,
+  L10nKeys.goalBlueprintAddSymbol: (AppLocalizations t) =>
+      t.goalBlueprintAddSymbol,
+  L10nKeys.goalBlueprintSplit: (AppLocalizations t) => t.goalBlueprintSplit,
+  L10nKeys.goalBlueprintShortTabNote: (AppLocalizations t) =>
+      t.goalBlueprintShortTabNote,
   L10nKeys.goalBlueprintEditGoal: (AppLocalizations t) =>
       t.goalBlueprintEditGoal,
   L10nKeys.goalBlueprintDeleteGoal: (AppLocalizations t) =>
@@ -267,13 +272,10 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.goalBrandGuideTitle: (AppLocalizations t) => t.goalBrandGuideTitle,
   L10nKeys.goalBrandGuideFormula: (AppLocalizations t) =>
       t.goalBrandGuideFormula,
-  L10nKeys.goalBrandGuideLayers: (AppLocalizations t) =>
-      t.goalBrandGuideLayers,
-  L10nKeys.goalBrandGuideMethod: (AppLocalizations t) =>
-      t.goalBrandGuideMethod,
+  L10nKeys.goalBrandGuideLayers: (AppLocalizations t) => t.goalBrandGuideLayers,
+  L10nKeys.goalBrandGuideMethod: (AppLocalizations t) => t.goalBrandGuideMethod,
   L10nKeys.goalBrandGuidePbe: (AppLocalizations t) => t.goalBrandGuidePbe,
-  L10nKeys.goalBrandGuideToggle: (AppLocalizations t) =>
-      t.goalBrandGuideToggle,
+  L10nKeys.goalBrandGuideToggle: (AppLocalizations t) => t.goalBrandGuideToggle,
   L10nKeys.goalBrandFacetStatement: (AppLocalizations t) =>
       t.goalBrandFacetStatement,
   L10nKeys.goalBrandFacetStatementHint: (AppLocalizations t) =>
@@ -423,10 +425,12 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.projectsGoalHint: (AppLocalizations t) => t.projectsGoalHint,
   L10nKeys.projectsStartHint: (AppLocalizations t) => t.projectsStartHint,
   L10nKeys.projectsEndHint: (AppLocalizations t) => t.projectsEndHint,
-  L10nKeys.projectsTaskTitleHint: (AppLocalizations t) => t.projectsTaskTitleHint,
+  L10nKeys.projectsTaskTitleHint: (AppLocalizations t) =>
+      t.projectsTaskTitleHint,
   L10nKeys.projectsTargetDateHint: (AppLocalizations t) =>
       t.projectsTargetDateHint,
-  L10nKeys.projectsAddTaskAction: (AppLocalizations t) => t.projectsAddTaskAction,
+  L10nKeys.projectsAddTaskAction: (AppLocalizations t) =>
+      t.projectsAddTaskAction,
   L10nKeys.projectsRescheduleAction: (AppLocalizations t) =>
       t.projectsRescheduleAction,
   L10nKeys.projectsUnscheduled: (AppLocalizations t) => t.projectsUnscheduled,
@@ -830,7 +834,8 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.dialogNextStepContinueTomorrow: (AppLocalizations t) =>
       t.dialogNextStepContinueTomorrow,
   L10nKeys.dialogNextStepToTodo: (AppLocalizations t) => t.dialogNextStepToTodo,
-  L10nKeys.dialogNextStepHandOff: (AppLocalizations t) => t.dialogNextStepHandOff,
+  L10nKeys.dialogNextStepHandOff: (AppLocalizations t) =>
+      t.dialogNextStepHandOff,
   L10nKeys.dialogNextStepNarrowScope: (AppLocalizations t) =>
       t.dialogNextStepNarrowScope,
   L10nKeys.dialogNextStepReviewLater: (AppLocalizations t) =>
@@ -862,12 +867,12 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
 /// 表，避免把 `Map<String, String Function(...)>` 撑成动态类型。
 final Map<String, List<String> Function(AppLocalizations)> l10nListAccessors =
     <String, List<String> Function(AppLocalizations)>{
-  L10nKeys.aboutToc: (AppLocalizations t) => t.aboutToc,
-  L10nKeys.aboutChangelog: (AppLocalizations t) => t.aboutChangelog,
-  L10nKeys.calendarWeekdaysShort: (AppLocalizations t) =>
-      t.calendarWeekdaysShort,
-  L10nKeys.domainWeekdayFull: (AppLocalizations t) => t.domainWeekdayFull,
-};
+      L10nKeys.aboutToc: (AppLocalizations t) => t.aboutToc,
+      L10nKeys.aboutChangelog: (AppLocalizations t) => t.aboutChangelog,
+      L10nKeys.calendarWeekdaysShort: (AppLocalizations t) =>
+          t.calendarWeekdaysShort,
+      L10nKeys.domainWeekdayFull: (AppLocalizations t) => t.domainWeekdayFull,
+    };
 
 /// 允许中英同值的键（白名单）。
 ///

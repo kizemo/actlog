@@ -69,7 +69,8 @@ abstract final class L10nKeys {
   static const String settingsShortcutCreated = 'settings-shortcut-created';
 
   /// 分组：每天计划起止时间。
-  static const String settingsSectionPlanWindow = 'settings-section-plan-window';
+  static const String settingsSectionPlanWindow =
+      'settings-section-plan-window';
 
   /// 起点。
   static const String settingsPlanStart = 'settings-plan-start';
@@ -90,7 +91,8 @@ abstract final class L10nKeys {
   static const String settingsDensityCompact = 'settings-density-compact';
 
   /// 密度：舒适。
-  static const String settingsDensityComfortable = 'settings-density-comfortable';
+  static const String settingsDensityComfortable =
+      'settings-density-comfortable';
 
   /// 密度：宽松。
   static const String settingsDensityRoomy = 'settings-density-roomy';
@@ -1618,8 +1620,6 @@ abstract final class L10nKeys {
   /// 上游面板：空态。
   static const String goalsUpstreamEmpty = 'goal-upstream-empty';
 
-  
-
   /// 周视图区块标题。
   static const String goalsWeekSection = 'goal-week-section';
 
@@ -1806,11 +1806,7 @@ abstract final class L10nKeys {
   /// 年页滚动候选空态。
   static const String goalYearDraftEmpty = 'goal-year-draft-empty';
 
-  /// 蓝图页矩阵区块标题。
-  static const String goalBlueprintMatrixSection =
-      'goal-blueprint-matrix-section';
-
-  /// 蓝图页矩阵行头：目标。
+  /// 蓝图页矩阵行头：目标（B9-W2 之后表体不再渲染表头行，键保留）。
   static const String goalBlueprintColumnGoal = 'goal-blueprint-column-goal';
 
   /// 蓝图档位：终极。
@@ -1824,37 +1820,44 @@ abstract final class L10nKeys {
   static const String goalBlueprintHorizonMid = 'goal-blueprint-horizon-mid';
 
   /// 蓝图档位：短期。
-  static const String goalBlueprintHorizonShort = 'goal-blueprint-horizon-short';
+  static const String goalBlueprintHorizonShort =
+      'goal-blueprint-horizon-short';
 
   /// 蓝图档位：近期（1 年）。
   static const String goalBlueprintHorizonNear = 'goal-blueprint-horizon-near';
 
-  /// 蓝图格为空时的占位（空格合法，不报错）。
-  static const String goalBlueprintEmptyCell = 'goal-blueprint-empty-cell';
-
   /// 蓝图页说明：整行留空合法。
-  static const String goalBlueprintBlankRowHint = 'goal-blueprint-blank-row-hint';
-
-  /// 蓝图页说明：近期列的数据来源（与年视图同一份数据）。
-  static const String goalBlueprintNearSource = 'goal-blueprint-near-source';
+  static const String goalBlueprintBlankRowHint =
+      'goal-blueprint-blank-row-hint';
 
   /// 蓝图格：做法条数单位。
-  static const String goalBlueprintActionsCount = 'goal-blueprint-actions-count';
+  static const String goalBlueprintActionsCount =
+      'goal-blueprint-actions-count';
 
   /// 蓝图格展开：周目标标签。
-  static const String goalBlueprintWeeklyTarget = 'goal-blueprint-weekly-target';
-
-  /// 蓝图格：拆成 3 条待办的动作。
-  static const String goalBlueprintSplitTodos = 'goal-blueprint-split-todos';
+  static const String goalBlueprintWeeklyTarget =
+      'goal-blueprint-weekly-target';
 
   /// 蓝图页：待确认待办区标题。
-  static const String goalBlueprintPendingTodos = 'goal-blueprint-pending-todos';
+  static const String goalBlueprintPendingTodos =
+      'goal-blueprint-pending-todos';
 
   /// 蓝图页：确认写入待办的动作。
-  static const String goalBlueprintConfirmTodos = 'goal-blueprint-confirm-todos';
+  static const String goalBlueprintConfirmTodos =
+      'goal-blueprint-confirm-todos';
 
   /// 蓝图格：新建目标入口（B8-W1）。
   static const String goalBlueprintAddGoal = 'goal-blueprint-add-goal';
+
+  /// 蓝图格：空态「+」符号（B9-W2）。
+  static const String goalBlueprintAddSymbol = 'goal-blueprint-add-symbol';
+
+  /// 蓝图格：拆分入口（B9-W2）。
+  static const String goalBlueprintSplit = 'goal-blueprint-split';
+
+  /// 蓝图页：短期页说明（B9-W2）。
+  static const String goalBlueprintShortTabNote =
+      'goal-blueprint-short-tab-note';
 
   /// 蓝图卡片：编辑入口。
   static const String goalBlueprintEditGoal = 'goal-blueprint-edit-goal';
@@ -1872,7 +1875,8 @@ abstract final class L10nKeys {
   static const String goalBlueprintFieldDomain = 'goal-blueprint-field-domain';
 
   /// 蓝图表单：档位。
-  static const String goalBlueprintFieldHorizon = 'goal-blueprint-field-horizon';
+  static const String goalBlueprintFieldHorizon =
+      'goal-blueprint-field-horizon';
 
   /// 蓝图表单：备注。
   static const String goalBlueprintFieldNote = 'goal-blueprint-field-note';
@@ -2086,10 +2090,12 @@ abstract final class L10nKeys {
       'goal-blueprint-balance-section';
 
   /// 蓝图页平衡轮空态。
-  static const String goalBlueprintBalanceEmpty = 'goal-blueprint-balance-empty';
+  static const String goalBlueprintBalanceEmpty =
+      'goal-blueprint-balance-empty';
 
   /// 蓝图页平衡轮：习惯打卡标签。
-  static const String goalBlueprintBalanceHabit = 'goal-blueprint-balance-habit';
+  static const String goalBlueprintBalanceHabit =
+      'goal-blueprint-balance-habit';
 
   // ---------------------------------------------------------------------------
   // 对照表
@@ -2264,19 +2270,15 @@ abstract final class L10nKeys {
     'goalYear8020Empty': goalYear8020Empty,
     'goalYear8020Tracks': goalYear8020Tracks,
     'goalYearDraftEmpty': goalYearDraftEmpty,
-    'goalBlueprintMatrixSection': goalBlueprintMatrixSection,
     'goalBlueprintColumnGoal': goalBlueprintColumnGoal,
     'goalBlueprintHorizonUltimate': goalBlueprintHorizonUltimate,
     'goalBlueprintHorizonLong': goalBlueprintHorizonLong,
     'goalBlueprintHorizonMid': goalBlueprintHorizonMid,
     'goalBlueprintHorizonShort': goalBlueprintHorizonShort,
     'goalBlueprintHorizonNear': goalBlueprintHorizonNear,
-    'goalBlueprintEmptyCell': goalBlueprintEmptyCell,
     'goalBlueprintBlankRowHint': goalBlueprintBlankRowHint,
-    'goalBlueprintNearSource': goalBlueprintNearSource,
     'goalBlueprintActionsCount': goalBlueprintActionsCount,
     'goalBlueprintWeeklyTarget': goalBlueprintWeeklyTarget,
-    'goalBlueprintSplitTodos': goalBlueprintSplitTodos,
     'goalBlueprintPendingTodos': goalBlueprintPendingTodos,
     'goalBlueprintConfirmTodos': goalBlueprintConfirmTodos,
     'goalBlueprintBalanceSection': goalBlueprintBalanceSection,
@@ -2284,6 +2286,9 @@ abstract final class L10nKeys {
     'goalBlueprintBalanceHabit': goalBlueprintBalanceHabit,
     // 蓝图页目标编辑 12 条（B8-W1）
     'goalBlueprintAddGoal': goalBlueprintAddGoal,
+    'goalBlueprintAddSymbol': goalBlueprintAddSymbol,
+    'goalBlueprintSplit': goalBlueprintSplit,
+    'goalBlueprintShortTabNote': goalBlueprintShortTabNote,
     'goalBlueprintEditGoal': goalBlueprintEditGoal,
     'goalBlueprintDeleteGoal': goalBlueprintDeleteGoal,
     'goalBlueprintGoalSaved': goalBlueprintGoalSaved,
@@ -2340,7 +2345,8 @@ abstract final class L10nKeys {
     'goalBrandFacetContrast': goalBrandFacetContrast,
     'goalBrandFacetContrastHint': goalBrandFacetContrastHint,
     'goalBrandFacetContrastExample': goalBrandFacetContrastExample,
-    'goalBrandFacetContrastCounterExample': goalBrandFacetContrastCounterExample,
+    'goalBrandFacetContrastCounterExample':
+        goalBrandFacetContrastCounterExample,
     'goalBrandFacetStrength': goalBrandFacetStrength,
     'goalBrandFacetStrengthHint': goalBrandFacetStrengthHint,
     'goalBrandFacetStrengthExample': goalBrandFacetStrengthExample,

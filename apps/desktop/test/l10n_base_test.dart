@@ -24,9 +24,9 @@ import 'l10n_harness.dart';
 
 void main() {
   group('键表结构', () {
-    test('576 条 getter 全部登记在对照表里', () {
-      expect(L10nKeys.byGetter.length, 576);
-      expect(l10nAccessors.length, 576);
+    test('575 条 getter 全部登记在对照表里', () {
+      expect(L10nKeys.byGetter.length, 575);
+      expect(l10nAccessors.length, 575);
       // `byGetter` 是「getter 名 → 键」，访问器表是「键 → 取值」，所以这里比
       // 的是 `byGetter` 的**值**集合（都是 kebab 键）。
       expect(l10nAccessors.keys.toSet(), L10nKeys.byGetter.values.toSet());
@@ -43,78 +43,75 @@ void main() {
 
     test('53 条插值方法登记在方法表里', () {
       expect(L10nKeys.byMethod.length, 53);
-      expect(
-        L10nKeys.byMethod.keys.toSet(),
-        <String>{
-          // 既有 6 条（domain 4 + calendar 2）
-          'hoursCount',
-          'minutesCount',
-          'deferredDays',
-          'moodScoreLabel',
-          'calendarMonthLabel',
-          'calendarDateTitle',
-          // timeline 12 条
-          'timelineSlotMenuTitle',
-          'timelineRangeTitle',
-          'timelineTotalMinutes',
-          'timelineStepDown',
-          'timelineStepUp',
-          'timelineSlotPrompt',
-          'timelineWriteFailed',
-          'timelineDeletePlanItemMessage',
-          'timelineHoverDetail',
-          'timelineHoverNote',
-          'timelineHoverState',
-          'timelineHoverLevel',
-          // today 11 条
-          'todayTimeSet',
-          'todayDateLabel',
-          'todayDateChipA11y',
-          'todayGridStartHint',
-          'todayStallHint',
-          'todayHabitLoadError',
-          'todayCheckedIn',
-          'todayCheckinFailed',
-          'todayReviewFiledTo',
-          'todayReviewJoinSegments',
-          'todayStandupSectionCount',
-          // habit 9 条
-          'moodRatedCount',
-          'moodAverage',
-          'moodGroupHeader',
-          'moodGroupProgress',
-          'moodEvidence',
-          'habitTarget',
-          'habitLoadFailed',
-          'habitCheckinLoadFailed',
-          'priorityBubbleA11y',
-          // dialog 15 条
-          'dialogHabitSavedWarn',
-          'dialogTodoCreateSubtitle',
-          'dialogTodoPullSubtitle',
-          'dialogRecurringBadDate',
-          'dialogRecurringMergedWeekday',
-          'dialogRecurringTimeClamped',
-          'dialogRuleActionFailed',
-          'dialogRecurringDeleteMessage',
-          'dialogAutoScheduleFailed',
-          'dialogRecurringLoadFailed',
-          'dialogRecurringCount',
-          'dialogRecurringSummary',
-          'dialogPoolAvailable',
-          'dialogPoolHead',
-          'dialogPoolScheduled',
-        },
-      );
+      expect(L10nKeys.byMethod.keys.toSet(), <String>{
+        // 既有 6 条（domain 4 + calendar 2）
+        'hoursCount',
+        'minutesCount',
+        'deferredDays',
+        'moodScoreLabel',
+        'calendarMonthLabel',
+        'calendarDateTitle',
+        // timeline 12 条
+        'timelineSlotMenuTitle',
+        'timelineRangeTitle',
+        'timelineTotalMinutes',
+        'timelineStepDown',
+        'timelineStepUp',
+        'timelineSlotPrompt',
+        'timelineWriteFailed',
+        'timelineDeletePlanItemMessage',
+        'timelineHoverDetail',
+        'timelineHoverNote',
+        'timelineHoverState',
+        'timelineHoverLevel',
+        // today 11 条
+        'todayTimeSet',
+        'todayDateLabel',
+        'todayDateChipA11y',
+        'todayGridStartHint',
+        'todayStallHint',
+        'todayHabitLoadError',
+        'todayCheckedIn',
+        'todayCheckinFailed',
+        'todayReviewFiledTo',
+        'todayReviewJoinSegments',
+        'todayStandupSectionCount',
+        // habit 9 条
+        'moodRatedCount',
+        'moodAverage',
+        'moodGroupHeader',
+        'moodGroupProgress',
+        'moodEvidence',
+        'habitTarget',
+        'habitLoadFailed',
+        'habitCheckinLoadFailed',
+        'priorityBubbleA11y',
+        // dialog 15 条
+        'dialogHabitSavedWarn',
+        'dialogTodoCreateSubtitle',
+        'dialogTodoPullSubtitle',
+        'dialogRecurringBadDate',
+        'dialogRecurringMergedWeekday',
+        'dialogRecurringTimeClamped',
+        'dialogRuleActionFailed',
+        'dialogRecurringDeleteMessage',
+        'dialogAutoScheduleFailed',
+        'dialogRecurringLoadFailed',
+        'dialogRecurringCount',
+        'dialogRecurringSummary',
+        'dialogPoolAvailable',
+        'dialogPoolHead',
+        'dialogPoolScheduled',
+      });
     });
 
-    test('全部键值不重复（576 + 4 + 53 = 633）', () {
+    test('全部键值不重复（575 + 4 + 53 = 632）', () {
       final Set<String> all = <String>{
         ...L10nKeys.byGetter.values,
         ...L10nKeys.byListGetter.values,
         ...L10nKeys.byMethod.values,
       };
-      expect(all.length, 633);
+      expect(all.length, 632);
     });
 
     test('键一律 kebab-case（小写字母数字，单横线分隔）', () {
@@ -204,7 +201,10 @@ void main() {
             reason: '$mode/$q',
           );
         }
-        for (final PriorityAbc? a in <PriorityAbc?>[...PriorityAbc.values, null]) {
+        for (final PriorityAbc? a in <PriorityAbc?>[
+          ...PriorityAbc.values,
+          null,
+        ]) {
           expect(
             zh[PriorityDisplay.labelKeyFor(mode, priorityAbc: a)],
             PriorityDisplay.labelFor(mode, priorityAbc: a),
@@ -346,9 +346,7 @@ void main() {
       expect(identical(en, AppLocalizations.en), isTrue);
     });
 
-    testWidgets('切换语言后子树读到的是新语言（会触发重建）', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('切换语言后子树读到的是新语言（会触发重建）', (WidgetTester tester) async {
       Widget pageUnderTest({AppLanguage language = AppLanguage.zh}) => l10nWrap(
         Builder(
           builder: (BuildContext context) =>
@@ -430,10 +428,7 @@ void main() {
       expect(AppLocalizations.zh.moodEvidence('睡眠、专注'), '佐证：睡眠、专注');
       expect(AppLocalizations.zh.habitTarget('30', '分钟'), '目标 30分钟');
       expect(AppLocalizations.zh.habitLoadFailed('超时'), '习惯加载失败：超时');
-      expect(
-        AppLocalizations.zh.habitCheckinLoadFailed('超时'),
-        '打卡记录加载失败：超时',
-      );
+      expect(AppLocalizations.zh.habitCheckinLoadFailed('超时'), '打卡记录加载失败：超时');
       expect(
         AppLocalizations.zh.priorityBubbleA11y('紧急重要', true, false),
         '紧急重要，紧急：是，重要：否',
@@ -470,14 +465,8 @@ void main() {
         '「写周报」将从循环任务列表中移除，之后不再自动排入计划；'
         '已经排入计划的条目会保留。',
       );
-      expect(
-        AppLocalizations.zh.dialogAutoScheduleFailed('超时'),
-        '自动排程失败：超时',
-      );
-      expect(
-        AppLocalizations.zh.dialogRecurringLoadFailed('超时'),
-        '规则读取失败：超时',
-      );
+      expect(AppLocalizations.zh.dialogAutoScheduleFailed('超时'), '自动排程失败：超时');
+      expect(AppLocalizations.zh.dialogRecurringLoadFailed('超时'), '规则读取失败：超时');
       expect(
         AppLocalizations.zh.dialogRecurringCount(3),
         '共 3 条规则 · 命中日自动排入计划',
@@ -540,8 +529,7 @@ void main() {
                 l.todayDateChipA11y('3月5日', '09:00'),
             'todayGridStartHint': (AppLocalizations l) =>
                 l.todayGridStartHint('06:00'),
-            'todayStallHint': (AppLocalizations l) =>
-                l.todayStallHint('跑步', 7),
+            'todayStallHint': (AppLocalizations l) => l.todayStallHint('跑步', 7),
             'todayHabitLoadError': (AppLocalizations l) =>
                 l.todayHabitLoadError('超时'),
             'todayCheckedIn': (AppLocalizations l) => l.todayCheckedIn('跑步'),
@@ -600,7 +588,11 @@ void main() {
       expect(newReaders.length, 47);
       for (final MapEntry<String, String Function(AppLocalizations)> entry
           in newReaders.entries) {
-        expect(entry.value(en).trim(), isNotEmpty, reason: '${entry.key} 英文态为空');
+        expect(
+          entry.value(en).trim(),
+          isNotEmpty,
+          reason: '${entry.key} 英文态为空',
+        );
         expect(
           entry.value(en),
           isNot(entry.value(AppLocalizations.zh)),

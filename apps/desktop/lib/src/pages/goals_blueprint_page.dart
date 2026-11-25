@@ -50,8 +50,7 @@ class GoalsBlueprintPage extends ConsumerStatefulWidget {
   final GoalPeriod? period;
 
   @override
-  ConsumerState<GoalsBlueprintPage> createState() =>
-      _GoalsBlueprintPageState();
+  ConsumerState<GoalsBlueprintPage> createState() => _GoalsBlueprintPageState();
 }
 
 /// 一条待确认的「拆成 3 条待办」。
@@ -168,12 +167,18 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
     for (final String domainKey in projectDomainKeys) {
       final Map<GoalHorizon, List<GoalRow>> cells =
           <GoalHorizon, List<GoalRow>>{};
-      for (final GoalHorizon horizon in GoalBlueprintMatrix.horizons) {
+      // B9-W2：矩阵只有 4 个标签页，近期（1 年）并入短期页 ⇒ near 蓝图与
+      // 本年度年目标都落进 `GoalHorizon.short` 那一格（D-9-b）。
+      for (final GoalHorizon horizon in GoalBlueprintMatrix.tabs) {
         final List<GoalRow> items = <GoalRow>[
           for (final GoalRow goal in blueprints)
-            if (goal.domain == domainKey && goal.horizon == horizon) goal,
+            if (goal.domain == domainKey &&
+                (goal.horizon == horizon ||
+                    (horizon == GoalHorizon.short &&
+                        goal.horizon == GoalHorizon.near)))
+              goal,
         ];
-        if (horizon == GoalHorizon.near) {
+        if (horizon == GoalHorizon.short) {
           items.addAll(<GoalRow>[
             for (final GoalRow goal in view.yearlyGoals)
               if (goal.domain == domainKey) goal,
@@ -209,9 +214,8 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
         Text(
           t.shellNavBlueprint,
           key: const ValueKey<String>('blueprint-title'),
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(color: tokens.ink),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(color: tokens.ink),
         ),
         if (_goalSaved)
           Text(
@@ -234,11 +238,8 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
         const SizedBox(height: AppTokens.gapCard),
         const GoalBrandPanel(),
         const SizedBox(height: AppTokens.gapCard),
-        _block(
-          t,
-          t.goalBlueprintMatrixSection,
-          (_BlueprintData data) => _buildMatrix(data, t),
-        ),
+        // B9-W2：矩阵不再有段头（标签页本身已经是分档入口）。
+        _block(t, null, (_BlueprintData data) => _buildMatrix(data, t)),
         const SizedBox(height: AppTokens.gapCard),
         _block(
           t,
@@ -256,33 +257,34 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   }
 
   /// 一个卡片区块（读模型未到就显示失败提示）。
+  ///
+  /// [title] 为 null ⇒ 不渲染段头与分隔线（B9-W2 的矩阵块就是这种）。
   Widget _block(
     AppLocalizations t,
-    String title,
+    String? title,
     Widget Function(_BlueprintData data) build,
   ) {
     return _GoalCard(
       title: title,
       child: FutureBuilder<_BlueprintData>(
         future: _future,
-        builder: (BuildContext context, AsyncSnapshot<_BlueprintData> snapshot) {
-          if (!snapshot.hasData) {
-            return Text(t.operationFailed, style: _metaStyle(context));
-          }
-          return build(snapshot.data!);
-        },
+        builder:
+            (BuildContext context, AsyncSnapshot<_BlueprintData> snapshot) {
+              if (!snapshot.hasData) {
+                return Text(t.operationFailed, style: _metaStyle(context));
+              }
+              return build(snapshot.data!);
+            },
       ),
     );
   }
 
-  /// 蓝图矩阵 + 近期列来源说明 + 整行留空口径说明。
+  /// 蓝图矩阵（档位由矩阵自带的标签页切换）+ 整行留空口径说明。
   Widget _buildMatrix(_BlueprintData data, AppLocalizations t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(t.goalBlueprintNearSource, style: _metaStyle(context)),
-        const SizedBox(height: 6),
         GoalBlueprintMatrix(
           t: t,
           rows: data.rows,
@@ -455,7 +457,9 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _goalFailed = AppLocalizations.of(context).operationFailed);
+      setState(
+        () => _goalFailed = AppLocalizations.of(context).operationFailed,
+      );
     }
   }
 
@@ -511,7 +515,9 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _goalFailed = AppLocalizations.of(context).operationFailed);
+      setState(
+        () => _goalFailed = AppLocalizations.of(context).operationFailed,
+      );
     }
   }
 
@@ -522,17 +528,17 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   }
 
   /// 正文样式。
-  TextStyle? _bodyStyle(BuildContext context) => Theme.of(
-    context,
-  ).textTheme.bodyMedium?.copyWith(color: context.tokens.ink);
+  TextStyle? _bodyStyle(BuildContext context) =>
+      Theme.of(context).textTheme.bodyMedium
+          ?.copyWith(color: context.tokens.ink);
 
   /// 次级文字样式。
-  TextStyle? _metaStyle(BuildContext context) => Theme.of(
-    context,
-  ).textTheme.labelSmall?.copyWith(color: context.tokens.meta);
+  TextStyle? _metaStyle(BuildContext context) =>
+      Theme.of(context).textTheme.labelSmall
+          ?.copyWith(color: context.tokens.meta);
 }
 
-/// 目标页的卡片外壳（段头 + 内容）。
+/// 目标页的卡片外壳（可选段头 + 内容）。
 ///
 /// 与周/月/年目标页同口径：`SectionCard` 要求传 `IconData`，而本仓库**禁用 Material
 /// 图标**（`Icons.`），所以这里自己搭一个视觉等价的壳。
@@ -540,8 +546,8 @@ class _GoalCard extends StatelessWidget {
   /// 创建卡片。
   const _GoalCard({required this.title, required this.child});
 
-  /// 段头标题。
-  final String title;
+  /// 段头标题；null = 不渲染段头（B9-W2 的矩阵块）。
+  final String? title;
 
   /// 卡片内容。
   final Widget child;
@@ -549,6 +555,7 @@ class _GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeTokens tokens = context.tokens;
+    final String? head = title;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -561,15 +568,16 @@ class _GoalCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: tokens.ink),
-          ),
-          const SizedBox(height: 8),
-          Container(height: 1, color: tokens.hair),
-          const SizedBox(height: 8),
+          if (head != null && head.isNotEmpty) ...<Widget>[
+            Text(
+              head,
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(color: tokens.ink),
+            ),
+            const SizedBox(height: 8),
+            Container(height: 1, color: tokens.hair),
+            const SizedBox(height: 8),
+          ],
           child,
         ],
       ),

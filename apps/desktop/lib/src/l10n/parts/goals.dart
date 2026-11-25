@@ -57,8 +57,6 @@ abstract class GoalsL10n {
   /// 上游面板：空态。
   String get goalsUpstreamEmpty;
 
-  
-
   // --- 周视图 -------------------------------------------------------------
 
   /// 周视图区块标题。
@@ -253,10 +251,7 @@ abstract class GoalsL10n {
 
   // --- 人生蓝图页 ---------------------------------------------------------
 
-  /// 蓝图页矩阵区块标题。
-  String get goalBlueprintMatrixSection;
-
-  /// 蓝图页矩阵行头：目标。
+  /// 蓝图页矩阵行头：目标（B9-W2 之后表体不再渲染表头行，键保留）。
   String get goalBlueprintColumnGoal;
 
   /// 蓝图档位：终极。
@@ -271,26 +266,17 @@ abstract class GoalsL10n {
   /// 蓝图档位：短期。
   String get goalBlueprintHorizonShort;
 
-  /// 蓝图档位：近期（1 年）。
+  /// 蓝图档位：近期（1 年）（表单下拉仍有这一档，矩阵已并入短期页）。
   String get goalBlueprintHorizonNear;
-
-  /// 蓝图格为空时的占位（空格合法，不报错）。
-  String get goalBlueprintEmptyCell;
 
   /// 蓝图页说明：整行留空合法。
   String get goalBlueprintBlankRowHint;
-
-  /// 蓝图页说明：近期列的数据来源（与年视图同一份数据）。
-  String get goalBlueprintNearSource;
 
   /// 蓝图格：做法条数单位。
   String get goalBlueprintActionsCount;
 
   /// 蓝图格展开：周目标标签。
   String get goalBlueprintWeeklyTarget;
-
-  /// 蓝图格：拆成 3 条待办的动作。
-  String get goalBlueprintSplitTodos;
 
   /// 蓝图页：待确认待办区标题。
   String get goalBlueprintPendingTodos;
@@ -307,8 +293,17 @@ abstract class GoalsL10n {
   /// 蓝图页平衡轮：习惯打卡标签。
   String get goalBlueprintBalanceHabit;
 
-  /// 蓝图格：新建目标入口（B8-W1）。
+  /// 蓝图格：新建目标入口（B8-W1）；也是空格「+」按钮的 tooltip。
   String get goalBlueprintAddGoal;
+
+  /// 蓝图空格子上的「+」符号（B9-W2）。
+  String get goalBlueprintAddSymbol;
+
+  /// 蓝图卡片上的「拆分」入口（B9-W2）。
+  String get goalBlueprintSplit;
+
+  /// 短期标签页的来源说明（B9-W2）。
+  String get goalBlueprintShortTabNote;
 
   /// 蓝图卡片：编辑入口。
   String get goalBlueprintEditGoal;
@@ -723,9 +718,6 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalYearDraftEmpty => '本年度没有待滚动的候选。';
 
   @override
-  String get goalBlueprintMatrixSection => '人生蓝图矩阵';
-
-  @override
   String get goalBlueprintColumnGoal => '目标';
 
   @override
@@ -744,22 +736,13 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBlueprintHorizonNear => '近期（1 年）';
 
   @override
-  String get goalBlueprintEmptyCell => '（空）';
-
-  @override
   String get goalBlueprintBlankRowHint => '整行留空合法，不校验、不报错';
-
-  @override
-  String get goalBlueprintNearSource => '近期列＝本年度年度目标（同一份数据源）';
 
   @override
   String get goalBlueprintActionsCount => '条做法';
 
   @override
   String get goalBlueprintWeeklyTarget => '周目标';
-
-  @override
-  String get goalBlueprintSplitTodos => '拆成 3 条待办';
 
   @override
   String get goalBlueprintPendingTodos => '待确认待办';
@@ -778,6 +761,15 @@ mixin GoalsZhL10n implements GoalsL10n {
 
   @override
   String get goalBlueprintAddGoal => '新建目标';
+
+  @override
+  String get goalBlueprintAddSymbol => '+';
+
+  @override
+  String get goalBlueprintSplit => '拆分';
+
+  @override
+  String get goalBlueprintShortTabNote => '短期页含「近期（1 年）」：1 年蓝图目标与本年度年目标。';
 
   @override
   String get goalBlueprintEditGoal => '编辑目标';
@@ -871,15 +863,13 @@ mixin GoalsZhL10n implements GoalsL10n {
       '我帮小微餐饮老板用一套 7 天菜单改造流程，把外卖差评率压到 3% 以内';
 
   @override
-  String get goalBrandFacetStatementCounterExample =>
-      '我是一个热爱学习、追求成长的优秀青年';
+  String get goalBrandFacetStatementCounterExample => '我是一个热爱学习、追求成长的优秀青年';
 
   @override
   String get goalBrandFacetWord => '心智一词';
 
   @override
-  String get goalBrandFacetWordHint =>
-      '一个别人提起你就会想到的词；它替你的方法命名，不是形容性格';
+  String get goalBrandFacetWordHint => '一个别人提起你就会想到的词；它替你的方法命名，不是形容性格';
 
   @override
   String get goalBrandFacetWordExample => '「菜单医生」——一听就知道解决的是菜单问题';
@@ -891,12 +881,10 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBrandFacetAudience => '对象（他人视角）';
 
   @override
-  String get goalBrandFacetAudienceHint =>
-      '先写给谁看；默认最重要的一面，它决定别人怎么介绍你';
+  String get goalBrandFacetAudienceHint => '先写给谁看；默认最重要的一面，它决定别人怎么介绍你';
 
   @override
-  String get goalBrandFacetAudienceExample =>
-      '刚开业半年、靠一份外卖撑生意的小微餐饮店主';
+  String get goalBrandFacetAudienceExample => '刚开业半年、靠一份外卖撑生意的小微餐饮店主';
 
   @override
   String get goalBrandFacetAudienceCounterExample => '所有人；或只写「同行」';
@@ -905,8 +893,7 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBrandFacetPromise => '承诺结果';
 
   @override
-  String get goalBrandFacetPromiseHint =>
-      '承诺一个可验证的结果，不是一个动作；对方能拿它对账';
+  String get goalBrandFacetPromiseHint => '承诺一个可验证的结果，不是一个动作；对方能拿它对账';
 
   @override
   String get goalBrandFacetPromiseExample => '90 天内把单店月毛利从 3 万提到 4.5 万';
@@ -918,8 +905,7 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBrandFacetCost => '规避的代价';
 
   @override
-  String get goalBrandFacetCostHint =>
-      '写清你不愿承担什么代价；这是筛选同行的开关';
+  String get goalBrandFacetCostHint => '写清你不愿承担什么代价；这是筛选同行的开关';
 
   @override
   String get goalBrandFacetCostExample => '不接没有真实门店、只想白嫖方案的单子';
@@ -931,8 +917,7 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBrandFacetEvidence => '可信证据';
 
   @override
-  String get goalBrandFacetEvidenceHint =>
-      '列出可核验的事实：做过多少家、什么结果、谁在背书';
+  String get goalBrandFacetEvidenceHint => '列出可核验的事实：做过多少家、什么结果、谁在背书';
 
   @override
   String get goalBrandFacetEvidenceExample =>
@@ -945,8 +930,7 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBrandFacetContrast => '对立面';
 
   @override
-  String get goalBrandFacetContrastHint =>
-      '你的对照组是谁；写清「我不做什么」，别人才知道何时找你';
+  String get goalBrandFacetContrastHint => '你的对照组是谁；写清「我不做什么」，别人才知道何时找你';
 
   @override
   String get goalBrandFacetContrastExample => '不做纯设计外包，不接只改海报不出方案的活';
@@ -958,8 +942,7 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBrandFacetStrength => '三环交叉';
 
   @override
-  String get goalBrandFacetStrengthHint =>
-      '专业能力 × 独特优势 × 价值主张的交集；交集之外别人也能做到';
+  String get goalBrandFacetStrengthHint => '专业能力 × 独特优势 × 价值主张的交集；交集之外别人也能做到';
 
   @override
   String get goalBrandFacetStrengthExample =>
@@ -985,8 +968,7 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBrandFacetIdentity => '身份声明';
 
   @override
-  String get goalBrandFacetIdentityHint =>
-      '你要成为什么样的人；内在内核，决定十年后还在不在同一件事上';
+  String get goalBrandFacetIdentityHint => '你要成为什么样的人；内在内核，决定十年后还在不在同一件事上';
 
   @override
   String get goalBrandFacetIdentityExample => '我是那个让小餐饮老板敢把菜单交给我的人';
@@ -1212,9 +1194,6 @@ mixin GoalsEnL10n implements GoalsL10n {
   String get goalYearDraftEmpty => 'No candidates to roll in this year.';
 
   @override
-  String get goalBlueprintMatrixSection => 'Life blueprint matrix';
-
-  @override
   String get goalBlueprintColumnGoal => 'Goal';
 
   @override
@@ -1233,24 +1212,14 @@ mixin GoalsEnL10n implements GoalsL10n {
   String get goalBlueprintHorizonNear => 'Near-term (1 year)';
 
   @override
-  String get goalBlueprintEmptyCell => '(blank)';
-
-  @override
   String get goalBlueprintBlankRowHint =>
       'A blank row is valid - nothing is enforced';
-
-  @override
-  String get goalBlueprintNearSource =>
-      "Near-term column = this year's yearly goals (same source)";
 
   @override
   String get goalBlueprintActionsCount => 'actions';
 
   @override
   String get goalBlueprintWeeklyTarget => 'Weekly goal';
-
-  @override
-  String get goalBlueprintSplitTodos => 'Split into 3 todos';
 
   @override
   String get goalBlueprintPendingTodos => 'Pending todos';
@@ -1270,6 +1239,16 @@ mixin GoalsEnL10n implements GoalsL10n {
 
   @override
   String get goalBlueprintAddGoal => 'New goal';
+
+  @override
+  String get goalBlueprintAddSymbol => 'Add';
+
+  @override
+  String get goalBlueprintSplit => 'Split';
+
+  @override
+  String get goalBlueprintShortTabNote =>
+      "This tab also carries near-term (1 year) goals and this year's yearly goals.";
 
   @override
   String get goalBlueprintEditGoal => 'Edit goal';
