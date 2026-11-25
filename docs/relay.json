@@ -265,10 +265,11 @@
         "authorized_by": "用户原话：只提交，不推送",
         "scope": "授权 git commit；不授权 push、不授权 tag。执行方 = 监护会话 mvs_59d3157c39cf4bfb91e6f54f613dcd22（人工续做 68.4h），非 stage 6 环本身。",
         "commits": [
-          { "hash": "c1a4bf784b66d9ebc89765231bfb60c32ec2227b", "short": "c1a4bf7", "message": "chore(w9): W9 l10n 收口——27 条新键落地与落库值显示层映射", "files": 21, "insertions": 3833, "deletions": 64, "scope": "12 个改动 + 9 份本链台账" },
-          { "hash": "ebb89961bf0f70000f0e1becd05c94b45817fa34", "short": "ebb8996", "message": "docs(relay): 追加接力链监护日志（2026-11-24 / 2026-11-25）", "files": 2, "insertions": 118, "scope": "非本链产物的监护日志，单列" }
+          { "hash": "c1a4bf784b66d9ebc89765231bfb60c32ec2227b", "short": "c1a4bf7", "message": "chore(w9): W9 l10n 收口——27 条新键落地与落库值显示层映射", "files": 21, "insertions": 3833, "deletions": 64, "scope": "68.4h 载荷：12 个改动 + 9 份本链台账" },
+          { "hash": "ebb89961bf0f70000f0e1becd05c94b45817fa34", "short": "ebb8996", "message": "docs(relay): 追加接力链监护日志（2026-11-24 / 2026-11-25）", "files": 2, "insertions": 118, "scope": "68.4h 载荷：非本链产物的监护日志，单列" },
+          { "hash": "efa3f658176a038a13a3e8141b5e72d74f7bee77", "short": "efa3f65", "message": "docs(relay): 台账收口 —— 68.4h 已按授权提交（只提交不推送）", "files": 2, "insertions": 54, "deletions": 11, "scope": "台账收口：relay.json status→done + 报告十三·5 改 done（承载本 h_resolution 条目）" }
         ],
-        "git_write_ops": "add 2 次 / commit 2 次 / push 0 次 / tag 0 次 / stash 0 次 / checkout 0 次；提交后 HEAD=ebb8996，git status --porcelain -uall = 0 行（工作树干净）；rev-list --left-right --count HEAD...@{u} = 2 0 ⇒ ahead 2 / behind 0 ⇒ 提交仅存本地，未推送。",
+        "git_write_ops": "68.4h 载荷：add 2 次 / commit 2 次（c1a4bf7、ebb8996）；台账收口：add 2 次 / commit 2 次（efa3f65 + 本条订正 commit，其 hash 不可写入自身内容，以 git log 为准）⇒ 本会话 commit 序列 = c1a4bf7 → ebb8996 → efa3f65 → 本条；全程 push 0 次 / tag 0 次 / stash 0 次 / checkout 0 次；rev-list --left-right --count HEAD...@{u} 的 behind = 0 ⇒ 全部提交仅存本地，未推送；工作树 status --porcelain -uall = 0 行（干净）。",
         "precheck": "提交前复核工作树与 00:13 快照逐字一致：porcelain -uall = 23 行、git diff --stat = 12 files changed / 671 insertions / 64 deletions、门禁摘要 1930 B / sha16 6FFED0BBE47E41F5 / RUN_AT=2026-11-25 00:04:17 / PASS 未变 ⇒ 门禁证据仍有效，未重跑门禁。git 无 hook；identity = kizemo；git diff --check 干净。",
         "post_commit_gate_caveat": "门禁口径是对工作树 diff；提交后工作树干净，再跑 reports/task51-gate.ps1 会得 STATUS_LINES=0 的空转结果，不构成有效判据。有效证据仍是提交前 00:04:17 那次 PASS。",
         "verifier_verdict": "68.4g VERIFIER_VERDICT=FAIL 不变（68.4b / 68.4i 未闭合，可上屏中文通道已坐实）⇒ W9 整体仍未判过，对外最强表述限定为「§47 W3–W8 覆盖范围内英文态零中文」。",

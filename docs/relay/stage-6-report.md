@@ -250,20 +250,24 @@ desktop 836 / core_data 204 / core_db 71 / core_domain 62
 
 执行方 = 监护会话 `mvs_59d3157c39cf4bfb91e6f54f613dcd22`（人工续做 68.4h，非 stage 6 环本身）。执行前复核工作树与 00:13 快照逐字一致 ⇒ 门禁证据仍有效，**未重跑门禁**。
 
-两次 commit（**只提交，未推送**）：
+提交序列（4 次 commit，**只提交，未推送**）：
 
 | # | commit | 内容 | 规模 |
 |---|---|---|---|
 | 1 | `c1a4bf7` | `chore(w9): W9 l10n 收口——27 条新键落地与落库值显示层映射` | 21 files changed / +3833 / -64（12 个改动 + 9 份本链台账） |
 | 2 | `ebb8996` | `docs(relay): 追加接力链监护日志（2026-11-24 / 2026-11-25）` | 2 files / +118（非本链产物，按本节建议单列） |
+| 3 | `efa3f65` | `docs(relay): 台账收口 —— 68.4h 已按授权提交（只提交不推送）` | 2 files / +54 / -11（台账收口：relay.json status→done + 本报告十三·5 改 done） |
+| 4 | 本条 | 订正本节的提交序列登记 | 该 commit 的 hash 不可写入自身内容 ⇒ 以 `git log` 实测为准 |
 
 核验（实测）：
 
 ```
-git add = 2 次   git commit = 2 次   git push = 0 次   git tag = 0 次   git stash = 0 次   git checkout = 0 次
-HEAD=ebb89961bf0f70000f0e1becd05c94b45817fa34
-git status --porcelain -uall = 0 行（工作树干净）
-git rev-list --left-right --count HEAD...@{u} = 2 0   ⇒ ahead 2 / behind 0 ⇒ 提交仅存本地，未推送
+68.4h 载荷：git add = 2 次   git commit = 2 次（c1a4bf7、ebb8996）
+台账收口：git add = 2 次   git commit = 2 次（efa3f65 + 本条订正 commit，号不可自指）
+全程：git push = 0 次   git tag = 0 次   git stash = 0 次   git checkout = 0 次
+HEAD（载荷后）=ebb89961bf0f70000f0e1becd05c94b45817fa34
+git status --porcelain -uall = 0 行（工作树干净，提交后实测）
+git rev-list --left-right --count HEAD...@{u} ⇒ behind = 0 ⇒ 全部提交仅存本地，未推送（ahead = 本会话 commit 总数）
 ```
 
 提交前复核：工作树 = 23 行（12 M + 11 ??）；`git diff --stat` = 12 files changed / 671 insertions / 64 deletions；门禁摘要 1930 B / sha16 `6FFED0BBE47E41F5` / RUN_AT=2026-11-25 00:04:17 / PASS（与本环收口快照逐字一致）；git 无 hook；identity = kizemo；`git diff --check` 干净。
