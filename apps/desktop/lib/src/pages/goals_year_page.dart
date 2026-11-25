@@ -29,6 +29,7 @@ import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/goal_year_matrix.dart';
+import '../widgets/goals/goal_form_dialog.dart';
 
 /// 年目标页：年度目标表 + 月度展开矩阵 + 年度复盘 + 80/20 视角 + 滚动候选。
 class GoalsYearPage extends ConsumerStatefulWidget {
@@ -170,6 +171,94 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     );
   }
 
+  /// 年度目标行「编辑」：预填既有值，保存后写库并重读本页。
+  Future<void> _editGoal(GoalRow goal) async {
+    final AppLocalizations t = AppLocalizations.of(context);
+    final GoalFormResult? form = await showGoalFormDialog(
+      context,
+      t: t,
+      existing: goal,
+    );
+    if (form == null || !mounted) {
+      return;
+    }
+    await _updateGoal(goal, form);
+  }
+
+  /// 年度目标行「删除」：先二次确认（确认框本体三页共用），确认后才软删。
+  Future<void> _deleteGoal(GoalRow goal) async {
+    final AppLocalizations t = AppLocalizations.of(context);
+    final bool confirmed = await confirmDeleteGoal(context, t);
+    if (!confirmed || !mounted) {
+      return;
+    }
+    setState(() => _error = null);
+    try {
+      await ref.read(goalStoreProvider).deleteGoal(goal.id);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _future = _load());
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
+  }
+
+  /// 表单结果写回库（本页不新建目标：新建入口不在本棒范围）。
+  Future<void> _updateGoal(GoalRow goal, GoalFormResult form) async {
+    final String title = form.title.trim();
+    final String? note = _emptyToNull(form.note);
+    final String? keywords = _emptyToNull(form.keywords);
+    final String? domain = _emptyToNull(form.domain);
+    final int? dueDate = form.dueDate;
+    setState(() => _error = null);
+    try {
+      await ref.read(goalStoreProvider).updateGoal(
+        goal.id,
+        title: title,
+        note: note,
+        keywords: keywords,
+        domain: domain,
+        horizon: _keptHorizon(goal, form.horizon),
+        dueDate: dueDate,
+        // 表单里清空的字段必须显式进 `clear`：传 null 的语义是「不动」。
+        clear: <GoalField>{
+          if (domain == null) GoalField.domain,
+          if (note == null) GoalField.note,
+          if (keywords == null) GoalField.keywords,
+          if (dueDate == null) GoalField.dueDate,
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _future = _load());
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
+  }
+
+  /// 档位保留口径：原目标本来没有档位、用户也没动档位（表单仍是默认
+  /// `ultimate`）⇒ 传 null（`updateGoal` 里 null = 不动），不给年目标隐式赋档。
+  static GoalHorizon? _keptHorizon(GoalRow goal, GoalHorizon picked) {
+    if (goal.horizon == null && picked == GoalHorizon.ultimate) {
+      return null;
+    }
+    return picked;
+  }
+
+  /// 空白串 → null（表单里的「没填」等于「不设置」）。
+  static String? _emptyToNull(String value) {
+    final String text = value.trim();
+    return text.isEmpty ? null : text;
+  }
+
   /// 表一：类别 | 序号 | 目标内容 | 方法和措施 | 起止时间 | 完成。
   Widget _buildTableOne(_YearData data, AppLocalizations t) {
     final List<GoalRow> goals = data.view.yearlyGoals;
@@ -212,6 +301,8 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
               width: 56,
               child: Text(t.goalMonthColumnDone, style: headStyle),
             ),
+            // 操作列表头留空：宽度必须与行尾按钮组同宽（`GoalRowActions.width`）。
+            const SizedBox(width: GoalRowActions.width),
           ],
         ),
         const SizedBox(height: 6),
@@ -271,6 +362,13 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
               goal.isDone ? t.goalStatusDone : t.goalStatusActive,
               style: metaStyle,
             ),
+          ),
+          GoalRowActions(
+            editKey: 'goal-year-row-edit-${goal.id}',
+            deleteKey: 'goal-year-row-delete-${goal.id}',
+            onEdit: () => _editGoal(goal),
+            onDelete: () => _deleteGoal(goal),
+            t: t,
           ),
         ],
       ),

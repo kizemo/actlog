@@ -38,6 +38,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/goal_balance_wheel.dart';
 import '../widgets/goal_blueprint_matrix.dart';
 import '../widgets/goal_year_matrix.dart';
+import '../widgets/goals/goal_form_dialog.dart';
 
 /// 人生蓝图页：蓝图矩阵 + 待确认待办 + 平衡轮。
 class GoalsBlueprintPage extends ConsumerStatefulWidget {
@@ -397,13 +398,11 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
     // `L10nScope` 之上**（L10nScope 包的是 `home`，不是 `MaterialApp`），
     // 所以必须在页面自己的 context 上先取好 `t` 再传进去。
     final AppLocalizations t = AppLocalizations.of(context);
-    final _GoalFormResult? result = await showDialog<_GoalFormResult>(
-      context: context,
-      builder: (BuildContext context) => _GoalFormDialog(
-        t: t,
-        domainKey: domainKey,
-        horizon: horizon,
-      ),
+    final GoalFormResult? result = await showGoalFormDialog(
+      context,
+      t: t,
+      domainKey: domainKey,
+      horizon: horizon,
     );
     if (result == null || !mounted) {
       return;
@@ -415,14 +414,12 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   Future<void> _openEditGoal(GoalRow goal) async {
     // 同上：`t` 必须在页面 context 上取，overlay 里没有 `L10nScope`。
     final AppLocalizations t = AppLocalizations.of(context);
-    final _GoalFormResult? result = await showDialog<_GoalFormResult>(
-      context: context,
-      builder: (BuildContext context) => _GoalFormDialog(
-        t: t,
-        domainKey: goal.domain ?? '',
-        horizon: goal.horizon ?? GoalHorizon.ultimate,
-        existing: goal,
-      ),
+    final GoalFormResult? result = await showGoalFormDialog(
+      context,
+      t: t,
+      domainKey: goal.domain ?? '',
+      horizon: goal.horizon ?? GoalHorizon.ultimate,
+      existing: goal,
     );
     if (result == null || !mounted) {
       return;
@@ -432,28 +429,11 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
 
   /// 卡片「删除」：先二次确认，确认后才软删。
   ///
-  /// 确认框**刻意不回显目标标题**（英文态会漏出用户输入的中文），只放通用文案。
+  /// 确认框本体在 `widgets\goals\goal_form_dialog.dart`（三页共用）。
   Future<void> _confirmDeleteGoal(GoalRow goal) async {
     final AppLocalizations t = AppLocalizations.of(context);
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: Text(t.goalBlueprintDeleteGoal),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('goal-blueprint-delete-cancel'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(t.cancel),
-          ),
-          TextButton(
-            key: const ValueKey<String>('goal-blueprint-delete-confirm'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(t.commonDelete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) {
+    final bool confirmed = await confirmDeleteGoal(context, t);
+    if (!confirmed || !mounted) {
       return;
     }
     setState(() {
@@ -477,7 +457,7 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   }
 
   /// 表单结果落库：`existing == null` 走新建，否则走更新。
-  Future<void> _writeGoal(GoalRow? existing, _GoalFormResult form) async {
+  Future<void> _writeGoal(GoalRow? existing, GoalFormResult form) async {
     final String title = form.title.trim();
     final String? note = _emptyToNull(form.note);
     final String? keywords = _emptyToNull(form.keywords);
@@ -592,257 +572,4 @@ class _GoalCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// 蓝图表单的返回值（未做任何字符串解析：期限已经是毫秒）。
-class _GoalFormResult {
-  /// 构造。
-  const _GoalFormResult({
-    required this.title,
-    required this.note,
-    required this.keywords,
-    required this.domain,
-    required this.horizon,
-    required this.dueDate,
-  });
-
-  /// 标题。
-  final String title;
-
-  /// 备注（空串 = 未设置）。
-  final String note;
-
-  /// 关键词（空串 = 未设置）。
-  final String keywords;
-
-  /// 领域 key（空串 = 未设置 ⇒ 走 `clear: {GoalField.domain}`）。
-  final String domain;
-
-  /// 档位。
-  final GoalHorizon horizon;
-
-  /// 期限毫秒（null = 未设置）。
-  final int? dueDate;
-}
-
-/// 新建 / 编辑蓝图表单（**本页私有**：不额外抽 `widgets\goals\`）。
-class _GoalFormDialog extends StatefulWidget {
-  /// 构造。
-  const _GoalFormDialog({
-    required this.t,
-    required this.domainKey,
-    required this.horizon,
-    this.existing,
-  });
-
-  /// 文案表（对话框在独立路由里，不能靠 `of(context)` 再取一次）。
-  final AppLocalizations t;
-
-  /// 新建时的领域（所在格的 domain）。
-  final String domainKey;
-
-  /// 新建时的档位（所在格的 horizon）。
-  final GoalHorizon horizon;
-
-  /// 编辑时的既有目标；null = 新建。
-  final GoalRow? existing;
-
-  @override
-  State<_GoalFormDialog> createState() => _GoalFormDialogState();
-}
-
-class _GoalFormDialogState extends State<_GoalFormDialog> {
-  late final TextEditingController _title;
-  late final TextEditingController _note;
-  late final TextEditingController _keywords;
-  late final TextEditingController _due;
-
-  /// 领域 key（空串 = 未设置）。
-  late String _domain;
-
-  /// 档位。
-  late GoalHorizon _horizon;
-
-  /// 期限格式错误提示（null = 无错）。
-  String? _dueError;
-
-  @override
-  void initState() {
-    super.initState();
-    final GoalRow? existing = widget.existing;
-    _title = TextEditingController(text: existing?.title ?? '');
-    _note = TextEditingController(text: existing?.note ?? '');
-    _keywords = TextEditingController(text: existing?.keywords ?? '');
-    _due = TextEditingController(text: _formatDay(existing?.dueDate));
-    // 编辑时预填既有领域；库里存的 key 不在六 key 里（同步进来的历史值）
-    // 就退回「未设置」，避免下拉框的 value 不在 items 里触发断言。
-    final String? current = existing?.domain;
-    if (existing == null) {
-      _domain = widget.domainKey;
-    } else if (current != null && projectDomainKeys.contains(current)) {
-      _domain = current;
-    } else {
-      _domain = '';
-    }
-    _horizon = existing?.horizon ?? widget.horizon;
-    _title.addListener(_onTitleChanged);
-  }
-
-  @override
-  void dispose() {
-    _title.removeListener(_onTitleChanged);
-    _title.dispose();
-    _note.dispose();
-    _keywords.dispose();
-    _due.dispose();
-    super.dispose();
-  }
-
-  /// 标题空了就把「保存」置灰（只影响按钮可用性，不写库）。
-  void _onTitleChanged() => setState(() {});
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations t = widget.t;
-    return AlertDialog(
-      title: Text(
-        widget.existing == null
-            ? t.goalBlueprintAddGoal
-            : t.goalBlueprintEditGoal,
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            TextField(
-              key: const ValueKey<String>('goal-blueprint-form-title'),
-              controller: _title,
-              decoration: InputDecoration(labelText: t.commonTitle),
-            ),
-            TextField(
-              key: const ValueKey<String>('goal-blueprint-form-note'),
-              controller: _note,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldNote,
-              ),
-            ),
-            TextField(
-              key: const ValueKey<String>('goal-blueprint-form-keywords'),
-              controller: _keywords,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldKeywords,
-              ),
-            ),
-            DropdownButtonFormField<String>(
-              key: const ValueKey<String>('goal-blueprint-form-domain'),
-              initialValue: _domain,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldDomain,
-              ),
-              items: <DropdownMenuItem<String>>[
-                DropdownMenuItem<String>(
-                  value: '',
-                  child: Text(t.goalBlueprintFieldUnset),
-                ),
-                for (final String key in projectDomainKeys)
-                  DropdownMenuItem<String>(
-                    value: key,
-                    child: Text(t.projectDomainLabel(key)),
-                  ),
-              ],
-              onChanged: (String? value) =>
-                  setState(() => _domain = value ?? ''),
-            ),
-            DropdownButtonFormField<GoalHorizon?>(
-              key: const ValueKey<String>('goal-blueprint-form-horizon'),
-              initialValue: _horizon,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldHorizon,
-              ),
-              items: <DropdownMenuItem<GoalHorizon?>>[
-                for (final GoalHorizon horizon in GoalBlueprintMatrix.horizons)
-                  DropdownMenuItem<GoalHorizon?>(
-                    value: horizon,
-                    child: Text(_horizonLabel(t, horizon)),
-                  ),
-              ],
-              onChanged: (GoalHorizon? value) =>
-                  setState(() => _horizon = value ?? _horizon),
-            ),
-            TextField(
-              key: const ValueKey<String>('goal-blueprint-form-due'),
-              controller: _due,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldDue,
-                hintText: 'YYYY-MM-DD',
-                errorText: _dueError,
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          key: const ValueKey<String>('goal-blueprint-form-cancel'),
-          // 取消 = 什么都不写（裁决：编辑动作不许有隐式写入）。
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(t.cancel),
-        ),
-        TextButton(
-          key: const ValueKey<String>('goal-blueprint-form-save'),
-          onPressed: _title.text.trim().isEmpty ? null : _submit,
-          child: Text(t.commonSave),
-        ),
-      ],
-    );
-  }
-
-  /// 校验期限格式后把结果交回页面（本函数**不写库**）。
-  void _submit() {
-    final int? dueDate = _parseDay(_due.text);
-    if (dueDate == null && _due.text.trim().isNotEmpty) {
-      setState(() => _dueError = widget.t.goalBlueprintFieldDueInvalid);
-      return;
-    }
-    Navigator.of(context).pop(
-      _GoalFormResult(
-        title: _title.text,
-        note: _note.text,
-        keywords: _keywords.text,
-        domain: _domain,
-        horizon: _horizon,
-        dueDate: dueDate,
-      ),
-    );
-  }
-
-  /// `YYYY-MM-DD` → 毫秒；空串 = null；非法格式 = 由调用方判错。
-  static int? _parseDay(String raw) {
-    final String text = raw.trim();
-    if (text.isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(text)?.millisecondsSinceEpoch;
-  }
-
-  /// 毫秒 → `YYYY-MM-DD`（本地日）；null = 空串。
-  static String _formatDay(int? millis) {
-    if (millis == null) {
-      return '';
-    }
-    final DateTime d = DateTime.fromMillisecondsSinceEpoch(millis);
-    final String m = d.month.toString().padLeft(2, '0');
-    final String day = d.day.toString().padLeft(2, '0');
-    return '${d.year}-$m-$day';
-  }
-
-  /// 档位显示名（与矩阵表头同一套 getter）。
-  static String _horizonLabel(AppLocalizations t, GoalHorizon horizon) =>
-      switch (horizon) {
-        GoalHorizon.ultimate => t.goalBlueprintHorizonUltimate,
-        GoalHorizon.long => t.goalBlueprintHorizonLong,
-        GoalHorizon.mid => t.goalBlueprintHorizonMid,
-        GoalHorizon.short => t.goalBlueprintHorizonShort,
-        GoalHorizon.near => t.goalBlueprintHorizonNear,
-      };
 }

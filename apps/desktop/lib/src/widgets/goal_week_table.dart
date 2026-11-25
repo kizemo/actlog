@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import '../data/goal_store.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/theme_tokens.dart';
+import 'goals/goal_form_dialog.dart';
 
 /// 周目标表（表头 + 若干行）。
 class GoalWeekTable extends StatelessWidget {
@@ -26,6 +27,8 @@ class GoalWeekTable extends StatelessWidget {
   const GoalWeekTable({
     required this.view,
     required this.t,
+    this.onEdit,
+    this.onDelete,
     super.key,
   });
 
@@ -34,6 +37,12 @@ class GoalWeekTable extends StatelessWidget {
 
   /// 文案表。
   final AppLocalizations t;
+
+  /// 点某一行的「编辑」；与 [onDelete] 同时非 null 时才显示操作列。
+  final void Function(GoalRow goal)? onEdit;
+
+  /// 点某一行的「删除」。
+  final void Function(GoalRow goal)? onDelete;
 
   /// 「优先顺序」列宽。
   static const double orderWidth = 44;
@@ -73,12 +82,15 @@ class GoalWeekTable extends StatelessWidget {
             SizedBox(width: dueWidth, child: Text(t.goalsColumnDue, style: headerStyle)),
             SizedBox(width: doneWidth, child: Text(t.goalsColumnDone, style: headerStyle)),
             Expanded(flex: 2, child: Text(t.goalsColumnServes, style: headerStyle)),
+            // 操作列表头留空：宽度必须与行尾按钮组同宽（`GoalRowActions.width`）。
+            if (onEdit != null && onDelete != null)
+              const SizedBox(width: GoalRowActions.width),
           ],
         ),
         const SizedBox(height: 6),
         for (final GoalWeekItem item in view.items) ...<Widget>[
           Divider(height: 1, thickness: 1, color: tokens.hair),
-          _WeekRow(item: item, t: t),
+          _WeekRow(item: item, t: t, onEdit: onEdit, onDelete: onDelete),
           const SizedBox(height: 6),
         ],
       ],
@@ -89,13 +101,24 @@ class GoalWeekTable extends StatelessWidget {
 /// 周目标表的一行。
 class _WeekRow extends StatelessWidget {
   /// 创建一行。
-  const _WeekRow({required this.item, required this.t});
+  const _WeekRow({
+    required this.item,
+    required this.t,
+    this.onEdit,
+    this.onDelete,
+  });
 
   /// 行数据。
   final GoalWeekItem item;
 
   /// 文案表。
   final AppLocalizations t;
+
+  /// 点本行的「编辑」（null = 不显示操作列）。
+  final void Function(GoalRow goal)? onEdit;
+
+  /// 点本行的「删除」。
+  final void Function(GoalRow goal)? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +179,14 @@ class _WeekRow extends StatelessWidget {
           flex: 2,
           child: Text(item.servedGoal?.title ?? '—', style: metaStyle),
         ),
+        if (onEdit != null && onDelete != null)
+          GoalRowActions(
+            editKey: 'goal-week-row-edit-${goal.id}',
+            deleteKey: 'goal-week-row-delete-${goal.id}',
+            onEdit: () => onEdit!(goal),
+            onDelete: () => onDelete!(goal),
+            t: t,
+          ),
       ],
     );
   }

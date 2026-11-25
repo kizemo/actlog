@@ -24,6 +24,7 @@ import '../providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/goal_upstream_panel.dart';
 import '../widgets/goal_week_table.dart';
+import '../widgets/goals/goal_form_dialog.dart';
 import '../widgets/shell/tool_rail.dart';
 
 /// 周目标页：本周目标表 + 滚动候选区。
@@ -72,7 +73,12 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
                     key: const ValueKey<String>('goals-week-empty'),
                     text: t.goalsWeekEmpty,
                   )
-                : GoalWeekTable(view: data, t: t),
+                : GoalWeekTable(
+                    view: data,
+                    t: t,
+                    onEdit: _editGoal,
+                    onDelete: _deleteGoal,
+                  ),
           ),
         ),
         const SizedBox(height: AppTokens.gapCard),
@@ -193,6 +199,94 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
       }
       setState(() => _error = AppLocalizations.of(context).operationFailed);
     }
+  }
+
+  /// 周目标行「编辑」：预填既有值，保存后写库并重取本周视图。
+  Future<void> _editGoal(GoalRow goal) async {
+    final AppLocalizations t = AppLocalizations.of(context);
+    final GoalFormResult? form = await showGoalFormDialog(
+      context,
+      t: t,
+      existing: goal,
+    );
+    if (form == null || !mounted) {
+      return;
+    }
+    await _updateGoal(goal, form);
+  }
+
+  /// 周目标行「删除」：先二次确认（确认框本体三页共用），确认后才软删。
+  Future<void> _deleteGoal(GoalRow goal) async {
+    final AppLocalizations t = AppLocalizations.of(context);
+    final bool confirmed = await confirmDeleteGoal(context, t);
+    if (!confirmed || !mounted) {
+      return;
+    }
+    setState(() => _error = null);
+    try {
+      await ref.read(goalStoreProvider).deleteGoal(goal.id);
+      if (!mounted) {
+        return;
+      }
+      ref.invalidate(goalWeekViewProvider);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
+  }
+
+  /// 表单结果写回库（本页不新建目标：新建入口不在本棒范围）。
+  Future<void> _updateGoal(GoalRow goal, GoalFormResult form) async {
+    final String title = form.title.trim();
+    final String? note = _emptyToNull(form.note);
+    final String? keywords = _emptyToNull(form.keywords);
+    final String? domain = _emptyToNull(form.domain);
+    final int? dueDate = form.dueDate;
+    setState(() => _error = null);
+    try {
+      await ref.read(goalStoreProvider).updateGoal(
+        goal.id,
+        title: title,
+        note: note,
+        keywords: keywords,
+        domain: domain,
+        horizon: _keptHorizon(goal, form.horizon),
+        dueDate: dueDate,
+        // 表单里清空的字段必须显式进 `clear`：传 null 的语义是「不动」。
+        clear: <GoalField>{
+          if (domain == null) GoalField.domain,
+          if (note == null) GoalField.note,
+          if (keywords == null) GoalField.keywords,
+          if (dueDate == null) GoalField.dueDate,
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      ref.invalidate(goalWeekViewProvider);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
+  }
+
+  /// 档位保留口径：原目标本来没有档位、用户也没动档位（表单仍是默认
+  /// `ultimate`）⇒ 传 null（`updateGoal` 里 null = 不动），不给周目标隐式赋档。
+  static GoalHorizon? _keptHorizon(GoalRow goal, GoalHorizon picked) {
+    if (goal.horizon == null && picked == GoalHorizon.ultimate) {
+      return null;
+    }
+    return picked;
+  }
+
+  /// 空白串 → null（表单里的「没填」等于「不设置」）。
+  static String? _emptyToNull(String value) {
+    final String text = value.trim();
+    return text.isEmpty ? null : text;
   }
 
   /// 本周是否已有周目标 `serves` 这条月目标（幂等判据：读回来的服务关系）。
