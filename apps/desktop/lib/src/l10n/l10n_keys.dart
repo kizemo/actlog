@@ -3,7 +3,7 @@
 // =============================================================================
 // 这层**不做转发**。它不进渲染路径 —— 页面上仍然写 `t.settingsTitle`，编译器
 // 仍然保证漏翻是 error。键的作用只有两个：
-//   1. 测试能遍历 key 集合，校验「390 条 getter 一条不少」「中英两态都不为空」
+//   1. 测试能遍历 key 集合，校验「417 条 getter 一条不少」「中英两态都不为空」
 //      「除白名单外中英必须不同」；
 //   2. 将来若要把文案导出成 ARB / 交给翻译工具，键名是稳定的对接面，不必从
 //      Dart 标识符里反推。
@@ -515,7 +515,7 @@ abstract final class L10nKeys {
   static const String domainRecurringNone = 'domain-recurring-none';
 
   // ---------------------------------------------------------------------------
-  // 项目页（parts\projects.dart，41 条）
+  // 项目页（parts\projects.dart，48 条）
   // ---------------------------------------------------------------------------
 
   /// 项目页标题。
@@ -656,6 +656,29 @@ abstract final class L10nKeys {
 
   /// 领域：健康。
   static const String projectsDomainHealth = 'projects-domain-health';
+
+  /// 校验失败：日期不是 `YYYY-MM-DD` 格式。
+  static const String projectsInvalidDateFormat =
+      'projects-invalid-date-format';
+
+  /// 校验失败：格式对，但日历上没有这一天。
+  static const String projectsDateNotExist = 'projects-date-not-exist';
+
+  /// 校验失败：项目名称为空。
+  static const String projectsNameRequired = 'projects-name-required';
+
+  /// 校验失败：任务标题为空。
+  static const String projectsTaskTitleRequired =
+      'projects-task-title-required';
+
+  /// 校验失败：增量没有写进展。
+  static const String projectsProgressRequired = 'projects-progress-required';
+
+  /// 任务不存在（`{id}` 由页面插值）。
+  static const String projectsMilestoneMissing = 'projects-milestone-missing';
+
+  /// 项目不存在（`{id}` 由页面插值）。
+  static const String projectsProjectMissing = 'projects-project-missing';
 
   // ---------------------------------------------------------------------------
   // 日历与日期（parts\calendar.dart，19 条：16 条无参 getter + 1 条列表型
@@ -1195,7 +1218,7 @@ abstract final class L10nKeys {
   static const String priorityBubbleA11y = 'priority-bubble-a11y';
 
   // ---------------------------------------------------------------------------
-  // 对话框（parts\dialog.dart，88 条：73 条 getter + 15 条插值方法）
+  // 对话框（parts\dialog.dart，108 条：93 条 getter + 15 条插值方法）
   // ---------------------------------------------------------------------------
 
   /// 预估时长单位：分钟。
@@ -1388,6 +1411,72 @@ abstract final class L10nKeys {
   /// 按钮：标记完成（是按钮，不是 `PlanStatus` 的「完成」标签）。
   static const String dialogNoteDone = 'dialog-note-done';
 
+  /// 结论：按时完成。
+  static const String dialogOutcomeOnTime = 'dialog-outcome-on-time';
+
+  /// 结论：延后完成。
+  static const String dialogOutcomeLate = 'dialog-outcome-late';
+
+  /// 结论：提前完成。
+  static const String dialogOutcomeEarly = 'dialog-outcome-early';
+
+  /// 结论：部分完成。
+  static const String dialogOutcomePartial = 'dialog-outcome-partial';
+
+  /// 结论：受阻。
+  static const String dialogOutcomeBlocked = 'dialog-outcome-blocked';
+
+  /// 结论：顺延到明天。
+  static const String dialogOutcomeDeferredTomorrow =
+      'dialog-outcome-deferred-tomorrow';
+
+  /// 原因：预估不足。
+  static const String dialogReasonUnderestimated =
+      'dialog-reason-underestimated';
+
+  /// 原因：被打断。
+  static const String dialogReasonInterrupted = 'dialog-reason-interrupted';
+
+  /// 原因：依赖外部。
+  static const String dialogReasonExternal = 'dialog-reason-external';
+
+  /// 原因：优先级变了。
+  static const String dialogReasonPriorityChanged =
+      'dialog-reason-priority-changed';
+
+  /// 原因：状态不好。
+  static const String dialogReasonPoorState = 'dialog-reason-poor-state';
+
+  /// 原因：时间不够。
+  static const String dialogReasonNoTime = 'dialog-reason-no-time';
+
+  /// 原因：信息不清。
+  static const String dialogReasonUnclear = 'dialog-reason-unclear';
+
+  /// 原因：其他。
+  static const String dialogReasonOther = 'dialog-reason-other';
+
+  /// 下一步：明天继续。
+  static const String dialogNextStepContinueTomorrow =
+      'dialog-next-step-continue-tomorrow';
+
+  /// 下一步：转成待办。
+  static const String dialogNextStepToTodo = 'dialog-next-step-to-todo';
+
+  /// 下一步：交出去。
+  static const String dialogNextStepHandOff = 'dialog-next-step-hand-off';
+
+  /// 下一步：缩小范围。
+  static const String dialogNextStepNarrowScope =
+      'dialog-next-step-narrow-scope';
+
+  /// 下一步：定日复盘。
+  static const String dialogNextStepReviewLater =
+      'dialog-next-step-review-later';
+
+  /// 下一步：就此停止。
+  static const String dialogNextStepStopHere = 'dialog-next-step-stop-here';
+
   /// 副标前半的「加载中」占位。
   static const String dialogPoolLoading = 'dialog-pool-loading';
 
@@ -1483,7 +1572,7 @@ abstract final class L10nKeys {
   // 对照表
   // ---------------------------------------------------------------------------
 
-  /// getter 名 → 键（390 条，覆盖 `AppLocalizations` 全部无参 String getter；
+  /// getter 名 → 键（417 条，覆盖 `AppLocalizations` 全部无参 String getter；
   /// 另有 4 条列表型 getter 在 `byListGetter`）。
   ///
   /// 顺序与 `parts\*.dart` 的声明顺序一致，方便对读。
@@ -1604,8 +1693,8 @@ abstract final class L10nKeys {
     'shellPanelRecurringTasks': shellPanelRecurringTasks,
     'shellPanelAddRecurringTask': shellPanelAddRecurringTask,
     'shellPanelLoopHint': shellPanelLoopHint,
-    // 项目页 41 条（Task 56 的 17 条 + Task 57 的 11 条 + 补轮 3 条 +
-    // Task 59 的 11 条）
+    // 项目页 48 条（Task 56 的 17 条 + Task 57 的 11 条 + 补轮 3 条 +
+    // Task 59 的 11 条 + Stage 4 的 7 条）
     'projectsTitle': projectsTitle,
     'projectsSubtitle': projectsSubtitle,
     'projectsEmpty': projectsEmpty,
@@ -1649,6 +1738,14 @@ abstract final class L10nKeys {
     'projectsDomainLearning': projectsDomainLearning,
     'projectsDomainSocial': projectsDomainSocial,
     'projectsDomainHealth': projectsDomainHealth,
+    // 校验失败 / 实体缺失 7 条（Stage 4：英文态可见中文收口）
+    'projectsInvalidDateFormat': projectsInvalidDateFormat,
+    'projectsDateNotExist': projectsDateNotExist,
+    'projectsNameRequired': projectsNameRequired,
+    'projectsTaskTitleRequired': projectsTaskTitleRequired,
+    'projectsProgressRequired': projectsProgressRequired,
+    'projectsMilestoneMissing': projectsMilestoneMissing,
+    'projectsProjectMissing': projectsProjectMissing,
     // 日历与日期 16 条（Task 61：日历页 / 月视图 / 日期条 / 日期选择弹层）
     'calendarPageTitle': calendarPageTitle,
     'calendarPrevMonth': calendarPrevMonth,
@@ -1823,7 +1920,7 @@ abstract final class L10nKeys {
     'priorityBubbleCurrent': priorityBubbleCurrent,
     'priorityBubbleReadonly': priorityBubbleReadonly,
     'priorityBubbleEditable': priorityBubbleEditable,
-    // dialog 73 条（Task 63 轮二）
+    // dialog 93 条（Task 63 轮二 73 条 + Stage 4 的 20 条）
     'dialogEstUnitMinute': dialogEstUnitMinute,
     'dialogEstUnitHour': dialogEstUnitHour,
     'dialogEstUnitDay': dialogEstUnitDay,
@@ -1883,6 +1980,27 @@ abstract final class L10nKeys {
     'dialogNoteNextStepLabel': dialogNoteNextStepLabel,
     'dialogNoteSaveProgressOnly': dialogNoteSaveProgressOnly,
     'dialogNoteDone': dialogNoteDone,
+    // 结果撰写的三段短语 20 条（显示层；落库值本身在 outcome_composer.dart）
+    'dialogOutcomeOnTime': dialogOutcomeOnTime,
+    'dialogOutcomeLate': dialogOutcomeLate,
+    'dialogOutcomeEarly': dialogOutcomeEarly,
+    'dialogOutcomePartial': dialogOutcomePartial,
+    'dialogOutcomeBlocked': dialogOutcomeBlocked,
+    'dialogOutcomeDeferredTomorrow': dialogOutcomeDeferredTomorrow,
+    'dialogReasonUnderestimated': dialogReasonUnderestimated,
+    'dialogReasonInterrupted': dialogReasonInterrupted,
+    'dialogReasonExternal': dialogReasonExternal,
+    'dialogReasonPriorityChanged': dialogReasonPriorityChanged,
+    'dialogReasonPoorState': dialogReasonPoorState,
+    'dialogReasonNoTime': dialogReasonNoTime,
+    'dialogReasonUnclear': dialogReasonUnclear,
+    'dialogReasonOther': dialogReasonOther,
+    'dialogNextStepContinueTomorrow': dialogNextStepContinueTomorrow,
+    'dialogNextStepToTodo': dialogNextStepToTodo,
+    'dialogNextStepHandOff': dialogNextStepHandOff,
+    'dialogNextStepNarrowScope': dialogNextStepNarrowScope,
+    'dialogNextStepReviewLater': dialogNextStepReviewLater,
+    'dialogNextStepStopHere': dialogNextStepStopHere,
     'dialogPoolLoading': dialogPoolLoading,
     'dialogPoolTitle': dialogPoolTitle,
     'dialogPoolTitleHint': dialogPoolTitleHint,

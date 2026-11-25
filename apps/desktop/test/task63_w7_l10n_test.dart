@@ -152,7 +152,7 @@ void main() {
       expect(find.text('取消'), findsNothing);
     });
 
-    testWidgets('en 态：落库短语与前缀不翻译（芯片仍是中文，编码仍是 [结论]）', (tester) async {
+    testWidgets('en 态：落库值不翻译、只映射显示层（芯片出英文，编码仍是 [结论]）', (tester) async {
       String? captured;
       bool? markedDone;
       await pumpL10n(
@@ -164,8 +164,14 @@ void main() {
         language: AppLanguage.en,
       );
 
-      // 21 条落库短语禁迁：en 界面里仍是中文，否则历史数据反解全会断。
-      expect(find.text('按时完成'), findsOneWidget);
+      // 21 条落库短语禁迁：落库值与编码里仍是中文，否则历史数据反解全会断；
+      // 但芯片**显示**走 OutcomeComposer.displayLabel 映射成英文（纯显示层映射）。
+      expect(find.text('Completed on time'), findsOneWidget);
+      expect(
+        find.text('按时完成'),
+        findsNothing,
+        reason: '阴性对照：显示层必须真的翻译过，别在 en 界面漏出落库中文',
+      );
       await tester.tap(find.text('Done'));
       await tester.pump();
       expect(captured, '[结论]按时完成');

@@ -4,7 +4,7 @@
 // 为什么这些放在 test\ 而不是 lib\：它只为测试服务，进 lib 就是又造一层生产代码
 // 里的转发（本项目明令不要 `AppStrings.xxx => t.xxx` 那种壳）。
 //
-// `l10nAccessors` 是**测试数据**：把 390 条 getter 一条一条列成「键 → 取值闭包」
+// `l10nAccessors` 是**测试数据**：把 417 条 getter 一条一条列成「键 → 取值闭包」
 // （列表型 4 条在 `l10nListAccessors`）。
 // 有了它，测试才能不看 getter 名地遍历全部文案（校验非空、校验中英不同、校验
 // 键数与条数一致）。新增 getter 时两侧都要加一行 —— 少了就会在
@@ -24,7 +24,7 @@ import 'package:actlog/src/l10n/l10n_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 390 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
+/// 417 条 String getter 的访问器表：键 → 在当前语言下取该条文案。
 final Map<String, String Function(AppLocalizations)> l10nAccessors =
     <String, String Function(AppLocalizations)>{
   // 设置页 32 条
@@ -162,8 +162,8 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.domainAbcCLabel: (AppLocalizations t) => t.abcCLabel,
   L10nKeys.domainPriorityUnsetLabel: (AppLocalizations t) =>
       t.priorityUnsetLabel,
-  // 项目页 41 条（Task 56 新增 17 条 + Task 57 新增 11 条 + 补轮 3 条 +
-  // Task 59 新增 11 条）
+  // 项目页 48 条（Task 56 新增 17 条 + Task 57 新增 11 条 + 补轮 3 条 +
+  // Task 59 新增 11 条 + Stage 4 新增 7 条）
   L10nKeys.projectsTitle: (AppLocalizations t) => t.projectsTitle,
   L10nKeys.projectsSubtitle: (AppLocalizations t) => t.projectsSubtitle,
   L10nKeys.projectsEmpty: (AppLocalizations t) => t.projectsEmpty,
@@ -228,6 +228,19 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.projectsDomainLearning,
   L10nKeys.projectsDomainSocial: (AppLocalizations t) => t.projectsDomainSocial,
   L10nKeys.projectsDomainHealth: (AppLocalizations t) => t.projectsDomainHealth,
+  // 校验失败 / 实体缺失 7 条（Stage 4：英文态可见中文收口）
+  L10nKeys.projectsInvalidDateFormat: (AppLocalizations t) =>
+      t.projectsInvalidDateFormat,
+  L10nKeys.projectsDateNotExist: (AppLocalizations t) => t.projectsDateNotExist,
+  L10nKeys.projectsNameRequired: (AppLocalizations t) => t.projectsNameRequired,
+  L10nKeys.projectsTaskTitleRequired: (AppLocalizations t) =>
+      t.projectsTaskTitleRequired,
+  L10nKeys.projectsProgressRequired: (AppLocalizations t) =>
+      t.projectsProgressRequired,
+  L10nKeys.projectsMilestoneMissing: (AppLocalizations t) =>
+      t.projectsMilestoneMissing,
+  L10nKeys.projectsProjectMissing: (AppLocalizations t) =>
+      t.projectsProjectMissing,
   // 日历与日期 16 条（Task 61：日历页 / 月视图 / 日期条 / 日期选择弹层）
   L10nKeys.calendarPageTitle: (AppLocalizations t) => t.calendarPageTitle,
   L10nKeys.calendarPrevMonth: (AppLocalizations t) => t.calendarPrevMonth,
@@ -456,7 +469,7 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.priorityBubbleReadonly,
   L10nKeys.priorityBubbleEditable: (AppLocalizations t) =>
       t.priorityBubbleEditable,
-  // dialog 73 条（Task 63 轮二）
+  // dialog 93 条（Task 63 轮二 73 条 + Stage 4 新增 20 条）
   L10nKeys.dialogEstUnitMinute: (AppLocalizations t) => t.dialogEstUnitMinute,
   L10nKeys.dialogEstUnitHour: (AppLocalizations t) => t.dialogEstUnitHour,
   L10nKeys.dialogEstUnitDay: (AppLocalizations t) => t.dialogEstUnitDay,
@@ -542,6 +555,36 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.dialogNoteSaveProgressOnly: (AppLocalizations t) =>
       t.dialogNoteSaveProgressOnly,
   L10nKeys.dialogNoteDone: (AppLocalizations t) => t.dialogNoteDone,
+  // 结果撰写的三段短语 20 条（显示层；落库值本身在 outcome_composer.dart）
+  L10nKeys.dialogOutcomeOnTime: (AppLocalizations t) => t.dialogOutcomeOnTime,
+  L10nKeys.dialogOutcomeLate: (AppLocalizations t) => t.dialogOutcomeLate,
+  L10nKeys.dialogOutcomeEarly: (AppLocalizations t) => t.dialogOutcomeEarly,
+  L10nKeys.dialogOutcomePartial: (AppLocalizations t) => t.dialogOutcomePartial,
+  L10nKeys.dialogOutcomeBlocked: (AppLocalizations t) => t.dialogOutcomeBlocked,
+  L10nKeys.dialogOutcomeDeferredTomorrow: (AppLocalizations t) =>
+      t.dialogOutcomeDeferredTomorrow,
+  L10nKeys.dialogReasonUnderestimated: (AppLocalizations t) =>
+      t.dialogReasonUnderestimated,
+  L10nKeys.dialogReasonInterrupted: (AppLocalizations t) =>
+      t.dialogReasonInterrupted,
+  L10nKeys.dialogReasonExternal: (AppLocalizations t) => t.dialogReasonExternal,
+  L10nKeys.dialogReasonPriorityChanged: (AppLocalizations t) =>
+      t.dialogReasonPriorityChanged,
+  L10nKeys.dialogReasonPoorState: (AppLocalizations t) =>
+      t.dialogReasonPoorState,
+  L10nKeys.dialogReasonNoTime: (AppLocalizations t) => t.dialogReasonNoTime,
+  L10nKeys.dialogReasonUnclear: (AppLocalizations t) => t.dialogReasonUnclear,
+  L10nKeys.dialogReasonOther: (AppLocalizations t) => t.dialogReasonOther,
+  L10nKeys.dialogNextStepContinueTomorrow: (AppLocalizations t) =>
+      t.dialogNextStepContinueTomorrow,
+  L10nKeys.dialogNextStepToTodo: (AppLocalizations t) => t.dialogNextStepToTodo,
+  L10nKeys.dialogNextStepHandOff: (AppLocalizations t) => t.dialogNextStepHandOff,
+  L10nKeys.dialogNextStepNarrowScope: (AppLocalizations t) =>
+      t.dialogNextStepNarrowScope,
+  L10nKeys.dialogNextStepReviewLater: (AppLocalizations t) =>
+      t.dialogNextStepReviewLater,
+  L10nKeys.dialogNextStepStopHere: (AppLocalizations t) =>
+      t.dialogNextStepStopHere,
   L10nKeys.dialogPoolLoading: (AppLocalizations t) => t.dialogPoolLoading,
   L10nKeys.dialogPoolTitle: (AppLocalizations t) => t.dialogPoolTitle,
   L10nKeys.dialogPoolTitleHint: (AppLocalizations t) => t.dialogPoolTitleHint,

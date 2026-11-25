@@ -56,6 +56,64 @@ class OutcomeComposer extends StatefulWidget {
     '就此停止',
   ];
 
+  /// 落库值 → 当前语言的显示文案（spec §7 那 21 条短语）。
+  ///
+  /// 落库值**一个字节都不改**：上面三个常量仍是那 21 条中文短语，`_setSegment`
+  /// 原样把它们塞进 `ResultNote`。本方法只做**显示层**的映射 —— zh 侧显示值与
+  /// 落库值逐字相同（中文界面零视觉变化），en 侧显示英文译文。
+  ///
+  /// 未知的历史值（用户自己写进 `[下一步]` 的自由文本、同步进来的旧数据）
+  /// **原样返回**，不猜译名、不崩 —— 先例见 `l10n\app_localizations.dart` 的
+  /// `projectDomainLabel`。
+  static String displayLabel(AppLocalizations t, String stored) {
+    switch (stored) {
+      case '按时完成':
+        return t.dialogOutcomeOnTime;
+      case '延后完成':
+        return t.dialogOutcomeLate;
+      case '提前完成':
+        return t.dialogOutcomeEarly;
+      case '部分完成':
+        return t.dialogOutcomePartial;
+      case '受阻':
+        return t.dialogOutcomeBlocked;
+      case '顺延到明天':
+        return t.dialogOutcomeDeferredTomorrow;
+      case '取消':
+        return t.cancel;
+      case '预估不足':
+        return t.dialogReasonUnderestimated;
+      case '被打断':
+        return t.dialogReasonInterrupted;
+      case '依赖外部':
+        return t.dialogReasonExternal;
+      case '优先级变了':
+        return t.dialogReasonPriorityChanged;
+      case '状态不好':
+        return t.dialogReasonPoorState;
+      case '时间不够':
+        return t.dialogReasonNoTime;
+      case '信息不清':
+        return t.dialogReasonUnclear;
+      case '其他':
+        return t.dialogReasonOther;
+      case '明天继续':
+        return t.dialogNextStepContinueTomorrow;
+      case '转成待办':
+        return t.dialogNextStepToTodo;
+      case '交出去':
+        return t.dialogNextStepHandOff;
+      case '缩小范围':
+        return t.dialogNextStepNarrowScope;
+      case '定日复盘':
+        return t.dialogNextStepReviewLater;
+      case '就此停止':
+        return t.dialogNextStepStopHere;
+      default:
+        return stored;
+    }
+  }
+
   @override
   State<OutcomeComposer> createState() => _OutcomeComposerState();
 }
@@ -174,7 +232,10 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
         ChipRow(
           options: <ChipOption>[
             for (final label in OutcomeComposer.outcomeLabels)
-              ChipOption(key: label, label: label),
+              ChipOption(
+                key: label,
+                label: OutcomeComposer.displayLabel(l10n, label),
+              ),
           ],
           selected: _note.outcome.isEmpty ? const <String>{} : <String>{_note.outcome},
           onChanged: (next) =>
@@ -186,7 +247,10 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
         ChipRow(
           options: <ChipOption>[
             for (final label in OutcomeComposer.reasonLabels)
-              ChipOption(key: label, label: label),
+              ChipOption(
+                key: label,
+                label: OutcomeComposer.displayLabel(l10n, label),
+              ),
           ],
           selected: _note.reason.isEmpty ? const <String>{} : <String>{_note.reason},
           onChanged: (next) =>
@@ -198,7 +262,10 @@ class _OutcomeComposerState extends State<OutcomeComposer> {
         ChipRow(
           options: <ChipOption>[
             for (final label in OutcomeComposer.nextStepLabels)
-              ChipOption(key: label, label: label),
+              ChipOption(
+                key: label,
+                label: OutcomeComposer.displayLabel(l10n, label),
+              ),
           ],
           selected: OutcomeComposer.nextStepLabels.contains(_note.nextStep)
               ? <String>{_note.nextStep}

@@ -1,9 +1,9 @@
 // =============================================================================
 // l10n part：项目页（Task 56）
 // =============================================================================
-// 41 条，全部是无参 String getter（不新增插值方法 ⇒ `byMethod` 仍是 4 条）。
-// 带数量的两条（「未排期 {n} 条」/「{n} 个项目」）用 `{n}` 占位符，由页面侧
-// `replaceAll` 插值。
+// 48 条，全部是无参 String getter（不新增插值方法 ⇒ 本 part 不进 `byMethod`）。
+// 带数量的两条（「未排期 {n} 条」/「{n} 个项目」）与带 id 的两条（「任务 {id} 不存在」
+// /「项目 {id} 不存在」）用占位符，由页面侧 `replaceAll` 插值。
 //
 // 键前缀统一 `projects-`（与 `settings-` / `about-` / `common-` / `shell-` /
 // `domain-` 同一套规矩）。键登记在 `l10n_keys.dart` 的 `byGetter` 里。
@@ -133,6 +133,34 @@ abstract class ProjectsL10n {
 
   /// 领域：健康。
   String get projectsDomainHealth;
+
+  // ---------------------------------------------------------------------------
+  // 校验失败 / 实体缺失文案
+  //
+  // 出处：`pages\projects_page.dart`（表单内联校验与日期校验）与
+  // `data\project_store.dart`（任务 / 项目缺失）。
+  // ---------------------------------------------------------------------------
+
+  /// 校验失败：日期不是 `YYYY-MM-DD` 格式。
+  String get projectsInvalidDateFormat;
+
+  /// 校验失败：格式对，但日历上没有这一天。
+  String get projectsDateNotExist;
+
+  /// 校验失败：项目名称为空。
+  String get projectsNameRequired;
+
+  /// 校验失败：任务标题为空。
+  String get projectsTaskTitleRequired;
+
+  /// 校验失败：增量没有写进展。
+  String get projectsProgressRequired;
+
+  /// 任务不存在（`{id}` 由页面插值）。
+  String get projectsMilestoneMissing;
+
+  /// 项目不存在（`{id}` 由页面插值）。
+  String get projectsProjectMissing;
 }
 
 /// 项目页文案：简体中文。
@@ -259,6 +287,27 @@ mixin ProjectsZhL10n implements ProjectsL10n {
 
   @override
   String get projectsDomainHealth => '健康';
+
+  @override
+  String get projectsInvalidDateFormat => '日期必须是 YYYY-MM-DD 格式';
+
+  @override
+  String get projectsDateNotExist => '这个日期不存在';
+
+  @override
+  String get projectsNameRequired => '项目名称不能为空';
+
+  @override
+  String get projectsTaskTitleRequired => '任务标题不能为空';
+
+  @override
+  String get projectsProgressRequired => '至少写一句这次推进了什么';
+
+  @override
+  String get projectsMilestoneMissing => '任务 {id} 不存在';
+
+  @override
+  String get projectsProjectMissing => '项目 {id} 不存在';
 }
 
 /// 项目页文案：English。
@@ -389,4 +438,26 @@ mixin ProjectsEnL10n implements ProjectsL10n {
 
   @override
   String get projectsDomainHealth => 'Health';
+
+  @override
+  String get projectsInvalidDateFormat => 'Date must be in YYYY-MM-DD format';
+
+  @override
+  String get projectsDateNotExist => 'This date does not exist';
+
+  @override
+  String get projectsNameRequired => 'Project name cannot be empty';
+
+  @override
+  String get projectsTaskTitleRequired => 'Task title cannot be empty';
+
+  @override
+  String get projectsProgressRequired =>
+      'Write at least one line about what you progressed';
+
+  @override
+  String get projectsMilestoneMissing => 'Task {id} does not exist';
+
+  @override
+  String get projectsProjectMissing => 'Project {id} does not exist';
 }

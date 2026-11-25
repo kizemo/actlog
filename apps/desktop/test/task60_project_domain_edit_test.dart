@@ -20,9 +20,9 @@
 //   T7：**再点一次**已选中的「事业」⇒ 清除领域（界面点选路径；T2 只钉了数据
 //       层直接传空串），选中态与分布面板双双回落「未分类」。
 //
-// 异常分支（60.4c 的另一半，`project_store.dart:469-471` 那道守卫）钉两条：
-//   T8：**不存在**的项目 id ⇒ 抛 `StateError`，且不留下项目行、不落 oplog；
-//   T9：**已被软删**（`deleted_at != null`）的项目行 ⇒ 同样抛 `StateError`，
+// 异常分支（60.4c 的另一半，`project_store.dart:503-506` 那道守卫）钉两条：
+//   T8：**不存在**的项目 id ⇒ 抛 `MissingEntityException`（kind=project），且不留下项目行、不落 oplog；
+//   T9：**已被软删**（`deleted_at != null`）的项目行 ⇒ 同样抛 `MissingEntityException`，
 //       墓碑行原样不动（domain / rev / deleted_at 三列都不许被改写）。
 //
 // 口径是**真库 + 真界面**：内存 drift 库 + 真仓储，页面自己走 `_reload()`。
@@ -250,18 +250,20 @@ void main() {
       );
     });
 
-    test('T8（60.4c）：不存在的项目 id ⇒ 抛 StateError，且不落任何写入', () async {
+    test('T8（60.4c）：不存在的项目 id ⇒ 抛 MissingEntityException，且不落任何写入', () async {
       // 不建这行：守卫的「project == null」半边只有这条能撞到。
       const String missingId = 'task60-missing-project';
 
       await expectLater(
         store.setProjectDomain(projectId: missingId, domain: 'career'),
         throwsA(
-          isA<StateError>().having(
-            (StateError e) => e.message,
-            'message',
-            allOf(contains('项目'), contains(missingId)),
-          ),
+          isA<MissingEntityException>()
+              .having(
+                (MissingEntityException e) => e.kind,
+                'kind',
+                MissingEntityException.projectKind,
+              )
+              .having((MissingEntityException e) => e.id, 'id', missingId),
         ),
         reason: '项目不存在时必须抛错，不许静默当成功（否则调用方以为改成了）',
       );
@@ -284,7 +286,7 @@ void main() {
       expect(oplogCount, 0, reason: '守卫在写之前就抛：oplog 里一条痕都不该有');
     });
 
-    test('T9（60.4c）：已软删的项目行 ⇒ 同样抛 StateError，墓碑行原样不动', () async {
+    test('T9（60.4c）：已软删的项目行 ⇒ 同样抛 MissingEntityException，墓碑行原样不动', () async {
       final String id = await store.createProject(name: '甲', domain: 'career');
       final ProjectData before =
           await (db.select(db.project)..where((t) => t.id.equals(id))).getSingle();
@@ -322,11 +324,13 @@ void main() {
       await expectLater(
         store.setProjectDomain(projectId: id, domain: 'family'),
         throwsA(
-          isA<StateError>().having(
-            (StateError e) => e.message,
-            'message',
-            allOf(contains('项目'), contains(id)),
-          ),
+          isA<MissingEntityException>()
+              .having(
+                (MissingEntityException e) => e.kind,
+                'kind',
+                MissingEntityException.projectKind,
+              )
+              .having((MissingEntityException e) => e.id, 'id', id),
         ),
         reason: '已删项目改领域必须抛错，不许把墓碑行复活',
       );

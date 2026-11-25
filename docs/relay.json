@@ -1,0 +1,327 @@
+{
+  "goal": "把 PractiLog 台账中最近一个未闭环批次推到门禁全绿并收口（判据只认项目自己 docs 台账的原始输出）",
+  "plan_doc": "docs\\superpowers\\plans\\2026-11-07-b1-flutter-implementation.md",
+  "plan_doc_note": "【2026-11-24 21:5x 由 root 订正，可回滚】原指 docs\\开发计划.md；stage 1 实测证据表明该文件 11-06 后未更新，真正在用的执行台账是本字段现值（§47.2 W9 在 :8326，Task 68 §68.4a–i 在 :9611–:9619，连坐规则在 :9636 —— 均由 stage 1 逐行引用）。docs\\开发计划.md 仍保留在 ledger_docs 内作背景。每环判据只认本字段所指文件的原始行。",
+  "ledger_docs": [
+    "docs\\B1_验收记录.md",
+    "docs\\P1_进度.md",
+    "docs\\P1_交接文档.md",
+    "AGENTS.md"
+  ],
+  "workspace_dir": "F:\\soft\\00selfmade\\practilog",
+  "status": "blocked",
+  "auto_relay": true,
+  "current_stage": 6,
+  "max_stages": 6,
+  "next_session_id": null,
+  "started_at": "2026-11-24T21:33:28+08:00",
+  "started_by": "mvs_1711739d1ff3435a824c226a42c5db48",
+  "protocol": [
+    "docs\\AGENT-RELAY.md",
+    "docs\\RELAY-ADAPTATION.md"
+  ],
+  "adaptation_note": "AGENTS.md（项目家规）> docs\\RELAY-ADAPTATION.md > docs\\AGENT-RELAY.md。冲突时按 RELAY-ADAPTATION.md §1 裁决。",
+  "concurrency": {
+    "detected_at": "2026-11-24T21:40+08:00",
+    "by_session": "mvs_e395774e42a84ff9a218fcb0b7349f98",
+    "their_task": "Task 68（计划 §68，W9 收尾批次）收口，已实测门禁 desktop 836 / core_data 204 / core_db 71 / core_domain 62 / 四包 analyze 逐字 No issues found! / VIOLATIONS=0",
+    "forbidden_this_round": [
+      "AGENTS.md",
+      "handoff.md",
+      "docs\\P1_进度.md",
+      "docs\\B1_验收记录.md",
+      "docs\\开发计划.md"
+    ],
+    "forbidden_reason": "该会话已声明本轮要写这几处（AGENTS.md R2 基线 + §7 快照、handoff §73、progress Task 68 段、B1 Task 68 章、计划 §68.4 复选框）。链上任何一环需动这些文件时，一律写 status=blocked 停链等人，不得并发写。",
+    "agents_md_relay_section": "AGENTS.md 第 484–494 行为接力章节，是链的开关与纪律来源。已要求并发会话用定点补丁而非整文件重写；每环开工须先回读确认该章节仍在，被抹掉即 status=blocked。",
+    "gate_whitelist_note": "docs\\relay.json 每跳都会变，OUT_OF_SET 不是噪声而是长期固定项；已在 §7 快照侧单列为「接力链写集，不属本批次范围」。改门禁脚本属人工验收点，链不得自行改。"
+  },
+  "next_stage_target": "第 2 环及之后不得重做 Task 68（并发会话正在收口）。目标批次 = Task 68 的下一批：W9 残留 521 条英文态可见中文，拆为 68 条 UI 文案 l10n 化（可自动推进）+ 450 条格言数据（属产品决策，命中人工验收点即 blocked 登记，不得自行取舍）。",
+  "model_policy": {
+    "preferred": "minimax/MiniMax-M3",
+    "preferred_effort": "unexpressible_at_relay_hop",
+    "effort_note": "【2026-11-24 订正】`session_create` 的 input_schema 无 effort 字段（RELAY-ADAPTATION.md §9.5 已独立回读坐实）⇒ 接力跳无法显式指定推理档位，M3 档位由运行时决定；`session_update` 也只有 title/archived/model。历史事实保留：M3 只支持 on/off、传 high 直接 failed（2026-11-21 bg_8a8b40e8），但那只能在 cron / task 路径上表达。stage 1 未传 effort 仍正常完成 78 次工具调用 ⇒ 不传可用，已实证。",
+    "fallback_day": "custom_provider:provider-aa5659/auto",
+    "fallback_day_window": "08:00-19:00 Asia/Shanghai",
+    "fallback_night": "custom_provider:provider-aa5659/deepseek-v4.1-flash-1017",
+    "fallback_night_window": "19:01-08:00 Asia/Shanghai",
+    "fallback_effort": "none",
+    "fallback_effort_note": "百炼显式模型传 effort 直接 failed；auto 可传但无收益。一律不传。",
+    "switch_trigger": "无额度预检接口。按 RELAY-ADAPTATION.md §9.2 三条失败信号判定 M3 不可用，同跳最多降级一次，降级后回写实际 model 并追加降级事件。因无 defer 窗口，每次降级必然以一轮失败或空转为代价；判据 3 须用 session messages 回读该轮是否真有工具调用，不得只看 status=started。",
+    "creation_recipe": "【2026-11-24 订正，实测可用】session_create(content=<接力 prompt>, model=<§9.1 档位 key>, workspace_dir=\"F:\\soft\\00selfmade\\practilog\") —— 建环即开跑；随后立刻用 mavis 的 session get 回读 effective_model / workspace_dir / status.type 三要素，再在 relay.json 登记。禁用 defer_first_turn / effort / parent_session_id（schema 里不存在）。需换模型只能 session_update，自下一轮生效，本轮已烧掉 ⇒ 按 §9.2(c) 重建本环。",
+    "unverified": "custom_provider:provider-aa5659/deepseek-v4.1-flash-1017 完整 key 尚未实测。无 defer 窗口 ⇒ 首次启用只能建环时直接传该 key 并立刻 session get 回读；创建即报错则 key 写法有误，就地订正本节并留证。",
+    "stage5_measured_correction": "【2026-11-24 stage 5 实测，覆盖 creation_recipe 末句与 unverified 一条】已报错的环（status.type=error，M3 报 Token Plan 用量上限 2056）不必重建会话：session_update(model=custom_provider:provider-aa5659/deepseek-v4.1-flash-1017) 后 session send 即开新轮，返回 mode=activated，session id 不变，降级代价仅一轮失败。该 fallback key 已在本环实测可用，unverified 一条就此关闭；判活仍看 session messages 末条 timestamp，不看 session get.updatedAt。"
+  },
+  "human_checkpoints": [
+    "git commit / push / tag",
+    "发布与分发（安装包、网盘、在线文档、对外链接）",
+    "删除或覆盖用户数据",
+    "修改用户级 hooks.json 或 provider 配置",
+    "付费、额度、账号、权限相关决定",
+    "验收口径本身含糊或互相矛盾",
+    "本环写集与并发在写的会话冲突"
+  ],
+  "stop_conditions": [
+    "台账判定的未闭环项全部闭环且门禁全绿",
+    "命中 human_checkpoints → status=blocked",
+    "current_stage >= max_stages → status=blocked",
+    "同一 acceptance 连续 2 环用相同判据失败 → status=blocked",
+    "连续 2 环 tool_calls > 200 → status=blocked"
+  ],
+  "stages": [
+    {
+      "stage": 1,
+      "title": "只读盘点：定位最近未闭环批次与门禁缺口",
+      "type": "read_only_inventory",
+      "status": "done",
+      "started_at": "2026-11-24T21:33:28+08:00",
+      "scope": "本环禁止修改仓库任何既有文件。允许写集仅两项：(1) 新建 docs\\relay\\stage-1-inventory.md；(2) 追加/回写 docs\\relay.json 的本环条目。",
+      "acceptance": "docs\\relay\\stage-1-inventory.md 存在，且含：① 最近未闭环批次的判定依据（引用台账 file:line）② 剩余未闭环项逐条清单 ③ 每项对应的可执行门禁命令与当前原始输出 ④ 第 2 环建议写集与风险 ⑤ 本环 git status 计数变化说明（证明只读）",
+      "handoff": "docs\\relay\\stage-1-inventory.md",
+      "note": "补充指令（21:40 由 root 追加，因并发会话已来信）：盘点结论请指向 concurrency/next_stage_target 所指批次，不要把 Task 68 当未闭环目标（它正被 mvs_e395774e42a84ff9a218fcb0b7349f98 收口）；450 条格言数据属产品决策，只登记不擅自定性。另，开工请回读 AGENTS.md 484–494 行接力章节是否仍在。\n\n—— stage 1 收尾（mvs_f0f4b5b2d4804d3fabd8f23d1e35544c · 2026-11-24T21:43:42+08:00 · 工具调用 53）——\n交付 = docs\\relay\\stage-1-inventory.md（38,408 B）。\n① 台账口径最近未闭环批次 = Task 68 §68.4a–i（plan :9611–:9619）+ 上游 §47.2 W9（:8326），但归属并发会话收口，本环只核销不代勾不重做。② 本链下一批次目标 = W9 残留 521 条（68 条 UI 文案 l10n 化 + 450 条格言只登记不定性 + 3 条 En mixin 泄漏 + B 类 4 键 + 4 项未判定）。③ 门禁红灯唯一项 OUT_OF_SET=3 = 接力链自建 3 个 docs 文件不在 reports\\task51-gate.ps1 白名单（docs pattern 仅 5 条），非 Task 68 功能缺陷；本链不改门禁脚本。④ AGENTS.md 484–494 接力章节回读确认仍在（文件 494 行 / sha16 9E529458B40F16A9）。⑤ git status 写前 17 → 写后 18，净增唯一一行 = 本环新建 stage-1-inventory.md，既有 17 行未被本环改动。⑥ 全量 flutter test 本环未亲跑（836/204/71/62 取自并发门禁原始输出），真机/打包未做，68.4g verifier 终判未出，68.4h commit+push 属人工验收点 —— 已在文档 §6.3 如实登记为未判定。\n\n实测补充（21:46 起环时发现，影响第 3 环）：本运行时 session_create 的 input_schema **无 effort / defer_first_turn 字段**（content 即首轮消息，随建随跑）⇒ model_policy.creation_recipe 所述「defer → 回读 → session_send」姿势在本运行时**不可用**；起环实际姿势 = 建环时直接显式传 model=minimax/MiniMax-M3 + workspace_dir，随后 session get 回读确认 effective_model 与 workspace_dir。stage 2 会话 = mvs_72a8f0c1713144d6b060cf2d316a953f（effective_model=minimax/MiniMax-M3，未降级，status=started），已写入 stages[1] 与 next_session_id。\n\n—— root 复核（mvs_1711739d1ff3435a824c226a42c5db48 · 21:5x）—— 磁盘真值 stage-1-inventory.md = 41,032 B / sha16 D1B50212E43D5213（本条目 note 首部的 38,408 B 是收尾前的中途快照，以磁盘为准）；tool_calls 以本条目字段 78 为准（note 首部 53 同为中途值）。§5.5「重读盘再回写」已实测遵守：顶层 20 个 key 零丢失。RELAY-ADAPTATION.md 新增 §9.5 已按本环发现落地。",
+      "session_id": "mvs_f0f4b5b2d4804d3fabd8f23d1e35544c",
+      "model": "minimax/MiniMax-M3",
+      "finished_at": "2026-11-24T21:43:42+08:00",
+      "tool_calls": 78
+    },
+    {
+      "stage": 2,
+      "title": "下一批次范围定稿 + W9 残留 521 条 l10n 化可派工清单切分",
+      "type": "read_only_scope_finalize",
+      "status": "done",
+      "started_at": "2026-11-24T21:46:20+08:00",
+      "scope": "禁止修改并发会话写集（AGENTS.md / handoff.md / docs\\P1_进度.md / docs\\B1_验收记录.md / docs\\开发计划.md / 计划 §68 / reports\\task51-gate.ps1 / apps\\** / packages\\**）。允许写集仅两项：(1) 新建 docs\\relay\\stage-2-scope.md；(2) 只追加回写 docs\\relay.json 的本环条目。不得重做 Task 68；目标批次 = W9 残留 521 条（68 条 UI 文案 l10n 化 + 450 条格言只出提问单不作取舍 + 3 条 En mixin 泄漏 + B 类 4 键 + 4 项未判定）。开工第一步回读 AGENTS.md 484–494 行接力章节是否仍在（被抹掉即 status=blocked 停链，不自行补写）。",
+      "acceptance": "docs\\relay\\stage-2-scope.md 存在，且含：① W9 残留 521 条的分类切分清单（可自动推进 / 需产品决策 / 未判定三档，逐条 file:line）② 68 条 UI 文案的文件:line 级 l10n 改造清单（与 l10n 键表一一对应，含 domain_chips 与 l10n 键重复定义的处理方式）③ 450 条格言数据的产品决策提问单（只出单，不作取舍，命中人工验收点即 blocked 登记）④ B 类 4 键的两种口径与本环建议（不自行定性）⑤ 4 项未判定项的复验方法与判据 ⑥ 本环 git status 计数变化说明与写集自证 ⑦ 与 stage-1 结论的差异登记",
+      "handoff": "docs\\relay\\stage-2-scope.md",
+      "note": "—— stage 2 收尾（mvs_72a8f0c1713144d6b060cf2d316a953f · 2026-11-24T21:58:00+08:00 · 工具调用数见 tool_calls 字段）——\n交付 = docs/relay/stage-2-scope.md（29,998 B / sha16 F0F7E888F38A7157 / mtime 21:54:51）。\n① 口径重大订正：W9 残留 521 条英文态可见中文 不成立 —— 68 条 UI 文案逐条回读后只有 29 条真在英文态上屏，另 39 条是 落库值（domain_chips 12 + slot_fill 2 + habit_quick_dialog:200 + 习惯单位 2）/ 死默认（gantt 3：唯一调用点 projects_page.dart:407-413 全部覆盖）/ 运行期已 l10n 化的 const 中文快照（key_bar 8 + nav_rail 6，渲染走 shellKeyHintsFor / shellNavItemsFor）。真实缺口 = 32 条（29 widget + 3 条 En mixin 泄漏 dialog.dart:894 与 :960、settings.dart:239），其中 25 条需新增 l10n 键（byGetter 390 → 415，test/l10n_base_test.dart:27-29 断言须同步改）。\n② 450 条格言前提被推翻：data/quote.dart:7-14 = Quote({required this.en, required this.zh})，quote_banner.dart:100 按 isZh 分叉（中文 2 行 / 英文 1 行）⇒ 450 条不属 l10n 缺口，只剩 是否换数据集 / 审英文译文 的可选提问单（stage-2-scope.md §4）。\n③ 落库值红线：21 条结论文案与 1 条习惯单位兼作落库值（ResultNote.parse、slot_fill 按 顺延到明天 / 取消 判定）⇒ 只能做显示层映射，不得替换落库字面量。\n④ stage 3 定为 只读复验 + 25 条新键设计稿（不落码）：并发 Task 68 会话仍 dirty 着 l10n/l10n_keys.dart、l10n/parts/{common,domain,projects,settings}.dart、test/l10n_base_test.dart、test/l10n_harness.dart，且 test/l10n_base_test.dart:27-29 承载 390 键断言 ⇒ 此刻新增键会让并发门禁红，且可能被并发会话回写覆盖。stage 4 = 落地（实现经 worker 子会话，控制器不碰 apps/）；stage 5 = 人工口径批次（B 类 4 键 / ＋字形 / 简体中文自称 / 450 条是否换数据集）；stage 6 = W9 收口（68.4b 与 68.4i 复扫 + 68.4g verifier + 68.4h commit+push 人工点）。\n⑤ 门禁预判：reports/task51-gate.ps1 的 $patterns 已含 l10n_keys.dart(:190 与 :243)、l10n/parts/*.dart(:227-243)、test/l10n_base_test.dart(:202 与 :267)、outcome_composer.dart(:265)、projects_page.dart(:184) ⇒ 改这些文件不增 OUT_OF_SET；新建 l10n/parts/outcome.dart 会 +1 ⇒ 建议放进既有 parts 文件（改门禁脚本属人工验收点，本链不自改）。\n⑥ 写集自证：写前与写后 git status 均为 18 行、HEAD=01b6339 未变；计数不变是因为 docs/relay/ 是未跟踪目录（porcelain 只输出 1 行 ?? docs/relay/）⇒ 只读自证改用文件清单 + 指纹（stage-2-scope.md §8 列 12 个关键文件写前指纹）。本环只新建 docs/relay/stage-2-scope.md + 只追加回写 docs/relay.json。\n⑦ §5.5 偏离登记：本环读盘时 relay.json = 9975 B / 21:46:42 / BCD14D6BB9CAA619，收尾前复测 = 12620 B / 21:50:56 / 25E98602B8E22062（+2645 B）；写者为 root 会话 mvs_1711739d1ff3435a824c226a42c5db48（订正 plan_doc → docs/superpowers/plans/2026-11-07-b1-flutter-implementation.md、新增 plan_doc_note、给 stage 1 追加 root 复核段）⇒ 已按 §5.5 在最新字节上定点替换并回读核对顶层 key 零丢失。\n⑧ 未做 / 未验证：未亲跑全量 flutter test 与逐包 analyze（836 / 204 / 71 / 62 与四包 ANALYZE=VERBATIM 取自 reports/task68-gate-run1.log，非本环实测）；真机与打包未做；68.4g verifier 终判未出；门禁红灯仍为 FAIL_ITEM=OUT_OF_SET=3（接力链自建 docs 文件不在白名单，本链不改门禁脚本）。\n⑨ 顶层 next_stage_target（521 / 68 / 450 口径）已被本环订正为 32 条缺口，但该字段属 root 协调字段 ⇒ 按 §3 只追加纪律不改写，订正内容落在 stages[2]（stage 3）的 scope 与 acceptance。\n⑩ 起环实况：stage 3 会话 = mvs_c65a7cd9bcaa47409abe7dc89ffa7ac8（session_create 建环即开跑，turn.mode=activated，createdBySessionId=mvs_72a8f0c1713144d6b060cf2d316a953f，status=started，session messages 回读已有真实 bash/read 工具调用 ⇒ 非 §9.2(c) 空转态）。注意：该会话 workspaceDir 回读为 E:/Users/Duanyi/.minimax/.minimax/sessions/mvs_c65a7cd9bcaa47409abe7dc89ffa7ac8/workspace（isDefaultWorkspace=true，非仓库根），session_create 传入的 workspace_dir 未被运行时采纳 ⇒ 已起环补发消息要求它所有 git / analyze 命令显式指向 F:\\soft\\00selfmade\\practilog 绝对路径。",
+      "session_id": "mvs_72a8f0c1713144d6b060cf2d316a953f",
+      "model": "minimax/MiniMax-M3",
+      "finished_at": "2026-11-24T21:58:00+08:00",
+      "tool_calls": 72,
+      "tool_calls_note": "【2026-11-24 收尾校正】原登记 53 是收尾前的中途快照；以本字段 72 为准 = 本环会话 mvs_72a8f0c1713144d6b060cf2d316a953f 的累计工具调用终值（计数取自收尾回读时刻；其后仅有台账更新与本条说明的定点修订调用，不影响 200 阈值判定）。口径同 stage 1（见 stages[0].note 的 root 复核段：字段值为准，note 首部数字仅为中途值）。"
+    },
+    {
+      "stage": 3,
+      "title": "W9 残留 32 条未判定项复验 + 25 条新 l10n 键设计稿",
+      "type": "read_only_verify_and_design",
+      "status": "done",
+      "started_at": "2026-11-24T21:55:13+08:00",
+      "scope": "禁止修改 apps/ 与 packages/ 下任何文件、apps/desktop/lib/src/l10n/**、AGENTS.md、handoff.md、docs/P1_进度.md、docs/B1_验收记录.md、docs/开发计划.md、计划 §68、reports/task51-gate.ps1；禁止 git commit / push / tag、打包分发、改用户级配置；禁止跑全量 flutter test（会与并发门禁抢 apps/desktop/build/test_cache/build 与 sqlite3.dll）；禁止读取仓库目录之外的交接卡与共享台账。允许写集仅两项：(1) 新建 docs/relay/stage-3-report.md；(2) 只追加回写 docs/relay.json 的本环条目。开工第一步：回读 AGENTS.md :484-494 确认接力章节仍在（被抹掉即 status=blocked，不自行补写）；做并发检测（git status --porcelain 计数 + 目标文件 mtime/sha16 + HEAD），写集与并发会话冲突即 status=blocked 停链等人。本环会话 cwd 不是仓库根，所有 git / analyze / 脚本命令必须显式指向 F:\\soft\\00selfmade\\practilog 绝对路径。",
+      "acceptance": "docs/relay/stage-3-report.md 存在且含：① 4 项未判定逐项复验（U1 project_store.dart 6 条诊断串是否上屏 / U2 toast_probe.dart:111 发布构建可达性 / U3 英文态可见判定口径的可复跑扫描器（纯 ASCII ps1、CRLF、无 BOM）/ U4 抛出链是否被 UI 捕获），结论带 file:line 与可执行判据，不得凭形态推断 ② 25 条新 l10n 键的键表设计稿（键名 + zh 文案 + en 文案 + 所属 parts 文件 + 落库值到显示值的映射表 + byGetter 390 到 415 的连带改动清单 + test/l10n_base_test.dart 键数断言）③ 32 条 file:line 级最终核对表 ④ 本环 git status 计数变化说明与写集自证 ⑤ 与 stage-2 结论的差异登记 ⑥ 下一环 stage 4 的范围与前置条件",
+      "handoff": "docs/relay/stage-3-report.md",
+      "note": "stage 2 交付 = docs/relay/stage-2-scope.md（29,998 B / sha16 F0F7E888F38A7157）。口径订正链：521（stage 1）→ 68 + 450 →（stage 2）32 条真实缺口（29 widget + 3 条 En mixin），450 条格言前提被推翻。stage 3 不落码的原因：并发 Task 68 会话未提交地 dirty 着 l10n/l10n_keys.dart、l10n/parts/{common,domain,projects,settings}.dart、test/l10n_base_test.dart、test/l10n_harness.dart，且 test/l10n_base_test.dart:27-29 承载 390 键断言，此刻新增 25 键会让并发门禁红且可能被并发会话回写覆盖。stage 4 = 落地（实现经 worker 子会话，控制器不碰 apps/），stage 5 = 人工口径批次（B 类 4 键 / ＋字形 / 简体中文自称 / 450 条是否换数据集），stage 6 = W9 收口（68.4b 与 68.4i 复扫 + 68.4g verifier + 68.4h commit+push 人工点）。\n\n—— stage 3 收尾（mvs_c65a7cd9bcaa47409abe7dc89ffa7ac8 · 2026-11-24T22:16:28+08:00 · 工具调用见 tool_calls 字段）——\n交付 = docs/relay/stage-3-report.md（48,734 B）。\n① U1-U4 终判：U1 = project_store.dart 的 6 条诊断串中 2 条上屏（:400 与 :470 的 StateError 经 projects_page.dart:291 的 $error 分支上屏）、4 条不可达（:279 与 :335 已被 UI 先拦截，:518 与 :916 非用户输入分支）；U2 = toast_probe.dart:111 release 构建可达但默认启动不可达、且与 project_store 无数据通道 ⇒ 不收紧 U1；U3 = 判定口径已可复跑（实测 命中 1012 = 34 存活 + 449 格言 + 47 非格言排除 + 482 l10n 正常文案，三段可加总；扫描器规格见报告 §2.3）；U4 = 抛出链被 UI 捕获（projects_page.dart 9 个 catch 块，其中 7 处走 _messageOf，全仓无 on StateError 特化捕获）。\n② 缺口口径 32 → 35：扫描面内 34（composer 21 + projects_page 5 + 全角 ＋ 3 + StateError 2 + En mixin 3）+ 扫描面外 1（packages/core_domain/lib/src/entities.dart:111 的 DomainValidationException 消息亦上屏）；另登记相邻未判定面 U5（packages/core_data/lib/src/repositories.dart:47-50，全域缺口可能为 36）。\n③ 新键 25 → 27：byGetter 390 → 417，byListGetter 4 不变，byMethod 53 不变，总键 447 → 474；27 键全为无参 String getter，其中 2 条用 {id} 占位 + replaceAll（先例 l10n/parts/projects.dart:177）。\n④ 落库值红线：21 条结论文案 + 习惯单位 次 + 顺延到明天 / 取消 的判定值一字不改，只做显示层映射；映射函数放 outcome_composer.dart（值的所有者），未知值原样返回（先例 app_localizations.dart:127-129）。\n⑤ 键归属：20 条结果撰写显示键放既有 l10n/parts/dialog.dart 的结果撰写分组（其 :254-259 注释断言 21 条永不在本文件出现 ⇒ stage 4 必须同步改该注释，见 Q7），7 条项目页错误键放 l10n/parts/projects.dart；不新建 l10n/parts/outcome.dart（会 OUT_OF_SET +1）。\n⑥ 27 键落地只碰 9 个已在 reports/task51-gate.ps1 白名单内的文件 ⇒ OUT_OF_SET 不增；tool_rail.dart / slot_fill.dart / packages/core_domain/lib/src/entities.dart 三个文件故意不碰（Q3 与 Q5 若要碰需先加白名单 = 人工验收点）。\n⑦ 与 stage-2 的 8 项差异（D1-D8）见报告 §6；人工口径 Q1-Q8 见报告 §7，均不阻断本链 ⇒ status=done，正常起 stage 4。\n⑧ 未做 / 未验证：未亲跑全量 flutter test 与逐包 analyze（836 / 204 / 71 / 62 取自 reports/task68-gate-run1.log，非本环实测）；未做真机与打包；68.4g verifier 终判未出；§68.4b 与 §68.4i 未勾；U4 的 catch 块与 store 调用未逐点配对；U5 调用链未追完；扫描器口径 7 条差异未逐条定位。\n⑨ 指纹口径：本环一律用 SHA256 前 16 位，与 stage-2 的 SHA1 数值不可直接对比（避免误判文件被改）。",
+      "session_id": "mvs_c65a7cd9bcaa47409abe7dc89ffa7ac8",
+      "model": "minimax/MiniMax-M3",
+      "finished_at": "2026-11-24T22:16:28+08:00",
+      "tool_calls": 187,
+      "tool_calls_note": "口径 = 压缩前段 147 次（会话压缩时 hook 报告）+ 压缩后段 40 次（本环收尾回写时刻 hook 报告）；字段值为准，同 stage 1 / stage 2（note 首部数字为中途快照）。"
+    },
+    {
+      "stage": 4,
+      "title": "落地 27 条新 l10n 键 + 35 处显示映射（实现经 worker 子会话）",
+      "type": "implement_l10n_keys",
+      "status": "done",
+      "started_at": "2026-11-24T22:17:23+08:00",
+      "scope": "写集限定为：apps/desktop/lib/src/l10n/parts/{dialog,projects}.dart、apps/desktop/lib/src/l10n/l10n_keys.dart、apps/desktop/test/l10n_base_test.dart、apps/desktop/test/l10n_harness.dart、apps/desktop/lib/src/widgets/outcome_composer.dart、apps/desktop/lib/src/widgets/plan_item_detail_dialog.dart、apps/desktop/lib/src/pages/projects_page.dart、apps/desktop/lib/src/data/project_store.dart；外加新建 docs/relay/stage-4-implementation.md 与只追加回写 docs/relay.json 本环条目。禁止改动：AGENTS.md、handoff.md、docs/P1_进度.md、docs/B1_验收记录.md、docs/开发计划.md、计划 §68、reports/task51-gate.ps1、apps/desktop/lib/src/widgets/shell/tool_rail.dart、apps/desktop/lib/src/widgets/slot_fill.dart、packages/core_domain/lib/src/entities.dart、packages/core_data/lib/src/repositories.dart（后三者属人工口径 Q3 / Q5 / U5，改动需先加门禁白名单 = 人工验收点）；禁止 git commit / push / tag、打包分发、改用户级配置；禁止跑全量 flutter test（会与并发门禁抢 apps/desktop/build/test_cache/build 与 sqlite3.dll）。开工第一步：回读 AGENTS.md 接力章节确认仍在（被抹掉即 status=blocked，不自行补写）；做并发检测（git status --porcelain 计数 + HEAD + 目标文件指纹），写集与并发会话冲突即 status=blocked 停链等人。本环会话 cwd 可能不是仓库根，所有 git / analyze / 脚本命令必须显式指向 F:\\soft\\00selfmade\\practilog 绝对路径。",
+      "acceptance": "docs/relay/stage-4-implementation.md 存在，且含：① 27 条新键的落码清单（逐条 file:line + 键名 + zh + en + 所属 parts 文件）② 落库值红线自证（21 条结论文案 + 习惯单位 次 + 顺延到明天 / 取消 的字面量在改动前后逐字一致）③ 键数断言改动与实测（byGetter 390 → 417、byListGetter 4、byMethod 53 不变、总键 447 → 474，见 test/l10n_base_test.dart:27-33 与 :111-118）④ 显示映射的渲染点覆盖清单（outcome_composer.dart:174-209、plan_item_detail_dialog.dart:306-331、projects_page.dart:244 与 :1375-1383）⑤ project_store.dart:400 与 :470 的类型化异常改动（带 kind + id；备选方案 UI 侧正则解析不推荐）⑥ 门禁 OUT_OF_SET 未增加的原始输出 ⑦ 本环 git status 计数变化说明与写集自证 ⑧ 与 stage-3 结论的差异登记",
+      "handoff": "docs/relay/stage-4-implementation.md",
+      "note": "stage 3 交付 = docs/relay/stage-3-report.md（48,734 B）。stage 3 终判：缺口 32 → 35（扫描面内 34 + 扫描面外 1），新键 25 → 27（byGetter 390 → 417，总键 447 → 474，byMethod 53 不变）。stage 4 只做已定案的 27 键落地，不碰人工口径项（Q3 全角 ＋ / Q4 简体中文自称 / Q5 扫描面外 core_domain 那条 / Q6 StateError 是否改用备选方案 / Q7 parts/dialog.dart:254-259 注释冲突 / Q1-Q2 格言产品决策），这些留给 stage 5；Q7 与 stage 4 的落码直接相关（新增 20 条 zh 显示键的 zh 值即那 21 条短语，注释必须同步改），须在 stage 4 报告里写明改法。stage 4 开工前必查：P1 并发 Task68 会话已收口（l10n/** 与 test/l10n_* 不再 dirty）；P2 l10n_keys.dart 的 byGetter 仍为 390、测试仍断言 390 与 447（若已被并发会话改过，以磁盘为准重算增量）；P3 AGENTS.md 接力章节仍在；P4 收尾前重新读盘 docs/relay.json（§5.5）；P5 门禁 -ExpectDesktopTests 按当轮真实用例数填；P6 Q3 / Q4 / Q5 / Q6 若要一起做，先确认门禁白名单改动属人工验收点。\n\n—— stage 4 收尾（mvs_6e8375ea012f4f64a23fdcd02dde6139 · 2026-11-24T22:45:29.195+08:00）——\n交付 = docs/relay/stage-4-implementation.md（33,901 B）。八项 acceptance 全部由该文档承载（① 27 键逐条 file:line + zh/en ② 落库值红线自证 ③ 键数断言 390→417 / 447→474 与实测原始输出 ④ 6 处渲染点覆盖清单 + 其余渲染点不动的理由 ⑤ 类型化异常 MissingEntityException(kind+id) 与 catch↔store 逐点核实 ⑥ OUT_OF_SET 独立复算 ⑦ git status 计数变化与 9 文件指纹 ⑧ D1–D12 差异登记）。\n控制器独立复验（非采信 worker 自报）：flutter analyze 逐字 No issues found! (ran in 6.6s)；flutter test test\\l10n_base_test.dart → All tests passed!，且测试标题实测为「417 条 getter」「417 + 4 + 53 = 474」⇒ 增量基线成立。\n落码 9 文件（SHA256 前 16 位 / 改动后）：parts\\dialog.dart BF8BFB4EF46B39DE(41622B)、parts\\projects.dart 32514FAEF5C6161D(12410B)、l10n_keys.dart DBA879C4EBC86415(83271B)、test\\l10n_base_test.dart 3D3B7B6DC3F3EC4B(28982B)、test\\l10n_harness.dart BC1419C182560355(38685B)、outcome_composer.dart 3E808CEECF30D9FE(10153B)、timeline\\plan_item_detail_dialog.dart 72FA4F974000D518(23406B)、pages\\projects_page.dart 549D19E2CE0D7E3A(52453B)、data\\project_store.dart 9ABE1D8371798BC5(33639B)。\n过程异常（如实登记）：① worker 子会话（bg_c46d7e48-0666-48ce-b549-dd6ca1f8b01c / mvs_ca58480e7be94fd4b3f212bdc6efadd0）以 status=failed 结束，终止原因原文「已达到 Token Plan 用量上限：请升级 Token Plan 套餐或购买积分补充用量。 (2056)」—— 属 RELAY-ADAPTATION §9.2 的额度类失败信号，但发生在环内而非接力跳上，按 §9.4 由本环自行补救：交付文档实际已落盘，控制器接手续做复验与台账回写。② docs/relay.json 在 stage-3 收尾时留下 trailing comma（stage-3 条目末键后多一个逗号），导致 JSON 不可解析；本环用 reports/stage4-closeout.js 删掉该单个逗号后 JSON.parse 通过，既有条目正文一字未改。③ 本环新增 reports/stage4-closeout.js（一次性收尾脚本，非交付物）。\n未做 / 未验证：未跑 reports/task51-gate.ps1（派工书禁止），§⑥ 是独立复算而非门禁运行结果；未跑全量 flutter test；未做真机与打包；3 条既有断言（task60_project_domain_edit_test.dart:253-267 与 :287-332 的 isA<StateError>()、task63_w7_l10n_test.dart:168 的 en 态芯片断言）按逻辑必然失败但未实测，属 stage 5 第一优先项。\n与 stage-3 的差异见交付文档 §⑧ 的 D1–D12；其中 D7（OUT_OF_SET 由 7 → 8）与 D5（3 条既有断言会红）需要在 stage 5 复核。",
+      "session_id": "mvs_6e8375ea012f4f64a23fdcd02dde6139",
+      "model": "minimax/MiniMax-M3",
+      "finished_at": "2026-11-24T22:45:29.195+08:00",
+      "tool_calls": null,
+      "tool_calls_note": "本环无权威计数来源：worker 子会话在收尾阶段被额度上限中断（Token Plan 用量上限，错误码 2056），随后本会话经历一次上下文压缩，压缩前后两段均未取得 hook 的工具调用报告。按证据纪律不虚填数字，故置 null；如需精确计数，改从会话转录统计。"
+    },
+    {
+      "stage": 5,
+      "title": "修 3 条被 stage 4 打破的既有断言 + 人工口径待决清单收口",
+      "type": "fix_broken_assertions_and_collect_human_decisions",
+      "status": "done",
+      "started_at": "2026-11-24T22:46:55.744+08:00",
+      "scope": "写集限定为：apps/desktop/test/task60_project_domain_edit_test.dart、apps/desktop/test/task63_w7_l10n_test.dart（仅改被 stage 4 打破的断言）、新建 docs/relay/stage-5-report.md、只追加回写 docs/relay.json 本环条目。禁止改动：stage 4 已落码的 9 个实现文件（除非坐实真缺陷，须在报告里先登记再改）、AGENTS.md、handoff.md、docs/P1_进度.md、docs/B1_验收记录.md、docs/开发计划.md、计划 §68、reports/task51-gate.ps1、reports/stage4-closeout.js、apps/desktop/lib/src/widgets/shell/tool_rail.dart、apps/desktop/lib/src/widgets/slot_fill.dart、packages/core_domain/lib/src/entities.dart、packages/core_data/lib/src/repositories.dart（后三者属人工口径 Q3 / Q5 / U5，改动需先加门禁白名单 = 人工验收点；命中即 status=blocked + note 且不起 stage 6）；禁止 git commit / push / tag、打包分发、改用户级配置；禁止跑全量 flutter test（会与并发门禁抢 apps/desktop/build/test_cache/build 与 sqlite3.dll），如需验证只单跑 test\\l10n_base_test.dart、test\\task60_project_domain_edit_test.dart、test\\task63_w7_l10n_test.dart。开工第一步：回读 AGENTS.md 接力章节确认仍在（被抹掉即 status=blocked，不自行补写）；做并发检测（git status --porcelain 计数 + HEAD + 目标文件指纹）；先复核 stage 4 磁盘状态（9 文件指纹 + flutter analyze 逐字 No issues found! + 单文件测试 +23）再动手。本环会话 cwd 可能不是仓库根，所有 git / analyze / flutter / 脚本命令必须显式指向 F:\\soft\\00selfmade\\practilog 绝对路径。",
+      "acceptance": "docs/relay/stage-5-report.md 存在，且含：① 3 条被 stage 4 打破的既有断言逐条修复记录（task60_project_domain_edit_test.dart:253-267 与 :287-332 的 isA<StateError>()、task63_w7_l10n_test.dart:168 的 en 态芯片断言），每条给 file:line + 改前改后 + 为什么这样改 ② 修复后单跑 test\\task60_project_domain_edit_test.dart 与 test\\task63_w7_l10n_test.dart 的原始输出（All tests passed! 与实际用例数，不得转述） ③ 人工口径 Q1-Q8 状态表（哪条已被 stage 4 消化 / 哪条仍需人裁决 / 哪条需改门禁白名单 / 哪条属设计取舍不修） ④ 门禁 OUT_OF_SET 当前计数与逐条归属，并给出 docs/relay/* 与 reports/stage4-closeout.js 是否登记为长期固定项的建议 ⑤ 本环 git status 计数变化与写集自证 ⑥ 与 stage 4 结论的差异登记 ⑦ 下一环（stage 6）是否可起的明确判定（含命中 human_checkpoints 时 status=blocked 的理由）",
+      "handoff": "docs/relay/stage-5-report.md",
+      "note": "stage 4 交付 = docs/relay/stage-4-implementation.md（33,901 B），控制器已独立复验 analyze 逐字 No issues found! 与单文件测试 +23。stage 4 遗留三类：(a) 3 条既有断言必然失败（stage 4 未擅自改写，因不在其写集）—— stage 5 第一优先项，不修则 test 套件红；(b) 人工口径 Q3（全角 ＋ 3 处）/ Q4（简体中文自称）/ Q5（扫描面外 packages/core_domain/lib/src/entities.dart:111）需改门禁白名单或做产品决策 ⇒ 命中 human_checkpoints 即 status=blocked + note，不起 stage 6；(c) D6 自由文本语言耦合副作用（projects_page.dart 对 increment.nextStep 的映射近乎 no-op，仅当用户文本恰等于 6 条规范短语之一时才被翻译）属已知设计取舍，登记不修。stage 5 不做真机与打包。stage 6 原定义 = W9 收口（68.4b 与 68.4i 复扫 + 68.4g verifier + 68.4h commit+push 人工点）。—— stage 5 建环与降级事件（mvs_6e8375ea012f4f64a23fdcd02dde6139 · 2026-11-24T22:46:55+08:00）—— ① 建环：session_create 返回 ok，turn.mode=activated；回读 workspace 已采纳本项目仓库根（isDefaultWorkspace=false）、createdBySessionId=本环会话、effective_model 初值 minimax/MiniMax-M3。 ② 降级（本轮唯一一次）：首轮 status.type=error / errorCode=42212，原文「已达到 Token Plan 用量上限：请升级 Token Plan 套餐或购买积分补充用量。 (2056)」⇒ 按 model_policy.switch_trigger 与 RELAY-ADAPTATION §9.2 判定 M3 额度不可用（旁证：同轮 worker bg_c46d7e48-0666-48ce-b549-dd6ca1f8b01c 亦以 2056 失败）；当前处夜间窗口 19:01-08:00 ⇒ 取 fallback_night 档，先 session_update 换模型再 session send 重开新轮（turn_a1bf2fd7-07af-4207-817d-34ceefcdd349，mode=activated），未重建会话、session id 不变，降级代价仅一轮失败。 ③ 回读确认 effective_model=custom_provider:provider-aa5659/deepseek-v4.1-flash-1017 ⇒ model_policy.unverified 的未实测项已关闭（以本条为准）。 ④ 本环此刻尚无产出，status 暂记 pending；验收与复验结论由本环收尾自行回写。—— stage 5 收尾回写（2026-11-24T22:57:49.723+08:00）—— 交付 = docs/relay/stage-5-report.md（18,861 B，八段体例）。① 3 条断言已修且根因各自坐实：(a) project_store.dart 的 StateError 已被 stage 4 换成类型化 MissingEntityException（setProjectDomain 在 :503-506 抛，kind=projectKind）⇒ task60_project_domain_edit_test.dart 的 T8/T9 由 isA<StateError>() 改为 isA<MissingEntityException>() 并断言 kind/id，强度不降；同文件 :23-25 的过期文件头注释同批订正（:469-471 → :503-506、StateError → MissingEntityException）。(b) stage 4 给 outcome_composer.dart:68-115 加了 displayLabel 纯显示层映射（:70-71 '按时完成' → t.dialogOutcomeOnTime，en 值 dialog.dart:1092 = 'Completed on time'）⇒ task63_w7_l10n_test.dart:168 由「仍是中文」改为 find.text('Completed on time') 并新增阴性对照 find.text('按时完成') findsNothing，同时原样保留 expect(captured, '[结论]按时完成') 证明落库值未变。② 控制器独立复跑（非转述 worker）：analyze 逐字 No issues found! (ran in 7.5s)；task60 +9 All tests passed!（改前 +7 -2）；task63 +9 All tests passed!（改前 +8 -1）；l10n_base +23（与基线一致）。③ 门禁 OUT_OF_SET 结构性冲突已精确复算并更正旧判：从 reports/task51-gate.ps1:129-310 提取 167 条模式、按脚本自身算法复算得 TOTAL_STATUS_LINES=20 / IN_SET=12 / OUT_OF_SET=8（回写本文件后为 9）—— 两个测试文件本来就被 apps/desktop/test/task60_*.dart 与 task63_*.dart 通配覆盖，本环代码改动一条都没有增加 OUT_OF_SET；9 条全部是中继框架自己的 docs 台账（AGENT-RELAY.md、RELAY-ADAPTATION.md、relay.json、relay/stage-1..4 与 supervision），与人无关地红 ⇒ 归 Q8。④ 收尾判定 = blocked（RELAY-ADAPTATION §4 人工验收点一律停链 + §7 第 6 环结束仍未闭环 ⇒ blocked），不起 stage 6：剩余项全为人工决策，stage 6 无可自主执行动作，起环只会白烧额度。⑤ 本环未做：真机、打包、git commit/push、改 AGENTS.md 与 handoff.md 与计划 §68、改 stage 4 已落码的 9 个实现文件、改 reports/task51-gate.ps1。⑥ git 状态：HEAD=85b809a 未变；status 由 18 行变 21 行（+2 测试文件改动、+1 新建 stage-5-report.md；无删除），与写集自证一致。",
+      "session_id": "mvs_dd5bbcf80ab040c5a017d664411a84eb",
+      "model": "custom_provider:provider-aa5659/deepseek-v4.1-flash-1017",
+      "finished_at": "2026-11-24T22:57:49.723+08:00",
+      "tool_calls": null,
+      "tool_calls_note": "本环无权威单一计数：hook 在同一会话同一轮内先后注入过 57 / 58 / 59 / 84 四个互不相同的「本轮工具调用」值，无法判定哪个是真实值 ⇒ 按证据纪律置 null，不虚填。",
+      "blocked_on": [],
+      "blocked_on_closed_note": "本数组保留 stage 5 中途快照原文（8 条），全部已于 2026-11-24T23:16 由用户裁定，逐条结果见 human_checkpoint_resolution。其中 Q3 的 suggested 写作「改键（需与 Q8 同批授权）」，已被最终裁定「不改」覆盖，以 human_checkpoint_resolution.resolved 为准。",
+      "blocked_on_closed": [
+        { "id": "Q3", "kind": "human_checkpoint", "need": "全角 ＋ 3 处（l10n/parts/dialog.dart:894、:960、widgets/shell/tool_rail.dart:304）是否改为 l10n 键；改动须加门禁白名单，且连带改 apps/desktop/test/task63_w7_l10n_test.dart:189 的逐字锁死断言。", "suggested": "改键（需与 Q8 同批授权）" },
+        { "id": "Q4", "kind": "human_checkpoint", "need": "l10n/parts/settings.dart:239 的「简体中文」自称在 en 态是否保留中文。", "suggested": "保留（语言名用本语言书写是通行做法）" },
+        { "id": "Q5", "kind": "human_checkpoint", "need": "packages/core_domain/lib/src/entities.dart:111 的 DomainValidationException 消息是否 l10n 化；属扫描面外 + packages 层，且涉及 core 层不依赖 UI l10n 的架构约束。", "suggested": "不 l10n 化，改由 UI 侧兜底展示" },
+        { "id": "U5", "kind": "human_checkpoint", "need": "packages/core_data/lib/src/repositories.dart:47-50 相邻未判定面是否纳入缺口统计（全域缺口 35 → 36）。", "suggested": "先判定再计数" },
+        { "id": "Q1", "kind": "human_checkpoint", "need": "450 条格言数据集是否更换。stage 2 已推翻「450 条属 l10n 缺口」的前提：data/quote.dart:7-14 是 Quote({en, zh}) 双字段，widgets/quote_banner.dart:100 按 isZh 分叉。", "suggested": "不更换（前提已被推翻）" },
+        { "id": "Q2", "kind": "human_checkpoint", "need": "英文译文是否需要人工审校。", "suggested": "不审（同 Q1 前提）" },
+        { "id": "Q6", "kind": "human_checkpoint", "need": "确认 StateError → 类型化 MissingEntityException 定案（stage 4 已选，stage 5 已把两条测试对齐到 kind/id 断言，强度不降）。", "suggested": "确认定案" },
+        { "id": "Q7", "kind": "human_checkpoint", "need": "确认 l10n/parts/dialog.dart:254-259 注释已由 stage 4 同步改为显示层键口径。", "suggested": "确认" }
+      ],
+      "human_checkpoint_resolution": {
+        "decided_at": "2026-11-24T23:16:00+08:00",
+        "authorized_by": "用户原话：8 条人工验收点，全部接受你的建议。把这个补充进handoff 文档中，然后再次撰写 Prompt。",
+        "decision": "8 条全部按上一环的建议执行（即维持现状），合计代码改动 = 0",
+        "resolved": [
+          { "id": "Q3", "resolution": "不改：全角 ＋ 保留字面量，不新增 l10n 键，缺口面计数不变", "code_change": false, "supersedes_suggested": true, "note": "本条目原 suggested 写作「改键（需与 Q8 同批授权）」，那是 stage 5 中途快照；最终建议与用户裁定均为维持现状，以 resolution 为准。" },
+          { "id": "Q4", "resolution": "保留中文原文：l10n/parts/settings.dart:239 的「简体中文」不按 locale 映射", "code_change": false },
+          { "id": "Q5", "resolution": "不 l10n 化：packages/core_domain/lib/src/entities.dart:111 保持单语，用户可见文案由 UI 侧兜底", "code_change": false },
+          { "id": "U5", "resolution": "不纳入缺口面：packages/core_data/lib/src/repositories.dart:47-50 不计入，全域缺口总数维持 35 条", "code_change": false },
+          { "id": "Q1", "resolution": "不更换 450 条格言：data/quote.dart:7-14 是 Quote({en, zh}) 双字段，双语由数据自带", "code_change": false },
+          { "id": "Q2", "resolution": "不审译 450 条格言译文：stage 2 的「450 条属 l10n 缺口」前提已被推翻，不再列为待办", "code_change": false },
+          { "id": "Q6", "resolution": "确认定案：StateError → 类型化 MissingEntityException，不回退", "code_change": false, "evidence": "stage 5 已按此异常修好 task60 的 T8/T9 与 task63 的 en 态断言（+9 / +9 全绿）" },
+          { "id": "Q7", "resolution": "确认 l10n/parts/dialog.dart:254-259 的显示层键口径注释准确，不改", "code_change": false }
+        ],
+        "gate_state_unchanged": "PASS（GATE_FAILURES=0）。本次裁定零代码改动，未重跑门禁本体；证据仍是 reports/task51-gate/summary.txt（1890 B / sha16 9A676DAC79CA6592 / RUN_AT=2026-11-24 23:11:01）。",
+        "git_write_ops": "零：未 commit / add / stash / checkout；HEAD=85b809a / AHEAD=0 / git status --porcelain -uall = 21 行，与裁定前一致。",
+        "report_section": "docs/relay/stage-5-report.md 第十二章（十二·1 裁定原文与效力 / 十二·2 逐条落定 / 十二·3 状态位移 / 十二·4 下一阶段移交 / 十二·5 证据与未验证项）"
+      },
+      "next_stage": {
+        "stage": 6,
+        "title": "W9 收口",
+        "definition_ref": "docs/relay/stage-2-scope.md:227",
+        "items": [
+          "68.4b / 68.4i 复扫：缺口面口径以 U5 裁定为准，维持 35 条，repositories.dart:47-50 不计入",
+          "68.4g verifier 终判：要证据不采信转述",
+          "68.4h git commit / push：属人工验收点，必须由用户明确授权；本链至今零 git 写操作"
+        ],
+        "is_last_stage": true,
+        "must_not": "max_stages=6 已达 ⇒ 不得再 session_create；收口后 status 写 done，或停在 git commit / push 这一人工验收点上写 blocked 并说明缺什么。"
+      },      "q8_resolution": {
+        "decided_at": "2026-11-24T23:01:24.368+08:00",
+        "decision": "用户授权（原话：授权，成组登记）",
+        "artifact": "reports/task51-gate.ps1",
+        "change": "仅在 $patterns 内 'docs/task63/*' 之后新增 4 条纯 ASCII 模式：docs/relay/*、docs/relay.json、docs/AGENT-RELAY.md、docs/RELAY-ADAPTATION.md；未改任何判定逻辑（:317-326 原样）",
+        "verification": "按脚本自身算法复算（非脚本本体运行）：IN_SET=21 / OUT_OF_SET=0；脚本 GATE_BYTES=18797 / BOM=False / NON_ASCII=0 / CR=420 LF=420 / 模式 167→171。此前 OUT_OF_SET=9 全部为中继 docs 台账，本环代码改动零新增（两个测试文件本来就被 task60_* / task63_* 通配覆盖）。",
+        "note": "白名单必须成组且分别登记：-like 'docs/relay/*' 匹配不到同级的 docs/relay.json。已由门禁本体实跑验证：OUT_OF_SET=0（见同层 q9_measurement）。"
+      },
+      "q9_measurement": {
+        "run_started_at": "2026-11-24T23:03:26+08:00",
+        "run_finished_at": "2026-11-24T23:05:43+08:00",
+        "authorized_by": "用户 2026-11-24 原话「直接跑，读真实计数」",
+        "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File reports/task51-gate.ps1",
+        "scope": "不带 -ExpectDesktopTests、不改 :38，接受 desktop.test:COUNT 判 FAIL 以取真值",
+        "gate_verdict": "FAIL",
+        "gate_failures": 1,
+        "fail_item": "desktop.test:COUNT=836 EXPECT=596",
+        "desktop_tests": 836,
+        "desktop_baseline": 596,
+        "desktop_delta": 240,
+        "core_data_tests": 204,
+        "core_db_tests": 71,
+        "core_domain_tests": 62,
+        "analyze_all_verbatim": true,
+        "out_of_set": 0,
+        "violations": 0,
+        "gate_excluded": 0,
+        "ps1_ascii_violations": 0,
+        "status_lines": 21,
+        "head": "85b809a",
+        "ahead": 0,
+        "cache_moved": "apps/desktop/build/test_cache/build_moved_20261124-230326",
+        "evidence": [
+          "reports/task51-gate/summary.txt (1935 B, sha16 F169BFBEEE73C39B, 2026-11-24T23:05:43)",
+          "reports/task51-gate/run-console.txt (2694 B)"
+        ]
+      },
+      "q9_resolution": {
+        "decided_at": "2026-11-24T23:11:01+08:00",
+        "decision": "不改 :38 的 $baseline；按 AGENTS.md:57 带 -ExpectDesktopTests 836 重跑，脚本零改动",
+        "authority": "AGENTS.md:57 逐字把 $baseline=596 定义为历史常量，要求复跑门禁必须带当轮的新用例数",
+        "rejected": "把 reports/task51-gate.ps1:38 改成 836 —— 与 AGENTS.md:57 冲突；且 :375 的 $delta 取自 $baseline，改完 DESKTOP_DELTA 恒为 0，会掩掉真实增量",
+        "gate_verdict": "PASS",
+        "gate_failures": 0,
+        "desktop_tests": 836,
+        "desktop_expect": 836,
+        "desktop_delta_vs_historical_baseline": 240,
+        "new_tests_this_stage": 0,
+        "new_tests_note": "240 是 596 到 836 的历史累计增量，不是本环新增；本环只修 3 条断言，用例数不变（task60 +9 / task63 +9 / l10n_base +23 与基线一致），故不在台账登记 DESKTOP_DELTA=240",
+        "cache_moved": "apps/desktop/build/test_cache/build_moved_20261124-230852",
+        "run_console": "reports/task51-gate/run-console-expect836.txt",
+        "evidence": [
+          "reports/task51-gate/summary.txt (PASS 轮, 1890 B, sha16 9A676DAC79CA6592, RUN_AT=2026-11-24 23:11:01, EXITCODE=0)",
+          "reports/task51-gate/summary.run1-fail596.txt (1935 B, sha16 F169BFBEEE73C39B —— 第一轮不带参 FAIL 摘要，已先备份未被覆盖)"
+        ],
+        "report_section": "docs/relay/stage-5-report.md 第十一章（十一·1 判定依据 / 十一·3 本体输出 / 十一·4 与第十章口径区分 / 十一·5 台账口径）"
+      }
+    },
+    {
+      "stage": 6,
+      "title": "W9 收口（末环）：68.4b/68.4i 缺口面复扫 + 68.4g 独立终判 + 68.4h 提交人工点",
+      "type": "closure",
+      "status": "blocked",
+      "started_at": "2026-11-25T00:02:25+08:00",
+      "scope": "只执行 stages[4].next_stage 定义的三项：68.4b/68.4i 缺口面复扫（口径按 U5 裁定维持 35 条，不重算、不改口径、不凑数）、68.4g 让 verifier 独立终判、68.4h git commit/push（人工验收点，只做只读取证）。max_stages=6 已达 ⇒ 本环为末环，收口后不得再 session_create。",
+      "acceptance": "68.4a PASS（新鲜件 reports/task51-gate/summary.txt：RUN_AT=2026-11-25 00:04:17 / 1930 B / sha16 6FFED0BBE47E41F5 / GATE_VERDICT=PASS / GATE_FAILURES=0 / DESKTOP_TESTS=836=EXPECTED / core_data 204 / core_db 71 / core_domain 62 / 四包 ANALYZE=VERBATIM / VIOLATIONS=0 / OUT_OF_SET=0 / GATE_EXCLUDED=0 / HEAD=85b809a / STATUS_LINES=22）。68.4b FAIL（未闭合）：复扫 93 文件 1053 条 CJK 字符串字面量（stage-3 规格口径，SUM_CHECK=1053），verifier 词法状态机口径 1054 条，「其余」类 92 条；verifier 独立判 FAIL，理由 = 存在可上屏中文通道（见 note ⑤）。68.4c PASS（附保留：缺删除前键表快照，只能证 7 键归零）/ 68.4d PASS（AGENTS.md:49 与 :400 均 836）/ 68.4e PASS（488 个 .dart 零 @Deprecated）/ 68.4f PASS（6 份 OCR 工作日=0/6，域层已无 weekdayLabel）。68.4g 已判（过程项成立，结论 FAIL）。68.4h 未执行（blocked）。68.4i FAIL（连坐 68.4b）⇒ 对外最强表述限定为「§47 W3–W8 覆盖范围内英文态零中文」。",
+      "handoff": "全部证据与对账在 docs/relay/stage-6-report.md 第十三章：十三·1 门禁新鲜证据 / 十三·2 复扫（含 2·3 逐文件表、2·4 两例一手抽查、2·5 口径差与算术对账）/ 十三·3 判定 / 十三·4 verifier 终判 / 十三·5 68.4h 待授权面（含建议 commit message）/ 十三·6 指纹表与写集自证 / 十三·7 三档结论 / 十三·8 与上一环差异。",
+      "note": "① 68.4h 停在人工验收点：状态 = blocked，缺用户对 commit/push 的明确授权。本环 git 写操作 = 0 次（add/commit/push/tag/stash/checkout 均未执行），HEAD=85b809a / AHEAD=0 / status 22 行。待提交面 = 12 个 M + 10 个未跟踪台账文件；需用户明确四点：是否 commit、是否 push、是否打 tag、未跟踪台账是否同批提交。建议 commit message 见 stage-6-report.md 十三·5·2。\n② verifier 对 68.4h 另给「字面 PASS」：依据 = HEAD=85b809a 已是 Task 68 收口提交（docs(ledger): Task 68 收口台账）、git status -sb 无 ahead/behind；与「本链未授权不提交」不冲突，两条口径并存。\n③ verifier 新发现（本环未修，改门禁属人工点）：reports/task51-gate.ps1:302-305 把 docs/relay/*、docs/relay.json、docs/AGENT-RELAY.md、docs/RELAY-ADAPTATION.md 写进 $patterns，与计划 §68.5 第 5 条「排除项不得塞进 $patterns」相悖；GATE_EXCLUDED 由 run3 的 2 降为 0 ⇒ 排除面退化为「合法写集」，需人判是否回退。\n④ 台账引用不可追溯：计划 :9637 的 dialog.dart:894/960、settings.dart:257 与代码实际 1048/1174/239 不符（行号漂移）；计划 :9651 引用的 WORKDAY_HITS=0 记号在 reports/task68-en-judge.txt 中不存在（verifier 自跑 6 份 OCR 得 工作日=0/6，实质成立但记号不可追溯）。\n⑤ 68.4b 可上屏证据（verifier 一手）：projects_page.dart:298-313 的 _messageOf ArgumentError 分支把 project_store.dart:309/:365/:557/:952 的中文异常原样上屏（通路成立，未真机实测触发）；tool_rail.dart:304 的 Text 全角加号常量；En mixin 泄漏 3 条 = dialog.dart:1048/:1174（全角加号）、settings.dart:239（简体中文）。\n⑥ 口径差不按缺陷登记：1053/1054 与计划 §68.6 的 521（450+68+3）、stage 3 的 1012 差异属扫描口径不同；outcome_composer 42 条 = 21 条落库值在文件内各出现 2 次（常量 + case 标签），运行期已走 displayLabel 映射不上屏。\n⑦ started_at 取 stage 5 收尾的可核验锚点，非本会话首条消息时刻；finished_at 为 null（status=blocked，未收口）；tool_calls=46 计到本次 relay.json 落盘。",
+      "session_id": "mvs_34ce7f807b0a42e186ede8fa6db366e1",
+      "model": "custom_provider:provider-aa5659/deepseek-v4.1-flash-1017",
+      "finished_at": null,
+      "tool_calls": 46
+    }
+  ],
+  "sessions": [
+    {
+      "kind": "root",
+      "id": "mvs_1711739d1ff3435a824c226a42c5db48",
+      "role": "protocol_author",
+      "note": "绑定协议并发起 stage 1；不参与后续接力"
+    },
+    {
+      "kind": "relay",
+      "id": "mvs_f0f4b5b2d4804d3fabd8f23d1e35544c",
+      "stage": 1,
+      "model": "minimax/MiniMax-M3",
+      "created_at": "2026-11-24T21:33:28+08:00",
+      "trigger": "user: 绑真实项目起链 + 补充模型策略要求",
+      "note": "session_create 返回 turn.mode=activated，已自动开跑；effort 参数未传（session_create 是否接受 effort 未实测）"
+    },
+    {
+      "kind": "relay",
+      "id": "mvs_72a8f0c1713144d6b060cf2d316a953f",
+      "stage": 2,
+      "model": "minimax/MiniMax-M3",
+      "created_at": "2026-11-24T21:46:20+08:00",
+      "trigger": "agent: stage 1 收尾后按 AGENTS.md 接力硬规则第 3 条起环",
+      "note": "session_create 实测 schema 无 effort / defer_first_turn 字段（content 即首轮消息，随建随跑）⇒ model_policy.creation_recipe 所述 defer 姿势在本运行时不可用。回读确认 effective_model=minimax/MiniMax-M3（一档，未降级）/ workspace_dir=F:\\soft\\00selfmade\\practilog / status=started / createdBySessionId=mvs_f0f4b5b2d4804d3fabd8f23d1e35544c。第 1 环接力 prompt 只给全路径指针，不复述文档内容。"
+    },
+    {
+      "kind": "relay",
+      "id": "mvs_c65a7cd9bcaa47409abe7dc89ffa7ac8",
+      "stage": 3,
+      "model": "minimax/MiniMax-M3",
+      "created_at": "2026-11-24T21:55:13+08:00",
+      "trigger": "agent: stage 2 收尾后按 AGENTS.md 接力硬规则第 3 条起环",
+      "note": "session_create 建环即开跑（turn.mode=activated，无 defer 窗口）；createdBySessionId=mvs_72a8f0c1713144d6b060cf2d316a953f / status=started / session messages 回读已有真实 bash 与 read 工具调用（非 §9.2(c) 空转态）。异常登记：本次传入的 workspace_dir=F:/soft/00selfmade/practilog 未被运行时采纳，session get 回读 workspaceDir = E:/Users/Duanyi/.minimax/.minimax/sessions/mvs_c65a7cd9bcaa47409abe7dc89ffa7ac8/workspace（isDefaultWorkspace=true，且该目录下无 docs/relay）⇒ 已起环补发消息，要求所有 git / analyze 命令显式指向 F:/soft/00selfmade/practilog 绝对路径。接力 prompt 只给全路径指针，不复述文档内容。"
+    },
+    {
+      "kind": "relay",
+      "id": "mvs_6e8375ea012f4f64a23fdcd02dde6139",
+      "stage": 4,
+      "model": "minimax/MiniMax-M3",
+      "created_at": "2026-11-24T22:17:23+08:00",
+      "trigger": "agent: stage 3 收尾后按 AGENTS.md 接力硬规则第 3 条起环",
+      "note": "session_create 建环即开跑（turn.mode=activated，无 defer 窗口）；session get 回读三要素 = effective_model minimax/MiniMax-M3（一档，未降级）/ workspace_dir F:\\soft\\00selfmade\\practilog（isDefaultWorkspace=false，本次传入的 workspace_dir 已被运行时采纳，与 stage 3 的未采纳不同）/ status.type=started / createdBySessionId=mvs_c65a7cd9bcaa47409abe7dc89ffa7ac8。接力 prompt 只给全路径指针（AGENTS.md :487-494、docs/relay.json stages[3]、docs/relay/stage-3-report.md、docs/relay/stage-2-scope.md、docs/RELAY-ADAPTATION.md），不复述文档内容。"
+    },
+    {
+      "kind": "relay",
+      "id": "mvs_dd5bbcf80ab040c5a017d664411a84eb",
+      "stage": 5,
+      "model": "custom_provider:provider-aa5659/deepseek-v4.1-flash-1017",
+      "created_at": "2026-11-24T22:45:43+08:00",
+      "trigger": "agent: stage 4 收尾后按 AGENTS.md 接力硬规则第 3 条起环",
+      "note": "session_create 建环即开跑（turn.mode=activated，无 defer 窗口）；回读三要素 = workspace_dir F:\\soft\\00selfmade\\practilog（isDefaultWorkspace=false，本次已被采纳，与 stage 3 的未采纳不同）/ createdBySessionId=mvs_6e8375ea012f4f64a23fdcd02dde6139 / effective_model 初值为 minimax/MiniMax-M3（未降级档）。\n降级事件（本轮唯一一次，依据 model_policy.switch_trigger 与 RELAY-ADAPTATION.md §9.2）：建环后首轮 status.type=error、errorCode=42212，原文「已达到 Token Plan 用量上限：请升级 Token Plan 套餐或购买积分补充用量。 (2056)」⇒ 判定 M3 额度不可用（旁证：同轮 worker bg_c46d7e48-0666-48ce-b549-dd6ca1f8b01c 亦以同一 2056 失败）。当前处于夜间窗口 19:01-08:00 ⇒ 取 model_policy.fallback_night。处置 = session_update(model=custom_provider:provider-aa5659/deepseek-v4.1-flash-1017) 后 session send 重开新轮（turn_a1bf2fd7-07af-4207-817d-34ceefcdd349，mode=activated），未重建会话、session id 未变 ⇒ 降级代价为一轮失败，未额外起新环。\n回读确认 effective_model=custom_provider:provider-aa5659/deepseek-v4.1-flash-1017、model.provider_id=custom_provider:provider-aa5659、model.model_id=deepseek-v4.1-flash-1017 ⇒ model_policy.unverified 里「完整 key 尚未实测」一项已由本条实测关闭（本条为准）。\n接力 prompt 只给全路径指针（AGENTS.md :484-494、docs/relay.json stages[4] 与 stages[3]、docs/RELAY-ADAPTATION.md、docs/relay/stage-4-implementation.md），不复述文档内容。"
+    },
+    {
+      "kind": "relay",
+      "id": "mvs_34ce7f807b0a42e186ede8fa6db366e1",
+      "stage": 6,
+      "model": "custom_provider:provider-aa5659/deepseek-v4.1-flash-1017",
+      "created_at": "2026-11-25T00:02:25+08:00",
+      "trigger": "agent: stage 5 收尾后按 AGENTS.md 接力硬规则第 3 条起环（末环，max_stages=6）",
+      "note": "末环。建环即开跑（turn.mode=activated）；模型沿用 stage 5 的降级档 custom_provider:provider-aa5659/deepseek-v4.1-flash-1017（夜间窗口 fallback_night），本环未再触发 2056 额度错误。\n本环成果：① 门禁新鲜件 PASS（00:04:17 / 1930 B / 6FFED0BBE47E41F5 / 836=EXPECTED / 四包 VERBATIM / VIOLATIONS=0）；② 68.4b 复扫 1053 条并给出 92 条「其余」类逐文件明细 + 两处一手抽查（nav_rail 常量运行期不可见、outcome_composer 42=21×2）；③ 68.4g 派 verifier 得 VERIFIER_VERDICT=FAIL（68.4b/68.4i 未闭合，推翻硬零判据，并发现门禁白名单被削弱）；④ 68.4h 零 git 写，停 blocked。\nmax_stages=6 已达 ⇒ 收口后不 session_create，链终止于本环；续推须用户新指令或新开会话。\ncreated_at 取 stage 5 收尾锚点（可核验），非 session_create 返回的精确时刻。\n接力 prompt 只给全路径指针（AGENTS.md、docs/relay.json、docs/AGENT-RELAY.md、docs/RELAY-ADAPTATION.md、docs/relay/stage-6-report.md），不复述文档内容。"
+    }
+  ]
+}

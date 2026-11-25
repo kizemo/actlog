@@ -256,7 +256,8 @@ abstract class DialogL10n {
   //
   // 注意：本组**只**收三段合成器的 UI 文案。`OutcomeComposer.outcomeLabels` /
   // `reasonLabels` / `nextStepLabels` 那 21 条芯片短语是**落库值**（`_setSegment`
-  // 原样塞进 `ResultNote`，`:201` 还靠 `contains` 回显），永不在本文件出现。
+  // 原样塞进 `ResultNote`，`:203` 还靠 `contains` 回显）—— **落库值的字面量不在
+  // 本文件出现**，它们仍原样写在 `outcome_composer.dart` 的常量里。
   // ---------------------------------------------------------------------------
 
   /// 按钮：把未能解析的原文重新拆成三段。
@@ -270,6 +271,79 @@ abstract class DialogL10n {
 
   /// 按钮：标记完成（是按钮，不是 `PlanStatus` 的「完成」标签）。
   String get dialogNoteDone;
+
+  // ---------------------------------------------------------------------------
+  // 结果撰写的三段短语（**显示层**；出处：`widgets\outcome_composer.dart:27-57`）
+  //
+  // 上一组说的是「落库值的字面量不落在这个文件里」；本组是这些短语的**同名显示
+  // 文案键**：zh 侧与落库值逐字相同（中文界面零视觉变化），en 侧是译文。
+  //
+  // 落库值本身仍然一个字节都不改 —— 渲染点一律走
+  // `OutcomeComposer.displayLabel(t, stored)`（按落库值查本组），历史数据里的
+  // 未知短语原样返回，不猜译名。
+  //
+  // 「取消」复用 `CommonL10n.cancel`，本组不另立同义键（见文件头的复用纪律）。
+  // ---------------------------------------------------------------------------
+
+  /// 结论：按时完成。
+  String get dialogOutcomeOnTime;
+
+  /// 结论：延后完成。
+  String get dialogOutcomeLate;
+
+  /// 结论：提前完成。
+  String get dialogOutcomeEarly;
+
+  /// 结论：部分完成。
+  String get dialogOutcomePartial;
+
+  /// 结论：受阻。
+  String get dialogOutcomeBlocked;
+
+  /// 结论：顺延到明天。
+  String get dialogOutcomeDeferredTomorrow;
+
+  /// 原因：预估不足。
+  String get dialogReasonUnderestimated;
+
+  /// 原因：被打断。
+  String get dialogReasonInterrupted;
+
+  /// 原因：依赖外部。
+  String get dialogReasonExternal;
+
+  /// 原因：优先级变了。
+  String get dialogReasonPriorityChanged;
+
+  /// 原因：状态不好。
+  String get dialogReasonPoorState;
+
+  /// 原因：时间不够。
+  String get dialogReasonNoTime;
+
+  /// 原因：信息不清。
+  String get dialogReasonUnclear;
+
+  /// 原因：其他。
+  String get dialogReasonOther;
+
+  /// 下一步：明天继续。
+  String get dialogNextStepContinueTomorrow;
+
+  /// 下一步：转成待办。
+  String get dialogNextStepToTodo;
+
+  /// 下一步：交出去。
+  String get dialogNextStepHandOff;
+
+  /// 下一步：缩小范围。
+  String get dialogNextStepNarrowScope;
+
+  /// 下一步：定日复盘。
+  String get dialogNextStepReviewLater;
+
+  /// 下一步：就此停止。
+  String get dialogNextStepStopHere;
 
   // ---------------------------------------------------------------------------
   // 待办池（出处：`pages\todo_pool_page.dart`）
@@ -633,6 +707,86 @@ mixin DialogZhL10n implements DialogL10n {
   @override
   String get dialogNoteDone => '完成';
 
+  /// 旧代码：`widgets\outcome_composer.dart:28` —— `'按时完成'`（落库值，显示同形）。
+  @override
+  String get dialogOutcomeOnTime => '按时完成';
+
+  /// 旧代码：`widgets\outcome_composer.dart:29` —— `'延后完成'`（落库值，显示同形）。
+  @override
+  String get dialogOutcomeLate => '延后完成';
+
+  /// 旧代码：`widgets\outcome_composer.dart:30` —— `'提前完成'`（落库值，显示同形）。
+  @override
+  String get dialogOutcomeEarly => '提前完成';
+
+  /// 旧代码：`widgets\outcome_composer.dart:31` —— `'部分完成'`（落库值，显示同形）。
+  @override
+  String get dialogOutcomePartial => '部分完成';
+
+  /// 旧代码：`widgets\outcome_composer.dart:32` —— `'受阻'`（落库值，显示同形）。
+  @override
+  String get dialogOutcomeBlocked => '受阻';
+
+  /// 旧代码：`widgets\outcome_composer.dart:33` —— `'顺延到明天'`（落库值，显示同形）。
+  @override
+  String get dialogOutcomeDeferredTomorrow => '顺延到明天';
+
+  /// 旧代码：`widgets\outcome_composer.dart:39` —— `'预估不足'`（落库值，显示同形）。
+  @override
+  String get dialogReasonUnderestimated => '预估不足';
+
+  /// 旧代码：`widgets\outcome_composer.dart:40` —— `'被打断'`（落库值，显示同形）。
+  @override
+  String get dialogReasonInterrupted => '被打断';
+
+  /// 旧代码：`widgets\outcome_composer.dart:41` —— `'依赖外部'`（落库值，显示同形）。
+  @override
+  String get dialogReasonExternal => '依赖外部';
+
+  /// 旧代码：`widgets\outcome_composer.dart:42` —— `'优先级变了'`（落库值，显示同形）。
+  @override
+  String get dialogReasonPriorityChanged => '优先级变了';
+
+  /// 旧代码：`widgets\outcome_composer.dart:43` —— `'状态不好'`（落库值，显示同形）。
+  @override
+  String get dialogReasonPoorState => '状态不好';
+
+  /// 旧代码：`widgets\outcome_composer.dart:44` —— `'时间不够'`（落库值，显示同形）。
+  @override
+  String get dialogReasonNoTime => '时间不够';
+
+  /// 旧代码：`widgets\outcome_composer.dart:45` —— `'信息不清'`（落库值，显示同形）。
+  @override
+  String get dialogReasonUnclear => '信息不清';
+
+  /// 旧代码：`widgets\outcome_composer.dart:46` —— `'其他'`（落库值，显示同形）。
+  @override
+  String get dialogReasonOther => '其他';
+
+  /// 旧代码：`widgets\outcome_composer.dart:51` —— `'明天继续'`（落库值，显示同形）。
+  @override
+  String get dialogNextStepContinueTomorrow => '明天继续';
+
+  /// 旧代码：`widgets\outcome_composer.dart:52` —— `'转成待办'`（落库值，显示同形）。
+  @override
+  String get dialogNextStepToTodo => '转成待办';
+
+  /// 旧代码：`widgets\outcome_composer.dart:53` —— `'交出去'`（落库值，显示同形）。
+  @override
+  String get dialogNextStepHandOff => '交出去';
+
+  /// 旧代码：`widgets\outcome_composer.dart:54` —— `'缩小范围'`（落库值，显示同形）。
+  @override
+  String get dialogNextStepNarrowScope => '缩小范围';
+
+  /// 旧代码：`widgets\outcome_composer.dart:55` —— `'定日复盘'`（落库值，显示同形）。
+  @override
+  String get dialogNextStepReviewLater => '定日复盘';
+
+  /// 旧代码：`widgets\outcome_composer.dart:56` —— `'就此停止'`（落库值，显示同形）。
+  @override
+  String get dialogNextStepStopHere => '就此停止';
+
   /// 旧代码：`pages\todo_pool_page.dart:78` —— `'${rows.length} 条待捞'`。
   @override
   String dialogPoolAvailable(int count) => '$count 条待捞';
@@ -933,6 +1087,66 @@ mixin DialogEnL10n implements DialogL10n {
 
   @override
   String get dialogNoteDone => 'Done';
+
+  @override
+  String get dialogOutcomeOnTime => 'Completed on time';
+
+  @override
+  String get dialogOutcomeLate => 'Completed late';
+
+  @override
+  String get dialogOutcomeEarly => 'Completed early';
+
+  @override
+  String get dialogOutcomePartial => 'Partially completed';
+
+  @override
+  String get dialogOutcomeBlocked => 'Blocked';
+
+  @override
+  String get dialogOutcomeDeferredTomorrow => 'Deferred to tomorrow';
+
+  @override
+  String get dialogReasonUnderestimated => 'Underestimated';
+
+  @override
+  String get dialogReasonInterrupted => 'Interrupted';
+
+  @override
+  String get dialogReasonExternal => 'Depends on external input';
+
+  @override
+  String get dialogReasonPriorityChanged => 'Priority changed';
+
+  @override
+  String get dialogReasonPoorState => 'Poor condition';
+
+  @override
+  String get dialogReasonNoTime => 'Not enough time';
+
+  @override
+  String get dialogReasonUnclear => 'Information unclear';
+
+  @override
+  String get dialogReasonOther => 'Other';
+
+  @override
+  String get dialogNextStepContinueTomorrow => 'Continue tomorrow';
+
+  @override
+  String get dialogNextStepToTodo => 'Convert to a to-do';
+
+  @override
+  String get dialogNextStepHandOff => 'Hand off';
+
+  @override
+  String get dialogNextStepNarrowScope => 'Narrow the scope';
+
+  @override
+  String get dialogNextStepReviewLater => 'Review on a set date';
+
+  @override
+  String get dialogNextStepStopHere => 'Stop here';
 
   @override
   String dialogPoolAvailable(int count) => '$count to pull';

@@ -28,6 +28,7 @@ import '../theme/app_fonts.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/chip_row.dart';
 import '../widgets/gantt_chart.dart';
+import '../widgets/outcome_composer.dart';
 import '../widgets/project_domain_stats_panel.dart';
 
 /// 项目页：多项目 / 每项目多任务 / 自绘甘特图。
@@ -133,6 +134,9 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     String? endDate,
     String domain,
   ) async {
+    // 先把 l10n 句柄抓住再 await：catch 块跑到时页面可能已卸载，那时
+    // `AppLocalizations.of(context)` 会抛 FlutterError（见 `l10n_scope.dart`）。
+    final AppLocalizations t = AppLocalizations.of(context);
     try {
       await _store.createProject(
         name: name,
@@ -145,7 +149,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       await _reload();
       return null;
     } catch (error) {
-      return _messageOf(error);
+      return _messageOf(t, error);
     }
   }
 
@@ -155,6 +159,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
   /// [_reload]：卡片的选中态与上面的分布面板都从 `_projects` 派生，不重读就
   /// 还是旧领域。
   Future<void> _setProjectDomain(String projectId, String domain) async {
+    final AppLocalizations t = AppLocalizations.of(context);
     try {
       await _store.setProjectDomain(projectId: projectId, domain: domain);
       await _reload();
@@ -163,7 +168,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
         return;
       }
       // 与 `_reload` 的 catch 同一口径：页级错误横幅，不弹窗。
-      setState(() => _error = _messageOf(error));
+      setState(() => _error = _messageOf(t, error));
     }
   }
 
@@ -173,6 +178,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     String title,
     String? targetDate,
   ) async {
+    final AppLocalizations t = AppLocalizations.of(context);
     try {
       await _store.createMilestone(
         projectId: project.id,
@@ -186,14 +192,15 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       await _reload();
       return null;
     } catch (error) {
-      return _messageOf(error);
+      return _messageOf(t, error);
     }
   }
 
   /// 改期（幂等：待办池里不会多出第二条待办）。
   Future<String?> _reschedule(MilestoneRow milestone, String rawDate) async {
+    final AppLocalizations t = AppLocalizations.of(context);
     try {
-      final String? target = _optionalDay(rawDate);
+      final String? target = _optionalDay(t, rawDate);
       await _store.setMilestoneTargetDate(
         milestoneId: milestone.id,
         targetDate: target,
@@ -204,13 +211,14 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       await _reload();
       return null;
     } catch (error) {
-      return _messageOf(error);
+      return _messageOf(t, error);
     }
   }
 
   /// 「＋ 排进今天」：把**项目整体**排一条计划行（`source_type = 'project'`，
   /// `source_id = project.id`）。
   Future<String?> _scheduleProject(ProjectRow project) async {
+    final AppLocalizations t = AppLocalizations.of(context);
     try {
       await _store.scheduleToDay(
         date: ref.read(todayProvider),
@@ -223,7 +231,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       await _reload();
       return null;
     } catch (error) {
-      return _messageOf(error);
+      return _messageOf(t, error);
     }
   }
 
@@ -235,19 +243,21 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     ProjectRow project,
     IncrementRow increment,
   ) async {
+    final AppLocalizations t = AppLocalizations.of(context);
     try {
       await _store.scheduleToDay(
         date: ref.read(todayProvider),
         sourceType: PlanSourceType.increment,
         sourceId: increment.id,
         title: increment.progress.isEmpty ? project.name : increment.progress,
-        detail: increment.nextStep,
+        // 「下一步」是落库值：规范短语查 l10n 表，自由文本原样（未知值不猜译名）。
+        detail: OutcomeComposer.displayLabel(t, increment.nextStep),
       );
       _invalidatePlan();
       await _reload();
       return null;
     } catch (error) {
-      return _messageOf(error);
+      return _messageOf(t, error);
     }
   }
 
@@ -259,6 +269,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     String blockers,
     String nextStep,
   ) async {
+    final AppLocalizations t = AppLocalizations.of(context);
     try {
       await _store.appendIncrement(
         projectId: project.id,
@@ -270,7 +281,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       await _reload();
       return null;
     } catch (error) {
-      return _messageOf(error);
+      return _messageOf(t, error);
     }
   }
 
@@ -281,7 +292,17 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
   }
 
   /// 把异常变成一句给用户看的话（`ArgumentError` 自带字段名，更具体）。
-  static String _messageOf(Object error) {
+  ///
+  /// [t] 是 l10n 句柄：类型化异常（[MissingEntityException]）在这里查表拼句
+  /// —— 数据层不带中文，英文态才不会露中文；`{id}` 在这里插值。
+  static String _messageOf(AppLocalizations t, Object error) {
+    if (error is MissingEntityException) {
+      final String template =
+          error.kind == MissingEntityException.milestoneKind
+              ? t.projectsMilestoneMissing
+              : t.projectsProjectMissing;
+      return template.replaceAll('{id}', error.id);
+    }
     if (error is ArgumentError) {
       return '${error.message}';
     }
@@ -292,7 +313,11 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
   }
 
   /// 取可选日历日；空串 ⇒ `null`（未填）；不是 `YYYY-MM-DD` 或日期不存在 ⇒ 抛。
-  static String? _optionalDay(String raw) {
+  ///
+  /// [t] 用来本地化那两句报错（`projectsInvalidDateFormat` /
+  /// `projectsDateNotExist`）：抛出的 [FormatException] 由 [_messageOf] 的
+  /// `FormatException` 分支取 `.message` 上屏。
+  static String? _optionalDay(AppLocalizations t, String raw) {
     final String text = raw.trim();
     if (text.isEmpty) {
       return null;
@@ -300,14 +325,14 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     final Match? match =
         RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(text);
     if (match == null) {
-      throw const FormatException('日期必须是 YYYY-MM-DD 格式');
+      throw FormatException(t.projectsInvalidDateFormat);
     }
     final int year = int.parse(match.group(1)!);
     final int month = int.parse(match.group(2)!);
     final int day = int.parse(match.group(3)!);
     final DateTime parsed = DateTime.utc(year, month, day);
     if (parsed.year != year || parsed.month != month || parsed.day != day) {
-      throw const FormatException('这个日期不存在');
+      throw FormatException(t.projectsDateNotExist);
     }
     return text;
   }
@@ -509,7 +534,7 @@ class _NewProjectFormState extends State<_NewProjectForm> {
     }
     final String name = _name.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = '项目名称不能为空');
+      setState(() => _error = AppLocalizations.of(context).projectsNameRequired);
       return;
     }
     setState(() {
@@ -1001,7 +1026,9 @@ class _TaskFormState extends State<_TaskForm> {
     }
     final String title = _title.text.trim();
     if (title.isEmpty) {
-      setState(() => _error = '任务标题不能为空');
+      setState(
+        () => _error = AppLocalizations.of(context).projectsTaskTitleRequired,
+      );
       return;
     }
     setState(() {
@@ -1337,7 +1364,7 @@ class _IncrementSectionState extends State<_IncrementSection> {
     }
     final String progress = _progress.text.trim();
     if (progress.isEmpty) {
-      setState(() => _error = '至少写一句这次推进了什么');
+      setState(() => _error = widget.localizations.projectsProgressRequired);
       return;
     }
     setState(() {
@@ -1372,12 +1399,16 @@ class _IncrementSectionState extends State<_IncrementSection> {
   );
 
   /// 列表行正文：优先「推进了什么」，退到「下一步」，都没有就给破折号。
-  static String _lineText(IncrementRow increment) {
+  ///
+  /// 「下一步」可能是规范短语（落库值）也可能是自由文本 ⇒ 走
+  /// [OutcomeComposer.displayLabel] 映射：命中规范短语就查 l10n 表，其余原样
+  /// 返回（先例：`app_localizations.dart` 的 `projectDomainLabel`）。
+  static String _lineText(AppLocalizations t, IncrementRow increment) {
     if (increment.progress.isNotEmpty) {
       return increment.progress;
     }
     if (increment.nextStep.isNotEmpty) {
-      return increment.nextStep;
+      return OutcomeComposer.displayLabel(t, increment.nextStep);
     }
     return '—';
   }
@@ -1423,7 +1454,7 @@ class _IncrementSectionState extends State<_IncrementSection> {
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          _lineText(increment),
+                          _lineText(t, increment),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 12, color: tokens.ink2),

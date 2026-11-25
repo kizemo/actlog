@@ -482,3 +482,15 @@ practilog/
 - 只写**长期成立**的东西。任何会随 Task 变化的具体数字，指到真源文档，别抄进来。
 - 新增装置（探针/门禁）就进 §3 表格；新增坑就进 §5，并按「症状 → 真因 → 正确做法」一行写完。
 - 本文件的改动由控制器做，属台账写集，**不进 worker 写集**。
+
+
+## 自动接力（Relay）—— 硬规则
+
+本项目启用会话自动接力。状态机文件：`docs\relay.json`。协议：`docs\AGENT-RELAY.md`（通用）+ `docs\RELAY-ADAPTATION.md`（本项目裁决，**优先级高于通用协议，低于本文件其余家规**）。
+
+1. 开工第一步读 `docs\relay.json`。`status != "running"` ⇒ 不接力，正常收尾。
+2. 本环身份 = `current_stage`；只允许写 `stages[current_stage].scope` 声明的写集，且必须先过 `RELAY-ADAPTATION.md` §5 并发检测。
+3. `status == "running"` 且本环 acceptance 已达成 ⇒ **回复用户之前**必须：先只追加方式回写 `relay.json`（本环 `status/session_id/model/tool_calls/finished_at` + `current_stage += 1` + `stages` 追加下一环），回读核对条数与署名；再按 §9 模型策略用 `session_create` 起下一环（`workspace_dir` 指向本仓库根，显式传 model；建会话建议 `defer_first_turn:true` 后回读确认再 `session_send`），把返回的 `session_id` 回写 `next_session_id`。
+4. 命中 `human_checkpoints` / `stop_conditions` / 写集冲突 ⇒ 写 `status="blocked"` + `note`，**不起新会话**，停下等人。
+5. `current_stage > max_stages` ⇒ 写 `status="blocked"` 停链。不得自行加长 `max_stages`。
+6. `docs\relay.json` 的 `status` 只有人能改成 `running`。agent 不得自行起链。

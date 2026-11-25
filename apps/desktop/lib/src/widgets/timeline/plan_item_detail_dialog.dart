@@ -278,6 +278,7 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
   /// 一组内联芯片（组标题 + `ChipRow`）。
   Widget _chipGroup(String title, Key rowKey, List<String> labels) {
     final ThemeTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final Set<String> picked = _tokens(_note.text).intersection(
       labels.toSet(),
     );
@@ -293,7 +294,11 @@ class _PlanItemDetailDialogState extends State<PlanItemDetailDialog> {
           multi: true,
           options: <ChipOption>[
             for (final String label in labels)
-              ChipOption(key: label, label: label),
+              // `key` 是落库值（选中态与回填文本都按它判），`label` 是显示值。
+              ChipOption(
+                key: label,
+                label: OutcomeComposer.displayLabel(l10n, label),
+              ),
           ],
           selected: picked,
           onChanged: (Set<String> next) => _applyChipTap(labels, next),

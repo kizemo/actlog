@@ -29,6 +29,36 @@ import 'package:drift/drift.dart';
 
 import '../widgets/timeline/timeline_store.dart';
 
+/// 目标实体不存在时的类型化异常（任务行 / 项目行被删，或 id 写错）。
+///
+/// 为什么不直接用 [StateError]：这一句要上屏，而**上屏的文案必须能本地化**
+/// —— 数据层不知道当前语言，所以这里只带「是哪一类实体 + 它的 id」两个事实，
+/// 由 UI 层查 l10n 表拼出面向用户的那一句（`projectsMilestoneMissing` /
+/// `projectsProjectMissing`）。若在数据层就把中文写死，英文态会露中文。
+///
+/// [toString] 刻意保持 ASCII：它会进日志，也可能被没有 l10n 上下文的地方直接
+/// 打印，中文在这里没有任何好处（先例：`app_localizations.dart` 的
+/// `projectDomainLabel` 对未知 key 原样返回）。
+class MissingEntityException implements Exception {
+  /// 构造。
+  const MissingEntityException({required this.kind, required this.id});
+
+  /// 实体类别：[milestoneKind] = 任务，[projectKind] = 项目。
+  final String kind;
+
+  /// 找不到的那一行的 id。
+  final String id;
+
+  /// 任务类别的 [kind] 取值。
+  static const String milestoneKind = 'milestone';
+
+  /// 项目类别的 [kind] 取值。
+  static const String projectKind = 'project';
+
+  @override
+  String toString() => 'MissingEntityException(kind: $kind, id: $id)';
+}
+
 /// 一条任务（`project_milestone` 的一行）。
 class MilestoneRow {
   /// 构造。
@@ -397,7 +427,10 @@ class ProjectStore {
               ..where((t) => t.id.equals(milestoneId)))
             .getSingleOrNull();
     if (milestone == null || milestone.deletedAt != null) {
-      throw StateError('任务 $milestoneId 不存在');
+      throw MissingEntityException(
+        kind: MissingEntityException.milestoneKind,
+        id: milestoneId,
+      );
     }
 
     final String? oldDate = milestone.targetDate;
@@ -467,7 +500,10 @@ class ProjectStore {
         await (_db.select(_db.project)..where((t) => t.id.equals(projectId)))
             .getSingleOrNull();
     if (project == null || project.deletedAt != null) {
-      throw StateError('项目 $projectId 不存在');
+      throw MissingEntityException(
+        kind: MissingEntityException.projectKind,
+        id: projectId,
+      );
     }
 
     final int ts = nowMillis();
