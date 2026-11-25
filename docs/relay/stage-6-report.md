@@ -197,16 +197,18 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File 'F:\soft\00selfmade\practilog\repo
 
 ---
 
-## 十三·5 `68.4h` git commit / push —— **blocked（人工验收点）**
+## 十三·5 `68.4h` git commit / push —— **done（已获用户授权并执行）**
 
-依 `docs/RELAY-ADAPTATION.md §4` 与 `docs/relay.json` 的 `human_checkpoints[0]`（`git commit / push / tag`），本环**未执行任何 git 写操作**：
+依 `docs/RELAY-ADAPTATION.md §4` 与 `docs/relay.json` 的 `human_checkpoints[0]`（`git commit / push / tag`），**本环（stage 6 环）未执行任何 git 写操作**；用户 2026-11-25 08:04 授权后，由监护会话 `mvs_59d3157c39cf4bfb91e6f54f613dcd22`（人工续做 68.4h）执行。
+
+本环结束时状态（授权前）：
 
 ```
 git add / commit / push / tag / stash / checkout = 0 次
 HEAD=85b809a  AHEAD=0  status --porcelain -uall = 22 行（+ 本环新建 stage-6-report.md ⇒ 收口后 23 行，推断）
 ```
 
-### 十三·5·1 待提交清单（门禁时刻 `22` 行 = `12 M + 10 ??`；本环报告落盘后 `23` 行 = `12 M + 11 ??`，见 十三·7·7）
+### 十三·5·1 待提交清单（门禁时刻 `22` 行 = `12 M + 10 ??`；本环报告落盘后 `23` 行 = `12 M + 11 ??`，见 十三·7·7）—— **已于 2026-11-25 08:07 全部提交，见 十三·5·3**
 
 已跟踪改动（12）：
 
@@ -242,11 +244,33 @@ desktop 836 / core_data 204 / core_db 71 / core_domain 62
 
 > 该 message 依据 stage-3 / stage-4 / stage-5 台账撰写，**提交前请以 `git diff --stat` 与 `git diff` 复核条数**；`push` 目标分支与是否打 tag 需单独授权。
 
-### 十三·5·3 缺什么才能解除 blocked
+### 十三·5·3 解除 blocked 的授权与执行结果（2026-11-25 08:04–08:07）
 
-1. 对 `git commit` 的明确授权（是否只 commit / 是否一并 push / 是否打 tag）；
-2. 对 commit message 的取舍（用上面这稿，或另给）；
-3. 对 10 个未跟踪台账文件是否纳入同一次提交的取舍（`supervision-2026-11-25.md` 不是本链产物，建议单列）。
+用户原话：**「只提交，不推送」** ⇒ 授权 `git commit`；**不授权 push、不授权 tag**。commit message 采用 十三·5·2 的稿（加两行事实性说明：授权语录 + verifier FAIL 提示）。
+
+执行方 = 监护会话 `mvs_59d3157c39cf4bfb91e6f54f613dcd22`（人工续做 68.4h，非 stage 6 环本身）。执行前复核工作树与 00:13 快照逐字一致 ⇒ 门禁证据仍有效，**未重跑门禁**。
+
+两次 commit（**只提交，未推送**）：
+
+| # | commit | 内容 | 规模 |
+|---|---|---|---|
+| 1 | `c1a4bf7` | `chore(w9): W9 l10n 收口——27 条新键落地与落库值显示层映射` | 21 files changed / +3833 / -64（12 个改动 + 9 份本链台账） |
+| 2 | `ebb8996` | `docs(relay): 追加接力链监护日志（2026-11-24 / 2026-11-25）` | 2 files / +118（非本链产物，按本节建议单列） |
+
+核验（实测）：
+
+```
+git add = 2 次   git commit = 2 次   git push = 0 次   git tag = 0 次   git stash = 0 次   git checkout = 0 次
+HEAD=ebb89961bf0f70000f0e1becd05c94b45817fa34
+git status --porcelain -uall = 0 行（工作树干净）
+git rev-list --left-right --count HEAD...@{u} = 2 0   ⇒ ahead 2 / behind 0 ⇒ 提交仅存本地，未推送
+```
+
+提交前复核：工作树 = 23 行（12 M + 11 ??）；`git diff --stat` = 12 files changed / 671 insertions / 64 deletions；门禁摘要 1930 B / sha16 `6FFED0BBE47E41F5` / RUN_AT=2026-11-25 00:04:17 / PASS（与本环收口快照逐字一致）；git 无 hook；identity = kizemo；`git diff --check` 干净。
+
+**提交后门禁口径提醒**：门禁判据是「对工作树 diff」，提交后工作树干净 ⇒ 再跑 `reports/task51-gate.ps1` 会得 `STATUS_LINES=0` 的空转结果，**不构成有效判据**；有效证据仍是提交前 00:04:17 那次 PASS。
+
+仍未闭合（不在 68.4h 范围）：`68.4b` / `68.4i` 的 5 条一手发现（其中 3 条需改 `apps/**`，须派 worker）；`reports/task51-gate.ps1:302-305` 的 `$patterns` 偏离（改门禁属人工验收点，未动）；计划 `:9637` 行号漂移与 `:9651` 记号不可追溯；真机 / 打包 / 分发本轮未做。`VERIFIER_VERDICT=FAIL` 不变 ⇒ W9 整体仍未判过。
 
 ---
 

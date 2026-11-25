@@ -9,7 +9,7 @@
     "AGENTS.md"
   ],
   "workspace_dir": "F:\\soft\\00selfmade\\practilog",
-  "status": "blocked",
+  "status": "done",
   "auto_relay": true,
   "current_stage": 6,
   "max_stages": 6,
@@ -250,7 +250,7 @@
       "stage": 6,
       "title": "W9 收口（末环）：68.4b/68.4i 缺口面复扫 + 68.4g 独立终判 + 68.4h 提交人工点",
       "type": "closure",
-      "status": "blocked",
+      "status": "done",
       "started_at": "2026-11-25T00:02:25+08:00",
       "scope": "只执行 stages[4].next_stage 定义的三项：68.4b/68.4i 缺口面复扫（口径按 U5 裁定维持 35 条，不重算、不改口径、不凑数）、68.4g 让 verifier 独立终判、68.4h git commit/push（人工验收点，只做只读取证）。max_stages=6 已达 ⇒ 本环为末环，收口后不得再 session_create。",
       "acceptance": "68.4a PASS（新鲜件 reports/task51-gate/summary.txt：RUN_AT=2026-11-25 00:04:17 / 1930 B / sha16 6FFED0BBE47E41F5 / GATE_VERDICT=PASS / GATE_FAILURES=0 / DESKTOP_TESTS=836=EXPECTED / core_data 204 / core_db 71 / core_domain 62 / 四包 ANALYZE=VERBATIM / VIOLATIONS=0 / OUT_OF_SET=0 / GATE_EXCLUDED=0 / HEAD=85b809a / STATUS_LINES=22）。68.4b FAIL（未闭合）：复扫 93 文件 1053 条 CJK 字符串字面量（stage-3 规格口径，SUM_CHECK=1053），verifier 词法状态机口径 1054 条，「其余」类 92 条；verifier 独立判 FAIL，理由 = 存在可上屏中文通道（见 note ⑤）。68.4c PASS（附保留：缺删除前键表快照，只能证 7 键归零）/ 68.4d PASS（AGENTS.md:49 与 :400 均 836）/ 68.4e PASS（488 个 .dart 零 @Deprecated）/ 68.4f PASS（6 份 OCR 工作日=0/6，域层已无 weekdayLabel）。68.4g 已判（过程项成立，结论 FAIL）。68.4h 未执行（blocked）。68.4i FAIL（连坐 68.4b）⇒ 对外最强表述限定为「§47 W3–W8 覆盖范围内英文态零中文」。",
@@ -258,8 +258,27 @@
       "note": "① 68.4h 停在人工验收点：状态 = blocked，缺用户对 commit/push 的明确授权。本环 git 写操作 = 0 次（add/commit/push/tag/stash/checkout 均未执行），HEAD=85b809a / AHEAD=0 / status 22 行。待提交面 = 12 个 M + 10 个未跟踪台账文件；需用户明确四点：是否 commit、是否 push、是否打 tag、未跟踪台账是否同批提交。建议 commit message 见 stage-6-report.md 十三·5·2。\n② verifier 对 68.4h 另给「字面 PASS」：依据 = HEAD=85b809a 已是 Task 68 收口提交（docs(ledger): Task 68 收口台账）、git status -sb 无 ahead/behind；与「本链未授权不提交」不冲突，两条口径并存。\n③ verifier 新发现（本环未修，改门禁属人工点）：reports/task51-gate.ps1:302-305 把 docs/relay/*、docs/relay.json、docs/AGENT-RELAY.md、docs/RELAY-ADAPTATION.md 写进 $patterns，与计划 §68.5 第 5 条「排除项不得塞进 $patterns」相悖；GATE_EXCLUDED 由 run3 的 2 降为 0 ⇒ 排除面退化为「合法写集」，需人判是否回退。\n④ 台账引用不可追溯：计划 :9637 的 dialog.dart:894/960、settings.dart:257 与代码实际 1048/1174/239 不符（行号漂移）；计划 :9651 引用的 WORKDAY_HITS=0 记号在 reports/task68-en-judge.txt 中不存在（verifier 自跑 6 份 OCR 得 工作日=0/6，实质成立但记号不可追溯）。\n⑤ 68.4b 可上屏证据（verifier 一手）：projects_page.dart:298-313 的 _messageOf ArgumentError 分支把 project_store.dart:309/:365/:557/:952 的中文异常原样上屏（通路成立，未真机实测触发）；tool_rail.dart:304 的 Text 全角加号常量；En mixin 泄漏 3 条 = dialog.dart:1048/:1174（全角加号）、settings.dart:239（简体中文）。\n⑥ 口径差不按缺陷登记：1053/1054 与计划 §68.6 的 521（450+68+3）、stage 3 的 1012 差异属扫描口径不同；outcome_composer 42 条 = 21 条落库值在文件内各出现 2 次（常量 + case 标签），运行期已走 displayLabel 映射不上屏。\n⑦ started_at 取 stage 5 收尾的可核验锚点，非本会话首条消息时刻；finished_at 为 null（status=blocked，未收口）；tool_calls=46 计到本次 relay.json 落盘。",
       "session_id": "mvs_34ce7f807b0a42e186ede8fa6db366e1",
       "model": "custom_provider:provider-aa5659/deepseek-v4.1-flash-1017",
-      "finished_at": null,
-      "tool_calls": 46
+      "finished_at": "2026-11-25T08:07:23+08:00",
+      "tool_calls": 46,
+      "h_resolution": {
+        "decided_at": "2026-11-25T08:04:00+08:00",
+        "authorized_by": "用户原话：只提交，不推送",
+        "scope": "授权 git commit；不授权 push、不授权 tag。执行方 = 监护会话 mvs_59d3157c39cf4bfb91e6f54f613dcd22（人工续做 68.4h），非 stage 6 环本身。",
+        "commits": [
+          { "hash": "c1a4bf784b66d9ebc89765231bfb60c32ec2227b", "short": "c1a4bf7", "message": "chore(w9): W9 l10n 收口——27 条新键落地与落库值显示层映射", "files": 21, "insertions": 3833, "deletions": 64, "scope": "12 个改动 + 9 份本链台账" },
+          { "hash": "ebb89961bf0f70000f0e1becd05c94b45817fa34", "short": "ebb8996", "message": "docs(relay): 追加接力链监护日志（2026-11-24 / 2026-11-25）", "files": 2, "insertions": 118, "scope": "非本链产物的监护日志，单列" }
+        ],
+        "git_write_ops": "add 2 次 / commit 2 次 / push 0 次 / tag 0 次 / stash 0 次 / checkout 0 次；提交后 HEAD=ebb8996，git status --porcelain -uall = 0 行（工作树干净）；rev-list --left-right --count HEAD...@{u} = 2 0 ⇒ ahead 2 / behind 0 ⇒ 提交仅存本地，未推送。",
+        "precheck": "提交前复核工作树与 00:13 快照逐字一致：porcelain -uall = 23 行、git diff --stat = 12 files changed / 671 insertions / 64 deletions、门禁摘要 1930 B / sha16 6FFED0BBE47E41F5 / RUN_AT=2026-11-25 00:04:17 / PASS 未变 ⇒ 门禁证据仍有效，未重跑门禁。git 无 hook；identity = kizemo；git diff --check 干净。",
+        "post_commit_gate_caveat": "门禁口径是对工作树 diff；提交后工作树干净，再跑 reports/task51-gate.ps1 会得 STATUS_LINES=0 的空转结果，不构成有效判据。有效证据仍是提交前 00:04:17 那次 PASS。",
+        "verifier_verdict": "68.4g VERIFIER_VERDICT=FAIL 不变（68.4b / 68.4i 未闭合，可上屏中文通道已坐实）⇒ W9 整体仍未判过，对外最强表述限定为「§47 W3–W8 覆盖范围内英文态零中文」。",
+        "still_open": [
+          "68.4b / 68.4i 的 5 条一手发现未处置（其中 3 条只需改 apps/**，须派 worker）",
+          "reports/task51-gate.ps1:302-305 把 4 条 docs 项写进 $patterns ⇒ GATE_EXCLUDED 由 2 降为 0，与计划 §68.5 第 5 条相悖；改门禁属人工验收点，未动",
+          "计划 :9637 行号引用漂移、:9651 的 WORKDAY_HITS=0 记号不可追溯（台账引用待修）",
+          "真机 / 打包 / 分发本轮未做（不属 68.4h 范围）"
+        ]
+      }
     }
   ],
   "sessions": [
