@@ -264,15 +264,17 @@ const String kGoalsTabMonth = 'month';
 /// 目标页页签 id：年。
 const String kGoalsTabYear = 'year';
 
-/// 目标页页签 id：蓝图。
+/// 目标页页签 id：蓝图（历史值；Task 72 起不在 [kGoalsTabIds] 内）。
 const String kGoalsTabBlueprint = 'blueprint';
 
-/// 目标页的四个页签 id（顺序即展示顺序）。
+/// 目标页的三个页签 id（顺序即展示顺序）。
+///
+/// 口径（Task 72 / D-72-b）：蓝图已独立成页，`kGoalsTabBlueprint` 不再入列 ⇒
+/// `parseGoalsTab` 收到它回落周视图。
 const List<String> kGoalsTabIds = <String>[
   kGoalsTabWeek,
   kGoalsTabMonth,
   kGoalsTabYear,
-  kGoalsTabBlueprint,
 ];
 
 /// 「恢复默认」要写回的键（不含 `priority_display_mode`：那项另有既有样板）。
@@ -849,3 +851,38 @@ class GitHubReleaseChecker implements ReleaseChecker {
 final releaseCheckerProvider = Provider<ReleaseChecker>(
   (ref) => GitHubReleaseChecker(),
 );
+
+// -----------------------------------------------------------------------------
+// 未完成目标（Task 72 B7 地基：W2/W3 共用，本棒不消费）
+// -----------------------------------------------------------------------------
+//
+// D-72-c 的「未完成」口径 = 非 done **且**未归档。`GoalStore.listGoals` 的
+// `status` 只做等值筛选、没有 `notDone`，且严禁为它新增仓储方法 ⇒ 按 kind 取回
+// 后在 Dart 侧过滤（与 `widgets\goal_year_matrix.dart:6` 的零改动纪律一致）。
+//
+// 形状沿用本文件既有的异步清单 provider（见 `goalWeeklyDraftsProvider`）：
+// `FutureProvider<List<GoalRow>>`，W2/W3 按名 `ref.watch(...)` 消费。
+
+/// 只留「未完成且未归档」的目标（D-72-c 口径）。
+List<GoalRow> _openOnly(List<GoalRow> rows) => <GoalRow>[
+  for (final GoalRow goal in rows)
+    if (!goal.isDone && goal.archivedAt == null) goal,
+];
+
+/// 未完成年目标（`kind == yearly`）。
+final yearOpenGoalsProvider = FutureProvider<List<GoalRow>>((ref) async {
+  final GoalStore store = ref.read(goalStoreProvider);
+  return _openOnly(await store.listGoals(kind: GoalKind.yearly));
+});
+
+/// 未完成月目标（`kind == monthly`）。
+final monthOpenGoalsProvider = FutureProvider<List<GoalRow>>((ref) async {
+  final GoalStore store = ref.read(goalStoreProvider);
+  return _openOnly(await store.listGoals(kind: GoalKind.monthly));
+});
+
+/// 未完成周目标（`kind == weekly`）。
+final weekOpenGoalsProvider = FutureProvider<List<GoalRow>>((ref) async {
+  final GoalStore store = ref.read(goalStoreProvider);
+  return _openOnly(await store.listGoals(kind: GoalKind.weekly));
+});

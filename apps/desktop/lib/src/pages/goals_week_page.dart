@@ -14,6 +14,7 @@
 // 也就是说：界面上永远不会「看一眼就把库改了」。
 // =============================================================================
 
+import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,7 +22,9 @@ import '../data/goal_store.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/goal_upstream_panel.dart';
 import '../widgets/goal_week_table.dart';
+import '../widgets/shell/tool_rail.dart';
 
 /// 周目标页：本周目标表 + 滚动候选区。
 class GoalsWeekPage extends ConsumerStatefulWidget {
@@ -47,8 +50,13 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
     final AppLocalizations t = AppLocalizations.of(context);
     final AsyncValue<GoalWeekView> view = ref.watch(goalWeekViewProvider);
     final AsyncValue<List<GoalDraft>> drafts = ref.watch(goalWeeklyDraftsProvider);
+    final AsyncValue<List<GoalRow>> openMonthly = ref.watch(
+      monthOpenGoalsProvider,
+    );
+    final List<GoalRow> monthlyGoals =
+        openMonthly.asData?.value ?? const <GoalRow>[];
 
-    return Column(
+    final Widget left = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -80,6 +88,125 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
         ),
       ],
     );
+
+    // 拖拽接收：只认 `goal://` 通道，其它 payload 原样放行（不吞时间轴的裸待办 id）。
+    final Widget dropArea = DragTarget<String>(
+      key: const ValueKey<String>('goal-week-drop-target'),
+      onWillAcceptWithDetails: (DragTargetDetails<String> details) =>
+          goalIdFromDragPayload(details.data) != null,
+      onAcceptWithDetails: (DragTargetDetails<String> details) {
+        final String? id = goalIdFromDragPayload(details.data);
+        if (id == null) {
+          return;
+        }
+        for (final GoalRow row in monthlyGoals) {
+          if (row.id == id) {
+            _addFromMonthly(row);
+            return;
+          }
+        }
+      },
+      builder: (
+        BuildContext context,
+        List<String?> candidateData,
+        List<dynamic> rejectedData,
+      ) => left,
+    );
+
+    final Widget panel = GoalUpstreamPanel(
+      kind: GoalKind.monthly,
+      title: t.goalsUpstreamMonthTitle,
+      hint: t.goalsUpstreamAddHint,
+      emptyText: t.goalsUpstreamEmpty,
+      goals: monthlyGoals,
+      loading: openMonthly.isLoading && !openMonthly.hasValue,
+      errorText: openMonthly.hasError ? t.operationFailed : null,
+      onPick: _addFromMonthly,
+    );
+
+    // 宽屏并排、窄屏上下堆叠：阈值由壳层的折列常量推出（不新造断点）。
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (constraints.maxWidth < _sideBySideMinWidth) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              dropArea,
+              const SizedBox(height: AppTokens.gapCard),
+              panel,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(child: dropArea),
+            const SizedBox(width: ToolRail.panelGap),
+            SizedBox(width: _upstreamWidth, child: panel),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 右栏宽度（沿用壳层第一栏口径 `ToolRail.railWidth`）。
+  static const double _upstreamWidth = ToolRail.railWidth;
+
+  /// 并排所需最小宽度：左栏至少一个折列宽 + 面板间距 + 右栏。
+  static const double _sideBySideMinWidth =
+      ToolRail.minColumnWidth + ToolRail.panelGap + _upstreamWidth;
+
+  /// 本周已派生过的上游目标 id（同步幂等闸门，挡住连点）。
+  final Set<String> _derivedFromMonthly = <String>{};
+
+  /// 由一条月目标派生一条**本周**周目标（D-72-e：派生，不改父目标状态）。
+  Future<void> _addFromMonthly(GoalRow monthly) async {
+    if (_derivedFromMonthly.contains(monthly.id) ||
+        _alreadyServedMonthly(monthly.id)) {
+      return;
+    }
+    _derivedFromMonthly.add(monthly.id);
+    setState(() => _error = null);
+    try {
+      final GoalPeriod period = ref.read(goalCurrentWeekProvider);
+      await ref.read(goalDraftSaverProvider)(<GoalDraft>[
+        GoalDraft(
+          kind: GoalKind.weekly,
+          title: monthly.title,
+          periodStart: period.startMillis,
+          periodEnd: period.endMillis,
+          parentId: monthly.id,
+          domain: monthly.domain,
+          note: monthly.note,
+          sourceGoalId: monthly.id,
+          origin: GoalDraftOrigin.fromUpperLayer,
+        ),
+      ]);
+      // 表里要多出这条派生行；候选列表不重取（与 `_confirm` 同口径）。
+      ref.invalidate(goalWeekViewProvider);
+    } on Object {
+      // 写失败 ⇒ 撤掉闸门，允许用户重试。
+      _derivedFromMonthly.remove(monthly.id);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
+  }
+
+  /// 本周是否已有周目标 `serves` 这条月目标（幂等判据：读回来的服务关系）。
+  bool _alreadyServedMonthly(String monthlyId) {
+    final GoalWeekView? view = ref.read(goalWeekViewProvider).asData?.value;
+    if (view == null) {
+      return false;
+    }
+    for (final GoalWeekItem item in view.items) {
+      if (item.servedGoal?.id == monthlyId) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// 滚动候选区：候选清单 + 确认按钮。

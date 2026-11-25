@@ -24,12 +24,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
-import 'goals_blueprint_page.dart';
 import 'goals_month_page.dart';
 import 'goals_week_page.dart';
 import 'goals_year_page.dart';
 
-/// 目标页：周｜月｜年｜蓝图 四个页签的壳。
+/// 目标页：周｜月｜年 三个页签的壳。
+///
+/// 口径（Task 72 / D-72-b）：蓝图不再是一个页签，它已独立成第 7 个导航项。
 class GoalsPage extends ConsumerStatefulWidget {
   /// 创建目标页。
   const GoalsPage({super.key});
@@ -39,7 +40,7 @@ class GoalsPage extends ConsumerStatefulWidget {
 }
 
 class _GoalsPageState extends ConsumerState<GoalsPage> {
-  /// 当前页签 id（`week` / `month` / `year` / `blueprint`）。
+  /// 当前页签 id（`week` / `month` / `year`）。
   late String _tabId;
 
   /// 用户是否手动点过页签（点过之后偏好回读不再覆盖界面）。
@@ -91,7 +92,6 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
             kGoalsTabWeek: t.goalsTabWeek,
             kGoalsTabMonth: t.goalsTabMonth,
             kGoalsTabYear: t.goalsTabYear,
-            kGoalsTabBlueprint: t.goalsTabBlueprint,
           },
           onSelected: _selectTab,
         ),
@@ -102,16 +102,18 @@ class _GoalsPageState extends ConsumerState<GoalsPage> {
   }
 
   /// 当前页签的内容区。
+  ///
+  /// 蓝图已独立成页（Task 72 / D-72-b），所以 `default` 回落周视图：历史偏好里
+  /// 残留的 `blueprint` 已被 `parseGoalsTab` 挡掉，这里再兜一层，取到不认的值
+  /// 也不会白屏。
   Widget _buildBody() {
     switch (_tabId) {
-      case kGoalsTabWeek:
-        return const GoalsWeekPage();
       case kGoalsTabMonth:
         return const GoalsMonthPage();
       case kGoalsTabYear:
         return const GoalsYearPage();
       default:
-        return const GoalsBlueprintPage();
+        return const GoalsWeekPage();
     }
   }
 

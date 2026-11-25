@@ -35,7 +35,30 @@ abstract class GoalsL10n {
   String get goalsTabYear;
 
   /// 页签：蓝图。
+  ///
+  /// Task 72（D-72-b）起蓝图已独立成页，本常量只作历史值保留，
+  /// `parseGoalsTab` 收到它必须回落周视图。
   String get goalsTabBlueprint;
+
+  // --- 未完成目标（上游面板，Task 72 B7 起 W2/W3 共用） -----------------------
+
+  /// 上游面板：未完成年目标。
+  String get goalsUpstreamYearTitle;
+
+  /// 上游面板：未完成月目标。
+  String get goalsUpstreamMonthTitle;
+
+  /// 上游面板：未完成周目标。
+  String get goalsUpstreamWeekTitle;
+
+  /// 上游面板：点击或拖拽添加到当前周期的提示。
+  String get goalsUpstreamAddHint;
+
+  /// 上游面板：空态。
+  String get goalsUpstreamEmpty;
+
+  /// 上游面板：添加到计划的动作位。
+  String get goalsUpstreamAddMenu;
 
   // --- 周视图 -------------------------------------------------------------
 
@@ -304,6 +327,24 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalsTabBlueprint => '蓝图';
 
   @override
+  String get goalsUpstreamYearTitle => '未完成年目标';
+
+  @override
+  String get goalsUpstreamMonthTitle => '未完成月目标';
+
+  @override
+  String get goalsUpstreamWeekTitle => '未完成周目标';
+
+  @override
+  String get goalsUpstreamAddHint => '点击或拖拽添加到当前周期';
+
+  @override
+  String get goalsUpstreamEmpty => '暂无未完成目标';
+
+  @override
+  String get goalsUpstreamAddMenu => '添加到计划';
+
+  @override
   String get goalsWeekSection => '本周目标';
 
   @override
@@ -554,6 +595,24 @@ mixin GoalsEnL10n implements GoalsL10n {
 
   @override
   String get goalsTabBlueprint => 'Blueprint';
+
+  @override
+  String get goalsUpstreamYearTitle => 'Open yearly goals';
+
+  @override
+  String get goalsUpstreamMonthTitle => 'Open monthly goals';
+
+  @override
+  String get goalsUpstreamWeekTitle => 'Open weekly goals';
+
+  @override
+  String get goalsUpstreamAddHint => 'Click or drag to add to this period';
+
+  @override
+  String get goalsUpstreamEmpty => 'No open goals';
+
+  @override
+  String get goalsUpstreamAddMenu => 'Add to plan';
 
   @override
   String get goalsWeekSection => 'Weekly goals';

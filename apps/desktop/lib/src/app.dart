@@ -9,6 +9,7 @@ import 'l10n/app_localizations.dart';
 import 'l10n/l10n_scope.dart';
 import 'pages/about_page.dart';
 import 'pages/calendar_page.dart';
+import 'pages/goals_blueprint_page.dart';
 import 'pages/goals_page.dart';
 import 'pages/habits_page.dart';
 import 'pages/projects_page.dart';
@@ -29,6 +30,7 @@ import 'widgets/shell/key_bar.dart';
 import 'widgets/shell/ledger_shell.dart';
 import 'widgets/shell/tool_rail.dart';
 import 'widgets/timeline/todo_rail_panel.dart';
+import 'widgets/week_goal_rail_panel.dart';
 
 /// 解析系统字号缩放（裁定 B）。
 ///
@@ -166,6 +168,7 @@ class _ActLogAppState extends State<ActLogApp> {
           '/todo': (_) => const ShellHost(initialNavId: 'inbox'),
           '/calendar': (_) => const ShellHost(initialNavId: 'calendar'),
           '/goals': (_) => const ShellHost(initialNavId: 'goals'),
+          '/blueprint': (_) => const ShellHost(initialNavId: 'blueprint'),
           '/settings': (_) => const ShellHost(initialNavId: 'settings'),
           '/about': (_) => const _AboutRoute(),
         },
@@ -198,10 +201,10 @@ class _AboutRoute extends StatelessWidget {
 /// 自绘顶栏 [AppTopBar] 挂在本组件里、`LedgerShell` **之上**（不是塞进壳内部），
 /// 窗口动作全部转给 `desktop_shell.dart` 的模块级函数，壳本身完全不感知窗口。
 ///
-/// 各页面（今日 / 待办池 / 习惯 / 项目 / 日历 / 目标 / 设置）都是**内容体**，不带
+/// 各页面（今日 / 待办池 / 习惯 / 项目 / 日历 / 目标 / 蓝图 / 设置）都是**内容体**，不带
 /// `Scaffold`；导航点击只切本组件的 `_nav` 状态，不做路由 push —— 否则每点
 /// 一次就叠一层壳。
-/// `/todo`、`/calendar`、`/goals`、`/settings`、`/about` 保留为**深链入口**：前四个各自
+/// `/todo`、`/calendar`、`/goals`、`/blueprint`、`/settings`、`/about` 保留为**深链入口**：前五个各自
 /// 创建一个带初始导航项的宿主，`/about` 走壳外的 `_AboutRoute`（关于页没有
 /// 导航项，只在设置页与深链里可达）。
 class ShellHost extends StatefulWidget {
@@ -221,7 +224,7 @@ class ShellHost extends StatefulWidget {
 class _ShellHostState extends State<ShellHost> {
   late String _nav = widget.initialNavId;
 
-  /// 壳级焦点节点：壳自己持焦点 ⇒ `Ctrl+1…4` 在任何页都收得到键。
+  /// 壳级焦点节点：壳自己持焦点 ⇒ `Ctrl+1…7` 在任何页都收得到键。
   ///
   /// `Shortcuts` 靠焦点节点收键：焦点掉回根 scope 时事件不会冒泡下来，
   /// 快捷键就成了死键。切页时把焦点收回这里，键条上的承诺才始终成立。
@@ -250,6 +253,8 @@ class _ShellHostState extends State<ShellHost> {
             _NavIntent('projects'),
         SingleActivator(LogicalKeyboardKey.digit6, control: true):
             _NavIntent('goals'),
+        SingleActivator(LogicalKeyboardKey.digit7, control: true):
+            _NavIntent('blueprint'),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -289,7 +294,7 @@ class _ShellHostState extends State<ShellHost> {
     );
   }
 
-  /// 切页（`Ctrl+1…4`）。
+  /// 切页（`Ctrl+1…7`）。
   ///
   /// 已经在目标页 ⇒ **无动作**（不报错、不回跳第一页）。
   void _go(String id) {
@@ -309,7 +314,7 @@ class _ShellHostState extends State<ShellHost> {
   /// 右轨面板：只放真实数据。
   ///
   /// 「快捷键」面板由 [LedgerShell] 自动追加，这里**不重复注入**。
-  /// 今日页右轨三块，顺序即展示顺序（清单见 [todayRailPanels]）。
+  /// 今日页右轨五块，顺序即展示顺序（清单见 [todayRailPanels]）。
   /// 其余页面不挂额外面板：信息密度已经在正文里，右轨放空比塞假数据好。
   List<ShellRailPanel> _railPanels(BuildContext context) {
     if (_nav != ShellHost.kTodayNavId) {
@@ -343,6 +348,7 @@ class _ShellHostState extends State<ShellHost> {
       ),
       'settings' => const SettingsPage(),
       'goals' => const GoalsPage(),
+      'blueprint' => const GoalsBlueprintPage(),
       // 项目页内容体没有自己的宿主栈，点增量「查看原文」后由壳层回今日页。
       'projects' => ProjectsPage(
         onOpenDayLog: () => setState(() => _nav = ShellHost.kTodayNavId),
@@ -355,23 +361,24 @@ class _ShellHostState extends State<ShellHost> {
     if (id == _nav) {
       return;
     }
-    // 今日 / 待办池 / 习惯 / 项目 / 日历 / 设置六项都有真实落点。
+    // 今日 / 待办池 / 习惯 / 项目 / 日历 / 目标 / 蓝图 / 设置八项都有真实落点。
     setState(() => _nav = id);
   }
 }
 
-/// 「切页」意图（`Ctrl+1…6`，键条最后三条）。
+/// 「切页」意图（`Ctrl+1…7`，键条最后三条）。
 ///
-/// 只认有落点的导航项：今日 / 待办池 / 习惯 / 日历 / 项目 / 目标。设置页虽有
+/// 只认有落点的导航项：今日 / 待办池 / 习惯 / 日历 / 项目 / 目标 / 蓝图。设置页虽有
 /// 落点，但它沉底成齿轮、不占编号 ⇒ 键条与快捷键不承诺它。
 class _NavIntent extends Intent {
   const _NavIntent(this.navId);
 
-  /// 目标导航项 id（`today` / `inbox` / `habits` / `calendar` / `projects` / `goals`）。
+  /// 目标导航项 id（`today` / `inbox` / `habits` / `calendar` / `projects` / `goals` /
+  /// `blueprint`）。
   final String navId;
 }
 
-/// 今日页右轨的三块面板（**顺序即展示顺序**）。
+/// 今日页右轨的五块面板（**顺序即展示顺序**）。
 ///
 /// 抽成顶层函数是为了让 widget test 能在不启动窗口壳的前提下按**生产同一份
 /// 清单**渲染右轨：`ShellHost` 依赖 `window_manager`，测试进程里起不来。
@@ -381,7 +388,8 @@ class _NavIntent extends Intent {
 /// * 待办 ⇒ 复用既有的 [showQuickTodoDialog]（不另造轮子）；
 /// * 习惯 ⇒ [showHabitQuickDialog]；
 /// * 循环任务 ⇒ [showRecurringTaskDialog]（保存后立刻幂等物化当前选中日）。
-/// 末块「闭环提示」不动，也不带动作位。
+/// 末两块「闭环提示」/「未完成周目标」不动，也不带动作位；第 5 块是 Task 72
+/// 的可编译占位（内容体在 W3 换），本棒不接数据、不写库。
 ///
 /// 口径（Task 61）：面板标题与动作位文案走 l10n（英文界面下这块右轨零中文）。
 /// 文案表从 context 取（`L10nScope`）；取不到时回落中文态，理由与理由见
@@ -417,5 +425,9 @@ List<ShellRailPanel> todayRailPanels(BuildContext context) {
       child: const RecurringRailPanel(),
     ),
     ShellRailPanel(title: t.shellPanelLoopHint, child: const LoopHintPanel()),
+    ShellRailPanel(
+      title: t.goalsUpstreamWeekTitle,
+      child: const WeekGoalRailPanel(),
+    ),
   ];
 }

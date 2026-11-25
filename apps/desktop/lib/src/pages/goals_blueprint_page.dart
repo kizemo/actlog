@@ -3,6 +3,9 @@
 // =============================================================================
 // 页面是**内容体**：`Scaffold` / `AppBar` 由 `LedgerShell` 承担（与周/月/年页同口径）。
 //
+// 口径（Task 72 / D-72-b）：蓝图已从「目标页第 4 页签」升级为第 7 个导航项
+// （id `blueprint`、`Ctrl+7`、深链 `/blueprint`）；页面自带标题，不再借目标页的。
+//
 // 三块内容（计划 §5.4）：
 //  1. **人生蓝图矩阵**：6 行（领域）× 5 列（档位）。空格合法，不校验、不报错。
 //     「近期（1 年）」列渲染的是**本年度的年度目标**（`GoalYearView.yearlyGoals`）
@@ -178,11 +181,20 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations t = AppLocalizations.of(context);
+    final ThemeTokens tokens = context.tokens;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        Text(
+          t.shellNavBlueprint,
+          key: const ValueKey<String>('blueprint-title'),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: tokens.ink),
+        ),
+        const SizedBox(height: AppTokens.gapCard),
         _block(
           t,
           t.goalBlueprintMatrixSection,

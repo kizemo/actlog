@@ -268,6 +268,12 @@ abstract final class L10nKeys {
   /// 左导航：目标（Task 64：第 6 项由「设置」换成「目标」）。
   static const String shellNavGoals = 'shell-nav-goals';
 
+  /// 左导航：蓝图（Task 72 / D-72-b：第 7 个导航项）。
+  static const String shellNavBlueprint = 'shell-nav-blueprint';
+
+  /// 左导航：蓝图（快捷键说明口径）。
+  static const String shellNavBlueprintDesc = 'shell-nav-blueprint-desc';
+
   /// 右轨「快捷键」面板标题。
   static const String shellShortcutsTitle = 'shell-shortcuts-title';
 
@@ -1597,6 +1603,24 @@ abstract final class L10nKeys {
   /// 页签：蓝图。
   static const String goalsTabBlueprint = 'goal-tab-blueprint';
 
+  /// 上游面板：未完成年目标。
+  static const String goalsUpstreamYearTitle = 'goal-upstream-year-title';
+
+  /// 上游面板：未完成月目标。
+  static const String goalsUpstreamMonthTitle = 'goal-upstream-month-title';
+
+  /// 上游面板：未完成周目标。
+  static const String goalsUpstreamWeekTitle = 'goal-upstream-week-title';
+
+  /// 上游面板：点击或拖拽添加到当前周期的提示。
+  static const String goalsUpstreamAddHint = 'goal-upstream-add-hint';
+
+  /// 上游面板：空态。
+  static const String goalsUpstreamEmpty = 'goal-upstream-empty';
+
+  /// 上游面板：添加到计划的动作位。
+  static const String goalsUpstreamAddMenu = 'goal-upstream-add-menu';
+
   /// 周视图区块标题。
   static const String goalsWeekSection = 'goal-week-section';
 
@@ -1947,6 +1971,12 @@ abstract final class L10nKeys {
     'goalsTabMonth': goalsTabMonth,
     'goalsTabYear': goalsTabYear,
     'goalsTabBlueprint': goalsTabBlueprint,
+    'goalsUpstreamYearTitle': goalsUpstreamYearTitle,
+    'goalsUpstreamMonthTitle': goalsUpstreamMonthTitle,
+    'goalsUpstreamWeekTitle': goalsUpstreamWeekTitle,
+    'goalsUpstreamAddHint': goalsUpstreamAddHint,
+    'goalsUpstreamEmpty': goalsUpstreamEmpty,
+    'goalsUpstreamAddMenu': goalsUpstreamAddMenu,
     'goalsWeekSection': goalsWeekSection,
     'goalsWeekEmpty': goalsWeekEmpty,
     'goalsColumnOrder': goalsColumnOrder,
@@ -2034,6 +2064,8 @@ abstract final class L10nKeys {
     'shellNavCalendar': shellNavCalendar,
     'shellNavSettings': shellNavSettings,
     'shellNavGoals': shellNavGoals,
+    'shellNavBlueprint': shellNavBlueprint,
+    'shellNavBlueprintDesc': shellNavBlueprintDesc,
     'shellShortcutsTitle': shellShortcutsTitle,
     'shellPageSwitch': shellPageSwitch,
     'shellKeyAddEntry': shellKeyAddEntry,

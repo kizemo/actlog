@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/goal_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../../providers_p1.dart';
@@ -26,6 +27,7 @@ import '../day_timeline.dart';
 import '../focus_ring.dart';
 import '../ledger_checkbox.dart';
 import '../priority_hover_bubble.dart';
+import '../week_goal_rail_panel.dart';
 import 'plan_item_detail_dialog.dart';
 import 'slot_context_menu.dart';
 import 'slot_fill.dart';
@@ -336,6 +338,8 @@ class _DayGridState extends ConsumerState<DayGrid> {
       onSecondaryTapDown: (TapDownDetails details) =>
           _onContextMenu(_minuteAt(details.localPosition)),
       child: DragTarget<String>(
+        // 前缀分流全部落在 `_onDrop`：`plan:<id>` / `todo:<id>` / `habit:<id>` /
+        // `goal://<goalId>`（右栏未完成周目标）在这里只要求带分隔符。
         onWillAcceptWithDetails: (DragTargetDetails<String> details) =>
             details.data.contains(':'),
         onAcceptWithDetails: (DragTargetDetails<String> details) =>
@@ -1166,6 +1170,30 @@ class _DayGridState extends ConsumerState<DayGrid> {
             endMinute: range.endMinute,
           );
         });
+      case SlotMenuGoals():
+        // Task 72 / B7 第三条通道：勾选式多选，确认后逐条走唯一写入入口
+        // `addWeekGoalToPlan`（与面板点击 / 拖拽共用同一份幂等判据）。
+        final List<GoalRow> goals =
+            ref.read(weekOpenGoalsProvider).asData?.value ?? const <GoalRow>[];
+        final List<GoalRow>? picked = await WeekGoalPickDialog.show(
+          context,
+          goals: goals,
+        );
+        if (picked == null || picked.isEmpty || !mounted) {
+          return;
+        }
+        final SlotRange slotRange = range;
+        await _guard(() async {
+          for (final GoalRow goal in picked) {
+            await addWeekGoalToPlan(
+              ref,
+              goal: goal,
+              date: widget.date,
+              startMinute: slotRange.startMinute,
+              endMinute: slotRange.endMinute,
+            );
+          }
+        });
     }
   }
 
@@ -1245,6 +1273,35 @@ class _DayGridState extends ConsumerState<DayGrid> {
             await _storeOf.createFromHabit(
               date: widget.date,
               habit: habit,
+              startMinute: range.startMinute,
+              endMinute: range.endMinute,
+            );
+          });
+          return;
+        }
+      case 'goal':
+        // Task 72 / B7 第二条通道：右栏「未完成周目标」拖进来。
+        // payload 逐字 `goal://<goalId>` ⇒ `split(':')` 得
+        // `['goal', '//<goalId>']`，所以 id 上还挂着 `//` 前缀要剥掉。
+        final String goalId = id.startsWith('//') ? id.substring(2) : id;
+        final List<GoalRow> goals =
+            ref.read(weekOpenGoalsProvider).asData?.value ?? const <GoalRow>[];
+        for (final GoalRow goal in goals) {
+          if (goal.id != goalId) {
+            continue;
+          }
+          if (!mounted) {
+            return;
+          }
+          final SlotRange? range = await _askDropRange(start);
+          if (range == null || !mounted) {
+            return;
+          }
+          await _guard(() async {
+            await addWeekGoalToPlan(
+              ref,
+              goal: goal,
+              date: widget.date,
               startMinute: range.startMinute,
               endMinute: range.endMinute,
             );

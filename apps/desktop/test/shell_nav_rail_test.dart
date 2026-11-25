@@ -4,7 +4,6 @@ import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/app_tokens.dart';
 import 'package:actlog/src/theme/density_profile.dart';
 import 'package:actlog/src/widgets/goal_gear_button.dart';
-import 'package:actlog/src/widgets/shell/key_bar.dart';
 import 'package:actlog/src/widgets/shell/nav_rail.dart';
 
 /// 包一层最小宿主：只有真实高度，导航栏的 `Spacer` 才有界。
@@ -82,46 +81,32 @@ double _labelSizeOf(WidgetTester tester, Finder anchor) =>
     Theme.of(tester.element(anchor)).textTheme.labelSmall?.fontSize ??
     DensityProfile.comfortable.labelSize;
 
-/// 统计某个 Element 子树里所有 `Text` 的字符数（不含根节点自身的 widget）。
-int _textChars(Element root) {
-  int total = 0;
-  void visit(Element element) {
-    final Widget widget = element.widget;
-    if (widget is Text) {
-      total += (widget.data ?? '').runes.length;
-    }
-    element.visitChildren(visit);
-  }
-
-  visit(root);
-  return total;
-}
-
 void main() {
-  testWidgets('竖排导航渲染 6 项与 01–06 序号', (WidgetTester tester) async {
+  testWidgets('竖排导航渲染 7 项与 01–07 序号', (WidgetTester tester) async {
     await _pumpNav(tester);
 
     expect(NavRail.width, 214);
-    for (final String label in <String>['日志', '待办池', '习惯', '项目', '日历', '目标']) {
+    for (final String label in <String>['日志', '待办池', '习惯', '项目', '日历', '目标', '蓝图']) {
       expect(find.text(label), findsOneWidget, reason: '缺少导航项 $label');
     }
-    for (final String index in <String>['01', '02', '03', '04', '05', '06']) {
+    for (final String index in <String>['01', '02', '03', '04', '05', '06', '07']) {
       expect(find.text(index), findsOneWidget, reason: '缺少序号 $index');
     }
     expect(find.text('知行日志'), findsOneWidget);
     expect(find.text('actlog'), findsOneWidget);
-    // 底注只有在竖排时出现（原型 `@media max-width:1279px` 里 `.nav-foot{display:none}`）。
-    expect(find.text('页面切换'), findsOneWidget);
+    // Task 72 / D-72-a：左栏底部常驻的快捷键底注已删除，竖排也不再出现。
+    expect(find.text('页面切换'), findsNothing);
   });
 
-  testWidgets('六项都可点：「项目」不再是禁用态（Task 56 起有真实落点）',
+  testWidgets('七项都可点：「项目」不再是禁用态（Task 56 起有真实落点）',
       (WidgetTester tester) async {
     final List<String> tapped = <String>[];
     await _pumpNav(tester, onSelected: tapped.add);
 
     // Task 56 起「项目」也启用 ⇒ 6 个可点项各一个 InkWell；
-    // Task 64 起「设置」沉底成齿轮 ⇒ 再加 1 个 InkWell（共 7 个可点元素）。
-    expect(find.byType(InkWell), findsNWidgets(7));
+    // Task 64 起「设置」沉底成齿轮 ⇒ 再加 1 个 InkWell；
+    // Task 72 起第 7 项「蓝图」落地 ⇒ 共 8 个可点元素。
+    expect(find.byType(InkWell), findsNWidgets(8));
 
     await tester.tap(find.text('待办池'));
     await tester.pump();
@@ -231,7 +216,7 @@ void main() {
     // 100% 下缩放在数学上是恒等的 ⇒ 新写法的结果与修复前逐位相同。
     expect(scaler.scale(labelSize), labelSize);
 
-    for (final String index in <String>['01', '02', '03', '04', '05', '06']) {
+    for (final String index in <String>['01', '02', '03', '04', '05', '06', '07']) {
       expect(
         tester.getSize(find.text(index)).width,
         moreOrLessEquals(labelSize * 1.5, epsilon: 0.0001),
@@ -239,90 +224,5 @@ void main() {
       );
     }
     expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('200% 下底注以整组为换行单位，不出现单字符孤立行', (
-    WidgetTester tester,
-  ) async {
-    await _pumpNavScaled(tester, scale: 2);
-
-    expect(find.text('页面切换'), findsOneWidget);
-    expect(find.widgetWithText(KeyCap, 'Ctrl'), findsOneWidget);
-    expect(find.widgetWithText(KeyCap, '1'), findsOneWidget);
-    // B2（2026-11-12 T10）：习惯页落地后 `Ctrl+1…4` 全有落点，键帽由 '3' 同步为 '4'；
-    // Task 56 起「项目」也落地（`Ctrl+5`）；Task 65 UI 半批起「目标」也落地
-    // （`Ctrl+6`），底注随之同步为 `Ctrl+1…6`。
-    expect(find.widgetWithText(KeyCap, '6'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-
-    // 底注外层是一个 `Wrap`；组内还有嵌套 `Wrap`，所以按「直接子项里有
-    // 『页面切换』」定位最外层那个，不靠顺序猜。
-    Element? outerWrap;
-    for (final Element candidate
-        in find
-            .descendant(of: find.byType(NavRail), matching: find.byType(Wrap))
-            .evaluate()) {
-      final List<Element> children = <Element>[];
-      candidate.visitChildren(children.add);
-      if (children.any(
-        (Element child) =>
-            child.widget is Text && (child.widget as Text).data == '页面切换',
-      )) {
-        outerWrap = candidate;
-      }
-    }
-    expect(outerWrap, isNotNull, reason: '底注外层 Wrap 未找到');
-    final Element wrapElement = outerWrap!;
-
-    // ① 结构判据：外层 Wrap 的每个直接子项自身都至少 2 个字符。
-    //    修复前 Wrap 直接挂了 `Text('+')` / `KeyCap('1')` 这类单字符子项，
-    //    一旦被单独甩到一行就是孤立行；现在它们被绑进组 / 单位。
-    final List<Element> wrapChildren = <Element>[];
-    wrapElement.visitChildren(wrapChildren.add);
-    expect(wrapChildren, hasLength(3), reason: '底注应有 3 个换行单位');
-    for (final Element child in wrapChildren) {
-      expect(
-        _textChars(child),
-        greaterThanOrEqualTo(2),
-        reason: '存在只含 1 个字符的换行单位（孤立行来源）',
-      );
-    }
-
-    // ② 渲染判据：按纵向位置归组出真实的行，每行的字符总数 ≥ 2。
-    final List<Rect> rects = <Rect>[];
-    final List<int> counts = <int>[];
-    void collect(Element element) {
-      final Widget widget = element.widget;
-      if (widget is Text) {
-        rects.add(tester.getRect(find.byWidget(widget)));
-        counts.add((widget.data ?? '').runes.length);
-      }
-      element.visitChildren(collect);
-    }
-
-    collect(wrapElement);
-    expect(rects, hasLength(6), reason: '底注应恰好 6 段文案');
-
-    final List<int> order = List<int>.generate(rects.length, (int i) => i)
-      ..sort((int a, int b) => rects[a].top.compareTo(rects[b].top));
-    final List<int> charsPerRun = <int>[];
-    double runBottom = 0;
-    for (final int i in order) {
-      // 同一行的文本垂直方向必然重叠；换行后顶部会落到上一行底部之下。
-      if (charsPerRun.isEmpty || rects[i].top >= runBottom - 0.5) {
-        charsPerRun.add(counts[i]);
-        runBottom = rects[i].bottom;
-      } else {
-        charsPerRun[charsPerRun.length - 1] += counts[i];
-        if (rects[i].bottom > runBottom) {
-          runBottom = rects[i].bottom;
-        }
-      }
-    }
-    for (final int chars in charsPerRun) {
-      expect(chars, greaterThanOrEqualTo(2), reason: '底注出现只含 $chars 个字符的孤立行');
-    }
-    // 6 段文案共 4+4+1+1+1+1 = 12 个字符，必须全部计入，避免上面因漏算而恒真。
-    expect(charsPerRun.fold<int>(0, (int a, int b) => a + b), 12);
   });
 }

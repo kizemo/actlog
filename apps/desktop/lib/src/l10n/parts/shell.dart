@@ -43,6 +43,14 @@ abstract class ShellL10n {
   /// Task 64 起「设置」沉底成齿轮（左栏项数仍是 6），第 6 项换成「目标」。
   String get shellNavGoals;
 
+  /// 左导航：蓝图。
+  ///
+  /// Task 72（裁决 D-72-b）：蓝图从目标页第 4 个页签升级为第 7 个导航项。
+  String get shellNavBlueprint;
+
+  /// 左导航：蓝图（快捷键说明口径，`Ctrl+7`）。
+  String get shellNavBlueprintDesc;
+
   // --- 面板标题 / 导航底注 ---------------------------------------------------
 
   /// 右轨「快捷键」面板标题。
@@ -128,6 +136,12 @@ mixin ShellZhL10n implements ShellL10n {
   String get shellNavGoals => '目标';
 
   @override
+  String get shellNavBlueprint => '蓝图';
+
+  @override
+  String get shellNavBlueprintDesc => '切到蓝图';
+
+  @override
   String get shellShortcutsTitle => '快捷键';
 
   @override
@@ -204,6 +218,12 @@ mixin ShellEnL10n implements ShellL10n {
 
   @override
   String get shellNavGoals => 'Goals';
+
+  @override
+  String get shellNavBlueprint => 'Blueprint';
+
+  @override
+  String get shellNavBlueprintDesc => 'Go to blueprint';
 
   @override
   String get shellShortcutsTitle => 'Shortcuts';

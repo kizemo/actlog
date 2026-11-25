@@ -27,14 +27,16 @@ class ShellNavItem {
   final bool enabled;
 }
 
-/// 原型固定的 6 项主导航。
+/// 原型固定的 6 项主导航 + 第 7 项「蓝图」（Task 72 / D-72-b）。
 ///
-/// 六项都有真实落点（Task 56 起「项目」页落地，不再是禁用项）。
+/// 七项都有真实落点（Task 56 起「项目」页落地；Task 72 起「蓝图」独立成页）。
 ///
 /// 口径（Task 61）：这一份**中文常量**保留不动（既有测试直接断言它），
 /// 但运行期不再用它渲染 —— 渲染走 [shellNavItemsFor]，按当前语言现搭。
 /// 口径（Task 64）：第 6 项由「设置」换成「目标」；「设置」沉底成齿轮
-/// （见 [GoalGearButton]），左栏**项数仍是 6**。
+/// （见 [GoalGearButton]）。
+/// 口径（Task 72）：第 7 项「蓝图」排在「目标」之后（裁决 D-72-b），
+/// 图标沿用 `Icons.map_outlined`，不新建蓝图图标。
 const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   ShellNavItem(id: 'today', label: '日志'),
   ShellNavItem(id: 'inbox', label: '待办池'),
@@ -42,9 +44,10 @@ const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   ShellNavItem(id: 'projects', label: '项目'),
   ShellNavItem(id: 'calendar', label: '日历'),
   ShellNavItem(id: 'goals', label: '目标'),
+  ShellNavItem(id: 'blueprint', label: '蓝图'),
 ];
 
-/// 运行时构建 6 项主导航（文案走 l10n）。
+/// 运行时构建 7 项主导航（文案走 l10n）。
 ///
 /// `const` 顶层列表不能在编译期常量里调 `t.xxx`，所以运行期的清单在这里现搭；
 /// zh 态的取值与 [kShellNavItems] 逐字相同（那一份常量保留下来，供既有测试
@@ -57,13 +60,17 @@ List<ShellNavItem> shellNavItemsFor(AppLocalizations t) => <ShellNavItem>[
   ShellNavItem(id: 'projects', label: t.shellNavProjects),
   ShellNavItem(id: 'calendar', label: t.shellNavCalendar),
   ShellNavItem(id: 'goals', label: t.shellNavGoals),
+  ShellNavItem(id: 'blueprint', label: t.shellNavBlueprint),
 ];
 
 /// 左主导航（等价原型 `nav.nav`）。
 ///
 /// 竖排：[width] 固定宽、右侧 1px `hair` 边、`18/14/12` 内边距，
-/// 品牌块 + 6 项（mono 序号 `01`–`06`）+ 底部 `.nav-foot`。
-/// 横排（`< 1280`）：撑满宽度、顶栏横排、下边 1px `hair` 边、隐藏 `.nav-foot`。
+/// 品牌块 + 7 项（mono 序号 `01`–`07`）+ 沉底的设置齿轮。
+/// 横排（`< 1280`）：撑满宽度、顶栏横排、下边 1px `hair` 边。
+///
+/// 口径（Task 72 / D-72-a）：左栏底部**不再有**快捷键常驻文本；快捷键说明只在
+/// 窄屏 `KeyBar` 与宽屏右轨 `KeyHintList` 两处，`Ctrl+1…7` 功能不变。
 class NavRail extends StatelessWidget {
   /// 创建主导航。
   const NavRail({
@@ -134,8 +141,7 @@ class NavRail extends StatelessWidget {
                 : () => onSelected!('settings'),
           ),
         ),
-      )
-      ..add(_NavFoot(t: t));
+      );
     return Container(
       width: width,
       padding: const EdgeInsets.fromLTRB(14, 18, 14, 12),
@@ -423,139 +429,4 @@ class _NavRowState extends State<_NavRow> {
   }
 
   static String _pad2(int value) => value < 10 ? '0$value' : '$value';
-}
-
-/// 导航底注（`.nav-foot`）：页面切换 Ctrl + 1 … 6。
-///
-/// 口径（Task 20 · N1 / B2 + Task 56）：只宣称**真实存在**的 `Ctrl+1`–`Ctrl+5`
-/// （今日 / 待办池 / 习惯 / 日历 / 项目）。
-///
-/// 口径（Task 64）：「目标」页落地 ⇒ 底注同步为 `Ctrl+1`–`Ctrl+6`
-/// （今日 / 待办池 / 习惯 / 日历 / 项目 / 目标）。字符总数仍为 12
-/// （`页面切换`4 + `Ctrl`4 + `+`1 + `1`1 + `…`1 + `6`1）。
-///
-/// 排版分两档：
-/// * 常规档：一个 `Wrap`，与原型一致（「页面切换 Ctrl + 1 … 6」排成一行）。
-/// * 大字号档（缩放 ≥ 1.5×，如 `ACTLOG_TEXT_SCALE=2`）：三行堆叠 ——
-///   「页面切换」/「Ctrl + 1」/「… 6」，第 3 行**必须有内容**。
-///
-/// 换行点由**结构**保证，不靠像素宽度碰运气：复合单位用
-/// `Row(mainAxisSize: max)` 撑满整行，外层 `Wrap` 必然让它独占一行。
-/// 宽度断行在不同字体度量下位置并不相同（真机拉丁字形窄、测试环境宽），
-/// 靠「量一下会不会正好放得下」只会得到一台机器上成立、另一台上不成立的结果。
-class _NavFoot extends StatelessWidget {
-  const _NavFoot({required this.t});
-
-  /// 当前语言的文案表。
-  final AppLocalizations t;
-
-  /// 大字号档阈值（相对基准字号的缩放倍数）。
-  static const double largeTextScale = 1.5;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeTokens tokens = context.tokens;
-    final double labelSize =
-        Theme.of(context).textTheme.labelSmall?.fontSize ??
-        DensityProfile.comfortable.labelSize;
-    final TextStyle textStyle = TextStyle(
-      fontFamily: AppFonts.body,
-      fontFamilyFallback: AppFonts.bodyFallback,
-      fontSize: labelSize,
-      height: 1.3,
-      color: tokens.faint,
-    );
-    // 字号被放大到 ≥ 1.5 倍 ⇒ 走「三行堆叠」结构。
-    final double scaledLabelSize = MediaQuery.textScalerOf(context).scale(labelSize);
-    final bool largeText = scaledLabelSize >= labelSize * largeTextScale;
-
-    // 键帽组合按「组」参与换行：组内最小单位是 `_NavKeyRun`，
-    // 每个单位自身 ≥ 2 个字符 ⇒ 不管怎么折行都不会出现孤立行。
-    final Widget keyGroup = _NavKeyGroup(
-      children: <Widget>[
-        const KeyCap('Ctrl'),
-        _NavKeyRun(
-          children: <Widget>[Text('+', style: textStyle), const KeyCap('1')],
-        ),
-      ],
-    );
-    final Widget keyRun = _NavKeyRun(
-      children: <Widget>[Text('…', style: textStyle), const KeyCap('6')],
-    );
-
-    return Container(
-      // 大字号档下第 2 行「Ctrl + 1」需要整行宽度；底注内容一律左对齐、
-      // 右边缘离导航栏内边还差着一截 ⇒ 右侧不留白，把宽度让给第 2 行。
-      padding: EdgeInsets.only(top: 10, left: 8, right: largeText ? 0 : 8),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: tokens.hair)),
-      ),
-      child: Wrap(
-        spacing: 4,
-        runSpacing: 4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: <Widget>[
-          // 「页面切换」本身是 4 个字，最窄也只断成两字一行，不会留孤字。
-          Text(t.shellPageSwitch, style: textStyle),
-          if (largeText)
-            // 撑满整行 ⇒ 独占一行（第 2 行「Ctrl + 1」）。
-            Row(mainAxisSize: MainAxisSize.max, children: <Widget>[keyGroup])
-          else
-            keyGroup,
-          if (largeText)
-            // 同理，第 3 行「… 5」独占一行且非空。
-            Row(mainAxisSize: MainAxisSize.max, children: <Widget>[keyRun])
-          else
-            keyRun,
-        ],
-      ),
-    );
-  }
-}
-
-/// 底注里不可再分的一个换行单位（如「＋ 1」「… 3」）。
-///
-/// 用 `Row(mainAxisSize: min)` 把两个符号绑成一体：其中任何一个是单字符
-/// （`+` / `3`），单独成行就会变成孤字，所以它们必须同进同退。
-class _NavKeyRun extends StatelessWidget {
-  const _NavKeyRun({required this.children});
-
-  /// 单位内子项，按顺序以 4px 间距横排。
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        for (int i = 0; i < children.length; i++) ...<Widget>[
-          if (i > 0) const SizedBox(width: 4),
-          children[i],
-        ],
-      ],
-    );
-  }
-}
-
-/// 底注里的一组键帽组合（「Ctrl + 1」）。
-///
-/// 组内用 `Wrap` 而不是 `Row`：极端窄宽 / 超宽字体下组合会拆成
-/// 「Ctrl」+「＋ 1」两段（各自仍 ≥ 2 个字符），而不是整组横向溢出
-/// （`Row` 在 200% 的宽字体下会报 `RenderFlex overflowed`）。
-class _NavKeyGroup extends StatelessWidget {
-  const _NavKeyGroup({required this.children});
-
-  /// 组内单位，按顺序以 4px 间距横排。
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 4,
-      runSpacing: 2,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: children,
-    );
-  }
 }

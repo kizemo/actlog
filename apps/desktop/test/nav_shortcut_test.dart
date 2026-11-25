@@ -4,6 +4,7 @@
 //  - `Ctrl+1` 今日 / `Ctrl+2` 待办池 / `Ctrl+3` 习惯 / `Ctrl+4` 日历（A8）；
 //  - `Ctrl+5` 项目页（Task 56 起「项目」不再是 `enabled: false`，有真实落点）；
 //  - `Ctrl+6` 目标页（Task 65 UI 半批起「目标」有真实落点）；
+//  - `Ctrl+7` 蓝图页（Task 72 / D-72-b：蓝图从目标页第 4 页签升级为第 7 个导航项）；
 //  - 在待办池页按 `Ctrl+1` 回到今日页（A10）。
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
@@ -15,6 +16,7 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/app.dart';
 import 'package:actlog/src/pages/calendar_page.dart';
+import 'package:actlog/src/pages/goals_blueprint_page.dart';
 import 'package:actlog/src/pages/goals_page.dart';
 import 'package:actlog/src/pages/habits_page.dart';
 import 'package:actlog/src/pages/projects_page.dart';
@@ -148,7 +150,7 @@ void main() {
     await _flushTimers(tester);
   });
 
-  testWidgets('A9：Ctrl+5 切到项目页；Ctrl+6 切到目标页', (
+  testWidgets('A9：Ctrl+5 切项目页；Ctrl+6 切目标页；Ctrl+7 切蓝图页', (
     tester,
   ) async {
     _useTallSurface(tester);
@@ -176,6 +178,16 @@ void main() {
     expect(find.byType(HabitsPage), findsNothing);
     expect(find.byType(CalendarPage), findsNothing);
     expect(tester.takeException(), isNull, reason: 'Ctrl+6 不许抛异常');
+
+    // B7 / D-72-b：蓝图独立成页，`Ctrl+7` 有真实落点。
+    await _sendCtrl(tester, LogicalKeyboardKey.digit7);
+    expect(find.byType(GoalsBlueprintPage), findsOneWidget);
+    expect(find.byType(GoalsPage), findsNothing);
+    expect(find.byType(ProjectsPage), findsNothing);
+    expect(find.byType(TodoPoolPage), findsNothing);
+    expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(CalendarPage), findsNothing);
+    expect(tester.takeException(), isNull, reason: 'Ctrl+7 不许抛异常');
 
     await _flushTimers(tester);
   });

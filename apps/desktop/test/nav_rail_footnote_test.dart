@@ -1,16 +1,19 @@
 // apps/desktop/test/nav_rail_footnote_test.dart
 //
-// 导航底注（`.nav-foot`）的回归测试 —— Task 20 · W2 裁定 N1–N6。
+// 左栏底部「导航底注」的**删除守护**测试 —— Task 72 · 裁决 D-72-a。
 //
-// 判据表（brief §4）：
+// 历史：Task 20 · W2 用 N-1…N-6 守过这条常驻文案（「页面切换 Ctrl + 1 … 6」）。
+// Task 72 把它整段删掉（快捷键说明只留在窄屏 `KeyBar` 与宽屏右轨 `KeyHintList`，
+// `Ctrl+1…7` 功能不变），所以本文件的口径从「守它在」反转为「守它不在」。
+//
+// 判据表：
 // | 编号 | 断言 |
 // |---|---|
-// | N-1 | 底注文案含 `6`、不含 `5`（Task 65 UI 半批起「目标」页落地 ⇒ 宣称 `Ctrl+1…6`） |
-// | N-2 | 底注字符总数 == 12 |
-// | N-3 | 100% 下零溢出（无 `RenderFlex overflowed` / 无黄黑条） |
-// | N-4 | 200% 下排成 3 行，且第 3 行非空 |
-// | N-5 | 200% 下每行字符数 ≥ 2（无孤字） |
-// | N-6 | 200% 下底注不横向溢出导航栏宽度（`NavRail.width == 214`） |
+// | F-1 | 100% 下左栏里没有任何 `KeyCap`、没有「页面切换」文本、零异常 |
+// | F-2 | 200% 下同样零底注、零异常（放大不会把删掉的东西「放出来」） |
+// | F-3 | 竖排导航渲染 7 项，序号 `01`–`07` 齐、无 `08` |
+// | F-4 | 200% 下左栏内所有文本右边缘不越过导航栏宽度（`NavRail.width == 214`） |
+// | F-5 | 底注三段残留文案（「Ctrl」「…」等键帽文字）在整棵左栏树里都找不到 |
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:actlog/src/theme/app_theme.dart';
@@ -57,163 +60,81 @@ Future<void> _pumpNavScaled(
   );
 }
 
-/// 找到底注的外层 `Wrap`（直接子项里含 `Text('页面切换')` 的那个）。
-///
-/// 底注外层恒为 `Wrap`（Task 19 起就是这个结构），内层还有嵌套 `Wrap`，
-/// 所以按「直接子项里有『页面切换』」定位，不靠顺序猜。
-Element _footWrap(WidgetTester tester) {
-  for (final Element candidate
-      in find
-          .descendant(of: find.byType(NavRail), matching: find.byType(Wrap))
-          .evaluate()) {
-    final List<Element> children = <Element>[];
-    candidate.visitChildren(children.add);
-    if (children.any(
-      (Element child) =>
-          child.widget is Text && (child.widget as Text).data == '页面切换',
-    )) {
-      return candidate;
-    }
-  }
-  throw StateError('底注外层 Wrap 未找到');
-}
-
-/// 底注里的所有 `Text`（按树序：文案顺序 = 渲染顺序）。
-List<Text> _footTexts(Element foot) {
+/// 左栏里的所有 `Text`（按树序）。
+List<Text> _navTexts(WidgetTester tester) {
   final List<Text> texts = <Text>[];
-  void visit(Element element) {
+  for (final Element element
+      in find
+          .descendant(of: find.byType(NavRail), matching: find.byType(Text))
+          .evaluate()) {
     final Widget widget = element.widget;
     if (widget is Text) {
       texts.add(widget);
     }
-    element.visitChildren(visit);
   }
-
-  visit(foot);
   return texts;
 }
 
-/// 把底注里的文本按纵向位置聚成「行」。
-///
-/// 同一行的文本纵向必然重叠；换行后下一行的顶部会落到上一行底部之下。
-/// 返回每一行的文本（行内按左边缘排序，即视觉上的阅读顺序）。
-List<List<Text>> _rowsOf(WidgetTester tester, Element foot) {
-  final List<Text> texts = _footTexts(foot);
-  final List<Rect> rects = <Rect>[
-    for (final Text text in texts) tester.getRect(find.byWidget(text)),
-  ];
-
-  final List<int> order = List<int>.generate(rects.length, (int i) => i)
-    ..sort((int a, int b) => rects[a].top.compareTo(rects[b].top));
-  final List<List<int>> rowIndexes = <List<int>>[];
-  double rowBottom = 0;
-  for (final int i in order) {
-    if (rowIndexes.isEmpty || rects[i].top >= rowBottom - 0.5) {
-      rowIndexes.add(<int>[i]);
-      rowBottom = rects[i].bottom;
-    } else {
-      rowIndexes.last.add(i);
-      if (rects[i].bottom > rowBottom) {
-        rowBottom = rects[i].bottom;
-      }
-    }
-  }
-  return rowIndexes.map((List<int> row) {
-    final List<int> sorted = List<int>.of(row)
-      ..sort((int a, int b) => rects[a].left.compareTo(rects[b].left));
-    return <Text>[for (final int i in sorted) texts[i]];
-  }).toList();
-}
-
-/// 一行的字符数（rune 计）。
-int _charsOf(List<Text> row) => row.fold<int>(
-  0,
-  (int sum, Text text) => sum + (text.data ?? '').runes.length,
-);
-
 void main() {
-  testWidgets('N-1 底注宣称 Ctrl+1…6：含 6 不含 5', (WidgetTester tester) async {
-    await _pumpNavScaled(tester, scale: 2);
+  testWidgets('F-1 100% 下左栏没有任何快捷键底注', (WidgetTester tester) async {
+    await _pumpNavScaled(tester, scale: 1);
 
-    // 键帽：Ctrl / 1 / 6 在，5 不在。
-    expect(find.widgetWithText(KeyCap, 'Ctrl'), findsOneWidget);
-    expect(find.widgetWithText(KeyCap, '1'), findsOneWidget);
-    expect(find.widgetWithText(KeyCap, '6'), findsOneWidget);
+    // 键帽（`KeyCap`）是底注的构件；底注删掉后左栏里一枚都不该剩。
     expect(
-      find.widgetWithText(KeyCap, '5'),
+      find.byType(KeyCap),
       findsNothing,
-      reason: 'Task 65 UI 半批起「目标」页落地 ⇒ 底注承诺到 Ctrl+1…6，'
-          '不再停在 5',
+      reason: 'D-72-a 已删除左栏底注，左栏内不得再出现键帽',
     );
-
-    // 文案顺序：页面切换 → Ctrl → + → 1 → … → 6。
-    final List<Text> texts = _footTexts(_footWrap(tester));
-    expect(
-      texts.map((Text t) => t.data).toList(),
-      <String>['页面切换', 'Ctrl', '+', '1', '…', '6'],
-    );
+    expect(find.text('页面切换'), findsNothing);
+    expect(find.text('Page switch'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('N-2 底注字符总数 == 12', (WidgetTester tester) async {
+  testWidgets('F-2 200% 下同样零底注、零溢出', (WidgetTester tester) async {
     await _pumpNavScaled(tester, scale: 2);
 
-    final List<Text> texts = _footTexts(_footWrap(tester));
-    final String caption = texts.map((Text t) => t.data ?? '').join();
-    expect(caption, '页面切换Ctrl+1…6');
-    expect(caption.runes.length, 12);
+    // 先证明 200% 真的生效（否则「没有溢出」可能只是因为没放大）。
+    final Element anchor = tester.element(find.text('日志'));
+    expect(MediaQuery.textScalerOf(anchor).scale(10), 20);
+
+    expect(find.byType(KeyCap), findsNothing);
+    expect(find.text('页面切换'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('N-3 100% 下底注零溢出（无 RenderFlex overflowed）', (
+  testWidgets('F-3 竖排导航渲染 7 项，序号 01–07 齐且无 08', (
     WidgetTester tester,
   ) async {
     await _pumpNavScaled(tester, scale: 1);
 
-    // 100% 是恒等缩放 ⇒ 底注仍是「一行 Wrap」结构（原型形态）。
-    expect(find.widgetWithText(KeyCap, '6'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    for (final String label in <String>[
+      '日志',
+      '待办池',
+      '习惯',
+      '项目',
+      '日历',
+      '目标',
+      '蓝图',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: '缺少导航项 $label');
+    }
+    for (int i = 1; i <= 7; i++) {
+      expect(
+        find.text(i.toString().padLeft(2, '0')),
+        findsOneWidget,
+        reason: '缺少序号 ${i.toString().padLeft(2, '0')}',
+      );
+    }
+    expect(find.text('08'), findsNothing);
   });
 
-  testWidgets('N-4 200% 下底注排成 3 行且第 3 行非空', (
+  testWidgets('F-4 200% 下左栏文本不横向溢出导航栏宽度', (
     WidgetTester tester,
   ) async {
     await _pumpNavScaled(tester, scale: 2);
 
-    // 先证明 200% 真的生效：否则「3 行」可能只是因为根本没放大。
-    final Element anchor = tester.element(find.text('页面切换'));
-    final TextScaler scaler = MediaQuery.textScalerOf(anchor);
-    expect(scaler.scale(10), 20);
-
-    final List<List<Text>> rows = _rowsOf(tester, _footWrap(tester));
-    expect(rows, hasLength(3), reason: '200% 下底注应恰好 3 行，实测 ${rows.length}');
-    // 第 3 行非空（不是「预留了行高但没内容」）。
-    expect(_charsOf(rows[2]), greaterThan(0));
-    // 行内容逐行钉死：第 1 行「页面切换」、第 2 行「Ctrl + 1」、第 3 行「… 6」。
-    expect(
-      rows.map((List<Text> row) => row.map((Text t) => t.data ?? '').join()).toList(),
-      <String>['页面切换', 'Ctrl+1', '…6'],
-    );
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('N-5 200% 下每行字符数 ≥ 2（无孤字）', (WidgetTester tester) async {
-    await _pumpNavScaled(tester, scale: 2);
-
-    final List<List<Text>> rows = _rowsOf(tester, _footWrap(tester));
-    expect(rows, hasLength(3));
-    for (final List<Text> row in rows) {
-      final int chars = _charsOf(row);
-      expect(chars, greaterThanOrEqualTo(2), reason: '底注出现只含 $chars 个字符的孤立行');
-    }
-    // 合计必须等于 12，避免上面因漏算而恒真。
-    expect(rows.fold<int>(0, (int sum, List<Text> row) => sum + _charsOf(row)), 12);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('N-6 200% 下底注不横向溢出导航栏宽度', (WidgetTester tester) async {
-    await _pumpNavScaled(tester, scale: 2);
-
     expect(NavRail.width, 214);
-    for (final Text text in _footTexts(_footWrap(tester))) {
+    for (final Text text in _navTexts(tester)) {
       final Rect rect = tester.getRect(find.byWidget(text));
       expect(
         rect.right,
@@ -222,5 +143,19 @@ void main() {
       );
     }
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('F-5 底注残留文案（Ctrl / + / …）在左栏里全部找不到', (
+    WidgetTester tester,
+  ) async {
+    await _pumpNavScaled(tester, scale: 1);
+
+    for (final String remnant in <String>['Ctrl', '+', '…', '页面切换']) {
+      expect(
+        find.text(remnant),
+        findsNothing,
+        reason: 'D-72-a 删除后左栏不应残留底注片段「$remnant」',
+      );
+    }
   });
 }

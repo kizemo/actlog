@@ -25,6 +25,8 @@ import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/goal_month_review.dart';
+import '../widgets/goal_upstream_panel.dart';
+import '../widgets/shell/tool_rail.dart';
 
 /// 月目标页：年度汇总 + 上月复盘 + 本月目标 + 滚动候选。
 class GoalsMonthPage extends ConsumerStatefulWidget {
@@ -104,8 +106,13 @@ class _GoalsMonthPageState extends ConsumerState<GoalsMonthPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations t = AppLocalizations.of(context);
+    final AsyncValue<List<GoalRow>> openYearly = ref.watch(
+      yearOpenGoalsProvider,
+    );
+    final List<GoalRow> yearlyGoals =
+        openYearly.asData?.value ?? const <GoalRow>[];
 
-    return Column(
+    final Widget left = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -202,6 +209,129 @@ class _GoalsMonthPageState extends ConsumerState<GoalsMonthPage> {
         const SizedBox(height: AppTokens.gapCard),
       ],
     );
+
+    // 拖拽接收：只认 `goal://` 通道，其它 payload（如时间轴的裸待办 id）
+    // 返回 false ⇒ 原样放行，不吞别人的拖拽。
+    final Widget dropArea = DragTarget<String>(
+      key: const ValueKey<String>('goal-month-drop-target'),
+      onWillAcceptWithDetails: (DragTargetDetails<String> details) =>
+          goalIdFromDragPayload(details.data) != null,
+      onAcceptWithDetails: (DragTargetDetails<String> details) {
+        final String? id = goalIdFromDragPayload(details.data);
+        if (id == null) {
+          return;
+        }
+        for (final GoalRow row in yearlyGoals) {
+          if (row.id == id) {
+            _addFromYearly(row);
+            return;
+          }
+        }
+      },
+      builder: (
+        BuildContext context,
+        List<String?> candidateData,
+        List<dynamic> rejectedData,
+      ) => left,
+    );
+
+    final Widget panel = GoalUpstreamPanel(
+      kind: GoalKind.yearly,
+      title: t.goalsUpstreamYearTitle,
+      hint: t.goalsUpstreamAddHint,
+      emptyText: t.goalsUpstreamEmpty,
+      goals: yearlyGoals,
+      loading: openYearly.isLoading && !openYearly.hasValue,
+      errorText: openYearly.hasError ? t.operationFailed : null,
+      onPick: _addFromYearly,
+    );
+
+    // 宽屏并排、窄屏上下堆叠：阈值由壳层的折列常量推出（不新造断点）。
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (constraints.maxWidth < _sideBySideMinWidth) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              dropArea,
+              const SizedBox(height: AppTokens.gapCard),
+              panel,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(child: dropArea),
+            const SizedBox(width: ToolRail.panelGap),
+            SizedBox(width: _upstreamWidth, child: panel),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 右栏宽度（沿用壳层第一栏口径 `ToolRail.railWidth`）。
+  static const double _upstreamWidth = ToolRail.railWidth;
+
+  /// 并排所需最小宽度：左栏至少一个折列宽 + 面板间距 + 右栏。
+  static const double _sideBySideMinWidth =
+      ToolRail.minColumnWidth + ToolRail.panelGap + _upstreamWidth;
+
+  /// 本页已派生过的上游目标 id（同步幂等闸门，挡住连点与回读未完成之间的窗口）。
+  final Set<String> _derivedFromYearly = <String>{};
+
+  /// 由一条年目标派生一条**本月**月目标（D-72-e：派生，不改父目标状态）。
+  Future<void> _addFromYearly(GoalRow yearly) async {
+    if (_derivedFromYearly.contains(yearly.id) ||
+        _alreadyServedYearly(_lastData, yearly.id)) {
+      return;
+    }
+    _derivedFromYearly.add(yearly.id);
+    setState(() => _error = null);
+    try {
+      final GoalPeriod period = _period;
+      await ref.read(goalStoreProvider).saveWeeklyDrafts(<GoalDraft>[
+        GoalDraft(
+          kind: GoalKind.monthly,
+          title: yearly.title,
+          periodStart: period.startMillis,
+          periodEnd: period.endMillis,
+          parentId: yearly.id,
+          domain: yearly.domain,
+          note: yearly.note,
+          sourceGoalId: yearly.id,
+          origin: GoalDraftOrigin.fromUpperLayer,
+        ),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _future = _load());
+    } on Object {
+      // 写失败 ⇒ 撤掉闸门，允许用户重试。
+      _derivedFromYearly.remove(yearly.id);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
+  }
+
+  /// 本月是否已有月目标 `serves` 这条年目标（幂等判据：读回来的服务关系）。
+  bool _alreadyServedYearly(_MonthData? data, String yearlyId) {
+    if (data == null) {
+      return false;
+    }
+    for (final List<GoalRow> parents in data.servedByMonthGoal.values) {
+      for (final GoalRow parent in parents) {
+        if (parent.id == yearlyId) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /// 本月目标表：类别 | 序号 | 目标 | 方法和措施 | 完成。

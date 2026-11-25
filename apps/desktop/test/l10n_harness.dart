@@ -4,7 +4,7 @@
 // 为什么这些放在 test\ 而不是 lib\：它只为测试服务，进 lib 就是又造一层生产代码
 // 里的转发（本项目明令不要 `AppStrings.xxx => t.xxx` 那种壳）。
 //
-// `l10nAccessors` 是**测试数据**：把 503 条 getter 一条一条列成「键 → 取值闭包」
+// `l10nAccessors` 是**测试数据**：把 511 条 getter 一条一条列成「键 → 取值闭包」
 // （列表型 4 条在 `l10nListAccessors`）。
 // 有了它，测试才能不看 getter 名地遍历全部文案（校验非空、校验中英不同、校验
 // 键数与条数一致）。新增 getter 时两侧都要加一行 —— 少了就会在
@@ -113,6 +113,16 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.goalsTabMonth: (AppLocalizations t) => t.goalsTabMonth,
   L10nKeys.goalsTabYear: (AppLocalizations t) => t.goalsTabYear,
   L10nKeys.goalsTabBlueprint: (AppLocalizations t) => t.goalsTabBlueprint,
+  // 未完成目标上游面板 6 条（Batch 7 · D-72-c）
+  L10nKeys.goalsUpstreamYearTitle: (AppLocalizations t) =>
+      t.goalsUpstreamYearTitle,
+  L10nKeys.goalsUpstreamMonthTitle: (AppLocalizations t) =>
+      t.goalsUpstreamMonthTitle,
+  L10nKeys.goalsUpstreamWeekTitle: (AppLocalizations t) =>
+      t.goalsUpstreamWeekTitle,
+  L10nKeys.goalsUpstreamAddHint: (AppLocalizations t) => t.goalsUpstreamAddHint,
+  L10nKeys.goalsUpstreamEmpty: (AppLocalizations t) => t.goalsUpstreamEmpty,
+  L10nKeys.goalsUpstreamAddMenu: (AppLocalizations t) => t.goalsUpstreamAddMenu,
   L10nKeys.goalsWeekSection: (AppLocalizations t) => t.goalsWeekSection,
   L10nKeys.goalsWeekEmpty: (AppLocalizations t) => t.goalsWeekEmpty,
   L10nKeys.goalsColumnOrder: (AppLocalizations t) => t.goalsColumnOrder,
@@ -228,6 +238,10 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
   L10nKeys.shellNavCalendar: (AppLocalizations t) => t.shellNavCalendar,
   L10nKeys.shellNavSettings: (AppLocalizations t) => t.shellNavSettings,
   L10nKeys.shellNavGoals: (AppLocalizations t) => t.shellNavGoals,
+  // 左栏第 7 项「蓝图」2 条（Batch 7 · D-72-a / D-72-b）
+  L10nKeys.shellNavBlueprint: (AppLocalizations t) => t.shellNavBlueprint,
+  L10nKeys.shellNavBlueprintDesc: (AppLocalizations t) =>
+      t.shellNavBlueprintDesc,
   L10nKeys.shellShortcutsTitle: (AppLocalizations t) => t.shellShortcutsTitle,
   L10nKeys.shellPageSwitch: (AppLocalizations t) => t.shellPageSwitch,
   L10nKeys.shellKeyAddEntry: (AppLocalizations t) => t.shellKeyAddEntry,

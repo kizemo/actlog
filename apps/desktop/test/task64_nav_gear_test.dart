@@ -2,7 +2,7 @@
 // Task 64 · 左栏「设置」齿轮化 + 新增「目标」导航项（Ctrl+6）
 // =============================================================================
 // 本文件锁住 Task 64 的三条口径：
-//  1. 左栏**总项数仍是 6**：第 6 项由「设置」换成「目标」；
+//  1. 左栏项数与末项：第 6 项由「设置」换成「目标」（Task 64），第 7 项「蓝图」（Task 72）；
 //  2. 「设置」沉底成**自绘齿轮**（零 Material 图标），点击仍回调 `settings`；
 //  3. 快捷键清单新增第 9 条 `Ctrl+6` ⇒ 切到目标。
 //
@@ -57,20 +57,20 @@ Future<void> _pumpNav(
 }
 
 void main() {
-  testWidgets('左栏仍是 6 项：第 6 项换成「目标」，「设置」不再是导航项',
+  testWidgets('左栏 7 项：第 6 项「目标」、第 7 项「蓝图」，「设置」不再是导航项',
       (WidgetTester tester) async {
     await _pumpNav(tester);
 
-    expect(kShellNavItems.length, 6, reason: '左栏总项数必须仍是 6');
-    expect(kShellNavItems.last.id, 'goals');
+    expect(kShellNavItems.length, 7, reason: '左栏总项数 7（Task 72 起加「蓝图」）');
+    expect(kShellNavItems.last.id, 'blueprint');
     // 常量清单是「中文快照」，必须与 l10n 的中文取值逐字一致。
-    expect(kShellNavItems.last.label, AppLocalizations.zh.shellNavGoals);
+    expect(kShellNavItems.last.label, AppLocalizations.zh.shellNavBlueprint);
 
     final AppLocalizations zh = AppLocalizations.zh;
     final List<ShellNavItem> items = shellNavItemsFor(zh);
-    expect(items.length, 6);
-    expect(items.last.id, 'goals');
-    expect(items.last.label, zh.shellNavGoals);
+    expect(items.length, 7);
+    expect(items.last.id, 'blueprint');
+    expect(items.last.label, zh.shellNavBlueprint);
 
     // 界面上有「目标」这一行，没有「设置」这一行（设置沉底成齿轮了）。
     expect(find.text(zh.shellNavGoals), findsOneWidget);
@@ -111,12 +111,12 @@ void main() {
     );
   });
 
-  testWidgets('左栏可点元素 = 6 个导航项 + 1 枚齿轮（项数没变，多了一枚齿轮）',
+  testWidgets('左栏可点元素 = 7 个导航项 + 1 枚齿轮',
       (WidgetTester tester) async {
     await _pumpNav(tester);
 
-    // 导航项 6 个 InkWell + 齿轮 1 个 InkWell。
-    expect(find.byType(InkWell), findsNWidgets(7));
+    // 导航项 7 个 InkWell + 齿轮 1 个 InkWell。
+    expect(find.byType(InkWell), findsNWidgets(8));
   });
 
   testWidgets('横排模式：齿轮挂在行末（导航项右侧），点击同样回调 settings',
@@ -127,7 +127,7 @@ void main() {
     expect(find.byType(GoalGearButton), findsOneWidget);
     final double gearRight = tester.getTopRight(find.byType(GoalGearButton)).dx;
     final double lastItemRight = tester.getTopRight(
-      find.text(AppLocalizations.zh.shellNavGoals),
+      find.text(AppLocalizations.zh.shellNavBlueprint),
     ).dx;
     expect(gearRight, greaterThan(lastItemRight));
 
