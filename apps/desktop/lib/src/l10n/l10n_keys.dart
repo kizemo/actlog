@@ -1838,13 +1838,43 @@ abstract final class L10nKeys {
   static const String goalBlueprintWeeklyTarget =
       'goal-blueprint-weekly-target';
 
-  /// 蓝图页：待确认待办区标题。
-  static const String goalBlueprintPendingTodos =
-      'goal-blueprint-pending-todos';
+  /// 拆分层级对话框：标题（B9-W3）。
+  static const String goalSplitDialogTitle = 'goal-split-dialog-title';
 
-  /// 蓝图页：确认写入待办的动作。
-  static const String goalBlueprintConfirmTodos =
-      'goal-blueprint-confirm-todos';
+  /// 拆分层级对话框：填写说明。
+  static const String goalSplitDialogHint = 'goal-split-dialog-hint';
+
+  /// 拆分层级对话框：目标类型选择器标签。
+  static const String goalSplitDialogTargetLabel =
+      'goal-split-dialog-target-label';
+
+  /// 拆分层级对话框：加一行。
+  static const String goalSplitDialogAddRow = 'goal-split-dialog-add-row';
+
+  /// 拆分层级对话框：删除这一行。
+  static const String goalSplitDialogRemoveRow =
+      'goal-split-dialog-remove-row';
+
+  /// 拆分层级对话框：确认拆分（确认即落库）。
+  static const String goalSplitDialogConfirm = 'goal-split-dialog-confirm';
+
+  /// 拆分层级对话框：一行都没填时的提示。
+  static const String goalSplitDialogEmptyRow = 'goal-split-dialog-empty-row';
+
+  /// 拆分层级对话框：写入成功的提示。
+  static const String goalSplitDialogSaved = 'goal-split-dialog-saved';
+
+  /// 拆分层级对话框：写入失败的提示。
+  static const String goalSplitDialogFailed = 'goal-split-dialog-failed';
+
+  /// 拆分层级对话框：目标类型「年目标」。
+  static const String goalSplitTargetYearly = 'goal-split-target-yearly';
+
+  /// 拆分层级对话框：目标类型「待办任务」。
+  static const String goalSplitTargetTodo = 'goal-split-target-todo';
+
+  /// 拆分层级对话框：确认即落库的说明。
+  static const String goalSplitDialogNote = 'goal-split-dialog-note';
 
   /// 蓝图格：新建目标入口（B8-W1）。
   static const String goalBlueprintAddGoal = 'goal-blueprint-add-goal';
@@ -2279,8 +2309,18 @@ abstract final class L10nKeys {
     'goalBlueprintBlankRowHint': goalBlueprintBlankRowHint,
     'goalBlueprintActionsCount': goalBlueprintActionsCount,
     'goalBlueprintWeeklyTarget': goalBlueprintWeeklyTarget,
-    'goalBlueprintPendingTodos': goalBlueprintPendingTodos,
-    'goalBlueprintConfirmTodos': goalBlueprintConfirmTodos,
+    'goalSplitDialogTitle': goalSplitDialogTitle,
+    'goalSplitDialogHint': goalSplitDialogHint,
+    'goalSplitDialogTargetLabel': goalSplitDialogTargetLabel,
+    'goalSplitDialogAddRow': goalSplitDialogAddRow,
+    'goalSplitDialogRemoveRow': goalSplitDialogRemoveRow,
+    'goalSplitDialogConfirm': goalSplitDialogConfirm,
+    'goalSplitDialogEmptyRow': goalSplitDialogEmptyRow,
+    'goalSplitDialogSaved': goalSplitDialogSaved,
+    'goalSplitDialogFailed': goalSplitDialogFailed,
+    'goalSplitTargetYearly': goalSplitTargetYearly,
+    'goalSplitTargetTodo': goalSplitTargetTodo,
+    'goalSplitDialogNote': goalSplitDialogNote,
     'goalBlueprintBalanceSection': goalBlueprintBalanceSection,
     'goalBlueprintBalanceEmpty': goalBlueprintBalanceEmpty,
     'goalBlueprintBalanceHabit': goalBlueprintBalanceHabit,

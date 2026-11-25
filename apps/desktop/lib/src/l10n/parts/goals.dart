@@ -278,11 +278,41 @@ abstract class GoalsL10n {
   /// 蓝图格展开：周目标标签。
   String get goalBlueprintWeeklyTarget;
 
-  /// 蓝图页：待确认待办区标题。
-  String get goalBlueprintPendingTodos;
+  /// 拆分层级对话框：标题（B9-W3）。
+  String get goalSplitDialogTitle;
 
-  /// 蓝图页：确认写入待办的动作。
-  String get goalBlueprintConfirmTodos;
+  /// 拆分层级对话框：填写说明。
+  String get goalSplitDialogHint;
+
+  /// 拆分层级对话框：目标类型选择器标签。
+  String get goalSplitDialogTargetLabel;
+
+  /// 拆分层级对话框：加一行。
+  String get goalSplitDialogAddRow;
+
+  /// 拆分层级对话框：删除这一行。
+  String get goalSplitDialogRemoveRow;
+
+  /// 拆分层级对话框：确认拆分（确认即落库）。
+  String get goalSplitDialogConfirm;
+
+  /// 拆分层级对话框：一行都没填时的提示。
+  String get goalSplitDialogEmptyRow;
+
+  /// 拆分层级对话框：写入成功的提示。
+  String get goalSplitDialogSaved;
+
+  /// 拆分层级对话框：写入失败的提示。
+  String get goalSplitDialogFailed;
+
+  /// 拆分层级对话框：目标类型「年目标」。
+  String get goalSplitTargetYearly;
+
+  /// 拆分层级对话框：目标类型「待办任务」。
+  String get goalSplitTargetTodo;
+
+  /// 拆分层级对话框：确认即落库的说明。
+  String get goalSplitDialogNote;
 
   /// 蓝图页平衡轮区块标题（纯派生，不落库）。
   String get goalBlueprintBalanceSection;
@@ -745,10 +775,40 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBlueprintWeeklyTarget => '周目标';
 
   @override
-  String get goalBlueprintPendingTodos => '待确认待办';
+  String get goalSplitDialogTitle => '拆分目标';
 
   @override
-  String get goalBlueprintConfirmTodos => '确认写入待办';
+  String get goalSplitDialogHint => '每行一条；留空的行会被忽略。';
+
+  @override
+  String get goalSplitDialogTargetLabel => '拆成';
+
+  @override
+  String get goalSplitDialogAddRow => '加一行';
+
+  @override
+  String get goalSplitDialogRemoveRow => '删除这一行';
+
+  @override
+  String get goalSplitDialogConfirm => '确认拆分';
+
+  @override
+  String get goalSplitDialogEmptyRow => '至少填写一行子目标';
+
+  @override
+  String get goalSplitDialogSaved => '已拆分并写入对应表格';
+
+  @override
+  String get goalSplitDialogFailed => '拆分写入失败，请重试';
+
+  @override
+  String get goalSplitTargetYearly => '年目标';
+
+  @override
+  String get goalSplitTargetTodo => '待办任务';
+
+  @override
+  String get goalSplitDialogNote => '确认后直接写入对应表格，不再经过待确认队列。';
 
   @override
   String get goalBlueprintBalanceSection => '平衡轮（派生，不落库）';
@@ -1222,10 +1282,41 @@ mixin GoalsEnL10n implements GoalsL10n {
   String get goalBlueprintWeeklyTarget => 'Weekly goal';
 
   @override
-  String get goalBlueprintPendingTodos => 'Pending todos';
+  String get goalSplitDialogTitle => 'Split goal';
 
   @override
-  String get goalBlueprintConfirmTodos => 'Create these todos';
+  String get goalSplitDialogHint => 'One per line; blank rows are ignored.';
+
+  @override
+  String get goalSplitDialogTargetLabel => 'Split into';
+
+  @override
+  String get goalSplitDialogAddRow => 'Add row';
+
+  @override
+  String get goalSplitDialogRemoveRow => 'Remove this row';
+
+  @override
+  String get goalSplitDialogConfirm => 'Confirm split';
+
+  @override
+  String get goalSplitDialogEmptyRow => 'Fill in at least one row';
+
+  @override
+  String get goalSplitDialogSaved => 'Split and saved to the matching table';
+
+  @override
+  String get goalSplitDialogFailed => 'Split failed, please retry';
+
+  @override
+  String get goalSplitTargetYearly => 'Yearly goals';
+
+  @override
+  String get goalSplitTargetTodo => 'Todo tasks';
+
+  @override
+  String get goalSplitDialogNote =>
+      'Confirming writes straight to the matching table — no pending queue.';
 
   @override
   String get goalBlueprintBalanceSection =>

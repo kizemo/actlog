@@ -68,7 +68,8 @@ class GoalBlueprintMatrix extends StatefulWidget {
   /// 目标 id → `tracks` 执行实体条数（做法条数）。
   final Map<String, int> tracksCount;
 
-  /// 拆分回调（本棒仍走「拆成 3 条待办」旧链路）。
+  /// 拆分回调（B9-W3：打开拆分层级对话框，**确认即落库**；D-9-e 已废止
+  /// 旧的「拆成 3 条待办 → 页内待确认队列」两段式链路）。
   final void Function(GoalRow goal) onSplitTodos;
 
   /// 空格子里的「+ 新建目标」回调（领域 + 所在档位由格子带入）。

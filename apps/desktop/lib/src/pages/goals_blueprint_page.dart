@@ -12,8 +12,11 @@
 //     加上 `horizon='near'` 的蓝图目标 —— 与年页**同一份数据源**，不另建一份。
 //     格内显示标题 + 做法条数（`tracks` 关联条数）；**未落位** = 既没有下级目标、
 //     也没有任何执行实体。
-//  2. **待确认待办区**：「拆成 3 条待办」先进页内队列，用户点确认才
-//     `TodoRepository.create` × 3 并 `tracks` 挂回原目标（**未确认时库里 0 增量**）。
+//  2. **拆分层级（B9-W3，裁决 D-9-e）**：卡片右侧的拆分入口打开对话框，
+//     层内选好子目标后**点确认就落库** —— 没有「待确认待办」中间态。
+//     终极 → 远期 → 中期 → 短期是蓝图目标（`parent_id` + `serves` 双写）；
+//     短期 / 近期则二选一：年度目标（`period_start` = 本年起点 + `serves`）
+//     或待办任务（`TodoRepository.create` + 父目标 `tracks`）。
 //  3. **人生平衡轮**：纯派生只读 —— 本月/上月自评均值 + 习惯打卡频次，
 //     **界面上看到的数字不回写目标库**。
 //
@@ -40,6 +43,7 @@ import '../widgets/goal_blueprint_matrix.dart';
 import '../widgets/goal_brand_panel.dart';
 import '../widgets/goal_year_matrix.dart';
 import '../widgets/goals/goal_form_dialog.dart';
+import '../widgets/goals/goal_split_dialog.dart';
 
 /// 人生蓝图页：蓝图矩阵 + 待确认待办 + 平衡轮。
 class GoalsBlueprintPage extends ConsumerStatefulWidget {
@@ -51,25 +55,6 @@ class GoalsBlueprintPage extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<GoalsBlueprintPage> createState() => _GoalsBlueprintPageState();
-}
-
-/// 一条待确认的「拆成 3 条待办」。
-class _TodoSplit {
-  /// 构造。
-  const _TodoSplit({required this.goalId, required this.goalTitle});
-
-  /// 被拆的目标 id。
-  final String goalId;
-
-  /// 被拆的目标标题。
-  final String goalTitle;
-
-  /// 三条待办的标题。
-  ///
-  /// 序号用 ASCII（`1/3`），这样英文界面也不会漏出中文标点。
-  List<String> titles() => <String>[
-    for (int i = 1; i <= 3; i++) '$goalTitle $i/3',
-  ];
 }
 
 /// 蓝图页读模型（本页私有）。
@@ -103,19 +88,13 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   /// 读模型（缓存一次，避免 FutureBuilder 重建循环）。
   Future<_BlueprintData>? _future;
 
-  /// 待确认的「拆成 3 条待办」队列（**未确认前库里 0 增量**）。
-  final List<_TodoSplit> _pending = <_TodoSplit>[];
+  /// 拆分是否已写入（B9-W3：确认即落库，没有中间队列）。
+  bool _splitSaved = false;
 
-  /// 是否正在写待办。
-  bool _saving = false;
+  /// 拆分写失败提示（null = 无错误）。
+  String? _splitFailed;
 
-  /// 是否已写入成功。
-  bool _saved = false;
-
-  /// 写失败提示（null = 无错误）。
-  String? _error;
-
-  /// 目标是否已保存（B8-W1：与待办那组标志**分开**，两块互不干扰）。
+  /// 目标是否已保存（B8-W1：与拆分那组标志**分开**，两块互不干扰）。
   bool _goalSaved = false;
 
   /// 目标是否已删除。
@@ -235,17 +214,23 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
             key: const ValueKey<String>('goal-blueprint-goal-error'),
             style: _metaStyle(context),
           ),
+        if (_splitSaved)
+          Text(
+            t.goalSplitDialogSaved,
+            key: const ValueKey<String>('goal-split-saved'),
+            style: _metaStyle(context),
+          ),
+        if (_splitFailed != null)
+          Text(
+            _splitFailed!,
+            key: const ValueKey<String>('goal-split-failed'),
+            style: _metaStyle(context),
+          ),
         const SizedBox(height: AppTokens.gapCard),
         const GoalBrandPanel(),
         const SizedBox(height: AppTokens.gapCard),
         // B9-W2：矩阵不再有段头（标签页本身已经是分档入口）。
         _block(t, null, (_BlueprintData data) => _buildMatrix(data, t)),
-        const SizedBox(height: AppTokens.gapCard),
-        _block(
-          t,
-          t.goalBlueprintPendingTodos,
-          (_BlueprintData data) => _buildPendingTodos(data, t),
-        ),
         const SizedBox(height: AppTokens.gapCard),
         _block(
           t,
@@ -290,7 +275,7 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
           rows: data.rows,
           serves: data.serves,
           tracksCount: data.tracksCount,
-          onSplitTodos: _addSplit,
+          onSplitTodos: _openSplit,
           onAddGoal: _openCreateGoal,
           onEditGoal: _openEditGoal,
           onDeleteGoal: _confirmDeleteGoal,
@@ -301,99 +286,81 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
     );
   }
 
-  /// 待确认待办区（**只算不写**）。
-  Widget _buildPendingTodos(_BlueprintData data, AppLocalizations t) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        if (_pending.isEmpty)
-          Text(
-            t.goalBlueprintPendingTodos,
-            key: const ValueKey<String>('goal-blueprint-todo-empty'),
-            style: _metaStyle(context),
-          )
-        else
-          for (final _TodoSplit split in _pending)
-            for (final String title in split.titles())
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(
-                  title,
-                  key: ValueKey<String>('goal-blueprint-pending-$title'),
-                  style: _bodyStyle(context),
-                ),
-              ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            key: const ValueKey<String>('goal-blueprint-todo-confirm'),
-            onPressed: _saving || _pending.isEmpty
-                ? null
-                : () => _confirmTodos(),
-            child: Text(t.goalBlueprintConfirmTodos),
-          ),
-        ),
-        if (_saved)
-          Text(
-            t.goalsDraftSaved,
-            key: const ValueKey<String>('goal-blueprint-todo-saved'),
-            style: _metaStyle(context),
-          ),
-        if (_error != null)
-          Text(
-            _error!,
-            key: const ValueKey<String>('goal-blueprint-todo-error'),
-            style: _metaStyle(context),
-          ),
-      ],
+  /// 拆分入口：打开对话框，确认后**直接落库**（D-9-e，没有中间队列）。
+  Future<void> _openSplit(GoalRow goal) async {
+    // `t` 必须在页面自己的 context 上取：overlay 在 `L10nScope` 之上。
+    final AppLocalizations t = AppLocalizations.of(context);
+    final GoalSplitResult? result = await showGoalSplitDialog(
+      context,
+      t: t,
+      parentTitle: goal.title,
+      parentHorizon: goal.horizon ?? GoalHorizon.ultimate,
     );
+    if (result == null || !mounted) {
+      return;
+    }
+    await _writeSplit(goal, result);
   }
 
-  /// 「拆成 3 条待办」进页内队列（**不落库**）。
-  void _addSplit(GoalRow goal) {
+  /// 拆分结果落库（派工书 §3.1 映射）。
+  ///
+  /// * 终极 → 远期 / 远期 → 中期 / 中期 → 短期：蓝图子目标 + `serves` 链接；
+  /// * 短期 / 近期 → 年目标：`period_start` 取本年周期 + `serves` 链接；
+  /// * 短期 / 近期 → 待办：`TodoRepository.create` + 父目标 `tracks` 链接。
+  ///
+  /// 全程**不改父目标的 `status`**：派生只增行，状态只由目标自身编辑改。
+  Future<void> _writeSplit(GoalRow parent, GoalSplitResult result) async {
     setState(() {
-      _pending.add(_TodoSplit(goalId: goal.id, goalTitle: goal.title));
-    });
-  }
-
-  /// 用户确认 ⇒ 建 3 条待办 + 用 `tracks` 挂回原目标。
-  Future<void> _confirmTodos() async {
-    setState(() {
-      _saving = true;
-      _saved = false;
-      _error = null;
+      _splitSaved = false;
+      _splitFailed = null;
     });
     try {
       final GoalStore store = ref.read(goalStoreProvider);
-      for (final _TodoSplit split in _pending) {
-        for (final String title in split.titles()) {
+      final GoalHorizon parentHorizon =
+          parent.horizon ?? GoalHorizon.ultimate;
+      final GoalHorizon? childHorizon = goalSplitChildHorizon(parentHorizon);
+      final GoalPeriod year = GoalPeriod.year(_period.year);
+      for (final String title in result.titles) {
+        if (result.target == GoalSplitTarget.todo) {
           final String todoId = await store.repos.todo.create(title: title);
           await store.link(
-            goalId: split.goalId,
+            goalId: parent.id,
             targetType: GoalTargetType.todo,
             targetId: todoId,
             relation: GoalRelation.tracks,
           );
+          continue;
         }
+        final bool yearly = result.target == GoalSplitTarget.yearly;
+        final String childId = await store.createGoal(
+          kind: yearly ? GoalKind.yearly : GoalKind.blueprint,
+          title: title,
+          parentId: parent.id,
+          domain: parent.domain,
+          horizon: yearly ? null : childHorizon,
+          periodStart: yearly ? year.startMillis : 0,
+          periodEnd: yearly ? year.endMillis : null,
+        );
+        await store.link(
+          goalId: childId,
+          targetType: GoalTargetType.goal,
+          targetId: parent.id,
+          relation: GoalRelation.serves,
+        );
       }
       if (!mounted) {
         return;
       }
-      setState(() {
-        _pending.clear();
-        _saved = true;
-      });
+      setState(() => _splitSaved = true);
       _future = _load();
     } on Object {
       if (!mounted) {
         return;
       }
-      setState(() => _error = AppLocalizations.of(context).operationFailed);
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      setState(
+        () => _splitFailed =
+            AppLocalizations.of(context).goalSplitDialogFailed,
+      );
     }
   }
 
@@ -526,11 +493,6 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
     final String text = value.trim();
     return text.isEmpty ? null : text;
   }
-
-  /// 正文样式。
-  TextStyle? _bodyStyle(BuildContext context) =>
-      Theme.of(context).textTheme.bodyMedium
-          ?.copyWith(color: context.tokens.ink);
 
   /// 次级文字样式。
   TextStyle? _metaStyle(BuildContext context) =>

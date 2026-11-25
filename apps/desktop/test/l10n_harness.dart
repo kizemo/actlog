@@ -220,10 +220,26 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
       t.goalBlueprintActionsCount,
   L10nKeys.goalBlueprintWeeklyTarget: (AppLocalizations t) =>
       t.goalBlueprintWeeklyTarget,
-  L10nKeys.goalBlueprintPendingTodos: (AppLocalizations t) =>
-      t.goalBlueprintPendingTodos,
-  L10nKeys.goalBlueprintConfirmTodos: (AppLocalizations t) =>
-      t.goalBlueprintConfirmTodos,
+  L10nKeys.goalSplitDialogTitle: (AppLocalizations t) => t.goalSplitDialogTitle,
+  L10nKeys.goalSplitDialogHint: (AppLocalizations t) => t.goalSplitDialogHint,
+  L10nKeys.goalSplitDialogTargetLabel: (AppLocalizations t) =>
+      t.goalSplitDialogTargetLabel,
+  L10nKeys.goalSplitDialogAddRow: (AppLocalizations t) =>
+      t.goalSplitDialogAddRow,
+  L10nKeys.goalSplitDialogRemoveRow: (AppLocalizations t) =>
+      t.goalSplitDialogRemoveRow,
+  L10nKeys.goalSplitDialogConfirm: (AppLocalizations t) =>
+      t.goalSplitDialogConfirm,
+  L10nKeys.goalSplitDialogEmptyRow: (AppLocalizations t) =>
+      t.goalSplitDialogEmptyRow,
+  L10nKeys.goalSplitDialogSaved: (AppLocalizations t) =>
+      t.goalSplitDialogSaved,
+  L10nKeys.goalSplitDialogFailed: (AppLocalizations t) =>
+      t.goalSplitDialogFailed,
+  L10nKeys.goalSplitTargetYearly: (AppLocalizations t) =>
+      t.goalSplitTargetYearly,
+  L10nKeys.goalSplitTargetTodo: (AppLocalizations t) => t.goalSplitTargetTodo,
+  L10nKeys.goalSplitDialogNote: (AppLocalizations t) => t.goalSplitDialogNote,
   L10nKeys.goalBlueprintBalanceSection: (AppLocalizations t) =>
       t.goalBlueprintBalanceSection,
   L10nKeys.goalBlueprintBalanceEmpty: (AppLocalizations t) =>

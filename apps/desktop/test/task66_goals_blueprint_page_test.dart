@@ -7,8 +7,8 @@
 //  2. 「短期」标签页 = 原「短期」列 + 原「近期（1 年）」列（near 蓝图 + 本年度
 //     `kind == yearly` 年目标），与年页**同一份数据源**（`GoalYearView.yearlyGoals`）。
 //  3. **未落位** = 既没有下级目标、也没有任何 `tracks` 执行实体；正例与负例都要断。
-//  4. 拆分图标先进待确认队列；确认前库里 0 增量，确认后建 3 条待办并用 `tracks`
-//     挂回原目标。
+//  4. 拆分图标打开拆分层级对话框（B9-W3 / D-9-e）：确认前库里 0 增量，
+//     确认即落库 —— 终极档拆出的是 3 条远期蓝图目标并挂 `serves`。
 //  5. 平衡轮是**纯派生只读**：界面上看到的数字不回写目标库。
 //  6. B9-W2：段头「人生蓝图矩阵」不再渲染；空格子只有右下角「+」、没有「（空）」；
 //     蓝图卡片右侧同时有铅笔与拆分图标；年目标不给铅笔 / 拆分（D-9-c）。
@@ -287,43 +287,54 @@ void main() {
     );
   });
 
-  testWidgets('蓝图页：拆分图标进待确认队列，确认前 0 增量，确认后建 3 条并挂 tracks', (
+  testWidgets('蓝图页：拆分图标打开对话框，确认前 0 增量，确认后建 3 条并挂 serves', (
     WidgetTester tester,
   ) async {
     final _Seed seed = await _seed(store);
+    final int goalsBefore = (await store.listGoals()).length;
     await _pumpBlueprint(tester, repos: repos);
-
-    expect((await repos.todo.listOpen()).length, 0);
 
     final Finder split = find.byKey(
       ValueKey<String>('goal-blueprint-split-${seed.ultimateId}'),
     );
     await tester.ensureVisible(split);
     await tester.tap(split);
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    for (final String title in <String>['终极蓝图 1/3', '终极蓝图 2/3', '终极蓝图 3/3']) {
-      expect(
-        find.byKey(ValueKey<String>('goal-blueprint-pending-$title')),
-        findsOneWidget,
+    // 打开的是拆分层级对话框：默认 3 行空输入（不再有页内待确认队列）。
+    for (int i = 0; i < 3; i++) {
+      await tester.enterText(
+        find.byKey(ValueKey<String>('goal-split-title-$i')),
+        '远期 $i',
       );
     }
-    // 还没点确认 ⇒ 待办池 0 增量。
-    expect((await repos.todo.listOpen()).length, 0);
+    await tester.pump();
+    // 还没点确认 ⇒ 库里 0 增量。
+    expect((await store.listGoals()).length, goalsBefore);
 
     final Finder confirm = find.byKey(
-      const ValueKey<String>('goal-blueprint-todo-confirm'),
+      const ValueKey<String>('goal-split-confirm'),
     );
     await tester.ensureVisible(confirm);
     await tester.tap(confirm);
     await tester.pumpAndSettle();
 
-    expect((await repos.todo.listOpen()).length, 3);
-    final List<GoalLinkRow> links = await store.listLinks(
-      seed.ultimateId,
-      relation: GoalRelation.tracks,
-    );
-    expect(links.length, 3, reason: '3 条待办都要挂回原目标');
+    final List<GoalRow> all = await store.listGoals();
+    expect(all.length, goalsBefore + 3, reason: '确认即落库，三条子目标');
+    final List<GoalRow> children = <GoalRow>[
+      for (final GoalRow goal in all)
+        if (goal.parentId == seed.ultimateId) goal,
+    ];
+    expect(children.length, 3);
+    for (final GoalRow child in children) {
+      expect(child.horizon, GoalHorizon.long, reason: '终极的下一层是远期');
+      final List<GoalLinkRow> serves = await store.listLinks(
+        child.id,
+        relation: GoalRelation.serves,
+      );
+      expect(serves.length, 1);
+      expect(serves.single.targetId, seed.ultimateId);
+    }
   });
 
   testWidgets('蓝图页：平衡轮是纯派生，渲染后库里 0 增量', (WidgetTester tester) async {
@@ -357,7 +368,7 @@ void main() {
     expect(find.text('Life blueprint matrix'), findsNothing);
     // 去标题只针对矩阵块：其它区块段头照旧在。
     expect(
-      find.text(AppLocalizations.zh.goalBlueprintPendingTodos),
+      find.text(AppLocalizations.zh.goalBlueprintBalanceSection),
       findsWidgets,
     );
   });
