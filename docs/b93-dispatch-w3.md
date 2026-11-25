@@ -12,8 +12,8 @@
 | 棒次 | **B9-W3**（B9 共 4 棒，**串行**；本棒在 W2 收口后开工） |
 | 设计真源 | `F:\soft\00selfmade\practilog\docs\plan-goals-ui-batch9.md`（W3 段落：§4 行 173–217；l10n 预算：§5.3 行 278–284；契约变更表：§6） |
 | 项目规范 | `F:\soft\00selfmade\practilog\AGENTS.md`（**动手前必读**：R1 / R2 / R5 / §5 坑 51、97、108） |
-| 起点 | W1（品牌面板）、W2（矩阵四标签页）已入库 |
-| 基线测试数 | `<<DESKTOP_BASE_AFTER_W2>>`（控制器回填；本棒结束 = 该数 + N3，`N3 ≥ 8`） |
+| 起点 | W1（品牌面板）、W2（矩阵四标签页）已入库；起点 `HEAD = 0f123b6` |
+| 基线测试数 | `936`（W2 收口实测；本棒结束 = 936 + N3，`N3 ≥ 8`） |
 
 ---
 
@@ -23,7 +23,7 @@
 
 **控制器裁决（D-9-e）**：用户明文「确认拆分后，也直接填入对应表格」⇒ **旧的两段式（先拆成待办、再在页面上点「确认」写入）整体废止**。点「确认」**直接写库**。
 
-> **W2 基线（控制器回填）**：`<<DESKTOP_BASE_AFTER_W2>>` = W2 收口后的 desktop 全量测试数。
+> **W2 基线（控制器回填）**：`936` = W2 收口后的 desktop 全量测试数。
 
 ---
 
@@ -147,7 +147,7 @@ $env:PUB_HOSTED_URL='https://pub.flutter-io.cn'; $env:FLUTTER_STORAGE_BASE_URL='
 | 项 | 期望 |
 |---|---|
 | analyze | **逐字** `No issues found!` |
-| 全量测试 | 精确 = `<<DESKTOP_BASE_AFTER_W2>>` + N3（N3 ≥ 8） |
+| 全量测试 | 精确 = `936` + N3（N3 ≥ 8） |
 | l10n 计数 | `byGetter = accessors = 585`；`总数 = 642` |
 | 落库双证（测试内） | 见 §6 |
 | 代码卫生 | 零 `print(`；Dart 源 LF、无 BOM |
@@ -179,7 +179,7 @@ TDD：先写测试 ⇒ **真红**（失败原因是断言）⇒ 改产品 ⇒ �
 
 1. 改了哪些文件（新增/修改 + 行数变化）。
 2. `flutter analyze` **逐字**输出行。
-3. `flutter test` 末行 + `N`；`N3 = N - <<DESKTOP_BASE_AFTER_W2>>`。
+3. `flutter test` 末行 + `N`；`N3 = N - 936`。
 4. l10n 回读三数（byGetter / accessors / 总数）。
 5. §6 四条落库双证逐条给测试名 + 行号 + 实际读数。
 6. 旧 pending 链路撤除清单（方法 / 区块 / 2 个 l10n 键 / 5 个 ValueKey 逐项确认已消失）。

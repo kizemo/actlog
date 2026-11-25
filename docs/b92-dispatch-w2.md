@@ -12,8 +12,8 @@
 | 棒次 | **B9-W2**（B9 共 4 棒，**串行**；本棒在 W1 收口后开工） |
 | 设计真源 | `F:\soft\00selfmade\practilog\docs\plan-goals-ui-batch9.md`（W2 段落：§4 行 132–170；l10n 预算：§5.2 行 272–276；契约变更表：§6 行 288–304） |
 | 项目规范 | `F:\soft\00selfmade\practilog\AGENTS.md`（**动手前必读**：R1 写集纪律 / R2 门禁 / R5 证据 / §5 坑 51、97、108） |
-| 起点 | W1 提交（品牌面板）已入库；HEAD = `c11e17d` + W1 commit |
-| 基线测试数 | `<<DESKTOP_BASE_AFTER_W1>>`（控制器在派工时回填；本棒结束 = 该数 + N2，`N2 ≥ 8`） |
+| 起点 | W1 提交（品牌面板）已入库；HEAD = `0df939d`（B9 第 1 棒） |
+| 基线测试数 | `927`（控制器在派工时回填；本棒结束 = 该数 + N2，`N2 ≥ 8`） |
 
 ---
 
@@ -21,7 +21,7 @@
 
 > 人生蓝图矩阵，去除标题“人生蓝图矩阵”，把下面的内容区分为4个标签页，分别显示 终极、远期、中期、短期，内容保持和当前一致。在没有填入内容时，不要显示“(空)”，在单元格右下角显示“+”按钮，可以添加单元格内新的内容。已经添加的内容，在右侧显示小铅笔按钮，点击可以对目标进行编辑；显示一个代表拆分的按钮。
 
-> **W1 基线（控制器回填）**：`<<DESKTOP_BASE_AFTER_W1>>` = W1 收口后的 desktop 全量测试数。
+> **W1 基线（控制器回填）**：`927` = W1 收口后的 desktop 全量测试数。
 
 ---
 
@@ -166,7 +166,7 @@ $env:PUB_HOSTED_URL='https://pub.flutter-io.cn'; $env:FLUTTER_STORAGE_BASE_URL='
 | 项 | 期望 |
 |---|---|
 | analyze | **逐字** `No issues found!` |
-| 全量测试 | 精确 = `<<DESKTOP_BASE_AFTER_W1>>` + N2（N2 ≥ 8） |
+| 全量测试 | 精确 = `927` + N2（N2 ≥ 8） |
 | l10n 计数 | `byGetter = accessors = 575`；`总数 = 632` |
 | 强断言 | §5 的 6 条全部满足 |
 | 代码卫生 | 零 `print(`；Dart 源 LF、无 BOM |
@@ -194,7 +194,7 @@ $env:PUB_HOSTED_URL='https://pub.flutter-io.cn'; $env:FLUTTER_STORAGE_BASE_URL='
 
 1. 改了哪些文件（新增/修改 + 行数变化）。
 2. `flutter analyze` **逐字**输出行。
-3. `flutter test` 末行 + `N`；`N2 = N - <<DESKTOP_BASE_AFTER_W1>>`；改写的既有用例数。
+3. `flutter test` 末行 + `N`；`N2 = N - 927`；改写的既有用例数。
 4. l10n 回读三数（byGetter / accessors / 总数）。
 5. §5 的 6 条强断言逐条给证据位置（测试名 + 行号）。
 6. **ValueKey 契约变更表**的实际落地（含 `goal-blueprint-add-<domain>-near` 消失的登记）。
