@@ -37,6 +37,7 @@ import '../providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/goal_balance_wheel.dart';
 import '../widgets/goal_blueprint_matrix.dart';
+import '../widgets/goal_brand_panel.dart';
 import '../widgets/goal_year_matrix.dart';
 import '../widgets/goals/goal_form_dialog.dart';
 
@@ -230,6 +231,8 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
             key: const ValueKey<String>('goal-blueprint-goal-error'),
             style: _metaStyle(context),
           ),
+        const SizedBox(height: AppTokens.gapCard),
+        const GoalBrandPanel(),
         const SizedBox(height: AppTokens.gapCard),
         _block(
           t,

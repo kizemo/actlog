@@ -1891,6 +1891,196 @@ abstract final class L10nKeys {
   static const String goalBlueprintFieldDueInvalid =
       'goal-blueprint-field-due-invalid';
 
+  // 个人品牌管理 54 条（B9 W1）
+  /// 个人品牌管理：模块标题。
+  static const String goalBrandSection = 'goal-brand-section';
+
+  /// 个人品牌管理：保存按钮。
+  static const String goalBrandSave = 'goal-brand-save';
+
+  /// 个人品牌管理：保存成功反馈。
+  static const String goalBrandSaved = 'goal-brand-saved';
+
+  /// 个人品牌管理：保存失败反馈。
+  static const String goalBrandSaveFailed = 'goal-brand-save-failed';
+
+  /// 个人品牌管理：该切面尚无内容。
+  static const String goalBrandEmpty = 'goal-brand-empty';
+
+  /// 个人品牌管理：标题输入框标签。
+  static const String goalBrandTitleLabel = 'goal-brand-title-label';
+
+  /// 个人品牌管理：补充说明输入框标签。
+  static const String goalBrandNoteLabel = 'goal-brand-note-label';
+
+  /// 个人品牌管理：切面导航小标题。
+  static const String goalBrandFacetNavLabel = 'goal-brand-facet-nav-label';
+
+  /// 个人品牌管理：指引块标题。
+  static const String goalBrandGuideTitle = 'goal-brand-guide-title';
+
+  /// 个人品牌管理：指引 · 定位公式。
+  static const String goalBrandGuideFormula = 'goal-brand-guide-formula';
+
+  /// 个人品牌管理：指引 · 三层结构。
+  static const String goalBrandGuideLayers = 'goal-brand-guide-layers';
+
+  /// 个人品牌管理：指引 · 三步方法论。
+  static const String goalBrandGuideMethod = 'goal-brand-guide-method';
+
+  /// 个人品牌管理：指引 · PBE 三维诊断。
+  static const String goalBrandGuidePbe = 'goal-brand-guide-pbe';
+
+  /// 个人品牌管理：指引块展开 / 收起。
+  static const String goalBrandGuideToggle = 'goal-brand-guide-toggle';
+
+  /// 品牌切面 statement：标签。
+  static const String goalBrandFacetStatement = 'goal-brand-facet-statement';
+
+  /// 品牌切面 statement：要点。
+  static const String goalBrandFacetStatementHint =
+      'goal-brand-facet-statement-hint';
+
+  /// 品牌切面 statement：范例。
+  static const String goalBrandFacetStatementExample =
+      'goal-brand-facet-statement-example';
+
+  /// 品牌切面 statement：反例。
+  static const String goalBrandFacetStatementCounterExample =
+      'goal-brand-facet-statement-counter-example';
+
+  /// 品牌切面 word：标签。
+  static const String goalBrandFacetWord = 'goal-brand-facet-word';
+
+  /// 品牌切面 word：要点。
+  static const String goalBrandFacetWordHint = 'goal-brand-facet-word-hint';
+
+  /// 品牌切面 word：范例。
+  static const String goalBrandFacetWordExample =
+      'goal-brand-facet-word-example';
+
+  /// 品牌切面 word：反例。
+  static const String goalBrandFacetWordCounterExample =
+      'goal-brand-facet-word-counter-example';
+
+  /// 品牌切面 audience：标签。
+  static const String goalBrandFacetAudience = 'goal-brand-facet-audience';
+
+  /// 品牌切面 audience：要点。
+  static const String goalBrandFacetAudienceHint =
+      'goal-brand-facet-audience-hint';
+
+  /// 品牌切面 audience：范例。
+  static const String goalBrandFacetAudienceExample =
+      'goal-brand-facet-audience-example';
+
+  /// 品牌切面 audience：反例。
+  static const String goalBrandFacetAudienceCounterExample =
+      'goal-brand-facet-audience-counter-example';
+
+  /// 品牌切面 promise：标签。
+  static const String goalBrandFacetPromise = 'goal-brand-facet-promise';
+
+  /// 品牌切面 promise：要点。
+  static const String goalBrandFacetPromiseHint =
+      'goal-brand-facet-promise-hint';
+
+  /// 品牌切面 promise：范例。
+  static const String goalBrandFacetPromiseExample =
+      'goal-brand-facet-promise-example';
+
+  /// 品牌切面 promise：反例。
+  static const String goalBrandFacetPromiseCounterExample =
+      'goal-brand-facet-promise-counter-example';
+
+  /// 品牌切面 cost：标签。
+  static const String goalBrandFacetCost = 'goal-brand-facet-cost';
+
+  /// 品牌切面 cost：要点。
+  static const String goalBrandFacetCostHint = 'goal-brand-facet-cost-hint';
+
+  /// 品牌切面 cost：范例。
+  static const String goalBrandFacetCostExample =
+      'goal-brand-facet-cost-example';
+
+  /// 品牌切面 cost：反例。
+  static const String goalBrandFacetCostCounterExample =
+      'goal-brand-facet-cost-counter-example';
+
+  /// 品牌切面 evidence：标签。
+  static const String goalBrandFacetEvidence = 'goal-brand-facet-evidence';
+
+  /// 品牌切面 evidence：要点。
+  static const String goalBrandFacetEvidenceHint =
+      'goal-brand-facet-evidence-hint';
+
+  /// 品牌切面 evidence：范例。
+  static const String goalBrandFacetEvidenceExample =
+      'goal-brand-facet-evidence-example';
+
+  /// 品牌切面 evidence：反例。
+  static const String goalBrandFacetEvidenceCounterExample =
+      'goal-brand-facet-evidence-counter-example';
+
+  /// 品牌切面 contrast：标签。
+  static const String goalBrandFacetContrast = 'goal-brand-facet-contrast';
+
+  /// 品牌切面 contrast：要点。
+  static const String goalBrandFacetContrastHint =
+      'goal-brand-facet-contrast-hint';
+
+  /// 品牌切面 contrast：范例。
+  static const String goalBrandFacetContrastExample =
+      'goal-brand-facet-contrast-example';
+
+  /// 品牌切面 contrast：反例。
+  static const String goalBrandFacetContrastCounterExample =
+      'goal-brand-facet-contrast-counter-example';
+
+  /// 品牌切面 strength：标签。
+  static const String goalBrandFacetStrength = 'goal-brand-facet-strength';
+
+  /// 品牌切面 strength：要点。
+  static const String goalBrandFacetStrengthHint =
+      'goal-brand-facet-strength-hint';
+
+  /// 品牌切面 strength：范例。
+  static const String goalBrandFacetStrengthExample =
+      'goal-brand-facet-strength-example';
+
+  /// 品牌切面 strength：反例。
+  static const String goalBrandFacetStrengthCounterExample =
+      'goal-brand-facet-strength-counter-example';
+
+  /// 品牌切面 errc：标签。
+  static const String goalBrandFacetErrc = 'goal-brand-facet-errc';
+
+  /// 品牌切面 errc：要点。
+  static const String goalBrandFacetErrcHint = 'goal-brand-facet-errc-hint';
+
+  /// 品牌切面 errc：范例。
+  static const String goalBrandFacetErrcExample =
+      'goal-brand-facet-errc-example';
+
+  /// 品牌切面 errc：反例。
+  static const String goalBrandFacetErrcCounterExample =
+      'goal-brand-facet-errc-counter-example';
+
+  /// 品牌切面 identity：标签。
+  static const String goalBrandFacetIdentity = 'goal-brand-facet-identity';
+
+  /// 品牌切面 identity：要点。
+  static const String goalBrandFacetIdentityHint =
+      'goal-brand-facet-identity-hint';
+
+  /// 品牌切面 identity：范例。
+  static const String goalBrandFacetIdentityExample =
+      'goal-brand-facet-identity-example';
+
+  /// 品牌切面 identity：反例。
+  static const String goalBrandFacetIdentityCounterExample =
+      'goal-brand-facet-identity-counter-example';
+
   /// 蓝图页平衡轮区块标题（纯派生，不落库）。
   static const String goalBlueprintBalanceSection =
       'goal-blueprint-balance-section';
@@ -2105,6 +2295,66 @@ abstract final class L10nKeys {
     'goalBlueprintFieldDue': goalBlueprintFieldDue,
     'goalBlueprintFieldUnset': goalBlueprintFieldUnset,
     'goalBlueprintFieldDueInvalid': goalBlueprintFieldDueInvalid,
+    // 个人品牌管理 54 条（B9 W1）
+    'goalBrandSection': goalBrandSection,
+    'goalBrandSave': goalBrandSave,
+    'goalBrandSaved': goalBrandSaved,
+    'goalBrandSaveFailed': goalBrandSaveFailed,
+    'goalBrandEmpty': goalBrandEmpty,
+    'goalBrandTitleLabel': goalBrandTitleLabel,
+    'goalBrandNoteLabel': goalBrandNoteLabel,
+    'goalBrandFacetNavLabel': goalBrandFacetNavLabel,
+    'goalBrandGuideTitle': goalBrandGuideTitle,
+    'goalBrandGuideFormula': goalBrandGuideFormula,
+    'goalBrandGuideLayers': goalBrandGuideLayers,
+    'goalBrandGuideMethod': goalBrandGuideMethod,
+    'goalBrandGuidePbe': goalBrandGuidePbe,
+    'goalBrandGuideToggle': goalBrandGuideToggle,
+    'goalBrandFacetStatement': goalBrandFacetStatement,
+    'goalBrandFacetStatementHint': goalBrandFacetStatementHint,
+    'goalBrandFacetStatementExample': goalBrandFacetStatementExample,
+    'goalBrandFacetStatementCounterExample':
+        goalBrandFacetStatementCounterExample,
+    'goalBrandFacetWord': goalBrandFacetWord,
+    'goalBrandFacetWordHint': goalBrandFacetWordHint,
+    'goalBrandFacetWordExample': goalBrandFacetWordExample,
+    'goalBrandFacetWordCounterExample': goalBrandFacetWordCounterExample,
+    'goalBrandFacetAudience': goalBrandFacetAudience,
+    'goalBrandFacetAudienceHint': goalBrandFacetAudienceHint,
+    'goalBrandFacetAudienceExample': goalBrandFacetAudienceExample,
+    'goalBrandFacetAudienceCounterExample':
+        goalBrandFacetAudienceCounterExample,
+    'goalBrandFacetPromise': goalBrandFacetPromise,
+    'goalBrandFacetPromiseHint': goalBrandFacetPromiseHint,
+    'goalBrandFacetPromiseExample': goalBrandFacetPromiseExample,
+    'goalBrandFacetPromiseCounterExample': goalBrandFacetPromiseCounterExample,
+    'goalBrandFacetCost': goalBrandFacetCost,
+    'goalBrandFacetCostHint': goalBrandFacetCostHint,
+    'goalBrandFacetCostExample': goalBrandFacetCostExample,
+    'goalBrandFacetCostCounterExample': goalBrandFacetCostCounterExample,
+    'goalBrandFacetEvidence': goalBrandFacetEvidence,
+    'goalBrandFacetEvidenceHint': goalBrandFacetEvidenceHint,
+    'goalBrandFacetEvidenceExample': goalBrandFacetEvidenceExample,
+    'goalBrandFacetEvidenceCounterExample':
+        goalBrandFacetEvidenceCounterExample,
+    'goalBrandFacetContrast': goalBrandFacetContrast,
+    'goalBrandFacetContrastHint': goalBrandFacetContrastHint,
+    'goalBrandFacetContrastExample': goalBrandFacetContrastExample,
+    'goalBrandFacetContrastCounterExample': goalBrandFacetContrastCounterExample,
+    'goalBrandFacetStrength': goalBrandFacetStrength,
+    'goalBrandFacetStrengthHint': goalBrandFacetStrengthHint,
+    'goalBrandFacetStrengthExample': goalBrandFacetStrengthExample,
+    'goalBrandFacetStrengthCounterExample':
+        goalBrandFacetStrengthCounterExample,
+    'goalBrandFacetErrc': goalBrandFacetErrc,
+    'goalBrandFacetErrcHint': goalBrandFacetErrcHint,
+    'goalBrandFacetErrcExample': goalBrandFacetErrcExample,
+    'goalBrandFacetErrcCounterExample': goalBrandFacetErrcCounterExample,
+    'goalBrandFacetIdentity': goalBrandFacetIdentity,
+    'goalBrandFacetIdentityHint': goalBrandFacetIdentityHint,
+    'goalBrandFacetIdentityExample': goalBrandFacetIdentityExample,
+    'goalBrandFacetIdentityCounterExample':
+        goalBrandFacetIdentityCounterExample,
     // 应用外壳 25 条（Task 61 的 23 条 + Task 64 的 2 条：导航「目标」/ 快捷键「切到目标」）
     'shellNavToday': shellNavToday,
     'shellNavInbox': shellNavInbox,

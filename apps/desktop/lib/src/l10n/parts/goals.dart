@@ -342,6 +342,172 @@ abstract class GoalsL10n {
 
   /// 蓝图表单：期限格式非法提示（`YYYY-MM-DD`）。
   String get goalBlueprintFieldDueInvalid;
+
+  // ---------------------------------------------------------------------------
+  // 个人品牌管理面板（B9-W1，54 条）
+  // ---------------------------------------------------------------------------
+
+  /// 品牌面板：模块标题。
+  String get goalBrandSection;
+
+  /// 品牌面板：保存按钮。
+  String get goalBrandSave;
+
+  /// 品牌面板：保存成功反馈。
+  String get goalBrandSaved;
+
+  /// 品牌面板：保存失败反馈。
+  String get goalBrandSaveFailed;
+
+  /// 品牌面板：该切面尚无内容。
+  String get goalBrandEmpty;
+
+  /// 品牌面板：标题输入框标签。
+  String get goalBrandTitleLabel;
+
+  /// 品牌面板：补充说明输入框标签。
+  String get goalBrandNoteLabel;
+
+  /// 品牌面板：左侧切面导航的小标题。
+  String get goalBrandFacetNavLabel;
+
+  /// 品牌面板：指引块标题。
+  String get goalBrandGuideTitle;
+
+  /// 品牌面板：指引 · 定位公式。
+  String get goalBrandGuideFormula;
+
+  /// 品牌面板：指引 · 三层结构。
+  String get goalBrandGuideLayers;
+
+  /// 品牌面板：指引 · 三步方法论。
+  String get goalBrandGuideMethod;
+
+  /// 品牌面板：指引 · PBE 三维诊断。
+  String get goalBrandGuidePbe;
+
+  /// 品牌面板：指引块展开 / 收起。
+  String get goalBrandGuideToggle;
+
+  /// 切面 statement：标签。
+  String get goalBrandFacetStatement;
+
+  /// 切面 statement：要点。
+  String get goalBrandFacetStatementHint;
+
+  /// 切面 statement：范例。
+  String get goalBrandFacetStatementExample;
+
+  /// 切面 statement：反例。
+  String get goalBrandFacetStatementCounterExample;
+
+  /// 切面 word：标签。
+  String get goalBrandFacetWord;
+
+  /// 切面 word：要点。
+  String get goalBrandFacetWordHint;
+
+  /// 切面 word：范例。
+  String get goalBrandFacetWordExample;
+
+  /// 切面 word：反例。
+  String get goalBrandFacetWordCounterExample;
+
+  /// 切面 audience：标签。
+  String get goalBrandFacetAudience;
+
+  /// 切面 audience：要点。
+  String get goalBrandFacetAudienceHint;
+
+  /// 切面 audience：范例。
+  String get goalBrandFacetAudienceExample;
+
+  /// 切面 audience：反例。
+  String get goalBrandFacetAudienceCounterExample;
+
+  /// 切面 promise：标签。
+  String get goalBrandFacetPromise;
+
+  /// 切面 promise：要点。
+  String get goalBrandFacetPromiseHint;
+
+  /// 切面 promise：范例。
+  String get goalBrandFacetPromiseExample;
+
+  /// 切面 promise：反例。
+  String get goalBrandFacetPromiseCounterExample;
+
+  /// 切面 cost：标签。
+  String get goalBrandFacetCost;
+
+  /// 切面 cost：要点。
+  String get goalBrandFacetCostHint;
+
+  /// 切面 cost：范例。
+  String get goalBrandFacetCostExample;
+
+  /// 切面 cost：反例。
+  String get goalBrandFacetCostCounterExample;
+
+  /// 切面 evidence：标签。
+  String get goalBrandFacetEvidence;
+
+  /// 切面 evidence：要点。
+  String get goalBrandFacetEvidenceHint;
+
+  /// 切面 evidence：范例。
+  String get goalBrandFacetEvidenceExample;
+
+  /// 切面 evidence：反例。
+  String get goalBrandFacetEvidenceCounterExample;
+
+  /// 切面 contrast：标签。
+  String get goalBrandFacetContrast;
+
+  /// 切面 contrast：要点。
+  String get goalBrandFacetContrastHint;
+
+  /// 切面 contrast：范例。
+  String get goalBrandFacetContrastExample;
+
+  /// 切面 contrast：反例。
+  String get goalBrandFacetContrastCounterExample;
+
+  /// 切面 strength：标签。
+  String get goalBrandFacetStrength;
+
+  /// 切面 strength：要点。
+  String get goalBrandFacetStrengthHint;
+
+  /// 切面 strength：范例。
+  String get goalBrandFacetStrengthExample;
+
+  /// 切面 strength：反例。
+  String get goalBrandFacetStrengthCounterExample;
+
+  /// 切面 errc：标签。
+  String get goalBrandFacetErrc;
+
+  /// 切面 errc：要点。
+  String get goalBrandFacetErrcHint;
+
+  /// 切面 errc：范例。
+  String get goalBrandFacetErrcExample;
+
+  /// 切面 errc：反例。
+  String get goalBrandFacetErrcCounterExample;
+
+  /// 切面 identity：标签。
+  String get goalBrandFacetIdentity;
+
+  /// 切面 identity：要点。
+  String get goalBrandFacetIdentityHint;
+
+  /// 切面 identity：范例。
+  String get goalBrandFacetIdentityExample;
+
+  /// 切面 identity：反例。
+  String get goalBrandFacetIdentityCounterExample;
 }
 
 /// 目标页文案：简体中文。
@@ -645,6 +811,188 @@ mixin GoalsZhL10n implements GoalsL10n {
 
   @override
   String get goalBlueprintFieldDueInvalid => '日期格式应为 YYYY-MM-DD';
+
+  // ---------------------------------------------------------------------------
+  // 个人品牌管理（B9 W1）
+  // ---------------------------------------------------------------------------
+
+  @override
+  String get goalBrandSection => '个人品牌管理';
+
+  @override
+  String get goalBrandSave => '保存';
+
+  @override
+  String get goalBrandSaved => '已保存';
+
+  @override
+  String get goalBrandSaveFailed => '保存失败';
+
+  @override
+  String get goalBrandEmpty => '这一面还空着，写下第一句就算开始。';
+
+  @override
+  String get goalBrandTitleLabel => '这一面怎么说';
+
+  @override
+  String get goalBrandNoteLabel => '补充说明';
+
+  @override
+  String get goalBrandFacetNavLabel => '切面';
+
+  @override
+  String get goalBrandGuideTitle => '个人品牌建设全解';
+
+  @override
+  String get goalBrandGuideFormula =>
+      '我帮助【目标人群】，在【具体场景】下，解决【什么问题】，通过【我的独特方法】，达到【什么结果】。';
+
+  @override
+  String get goalBrandGuideLayers => '三层结构：内在内核 → 能力价值 → 外在感知';
+
+  @override
+  String get goalBrandGuideMethod => '三步方法论：定位 → 呈现 → 传播';
+
+  @override
+  String get goalBrandGuidePbe => 'PBE 三维诊断：吸引力 × 差异化 × 认知度';
+
+  @override
+  String get goalBrandGuideToggle => '展开 / 收起指引';
+
+  @override
+  String get goalBrandFacetStatement => '定位语句';
+
+  @override
+  String get goalBrandFacetStatementHint =>
+      '一句话说清「我是谁 / 为谁 / 解决什么 / 凭什么 / 带来什么结果」；窄而深，胜过面面俱到';
+
+  @override
+  String get goalBrandFacetStatementExample =>
+      '我帮小微餐饮老板用一套 7 天菜单改造流程，把外卖差评率压到 3% 以内';
+
+  @override
+  String get goalBrandFacetStatementCounterExample =>
+      '我是一个热爱学习、追求成长的优秀青年';
+
+  @override
+  String get goalBrandFacetWord => '心智一词';
+
+  @override
+  String get goalBrandFacetWordHint =>
+      '一个别人提起你就会想到的词；它替你的方法命名，不是形容性格';
+
+  @override
+  String get goalBrandFacetWordExample => '「菜单医生」——一听就知道解决的是菜单问题';
+
+  @override
+  String get goalBrandFacetWordCounterExample => '努力 / 靠谱 / 优秀';
+
+  @override
+  String get goalBrandFacetAudience => '对象（他人视角）';
+
+  @override
+  String get goalBrandFacetAudienceHint =>
+      '先写给谁看；默认最重要的一面，它决定别人怎么介绍你';
+
+  @override
+  String get goalBrandFacetAudienceExample =>
+      '刚开业半年、靠一份外卖撑生意的小微餐饮店主';
+
+  @override
+  String get goalBrandFacetAudienceCounterExample => '所有人；或只写「同行」';
+
+  @override
+  String get goalBrandFacetPromise => '承诺结果';
+
+  @override
+  String get goalBrandFacetPromiseHint =>
+      '承诺一个可验证的结果，不是一个动作；对方能拿它对账';
+
+  @override
+  String get goalBrandFacetPromiseExample => '90 天内把单店月毛利从 3 万提到 4.5 万';
+
+  @override
+  String get goalBrandFacetPromiseCounterExample => '帮你做好菜单、持续赋能';
+
+  @override
+  String get goalBrandFacetCost => '规避的代价';
+
+  @override
+  String get goalBrandFacetCostHint =>
+      '写清你不愿承担什么代价；这是筛选同行的开关';
+
+  @override
+  String get goalBrandFacetCostExample => '不接没有真实门店、只想白嫖方案的单子';
+
+  @override
+  String get goalBrandFacetCostCounterExample => '什么都接、什么钱都赚';
+
+  @override
+  String get goalBrandFacetEvidence => '可信证据';
+
+  @override
+  String get goalBrandFacetEvidenceHint =>
+      '列出可核验的事实：做过多少家、什么结果、谁在背书';
+
+  @override
+  String get goalBrandFacetEvidenceExample =>
+      '已陪跑 23 家门店，其中 11 家差评率下降 50% 以上；3 位老板可写推荐语';
+
+  @override
+  String get goalBrandFacetEvidenceCounterExample => '我很有经验、业内口碑不错';
+
+  @override
+  String get goalBrandFacetContrast => '对立面';
+
+  @override
+  String get goalBrandFacetContrastHint =>
+      '你的对照组是谁；写清「我不做什么」，别人才知道何时找你';
+
+  @override
+  String get goalBrandFacetContrastExample => '不做纯设计外包，不接只改海报不出方案的活';
+
+  @override
+  String get goalBrandFacetContrastCounterExample => '空着；或只写「和别人不一样」';
+
+  @override
+  String get goalBrandFacetStrength => '三环交叉';
+
+  @override
+  String get goalBrandFacetStrengthHint =>
+      '专业能力 × 独特优势 × 价值主张的交集；交集之外别人也能做到';
+
+  @override
+  String get goalBrandFacetStrengthExample =>
+      '餐饮后厨 8 年经验（专业）× 懂平台流量规则（优势）× 能让店真的赚钱（主张）';
+
+  @override
+  String get goalBrandFacetStrengthCounterExample => '我热爱美食、擅长沟通';
+
+  @override
+  String get goalBrandFacetErrc => '剔除 / 减少 / 增加 / 创造';
+
+  @override
+  String get goalBrandFacetErrcHint => '对现状做四种手术；这是你的方法论本体';
+
+  @override
+  String get goalBrandFacetErrcExample =>
+      '剔除无效套餐；减少出品工序；增加复购触达；创造「7 天改造陪跑」这一交付形态';
+
+  @override
+  String get goalBrandFacetErrcCounterExample => '全面升级、优化体验';
+
+  @override
+  String get goalBrandFacetIdentity => '身份声明';
+
+  @override
+  String get goalBrandFacetIdentityHint =>
+      '你要成为什么样的人；内在内核，决定十年后还在不在同一件事上';
+
+  @override
+  String get goalBrandFacetIdentityExample => '我是那个让小餐饮老板敢把菜单交给我的人';
+
+  @override
+  String get goalBrandFacetIdentityCounterExample => '我是一个不断学习的人';
 }
 
 /// 目标页文案：English。
@@ -955,4 +1303,204 @@ mixin GoalsEnL10n implements GoalsL10n {
 
   @override
   String get goalBlueprintFieldDueInvalid => 'Use the YYYY-MM-DD format';
+
+  // ---------------------------------------------------------------------------
+  // Personal brand (B9 W1)
+  // ---------------------------------------------------------------------------
+
+  @override
+  String get goalBrandSection => 'Personal brand';
+
+  @override
+  String get goalBrandSave => 'Save';
+
+  @override
+  String get goalBrandSaved => 'Saved';
+
+  @override
+  String get goalBrandSaveFailed => 'Save failed';
+
+  @override
+  String get goalBrandEmpty =>
+      'This facet is still empty — one sentence is enough to start.';
+
+  @override
+  String get goalBrandTitleLabel => 'How you say it';
+
+  @override
+  String get goalBrandNoteLabel => 'Notes';
+
+  @override
+  String get goalBrandFacetNavLabel => 'Facets';
+
+  @override
+  String get goalBrandGuideTitle => 'Personal brand, end to end';
+
+  @override
+  String get goalBrandGuideFormula =>
+      'I help 【audience】, in 【situation】, solve 【problem】, through 【my method】, to reach 【result】.';
+
+  @override
+  String get goalBrandGuideLayers =>
+      'Three layers: inner core → value → visible image';
+
+  @override
+  String get goalBrandGuideMethod => 'Three steps: position → present → spread';
+
+  @override
+  String get goalBrandGuidePbe =>
+      'PBE diagnosis: attraction × differentiation × awareness';
+
+  @override
+  String get goalBrandGuideToggle => 'Show / hide the guide';
+
+  @override
+  String get goalBrandFacetStatement => 'Positioning statement';
+
+  @override
+  String get goalBrandFacetStatementHint =>
+      'Say who you are, for whom, what you solve, on what grounds, to what result — narrow and deep beats broad.';
+
+  @override
+  String get goalBrandFacetStatementExample =>
+      'I help small restaurant owners cut delivery review complaints below 3% with a 7-day menu overhaul.';
+
+  @override
+  String get goalBrandFacetStatementCounterExample =>
+      'I am a passionate, growth-oriented young person.';
+
+  @override
+  String get goalBrandFacetWord => 'One word';
+
+  @override
+  String get goalBrandFacetWordHint =>
+      'A word people think of when they hear your name; it names your method, not your personality.';
+
+  @override
+  String get goalBrandFacetWordExample =>
+      '"Menu Doctor" — you instantly know it is about menus.';
+
+  @override
+  String get goalBrandFacetWordCounterExample =>
+      'Hardworking / reliable / excellent.';
+
+  @override
+  String get goalBrandFacetAudience => 'Audience (how others see you)';
+
+  @override
+  String get goalBrandFacetAudienceHint =>
+      'Write for someone specific first; the most important facet, it decides how others introduce you.';
+
+  @override
+  String get goalBrandFacetAudienceExample =>
+      'Small restaurant owners who opened six months ago and live on a single delivery brand.';
+
+  @override
+  String get goalBrandFacetAudienceCounterExample =>
+      'Everyone; or just "peers".';
+
+  @override
+  String get goalBrandFacetPromise => 'Promise';
+
+  @override
+  String get goalBrandFacetPromiseHint =>
+      'Promise a verifiable result, not an activity; they can hold you to it.';
+
+  @override
+  String get goalBrandFacetPromiseExample =>
+      'Lift a single store from 30k to 45k monthly gross profit within 90 days.';
+
+  @override
+  String get goalBrandFacetPromiseCounterExample =>
+      'Help you fix your menu, keep empowering you.';
+
+  @override
+  String get goalBrandFacetCost => 'Cost you avoid';
+
+  @override
+  String get goalBrandFacetCostHint =>
+      'State the cost you refuse to bear; this is what filters the people you work with.';
+
+  @override
+  String get goalBrandFacetCostExample =>
+      'I do not take clients without a real storefront who only want free plans.';
+
+  @override
+  String get goalBrandFacetCostCounterExample =>
+      'Take everything, earn from anything.';
+
+  @override
+  String get goalBrandFacetEvidence => 'Proof';
+
+  @override
+  String get goalBrandFacetEvidenceHint =>
+      'List verifiable facts: how many stores, what result, who vouches for you.';
+
+  @override
+  String get goalBrandFacetEvidenceExample =>
+      'Coached 23 stores, 11 cut review complaints by over 50%; 3 owners will write a testimonial.';
+
+  @override
+  String get goalBrandFacetEvidenceCounterExample =>
+      'I am very experienced with a good reputation.';
+
+  @override
+  String get goalBrandFacetContrast => 'Opposite';
+
+  @override
+  String get goalBrandFacetContrastHint =>
+      'Name your comparison group; by saying what you do not do, people learn when to call you.';
+
+  @override
+  String get goalBrandFacetContrastExample =>
+      'No pure design outsourcing, no poster-only jobs without a plan.';
+
+  @override
+  String get goalBrandFacetContrastCounterExample =>
+      'Leave it blank; or write "different from others".';
+
+  @override
+  String get goalBrandFacetStrength => 'Three-circle overlap';
+
+  @override
+  String get goalBrandFacetStrengthHint =>
+      'The overlap of skill × edge × value proposition; outside the overlap anyone can do it.';
+
+  @override
+  String get goalBrandFacetStrengthExample =>
+      '8 years in restaurant kitchens (skill) × platform traffic rules (edge) × stores that actually make money (proposition).';
+
+  @override
+  String get goalBrandFacetStrengthCounterExample =>
+      'I love food and communicate well.';
+
+  @override
+  String get goalBrandFacetErrc => 'Eliminate / reduce / raise / create';
+
+  @override
+  String get goalBrandFacetErrcHint =>
+      'Four surgeries on the status quo; this is your method itself.';
+
+  @override
+  String get goalBrandFacetErrcExample =>
+      'Eliminate dead combos; reduce kitchen steps; raise repeat-visit touchpoints; create the "7-day overhaul coaching" delivery form.';
+
+  @override
+  String get goalBrandFacetErrcCounterExample =>
+      'Comprehensive upgrade, better experience.';
+
+  @override
+  String get goalBrandFacetIdentity => 'Identity';
+
+  @override
+  String get goalBrandFacetIdentityHint =>
+      'What kind of person you are becoming; the inner core that decides whether you are still here in ten years.';
+
+  @override
+  String get goalBrandFacetIdentityExample =>
+      'I am the one small restaurant owners trust with their menu.';
+
+  @override
+  String get goalBrandFacetIdentityCounterExample =>
+      'I am someone who keeps learning.';
 }

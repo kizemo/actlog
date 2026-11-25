@@ -254,6 +254,103 @@ final Map<String, String Function(AppLocalizations)> l10nAccessors =
       t.goalBlueprintFieldUnset,
   L10nKeys.goalBlueprintFieldDueInvalid: (AppLocalizations t) =>
       t.goalBlueprintFieldDueInvalid,
+  // 个人品牌管理 54 条（B9 W1）
+  L10nKeys.goalBrandSection: (AppLocalizations t) => t.goalBrandSection,
+  L10nKeys.goalBrandSave: (AppLocalizations t) => t.goalBrandSave,
+  L10nKeys.goalBrandSaved: (AppLocalizations t) => t.goalBrandSaved,
+  L10nKeys.goalBrandSaveFailed: (AppLocalizations t) => t.goalBrandSaveFailed,
+  L10nKeys.goalBrandEmpty: (AppLocalizations t) => t.goalBrandEmpty,
+  L10nKeys.goalBrandTitleLabel: (AppLocalizations t) => t.goalBrandTitleLabel,
+  L10nKeys.goalBrandNoteLabel: (AppLocalizations t) => t.goalBrandNoteLabel,
+  L10nKeys.goalBrandFacetNavLabel: (AppLocalizations t) =>
+      t.goalBrandFacetNavLabel,
+  L10nKeys.goalBrandGuideTitle: (AppLocalizations t) => t.goalBrandGuideTitle,
+  L10nKeys.goalBrandGuideFormula: (AppLocalizations t) =>
+      t.goalBrandGuideFormula,
+  L10nKeys.goalBrandGuideLayers: (AppLocalizations t) =>
+      t.goalBrandGuideLayers,
+  L10nKeys.goalBrandGuideMethod: (AppLocalizations t) =>
+      t.goalBrandGuideMethod,
+  L10nKeys.goalBrandGuidePbe: (AppLocalizations t) => t.goalBrandGuidePbe,
+  L10nKeys.goalBrandGuideToggle: (AppLocalizations t) =>
+      t.goalBrandGuideToggle,
+  L10nKeys.goalBrandFacetStatement: (AppLocalizations t) =>
+      t.goalBrandFacetStatement,
+  L10nKeys.goalBrandFacetStatementHint: (AppLocalizations t) =>
+      t.goalBrandFacetStatementHint,
+  L10nKeys.goalBrandFacetStatementExample: (AppLocalizations t) =>
+      t.goalBrandFacetStatementExample,
+  L10nKeys.goalBrandFacetStatementCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetStatementCounterExample,
+  L10nKeys.goalBrandFacetWord: (AppLocalizations t) => t.goalBrandFacetWord,
+  L10nKeys.goalBrandFacetWordHint: (AppLocalizations t) =>
+      t.goalBrandFacetWordHint,
+  L10nKeys.goalBrandFacetWordExample: (AppLocalizations t) =>
+      t.goalBrandFacetWordExample,
+  L10nKeys.goalBrandFacetWordCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetWordCounterExample,
+  L10nKeys.goalBrandFacetAudience: (AppLocalizations t) =>
+      t.goalBrandFacetAudience,
+  L10nKeys.goalBrandFacetAudienceHint: (AppLocalizations t) =>
+      t.goalBrandFacetAudienceHint,
+  L10nKeys.goalBrandFacetAudienceExample: (AppLocalizations t) =>
+      t.goalBrandFacetAudienceExample,
+  L10nKeys.goalBrandFacetAudienceCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetAudienceCounterExample,
+  L10nKeys.goalBrandFacetPromise: (AppLocalizations t) =>
+      t.goalBrandFacetPromise,
+  L10nKeys.goalBrandFacetPromiseHint: (AppLocalizations t) =>
+      t.goalBrandFacetPromiseHint,
+  L10nKeys.goalBrandFacetPromiseExample: (AppLocalizations t) =>
+      t.goalBrandFacetPromiseExample,
+  L10nKeys.goalBrandFacetPromiseCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetPromiseCounterExample,
+  L10nKeys.goalBrandFacetCost: (AppLocalizations t) => t.goalBrandFacetCost,
+  L10nKeys.goalBrandFacetCostHint: (AppLocalizations t) =>
+      t.goalBrandFacetCostHint,
+  L10nKeys.goalBrandFacetCostExample: (AppLocalizations t) =>
+      t.goalBrandFacetCostExample,
+  L10nKeys.goalBrandFacetCostCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetCostCounterExample,
+  L10nKeys.goalBrandFacetEvidence: (AppLocalizations t) =>
+      t.goalBrandFacetEvidence,
+  L10nKeys.goalBrandFacetEvidenceHint: (AppLocalizations t) =>
+      t.goalBrandFacetEvidenceHint,
+  L10nKeys.goalBrandFacetEvidenceExample: (AppLocalizations t) =>
+      t.goalBrandFacetEvidenceExample,
+  L10nKeys.goalBrandFacetEvidenceCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetEvidenceCounterExample,
+  L10nKeys.goalBrandFacetContrast: (AppLocalizations t) =>
+      t.goalBrandFacetContrast,
+  L10nKeys.goalBrandFacetContrastHint: (AppLocalizations t) =>
+      t.goalBrandFacetContrastHint,
+  L10nKeys.goalBrandFacetContrastExample: (AppLocalizations t) =>
+      t.goalBrandFacetContrastExample,
+  L10nKeys.goalBrandFacetContrastCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetContrastCounterExample,
+  L10nKeys.goalBrandFacetStrength: (AppLocalizations t) =>
+      t.goalBrandFacetStrength,
+  L10nKeys.goalBrandFacetStrengthHint: (AppLocalizations t) =>
+      t.goalBrandFacetStrengthHint,
+  L10nKeys.goalBrandFacetStrengthExample: (AppLocalizations t) =>
+      t.goalBrandFacetStrengthExample,
+  L10nKeys.goalBrandFacetStrengthCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetStrengthCounterExample,
+  L10nKeys.goalBrandFacetErrc: (AppLocalizations t) => t.goalBrandFacetErrc,
+  L10nKeys.goalBrandFacetErrcHint: (AppLocalizations t) =>
+      t.goalBrandFacetErrcHint,
+  L10nKeys.goalBrandFacetErrcExample: (AppLocalizations t) =>
+      t.goalBrandFacetErrcExample,
+  L10nKeys.goalBrandFacetErrcCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetErrcCounterExample,
+  L10nKeys.goalBrandFacetIdentity: (AppLocalizations t) =>
+      t.goalBrandFacetIdentity,
+  L10nKeys.goalBrandFacetIdentityHint: (AppLocalizations t) =>
+      t.goalBrandFacetIdentityHint,
+  L10nKeys.goalBrandFacetIdentityExample: (AppLocalizations t) =>
+      t.goalBrandFacetIdentityExample,
+  L10nKeys.goalBrandFacetIdentityCounterExample: (AppLocalizations t) =>
+      t.goalBrandFacetIdentityCounterExample,
   // 应用外壳 25 条（Task 61 的 23 条 + Task 64 的 2 条）
   L10nKeys.shellNavToday: (AppLocalizations t) => t.shellNavToday,
   L10nKeys.shellNavInbox: (AppLocalizations t) => t.shellNavInbox,
