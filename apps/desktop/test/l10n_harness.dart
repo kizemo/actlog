@@ -394,6 +394,7 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
   L10nKeys.shellKeySwitchTab: (AppLocalizations t) => t.shellKeySwitchTab,
   L10nKeys.shellKeyGoProjects: (AppLocalizations t) => t.shellKeyGoProjects,
   L10nKeys.shellKeyGoGoals: (AppLocalizations t) => t.shellKeyGoGoals,
+  L10nKeys.shellKeyGoBlueprint: (AppLocalizations t) => t.shellKeyGoBlueprint,
   L10nKeys.shellPanelTodoList: (AppLocalizations t) => t.shellPanelTodoList,
   L10nKeys.shellPanelAddTodo: (AppLocalizations t) => t.shellPanelAddTodo,
   L10nKeys.shellPanelHabitOverview: (AppLocalizations t) =>

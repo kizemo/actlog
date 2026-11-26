@@ -154,16 +154,16 @@ void main() {
     );
   });
 
-  testWidgets('快捷键清单新增第 9 条：Ctrl+6 ⇒ 切到目标', (WidgetTester tester) async {
-    expect(kShellKeyHints.length, 9);
-    expect(kShellKeyHints.last.keys, <String>['Ctrl+6']);
-    expect(kShellKeyHints.last.label, AppLocalizations.zh.shellKeyGoGoals);
+  testWidgets('快捷键清单含 Ctrl+6 ⇒ 切到目标', (WidgetTester tester) async {
+    expect(kShellKeyHints.length, 10);
+    expect(kShellKeyHints[8].keys, <String>['Ctrl+6']);
+    expect(kShellKeyHints[8].label, AppLocalizations.zh.shellKeyGoGoals);
 
     final AppLocalizations en = AppLocalizations.en;
     final List<ShellKeyHint> hints = shellKeyHintsFor(en);
-    expect(hints.length, 9);
-    expect(hints.last.keys, <String>['Ctrl+6']);
-    expect(hints.last.label, en.shellKeyGoGoals);
-    expect(hints.last.label, isNot(AppLocalizations.zh.shellKeyGoGoals));
+    expect(hints.length, 10);
+    expect(hints[8].keys, <String>['Ctrl+6']);
+    expect(hints[8].label, en.shellKeyGoGoals);
+    expect(hints[8].label, isNot(AppLocalizations.zh.shellKeyGoGoals));
   });
 }

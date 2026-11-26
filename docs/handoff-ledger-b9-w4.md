@@ -240,8 +240,8 @@ python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py
 
 | # | 挂账 | 处置 |
 |---|---|---|
-| 1 | 今日页右栏「目标/项目」卡只读 vs 整卡移除未裁 | 承接，待用户裁决 |
-| 2 | 窄屏 `KeyBar` 缺 `Ctrl+7` 提示 | 承接 |
+| 1 | 今日页右栏「目标/项目」卡只读 vs 整卡移除未裁 | **已裁决：只读保留**（用户 2026-11-25 决定，B8-W3 已落地 ⇒ 台账「待裁决」属口径滞后，2026-11-26 订正；见 §10.1） |
+| 2 | 窄屏 `KeyBar` 缺 `Ctrl+7` 提示 | **已补做**（2026-11-26；`Ctrl+7` = 第 10 条提示，见 §10.2） |
 | 3 | B8 包未装机、装机态待复验 | 承接（B9 同样只出包） |
 | 4 | 年页空态归因种子目标缺 `domain`/`horizon` | 承接 |
 | 5 | W3 遗留两处：`week-goal-add-hint` 负断言与「符号 0 命中」互斥；外部 `goal://` 拖入被 `DragTarget` 高亮后静默丢弃 | 承接 |
@@ -304,7 +304,7 @@ python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py
 ### 8.4 未决 / 下一步
 
 1. **装机复验（B10-b）—— 已由 §9 关闭**：2026-11-26 上午已覆盖安装唯一可分发包（装机侧 `data\app.so` = 9,175,944 B / sha16 `27D68DEEA7233AAA` = 构建树逐字一致 ⇒ 新载荷确已装机）并按 §8.1 配方在**装机件**上重跑同一取证链，五级「帧 + SQLite 读回」双证齐 ⇒ **本包登记为「已装机验收」**（详见 §9）。
-2. **B8 两项待用户裁决**：今日页右栏「目标/项目」卡 = 只读保留 vs 整卡移除；窄屏 `KeyBar` 是否补 `Ctrl+7` 提示（见 §6）。
+2. **B8 两项已处理（2026-11-26，见 §10）**：#1 判定「已裁决、只读保留」（盘上依据 `docs\b83-dispatch-w3.md` L5–L7 用户原话 + B8-W3 已落地），台账原记「待裁决」属口径滞后，已订正；#2 窄屏 `KeyBar` 已补 `Ctrl+7` 提示（10 条提示齐、断言同步）。
 3. **沙箱实例已全部终止（已闭）**：B10-a 的 PID 98244 与 B10-b 的 PID 28076 **均已终止**（`Stop-Process` ⇒ `APP_ALIVE=0`）⇒ 收工无须再杀；用户活库全程零写入。
 ---
 
@@ -374,6 +374,47 @@ python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py
 
 ### 9.6 未决 / 下一步
 
-1. **B8 两项待用户裁决**（承接未决）：今日页右栏「目标/项目」卡 = 只读保留 vs 整卡移除；窄屏 `KeyBar` 是否补 `Ctrl+7` 提示（见 §6 第 1/2 项）。
+1. **B8 两项已处理（2026-11-26，见 §10）**：同上条 §8.4 第 2 条 —— #1 判定「已裁决、只读保留」；#2 窄屏 `KeyBar` 已补 `Ctrl+7` 提示。
 2. **沙箱实例**：B10-a PID 98244 与 B10-b PID 28076 **均已终止** ⇒ 收工无须再杀；用户活库全程零写入。
-3. **再出包路线**：如需新包，走 `tools\build\make_installer.ps1 -Version '1.0.0'`（坑 104：`task51-ship.ps1 -Stage ship` 会连带**覆盖安装**，属用户决定）。
+3. **再出包路线**：**已按该路线出包并覆盖安装**（2026-11-26 12:11，`tools\build\make_installer.ps1 -Version '1.0.0'`）⇒ 新包、装机结果与启动 smoke 全部见 §10.3；旧包 `…_20261126-001138.exe` 仍留 `release\`（R4 不删），§2 R3 真源行已改写为 `…_20261126-121032.exe`。
+
+## 10. 收口登记：B8 两项挂账 + 重编出包 + 装机启动 smoke（2026-11-26）
+
+> 本节由控制器落笔；凡具体数字均**控制器亲跑 + 盘上回读**值。未验证项集中在 §10.4，不与已验证项混写。
+
+### 10.1 #1 今日页右栏「目标/项目」卡 → 已裁决、只读保留（不重问）
+
+- **裁决来源**：`docs\b83-dispatch-w3.md` L5–L7 逐字记录的用户 2026-11-25 原话（「保留只读展示」）。
+- **落地状态**：B8-W3 已把 `WeekGoalRailPanel` 只读化，卡片仍挂载于 `apps\desktop\lib\src\app.dart:428-431`。
+- **本轮动作**：只订正台账口径（本文件 L243 / L307 / L377 三处「待裁决」→「已裁决：只读保留」），**未动代码、未重新提问**（重问已裁决项属重复消耗用户决策）。
+
+### 10.2 #2 窄屏 `KeyBar` 补 `Ctrl+7` → 已补做（提示 10 条齐）
+
+- **裁定**：推翻 `docs\b83-dispatch-w3.md` L39「不做 MINOR-2：不在 B8 范围」的棒内界定。依据：真实绑定 `apps\desktop\lib\src\app.dart:256-257`（`digit7 + control → _NavIntent('blueprint')`）**早已存在**，而窄屏提示清单漏项 ⇒ 属「清单与真实绑定不一致」的明显遗漏，按用户「明显的 bug 直接按推荐方案修」口径本批补做。
+- **落地（8 文件 / 80 插入 / 42 删除 / 全 LF）**：
+  1. `apps\desktop\lib\src\widgets\shell\key_bar.dart`：提示 **9 → 10** 条（新增 `ShellKeyHint(keys: ['Ctrl+7'], label: '切到蓝图')`），`kShellKeyHints` 与 `shellKeyHintsFor()` **两份清单同步**；L38 注释只写「绑定点在导航意图分发处」，**刻意不含 `app.dart` 字样**（受 `shell_key_hints_test.dart` 源码断言约束）。
+  2. `apps\desktop\lib\src\l10n\parts\shell.dart`：抽象 getter（L92）+ zh（L181「切到蓝图」）+ en（L268）。
+  3. `apps\desktop\lib\src\l10n\l10n_keys.dart`：键名 `shellKeyGoBlueprint`（L313）+ `byGetter` 映射（L2429）。
+  4. 测试同步 5 份：`test\l10n_harness.dart:397`、`test\l10n_base_test.dart`（585 → 586 / 642 → 643）、`test\shell_key_hints_test.dart`、`test\shell_key_bar_test.dart`、`test\task64_nav_gear_test.dart:157-167`。
+- **门禁（控制器亲跑，不采信 worker 自报）**：
+  - G1 `tools\gates\g1_analyze.ps1` → `RESULT: PASS` / `G1_EXIT=0`（三 gated 包 `error=0 warning=0 info=0` + `[g1] root error=0 warning/info=0` + `OK: root workspace has zero issues`）。
+  - G2 `tools\gates\g2_unittest.ps1` → `RESULT: PASS` / `G2_EXIT=0` / `core_data` **204** / `core_db` **96** / `core_domain` **91** / `totals: passed=391 failed=0`。
+  - desktop `flutter analyze` → 逐字 `No issues found!` / `ANALYZE_EXIT=0`。
+  - desktop `flutter test --reporter compact` → 逐字 **`+946: All tests passed!`** / `TEST_EXIT=0` ⇒ **基线 946 精确命中**（本轮是纯 l10n 文案 + 断言同步，未增删测试）。
+- **坑 126（G1 首跑假红根因）**：`root error=163` 全部指向被 gitignore 的 `reports\task37-aborted\task37_dock_test.dart` 与 `reports\task47-W1c-3-evidence\backup_arm_c\desktop_shell.dart` 两份 `.dart` 备份副本；正解 = 根 `analysis_options.yaml` 的 `analyzer.exclude` 补 `- "reports/**"`（配置层持久修，**R4 未删任何文件**）。
+
+### 10.3 重编 → 出包 → 覆盖安装 → 启动 smoke
+
+1. **重编**（`apps\desktop`，镜像进程内设置）：`flutter build windows --release` ⇒ `BUILD_EXIT=0`；构建树 `apps\desktop\build\windows\x64\runner\Release\data\app.so` = **9,175,944 B / sha16 `F1DEB95A35F1BE97` / mtime 2026-11-26 12:10:09**（旧读数 `27D68DEEA7233AAA` ⇒ 新载荷确含 `Ctrl+7`）。
+2. **出包**：`tools\build\make_installer.ps1 -Version '1.0.0'` ⇒ `INSTALLER_EXIT=0` / makensis exit=0 / payload 36 files 60,452,938 B / excluded 6 files（`userdata` 下 `actlog.db*` 与两份 `startup.log`）/ SOLID lzma / NSIS-3 Unicode / out_file `release\actlog-Setup-1.0.0_20261126-121032.exe`。
+3. **新包指纹（盘上回读）**：`release\actlog-Setup-1.0.0_20261126-121032.exe` = **22,829,066 B / sha16 `B374C3BBEFD1F9BE` / mtime 2026-11-26 12:11:17**；`release\` 下 `*.exe` 共 **59** 个，**仅此最新 1 个可分发，其余 58 个严禁分发**（§2 R3 真源行已同步改写）。
+4. **覆盖安装**：装机前 `ACTLOG_RUNNING_BEFORE=0`；NSIS 静默 `/S`（`[System.Diagnostics.Process]::Start` + `WaitForExit()`，**不用 `Start-Process -Wait`**）⇒ `INSTALL_EXIT=0` / `ELAPSED_S=7`。装机侧 `D:\Program Files\actlog\data\app.so` = **9,175,944 B / sha16 `F1DEB95A35F1BE97`** ⇒ `SHA16_MATCH=True`（= 构建树逐字一致）；`actlog.exe` 仍 484,352 B / `89293205FAF8C3DE`（**未变，不得用作判据**，坑 110）；用户活库 `userdata\actlog.db` sha16 `B5F9070FC63068B1` 装机前后未变 ⇒ 覆盖安装**零写入**。
+5. **启动 smoke**（脚本 `E:\Users\Duanyi\AppData\Local\Temp\actlog-b8-smoke.ps1`，3,237 B；种子 `reports\task72-seeddb` 副本 → `reports\task88-smoke-seed`）：`D:\Program Files\actlog\actlog.exe --data-dir=<种子副本>` ⇒ `SMOKE_ALIVE=True`（存活 ≥5s、无崩溃）/ `SMOKE_HWND_COUNT=2` / 窗口停靠 `(-32000,-32000)` + `WS_EX_NOACTIVATE|WS_EX_TOOLWINDOW`（不对其调用 `SetForegroundWindow`）/ `Stop-Process -Force` 后 `APP_ALIVE_AFTER_KILL=False` / `LIVE_DB_AFTER=B5F9070FC63068B1 UNCHANGED=True`。
+   - **诚实边界**：本次 `FG_SAME=False`（`FG_BEFORE=266104` → `FG_AFTER=5378514`），脚本未打印被测 HWND、也未比对采样后前台是否属 `SMOKE_PID=259912` ⇒ **不做归属判定、不声称「零抢焦点」**；与 B10-a / B10-b 的 `FG_SAME=True` **不同级**。
+
+### 10.4 本轮未验证 / 残留
+
+1. **装机侧界面帧未重跑**：本轮改动为纯 l10n 文案 + 断言同步（界面行为由 `test\shell_key_bar_test.dart` / `test\shell_key_hints_test.dart` 覆盖）⇒ 本包登记为**「已装机验收（启动 smoke 级）」**，**不冒充** B10-b 那种「五级拆分链帧 + SQLite 双证」等级。
+2. **`FG_SAME=False` 未归属**（见 §10.3 末条）：若需坐实「零抢焦点」，须另写采样脚本（打印被测 HWND + 逐 250ms 比对前台窗口 PID 是否属被测进程）。
+3. **种子副本留存**：`reports\task88-smoke-seed`（R4 不删），与 `reports\task85-seeddb-b10b` 等历史种子并存。
+4. **提交口径**：本轮 11 文件 = `apps\desktop` 8 + 根 `analysis_options.yaml` + `AGENTS.md` + 本台账，**只 commit 不 push**；`reports\**` 被 `.gitignore:46` 忽略 ⇒ **不得 `git add reports/`**。

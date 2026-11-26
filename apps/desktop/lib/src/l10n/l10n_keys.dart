@@ -309,6 +309,9 @@ abstract final class L10nKeys {
   /// 快捷键：切到目标（Task 65 UI 半批：Ctrl+6）。
   static const String shellKeyGoGoals = 'shell-key-go-goals';
 
+  /// 快捷键：切到蓝图（Task 72：Ctrl+7）。
+  static const String shellKeyGoBlueprint = 'shell-key-go-blueprint';
+
   /// 右轨面板：待办列表。
   static const String shellPanelTodoList = 'shell-panel-todo-list';
 
@@ -2401,7 +2404,8 @@ abstract final class L10nKeys {
     'goalBrandFacetIdentityExample': goalBrandFacetIdentityExample,
     'goalBrandFacetIdentityCounterExample':
         goalBrandFacetIdentityCounterExample,
-    // 应用外壳 25 条（Task 61 的 23 条 + Task 64 的 2 条：导航「目标」/ 快捷键「切到目标」）
+    // 应用外壳（Task 61 起；Task 64 补导航「目标」/ 快捷键「切到目标」，
+    // Task 72 补快捷键「切到蓝图」⇒ Ctrl+7）
     'shellNavToday': shellNavToday,
     'shellNavInbox': shellNavInbox,
     'shellNavHabits': shellNavHabits,
@@ -2422,6 +2426,7 @@ abstract final class L10nKeys {
     'shellKeySwitchTab': shellKeySwitchTab,
     'shellKeyGoProjects': shellKeyGoProjects,
     'shellKeyGoGoals': shellKeyGoGoals,
+    'shellKeyGoBlueprint': shellKeyGoBlueprint,
     'shellPanelTodoList': shellPanelTodoList,
     'shellPanelAddTodo': shellPanelAddTodo,
     'shellPanelHabitOverview': shellPanelHabitOverview,

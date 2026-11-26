@@ -32,6 +32,15 @@
 | U6 | MINOR-2：窄屏 `KeyBar` 的 `Ctrl+7` 文字提示是否补做（多次实证只列到 `Ctrl+6`） | 帧 `reports\task72-frames\{41,43,78}-*.png` |
 | U7 | provider 未就绪时静默无落库（MINOR-3）+ 新派生目标需重启进程才在右栏出现 | 帧 68/69 vs 53 |
 
+### §四·附 裁决登记（按盘上证据回填，不重复提问）
+
+| # | 裁决 | 依据（盘上可回读） | 落地 |
+|---|---|---|---|
+| U1 | **已裁决：今日页右栏「未完成周目标」卡保留，退化为只读展示，不整卡移除** | 用户 2026-11-25 逐字「保留只读展示」⇒ `docs\b83-dispatch-w3.md` L5–L7 引用；本文件 §二·2 同步 | B8-W3 已落地：`WeekGoalRailPanel` 只读化，删除 `Draggable` / `onTap` 全部写入通道，保留三态与 `ValueKey('week-goal-${goal.id}')`；卡仍挂在 `apps\desktop\lib\src\app.dart:428-431` |
+| U6 | **已裁决：本批补做**（MINOR-2 原判「不在 B8 范围」被推翻） | 键条自身口径「每一条都必须有真实绑定，留一条没有落点的提示就是假承诺」（`key_bar.dart` L24-25）；`Ctrl+7` 早有真实绑定 `apps\desktop\lib\src\app.dart:256-257`（`digit7 + control → _NavIntent('blueprint')`），清单却只列到 `Ctrl+6` ⇒ 属**清单与真实绑定不一致**的明显遗漏，按用户「明显的 bug 直接按推荐方案修」口径直接补，不发问卷 | 清单 9 → 10 条（`Ctrl+7` / 切到蓝图），`kShellKeyHints` 与 `shellKeyHintsFor()` 双份同步，新增 l10n 键 `shellKeyGoBlueprint`（W3 棒「l10n 只减不增」是棒内约束，本批属新棒）；动的是清单本身，故 `kShellKeyHints.length` 相关断言同步改，测试用例条数不增 |
+
+> U2–U5、U7 仍未裁决，保持挂账；U3（月/周页派生链路）与 U7（provider 静默不影响落库）不因本批改动而改变状态。
+
 ## 五、纪律提醒（照抄 `AGENTS.md`）
 
 - **R1**：控制器不改 `apps\**` / `packages\**`，改造一律经 `worker` 派工。

@@ -18,6 +18,12 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "**/build/**"
+    # reports/ 是被 .gitignore 排除的证据 / 产物目录（内含历史 `.dart` 备份副本，
+    # 如 reports\task37-aborted\task37_dock_test.dart、reports\task47-W1c-3-evidence\
+    # backup_arm_c\desktop_shell.dart），它们不是源码、也没有包依赖解析上下文。
+    # 不排除 ⇒ 根上下文分析把它们当源码解析，G1 每次都以 163 个 URI_DOES_NOT_EXIST /
+    # UNDEFINED_CLASS 假红（这些文件自 2026-11-17 起就躺在盘上）。
+    - "reports/**"
 
 linter:
   rules:

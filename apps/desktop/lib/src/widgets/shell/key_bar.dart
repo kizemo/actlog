@@ -24,7 +24,7 @@ class ShellKeyHint {
 /// 口径（C7 / K1 / K2）：**每一条都必须有真实绑定，且行为与文案一致**——
 /// 留一条没有落点的提示就是假承诺，不允许。
 ///
-/// 9 条的绑定位置：
+/// 10 条的绑定位置：
 /// - `Ctrl+N` → 今日页的 `Shortcuts`（手写一条弹层）；
 /// - `Ctrl+D` → 同处（打卡第一条未打习惯）；
 /// - `←→` → 同处 `_ShiftDayIntent`（输入态自动让位给光标移动）；
@@ -34,7 +34,8 @@ class ShellKeyHint {
 ///   弹层由 `ModalRoute` 处理 `DismissIntent` 关闭；
 /// - `Ctrl+1…4` → 壳宿主（`ShellHost`）的 `Shortcuts`：今日 / 待办池 / 习惯 / 日历；
 /// - `Ctrl+5` → 同一处：项目页（Task 56 起有真实落点）；
-/// - `Ctrl+6` → 同一处：目标页（Task 65 UI 半批 B1 起有真实落点）。
+/// - `Ctrl+6` → 同一处：目标页（Task 65 UI 半批 B1 起有真实落点）；
+/// - `Ctrl+7` → 同一处：人生蓝图页（Task 72 补齐漏登的键条提示）。
 ///
 /// 文案口径（Task 20 / K3）：`Space` 写「勾选 / 取消勾选」，不写原型那种
 /// 「把这一行加进 / 拿出今日计划」的说法——本应用里这一行本来就在今日计划里，
@@ -53,6 +54,7 @@ const List<ShellKeyHint> kShellKeyHints = <ShellKeyHint>[
   ShellKeyHint(keys: <String>['Ctrl+1…4'], label: '切页'),
   ShellKeyHint(keys: <String>['Ctrl+5'], label: '切到项目'),
   ShellKeyHint(keys: <String>['Ctrl+6'], label: '切到目标'),
+  ShellKeyHint(keys: <String>['Ctrl+7'], label: '切到蓝图'),
 ];
 
 /// 取当前语言的文案表；不在 [L10nScope] 之下时回落中文态。
@@ -70,7 +72,7 @@ AppLocalizations shellLocalizationsOf(BuildContext context) =>
     context.dependOnInheritedWidgetOfExactType<L10nScope>()?.localizations ??
     AppLocalizations.zh;
 
-/// 运行时构建 9 条快捷键说明（文案走 l10n）。
+/// 运行时构建 10 条快捷键说明（文案走 l10n）。
 ///
 /// `const` 顶层列表不能在编译期常量里调 `t.xxx`，所以运行期的清单在这里现搭；
 /// zh 态的取值与 [kShellKeyHints] 逐字相同（那一份常量保留下来，供既有测试
@@ -85,6 +87,7 @@ List<ShellKeyHint> shellKeyHintsFor(AppLocalizations t) => <ShellKeyHint>[
   ShellKeyHint(keys: <String>['Ctrl+1…4'], label: t.shellKeySwitchTab),
   ShellKeyHint(keys: <String>['Ctrl+5'], label: t.shellKeyGoProjects),
   ShellKeyHint(keys: <String>['Ctrl+6'], label: t.shellKeyGoGoals),
+  ShellKeyHint(keys: <String>['Ctrl+7'], label: t.shellKeyGoBlueprint),
 ];
 
 /// 键帽（等价原型 `kbd`）。

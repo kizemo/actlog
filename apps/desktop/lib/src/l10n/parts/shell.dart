@@ -7,7 +7,7 @@
 //  3. 聚合在 `app_localizations.dart`：zh / en 两个子类各混一个 mixin。
 //
 // 本 part 只收**外壳自己**的文案：左导航 6 项、导航底注「页面切换」、快捷键面板
-// 标题与 8 条快捷键说明、右轨 4 个面板的 7 条标题/按钮文案。
+// 标题与 10 条快捷键说明、右轨 4 个面板的 7 条标题/按钮文案。
 //
 // 品牌标题（知行日志 / actlog）**不新增 getter** —— 复用 `parts\about.dart` 里
 // 既有的 `appName`（zh `知行日志` / en `actlog`）。
@@ -59,7 +59,7 @@ abstract class ShellL10n {
   /// 导航底注：页面切换。
   String get shellPageSwitch;
 
-  // --- 快捷键说明 8 条 -------------------------------------------------------
+  // --- 快捷键说明 10 条 ------------------------------------------------------
 
   /// 快捷键：＋ 手写一条。
   String get shellKeyAddEntry;
@@ -87,6 +87,9 @@ abstract class ShellL10n {
 
   /// 快捷键：切到目标。
   String get shellKeyGoGoals;
+
+  /// 快捷键：切到蓝图。
+  String get shellKeyGoBlueprint;
 
   // --- 右轨 4 个面板的 7 条文案 ----------------------------------------------
 
@@ -175,6 +178,9 @@ mixin ShellZhL10n implements ShellL10n {
   String get shellKeyGoGoals => '切到目标';
 
   @override
+  String get shellKeyGoBlueprint => '切到蓝图';
+
+  @override
   String get shellPanelTodoList => '待办列表';
 
   @override
@@ -257,6 +263,9 @@ mixin ShellEnL10n implements ShellL10n {
 
   @override
   String get shellKeyGoGoals => 'Go to Goals';
+
+  @override
+  String get shellKeyGoBlueprint => 'Go to Blueprint';
 
   @override
   String get shellPanelTodoList => 'To-do list';
