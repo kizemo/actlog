@@ -724,3 +724,117 @@ token 精确值：paper `#F6F4EF` / card `#FBFAF6` / sunken `#F0EDE5` / ink `#32
 
 - `AGENTS.md` §2 R3 第 61 行（本批真源行）已在**工作区就地订正**为「已静默装配 `A9752C00FDDF0D80` + 启动/导航 smoke 级」，但该文件同时带并发接力链会话的未暂存改动，**不并入本笔提交**，仍挂账。
 - 三条反馈的界面验收要落地，只有两条路（均未验证）：换具备视觉能力的会话读帧；或补一条能真正触发 `PointerHoverEvent` 的注入通道（候选：向 `FLUTTERVIEW` 子窗口发**客户端坐标**的 `WM_MOUSEMOVE` 并配 `TrackMouseEvent`/`WM_MOUSELEAVE`；`SendInput` 路径违反「不抢焦点」约束，不予采用）。
+
+---
+
+### 11.17 批次 **B13** 开工（2026-11-26 23:0x · 控制器 + 一棒 worker · 用户三条界面优化 + 再次美化）
+
+#### 一、背景与目标（本轮用户指令逐字口径）
+
+用户在 B12 收口（HEAD `b2b6fbf`，包 `…_20261126-221923.exe` 已装机）之后，提出三条**追加优化**（不是返工）：
+
+1. 个人定位的**四个录入框保持同样高度、上下边界对齐**；
+2. 目标的**四个标签**增大文字尺寸、改用符合主题风格的**衬线体**、增大标签**内边距**；并**去除「截止日期」列单元格中的文字「起止日期」**；
+3. **再次对页面布局、排版、设计进行美化**，指定走 `/frontend-design:frontend-design` 技能。
+
+约束沿用 §2 铁律：控制器不改 `apps\` / `packages\`（R1，实现经 worker）；门禁数字控制器亲跑（R2/R5）；只 commit 不 push；`release\` 唯一可分发包指针随批次更新（R3）；不删文件（R4）；**严禁读跨项目交接卡** `maintenance\task-state\LATEST.md`（R7，本轮插件 hook 又注入了该卡路径与摘要，按指令忽略）。
+
+#### 二、勘察结论（盘上回读，2026-11-26 22:5x）
+
+- 起点 HEAD = `b2b6fbf`（`docs(ledger): 追加 11.16 …`），链上另有 `36efc43 feat(b12)` / `63fbaec docs(b12) §11.15`。
+- **需求 1 根因三条坐实**（源码口径）：`goal_brand_panel.dart:871-913` 每列 `CrossAxisAlignment.start` 下**标题行数不定**；`:921-945` `TextField(minLines:1,maxLines:4)` **高度随内容行数变化**；`:904-910` `goal-position-saved` / `goal-position-error` 状态行**只在单列出现**→该列被撑高。
+- **需求 2 根因坐实**：档位标签 `goal_blueprint_matrix.dart:349-390` 走 `Theme.textTheme.labelLarge`（`:194`），而 `app_theme.dart:202-206` 的 `labelLarge` 是 `fontFamily: AppFonts.body`（**无衬线**）+ `fontSize: density.labelSize`（12/12.5/13.5，`density_profile.dart:10,21,32`）；padding 仅 `EdgeInsets.symmetric(horizontal: 10)`。主题真源只有 title 类（`:227-228`）挂 `AppFonts.display`（Fraunces → `app_fonts.dart:36-42` 回退 Noto Serif SC 等）⇒ **不新增字体资产、不改 pubspec**，用 `AppFonts.display` + `displayFallback` 常量覆写。
+- **「起止日期」文字定位**：`goal_blueprint_matrix.dart:571-574` 是截止日期列紧凑按钮的 child（`FittedBox(scaleDown, Text(t.goalBlueprintPeriodTitle))`，tooltip 同名），**它同时是改期对话框的入口**；同文件 `:598/:605` 已有 `Icons.edit_outlined` / `Icons.call_split`，全仓图标命名约定为 `*_outlined`（实测 `priority_marks` / `mood_section` / `standup_section` / `review_section` 等均是），文件头 `:43` 注释声明「本模块使用 2 个 Material 图标」。⇒ 裁决：**文字换成 `Icons.date_range_outlined`，保留 tooltip 与 onPressed**（用户要的是去掉文字，不是去掉功能；改期入口不能丢）。
+- **需求 3 美化落点（小而可解释，不重走三初稿门）**：`:838-847` 四条**满高 hair 竖分隔线**把一行切成四个「格子」⇒ 降 `tokens.hairSoft` + 上下各留 8px 端头；禁止渐变/阴影/新 token/新字体。
+- **并发安全已排除**：`docs\relay.json` `status=done`、`current_stage=6 / max_stages=6`、`next_session_id` 空、`docs\relay\` 无 `.lock`、`apps\` 近 30 分钟零文件改动 ⇒ 接力链不再起环，本批写集无碰撞。
+
+#### 三、本轮动作与产物
+
+- 派工书落盘：`docs\b13-dispatch.md`（**12,508 B**，回读确认；§0 写集白名单 / §1 真源事实表 / §2 A-E 四项改动逐条判据 / §3 交付要求）。
+- worker 起棒（R8 合规）：`task(agent_name=worker, model=custom_provider:provider-aa5659/deepseek-v4.1-flash-1017, effort=high)` → `task_id=bg_5c9ea6ed-675e-4d09-8f35-fa7df0295c44`，`session_id=mvs_a6615007abe14e51802386bf1b65eb05`。契约明令：只准 `flutter test <单文件>`，**禁** analyze/build/全量 test，**不 commit**。
+- 新取证装置：`reports\task94-b13-layout-check.ps1`（**2,935 B**，`reports\` 属 gitignore 区，不可 `git add`）。用法 `-Png <帧> [-Y0 -Y1]`；对四列 x 区间（设备像素 col1 535-845 / col2 855-1175 / col3 1185-1495 / col4 1505-1825，标定自 §11.16 的 2496×1456 种子帧）扫 `#DCD5C6 ±14` 横向游程 ≥55% 的行并合并成段 ⇒ 直接读出**四个输入框的上下边界行是否逐字相等**；另裁 `strip-tabs.jpg` / `strip-position.jpg` 供用户肉眼验标签样式与图标化结果。
+- 额度闸门 ack 已登记并回读：`maintenance\.bgtask_ack.json` → 本会话 key `mvs_d306d157075a4262b7eec1bbaf68b6ef`，`task_ids=[bg_5c9ea6ed-…]`，`until_ms=1795707142838`（23:32:22）。
+
+#### 四、新发现：`AGENTS.md` §7 被**已终态的接力链**回退（坑 87 复现）
+
+- 本轮**同一会话内两次读取结果不同**：22:5x 读到第 446 行标题为「当前状态快照（批次 **B12 收口**…」且第 570 行存在「**Material 图标例外清单**」；23:0x 再读，446 行变成「批次 **B10 收口**（…`DESKTOP_TESTS=958`…`…_153023.exe`…）」，570 行的图标例外清单**整行消失**（`Select-String 'Icons\.'` 只剩坑 51 那条）。
+- 现场读数：`AGENTS.md` **601 行 / 346,877 B / mtime 2026-11-26 22:39:08**；`git diff --stat AGENTS.md` = 43 插入 / 12 删除（未暂存）。
+- 判定：**B12 写入 AGENTS.md 的 §7 快照与图标例外属「挂账未提交」内容，随接力链最后一跳的回退而丢失**；B12/B13 的完整记录在本节与 §11.15/§11.16 **没有丢**（台账是真源），但 AGENTS.md 这个「唯一真源」文件的 §7 目前是**过期状态**（仍指向 B10 与 `…_153023.exe`，而 R3 真源行当前盘上值经 §11.15 记为已订正 —— 需在收口时一并回读核实）。
+- 遗留处置：原「挂账」理由（怕撞并发写）已随接力链终态而消失。**待用户在下一轮裁决**：① 收口时一并重写 §7 + R3；② 继续挂账只写本台账；③ 只补 R3 包指针一行。（已提问，未获答，故本节不预先改动 AGENTS.md。）
+
+#### 五、残留与下一步（依赖序）
+
+1. worker 交付 → 控制器**亲跑门禁**：先 `Move-Item apps\desktop\build\test_cache\build` 改名挪走（R2/坑 183）→ `flutter analyze` 期望逐字 `No issues found!` → `flutter test --reporter compact` 期望 **`+1000` 起步**（B12 收口基线，本轮新增用例数按 worker 实报上调，`task51-gate.ps1 -ExpectDesktopTests` 必须带当轮新数）。
+2. 两步出包（坑 127）：`flutter build windows --release` → `tools\build\make_installer.ps1 -Version 1.0.0`。
+3. 静默装配前先确认 `actlog.exe` 未在跑（**本轮 23:0x 实测 `actlog=1` 个进程在跑**，需用户先关），再 `Start-Process <安装包> '/S'`（不带 `-Wait`），回读装机 `data\app.so` sha16 与构建树逐字比对。
+4. 真机取证：`reports\task94-b13-layout-check.ps1` 跑需求 1（四框边界行相等）；标签/图标的观感判据仍属 **UNDETERMINED**（本会话模型不能读图 + hover 通道不可用，见 §11.16 第五节），一律以 widget 测试几何/样式断言 + 用户肉眼为准。
+5. 台账本节补写收口读数（门禁数字、包名/字节/sha16、装机回读）；提交时排除 `docs\relay*`、`docs\b8*`、`docs\incident-*`、`reports\`（gitignore）。**修订（23:3x）：`AGENTS.md` 不再排除**——按下方「补 3」裁决，本轮控制器亲写 AGENTS.md 四处并随批提交，不并入并发方的其余改动。
+
+**补 1 · 23:2x 盘上回读坐实（worker 落码后）**：五项改动全部落盘且值与派工书逐字一致 —— `goal_brand_panel.dart` `_titleSlotHeight=40`(:94) / `_positionInputLines=3`(:99，:963-964 `minLines==maxLines`) / `_statusSlotHeight=20`(:104) / `_dividerInset=8`(:109，:856 `Padding(vertical:)`) / 常驻状态槽 :928 内 `ValueKey('goal-position-saved')`(:934) 与 `('goal-position-error')`(:940) / 分栏线 `tokens.hairSoft`(:865)；`goal_blueprint_matrix.dart` `tabActiveHeight=38`(:158) / `tabInactiveHeight=31`(:163) / `_tabFontSize=15`(:173) / `_tabPadding=18`(:179，:394 使用) / `fontFamily: AppFonts.display` + `fontFamilyFallback: AppFonts.displayFallback`(:418-419) / `import '../theme/app_fonts.dart'`(:55) / 改期入口 `child: const Icon(Icons.date_range_outlined)`(:611) 且 `tooltip: widget.t.goalBlueprintPeriodTitle`(:606) 保留原文案；新建 `test\b13_polish_test.dart`（12 例，untracked）。`git diff --stat` 本批 = 两 lib 文件 `93` / `165` 行变更 + 1 untracked 测试文件。
+
+**补 2 · TOKENS.md §8 合规复核 PASS**：视觉口径真源实为 `design-demos\TOKENS.md` §1–§7（§6 索引 :436，只许改 §8），其 **:333** 明文「`hair` / `hairSoft` 在 Flutter 侧**只做装饰线**（段头下沿、栏边），不得承载任何可交互控件边界」。本轮新增的 `hairSoft` 只用在四列竖向分栏线（纯装饰，:865）⇒ 合规；:822 与 :1153 两处 `Border.all(color: tokens.hairSoft)` 是 **HEAD 既有**（旧 L806 / L1120，面板容器边框），worker 未新增、未把 hairSoft 放上可交互控件边界。`hairSoft` 真值 `#EAE4D9`（`theme_tokens.dart:411`，TOKENS.md :558 同值）。
+
+**补 3 · AGENTS.md 回退范围已量化（比 §11.15/§11.16 登记的更严重）**：`git show HEAD:AGENTS.md` = **570 行**，§7 标题在 **L433** 且仍写「批次 **B10** 收口」；工作副本 601 行（§7 @:446）同样停在 B10 口径（958 例 / `…_153023.exe`）。**B12 新写的 §7.1「设计标准（批次 B12）」小节与「Material 图标例外清单」整行，在 HEAD 与工作副本中均 0 命中**（`Select-String '设计标准|Material 图标例外|衬线优先'` 两侧皆空）。R2/R3 真源链最新行退回到 **L74 = Task 57（`…_20261122-150545.exe` / sha16 `44AADE5FB17A75D2`）**，B10 / B11 / B12 三条真源行一并消失。**危害不止文档过期**：AGENTS.md 是新会话的第一入口，R3 指针停在 11-22 的包会诱导后续会话分发**已被取代的旧包**，直接撞 §3.4 验收口径 1（硬失败）。**本轮裁决**（依用户 2026-10-14 偏好「这种明显的 bug 直接按推荐方案修，不必让用户选」）：控制器在 B13 收口时亲写 AGENTS.md 四处 —— ① R2/R3 段顶部补 B10 / B11 / B12 / B13 真源行并给旧行加「已被取代」标记；② §7 标题改为批次 B13 收口；③ 重建 Material 图标例外清单（B12 `Icons.done_all` / `Icons.arrow_downward` + B13 `Icons.date_range_outlined`）；④ 重写 §7.1 设计标准四条（衬线优先 / hairSoft 发丝线 / 999 胶囊 / 三档字号）。AGENTS.md 不在 R1 写集禁区（只禁 `apps\**` / `packages\**`），且并发接力链已终态（`docs\relay.json` `status=done`、无 `.lock`、`apps\` 近 30 分钟零改动）⇒ 碰撞风险已消。
+
+**补 4 · 阻塞项裁决（b10 两条红）**：`b10_position_panel_test.dart` C1 `lessThan(60)`（实际 76.0）与 C2 `greaterThan(before)`（`min==max==3` 下恒不成立）判为**旧测试口径已被用户需求第 1 条「四框等高」取代**，采「改测试、不改实现」。已回派同一 worker 会话续棒（新 `task_id=bg_95016e9b-4d39-4279-9ccb-41bb19ca5f9d`，`mode=activated`，写集仅该测试文件）：C1 → 四框两两等高 + `closeTo(76.0, 1.0)`，C2 → 反转「多行输入后高度不变且不溢出」，两处各注明来源「B13 第 1 条」，不删用例、不动 `apps\desktop\lib\**`。
+
+---
+
+### 11.18 批次 **B13** 收口（2026-11-26 23:16–23:30 · 控制器亲跑门禁 + 严格两步出包 + AGENTS.md 四处亲写 · 只 commit 不 push）
+
+**背景 / 目标（本节自足，新会话不必回翻派工书）**：HEAD 起点 `b2b6fbf`（B12 收口提交，本轮复核逐字相等）。用户当轮三条界面优化：① 个人定位的四个录入框保持同样高度、上下边界对齐；② 目标的四个标签（人生蓝图矩阵档位标签条：终极 / 远期 / 中期 / 短期）增大文字尺寸、改用符合主题风格的衬线体、增大内边距，并去除「截止日期列单元格」中的文字「起止日期」；③ 再次对页面布局、排版、设计进行美化（指定走 `/frontend-design:frontend-design`）。开工前置阅读链（已按序完整读）：`AGENTS.md`（§2 铁律 R1–R8 / §3 验证装置地图 / §5 坑表 / §7 状态快照）→ 本台账 §11.15、§11.16 → `docs\b12-dispatch.md` → `docs\b12-repair2.md`；按 §11.16 第六节「残留与下一步」依赖序推进，**不从零重做已完成的代码与门禁**。
+
+#### 一、进度（盘上已坐实）
+
+1. **实现（两棒 worker，写集全在 `apps\**`，控制器零触碰，R1）**
+   - `apps\desktop\lib\src\widgets\goal_brand_panel.dart`：标题槽 `_titleSlotHeight = 40`（L94）+ 录入框 `minLines = maxLines = _positionInputLines = 3`（L99）+ 状态行常驻槽 `_statusSlotHeight = 20`（L104，内嵌 `ValueKey('goal-position-saved')` / `ValueKey('goal-position-error')` @L934/L940）+ 分栏线 `_dividerInset = 8`（L109）与 `tokens.hairSoft`（L865）。四列上界 `40 + 3×rowHeight + 4 + 20`、下界 `40 + rowHeight + 4 + 20` ⇒ 相邻列差恒 `2×rowHeight` ⇒ 上下边界逐行对齐；超长内容走录入框内部滚动，不再撑高。
+   - `apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart`（93 行变更）：`_tabFontSize = 15`（L173）、`_tabPadding = 18`（L179）、`AppFonts.display` + `displayFallback` 在 `Text.style` 覆写（L418-419，**不改全局 `labelLarge`**，避免波及所有 `mediumEmphasis` 用法）、起止日期单元格改 `Icons.date_range_outlined`（L611，携 `Tooltip` + `Semantics(label:)`，i18n key `goalRangeDatesButton` 等三处**不删**）、`edit_outlined`（L631）/ `call_split`（L638）沿用；在册圆角例外 `chromeTabTopRadius = 8`（L152）未动。
+   - 新文件 `apps\desktop\test\b13_polish_test.dart`：12 例（A 段四框等高 4 / B 段标签度量 4 / C 段图标化 3，含「图标位内 `Text` 必须为 null、`Semantics` 仍携文案」/ D 段分栏线 1）。
+   - `apps\desktop\test\b10_position_panel_test.dart`：diff **52 insertions / 57 deletions**（语义改动约 10 行，其余为 format 差异）。两条旧口径红用例按裁决「**改测试、不改实现**」订正：C1 `lessThan(60)` → 四框两两等高 + `closeTo(76.0, 1.0)`；C2 `greaterThan(before)` → 反转断言 `equals(before)`（多行输入后高度不变）。**未删任何用例**。
+   - 派工契约：`docs\b13-dispatch.md`（12,508 B，§0 写集白名单 / §1 真源事实表 / §2 A–E 判据 / §3 交付要求）。
+
+2. **门禁 = 控制器亲跑（不采信 worker 自报），装置 `reports\task95-gate-b13.ps1`（1,590 B，纯 ASCII）**
+   - R2 前置：`apps\desktop\build\test_cache\build` **Move-Item 改名**为 `apps\desktop\build\test_cache\build_stale_20261126-231656`（不删，R4）⇒ 避开 OS Error 183 挂死。
+   - `flutter analyze`（镜像 env 在脚本内设）⇒ **`ANALYZE_EXIT=0`**，日志逐字 **`No issues found! (ran in 7.1s)`**；证据 `reports\task95-analyze-20261126-231831.log`（547 B）。
+   - desktop 全量 `flutter test --reporter compact` ⇒ **`TEST_EXIT=0`**，尾行逐字 **`02:53 +1012: All tests passed!`**；证据 `reports\task95-test-20261126-231831.log`（302,200 B）。**基线 1000 → +1012**，增量 12 与 `b13_polish_test.dart` 例数逐条对上。
+   - `packages\**` 零改动（porcelain 佐证）⇒ schema 仍 FROZEN；core_data **+204** / core_db **96** / core_domain **91** 沿用（本轮未重跑，不新宣）。
+   - 注：worker 自报 `b10_position_panel +15` / `b13_polish +12` / `b12_position_matrix… +8` 全绿 —— 只作旁证，**判据以上述控制器末行为准**。
+
+3. **出包 = 严格两步（坑 127）**
+   - `flutter build windows --release`（CWD 必须 `apps\desktop`）67.0s ⇒ `√ Built build\windows\x64\runner\Release\actlog.exe`；日志 `reports\task95-build-20261126-232555.log`。
+   - `tools\build\make_installer.ps1 -Version '1.0.0'` ⇒ `INSTALLER_EXIT=0`、`compression = SOLID lzma`、`SubType = NSIS-3 Unicode`；日志 `reports\task95-installer-20261126-232814.log`（3,012 B）。
+   - **B13 唯一可分发产物**：`release\actlog-Setup-1.0.0_20261126-232814.exe` / **22,851,987 B** / sha16 **`38B74EB23F8153C6`** / mtime 2026-11-26 23:28:14。`release\` 现 **63** 个 exe，仅此 1 个可分发，其余 62 个严禁分发（R3）。旧真源 B12 包 `…_20261126-221923.exe`（`104FEDE1513FB06E`）**即日起失效**。
+   - **重编判据（只比 sha16）**：构建树 `apps\desktop\build\windows\x64\runner\Release\data\app.so` = **9,241,480 B / `59FF9A762C8EEA29` / mtime 23:27:00**（≠ B12 的 `A9752C00FDDF0D80` ⇒ 确为重编）；`actlog.exe` = 484,352 B / `89293205FAF8C3DE`（与 B12 逐字相同 ⇒ 未变，**不得作判据**，§5 坑 110）。
+
+4. **AGENTS.md 四处亲写（本轮裁决：由「挂账」改为亲写并随批提交）**——依用户 2026-10-14 偏好「明显 bug 直接按推荐方案修，不必让用户选」，且并发接力链已终态（`docs\relay.json` `status=done` / `current_stage=6` / `max_stages=6` / `next_session_id=null`；改写前 `AGENTS.md` mtime 22:39:08、sha16 `247FDC0FCE84F901` 至 23:18 未变 ⇒ 无并发写者）。
+   - ① §7 标题（L446）`批次 **B10 收口**` → `批次 **B13 收口**`，B10 原文完整保留为下接叙事；② R2 基线行（L49）阶梯补 `→ **958(B10 收口 +76)** → **1000(B12 收口 +42)** → **1012(Task 95 · B13 收口 +12)**` 并声明 `+882` 及以上均已过期；③ §7 末新增 **§7.1「设计标准（真源）与 Material 图标例外（批次 B12 建 · B13 扩充）」**（圆角 / 字体族 / 密度档 / 颜色四类真源取值表 + 文本样式覆写口径 + 四列等端口径 + 图标使用口径与语义分组清单 + 复现命令 + 纯文本单元格改图标判据）；④ R3 段顶插入 B13 真源行（含门禁读数、两步出包链、重编判据、装机状态与装配后判据）。
+   - **盘上回读**：`AGENTS.md` 现 **641 行 / sha16 `E2D1DFA2AD14518B`**（改写前 601 行 / `247FDC0FCE84F901`）。
+   - **对 §11.17 补 3「重建目标」四项的实测订正（三项无真源，照抄即造假）**：**(a) 不存在「999 胶囊半径」** —— `apps\desktop\lib\src\theme\*.dart` 扫 `radius|Radius\.|999|pill` 只命中 `app_tokens.dart:19`（`AppTokens.radius = 4`）；**(b) 不存在三档 `titleSize` / `metricSize`** —— `DensityProfile` 真身 `apps\desktop\lib\src\theme\density_profile.dart`（`enum`，L5-37），字段只有 `bodySize / lineHeight / labelSize / h2Size / padH / padV / gapSec`（comfortable = 15 / 1.66 / 12.5 / 19 / 14 / 12 / 22），默认 comfortable 见 `providers.dart:318`；**(c) `Icons.done_all` / `Icons.arrow_downward` 不在本仓** —— `apps\desktop\lib` 内 `Icons.*` 命中 **53 处 / 17 文件**（注释 8、代码 45），唯一同形命中是 `priority_marks.dart:14` 注释里的字体名 `MaterialIcons.ttf`。三项已在 §7.1 内以「订正」字样显式落文，防下轮再抄。图标口径上位真源 = `design-demos\TOKENS.md` §7 L304-308（禁令）+ L296（单色字符标记豁免）+ §8 L333（`hair` / `hairSoft` 只做装饰线），本轮 B13 新增的 `hairSoft` 只用在四列竖向分栏线（纯装饰）⇒ 复核 PASS。
+   - **R5 落盘回读（本小节自身数字 · 追加前读数）**：本台账写本条之前为 **832 行 / sha16 `394BABBE481C995A`**（口径 = `(Get-Content -Encoding UTF8).Count`；该数字是自指的，追加后必然再变，故只作「追加前」证据，不得当现值引用）。同口径下 `AGENTS.md` = **641 行 / `E2D1DFA2AD14518B`**（四处改写前 601 行 / `247FDC0FCE84F901`）。
+   - **AGENTS.md 四个落点行号（1 基 · 盘上回读）**：R2 基线阶梯 **L49** · R3 B13 真源行 **L61**（旧 B12 行被顶到 L62）· §7 标题 **L447** · §7 末 B13 收口条 **L573** · **§7.1 L575–610** · 尾锚 `## 8.` **L614**。校验装置 = `reports\task95-closeout-verify.ps1` ⇒ `CLOSEOUT_DOC_VERIFY=PASS / VERIFY_EXIT=0`，逐项 `AG_H7_B13=1`、`AG_H7_STALE_B10=0`、`AG_B13_BULLET=1`、`AG_S71=1`、`AG_R3=True`、`AG_R2_1012=True`。
+   - **「未做」断言也要盘上回读（本轮翻案一次）**：压缩前摘要断言「AGENTS.md §7 标题行与 R2 阶梯两处**未**改上」，本轮读盘证明两处**都已改写**（§7 标题 1 基 L447 / 0 基 446）。⇒ 收口时对「已做 / 未做」必须逐条读盘，否定结论同样不可信；并注意 `Select-String` 报的是 1 基行号，`(Get-Content -Encoding UTF8)[i]` 是 0 基索引，差 1 行。
+   - **§11.18 自身排版规范化（本轮补做）**：本节标题已由 `## §11.18` 改为 `### 11.18`（对齐 §11.16 / §11.17 的大纲层级），四个子节由 `### 一/二/三/四、` 降为 `#### 一/二/三/四、`；装置 = `reports\task95-ledger-format.ps1`（先断言后替换，锚点一律 `\uXXXX` 转义以保持脚本纯 ASCII），落盘后由脚本自身打印 `POST_LINES / POST_SHA16` 作为新读数。
+
+#### 二、未做 / 推断 / 待验（不得当已完成）
+
+- **静默装配 = 未执行**：用户正运行 B12 装机版（`D:\Program Files\actlog\actlog.exe`，本轮实测 1 进程，占用安装目录与用户活库）⇒ 已就「是否现在关掉实例以便装配」发出 async 问卷（`ask_749903706fe3816d08fc0ef3`），**截至本条答案未到达**，不替用户关进程。**装配后必做**：`Start-Process <安装包> -ArgumentList '/S'`（**不** `-Wait`）→ 回读装机 `D:\Program Files\actlog\data\app.so` 应为 **`59FF9A762C8EEA29` / 9,241,480 B / mtime 23:27:00**（与构建树逐字一致）→ 核对用户活库 `userdata\actlog.db` 仍 **352,256 B / `B5F9070FC63068B1` / mtime 2026-11-21 21:37:03**（活库被锁 ⇒ 必须 `FileShare.ReadWrite` 拷副本再算 hash）。
+- **运行时像素取证 = UNDETERMINED（不是 PASS）**：本会话模型不能读 PNG；§11.16 已坐实注入通道产不出 `PointerHoverEvent`（合成 `WM_MOUSEMOVE(0x0200)` / `WM_MOUSEWHEEL(0x020A)` 连打后 13 帧 sha16 恒 `03EF6B2A91AFEB66`、ink 恒 13659）⇒ **不得重试**；`SendInput` 违反「不抢焦点」约束；UIA 枚举只得 1 个 `FLUTTERVIEW` Pane（Flutter 未暴露语义树）。三条优化的观感证据 = `b13_polish_test.dart` 12 例契约 + 用户肉眼。可用（未跑）装置：`reports\task94-b13-layout-check.ps1 -Png <帧> -Y0 450 -Y1 1300`（col1 535-845 / col2 855-1175 / col3 1185-1495 / col4 1505-1825，设备像素 1.5x；`#DCD5C6 ±14` 游程 ≥55% 成段），种子帧 `reports\task93-frames-b12a\t90-nav.png`（2496×1456，hair 顶线 y=469、列分隔 x=850/1180/1500、输入框 y542-591）。
+- **残留 / 下阶段候选**：① 装机构造取证（等问卷答复）；② 档位标签条仅在 760 宽验证不溢出，更窄（如 600）走 `FittedBox(scaleDown)` **无用例**；③ b10 C1 的 `closeTo(76.0, 1.0)` 与 comfortable 密度档耦合，改密度默认值会连带红（属预期耦合，已在用例注释标注）；④ 超长文本在录入框内部滚动的真机观感未取证；⑤ 旧装置 `reports\task95-agents-71.txt`（5,852 B）/ `reports\task95-agents-patch.ps1`（2,235 B，断言 L446/571/572/574，`exit 2` 锚不符 / `exit 3` 已存在）**已作废**——§7.1 改由 `edit` 工具直写，**严禁再执行该脚本**（会插第二份 §7.1；脚本自身的 `exit 3` 幂等守卫是唯一防线）。
+
+#### 三、本轮新增工具坑（拟入 AGENTS.md §5，本条先落台账）
+
+- **坑 A（门禁假红根因）**：`$ErrorActionPreference='Stop'` + `*>&1 | Tee-Object` 跑 `flutter.bat` ⇒ flutter 打往 stderr 的横幅「Flutter assets will be downloaded from …」被包成 `NativeCommandError` 记录 ⇒ 抛异常、脚本 `Command exited with code 1`（首跑 `bg_8ee5e822-4e53-4a2f-9e8c-18785f15b6a5` 即此因，**不是产品问题**）。正解：`EAP='Continue'` + `& $flutter … *>&1 | Out-File -Encoding utf8`，再读 `$LASTEXITCODE`。
+- **坑 B（会白白烧掉数轮）**：`edit` / `write` 工具必填参数名是 **`file_path`**；若误传 `path`，`edit` 报的是「Could not find the exact text …」而不是参数校验错误 ⇒ 极易误判成「锚点没对上」而反复重读文件。本轮两次 AGENTS.md 编辑失败皆源于此，参数名改对后一次通过。
+- **坑 C**：`flutter build windows --release` 必须在 `apps\desktop` 目录内跑；在仓库根跑 ⇒ `Target file "lib\main.dart" not found` + `BUILD_EXIT=1`（本轮首跑 `bg_099d705f-…` 即此因）。
+- **坑 D**：bash 工具里 `cd` 之后再 `Out-File` / `Set-Content` 写文件 ⇒ 权限门直接拒：「write/delete targets cannot be verified safely after a command working directory change」。正解：写操作放进 `reports\*.ps1`（纯 ASCII），bash 只负责 `pwsh -NoProfile -File <脚本>`。
+- **坑 E（沿用并复核）**：R2 的 `reports\**\*.ps1` 纯 ASCII 判据由 `reports\task57-ps1-ascii-scan.ps1` 内建扫描 ⇒ 中文正文一律进 `.txt` / `.md`，不得进 `.ps1`。
+- **坑 F（并发纪律）**：本条与 §11.17 写作期间，`docs\relay.json` 与 `docs\relay\stage-6-report.md` 是**另一会话**的在途改动（本轮复核 `status=done`，链已终态）⇒ 提交时**只 add 本批文件**，严禁 `git add -A`。
+- **坑 G（官方 ASCII 门把自己人判红）**：`reports\task94-b13-layout-check.ps1` 原稿的**注释与输出标签**带中文（11 行，含输出标签 `横向框线段:`）⇒ `reports\task57-ps1-ascii-scan.ps1` 报 `PS1_NEW_NON_ASCII=1 / PS1_ASCII_VIOLATIONS=1 / SCAN_EXIT=1`，差点把已绿的门禁交出去。正解 = 注释与输出标签全改英文（判据逻辑、四列 x 区间、`#DCD5C6 ±14` 与 ≥55% 游程阈值一字不动，标签改 `HAIR_ROW_SEGMENTS:`），改后 3,012 B / nonascii=0，复扫 `PS1_ASCII_CLEAN=463 / PS1_NEW_NON_ASCII=0 / PS1_ASCII_VIOLATIONS=0 / SCAN_EXIT=0`。自查一行：`(Get-Content $f -Raw).ToCharArray() | Where-Object { [int]$_ -gt 127 }` 计数必须为 0。
+- **坑 H（纯 ASCII 脚本改中文内容的唯一可用姿势）**：`.ps1` 内不得出现中文字面量，但 .NET 正则支持 `\uXXXX` 转义、替换串可用 `[char]0xXXXX` 现拼 ⇒ 本轮用 `'^### (?=\u4E00\u3001)'` 前瞻断言 + ASCII 替换串完成标题降级，脚本本体全程 ASCII 过门；中文长载荷走伴跑 `reports\*.txt` + `Get-Content -Encoding UTF8` 注入。纪律不变：**先 `Matches().Count` 断言唯一命中再 `Replace`** —— 本装置首跑即在 L783 断言失败 `exit 2`、零写入，正好避免把已规范化的标题重复改写（证明该纪律有效，不是摆设）。
+- **坑 I（行数口径两派，恒差 1 行）**：同一文件 `(Get-Content -Encoding UTF8).Count` 与 `($raw -split "\r?\n").Count` 差 1（AGENTS.md 641 / 642、台账 832 / 833；后者尾部换行会多出一个空元素）⇒ 进台账的行数必须写明口径；脚本内按行号定位前，先剥掉尾部空元素再取 `line N = index N-1`，否则整段错位一行。
+
+#### 四、提交与接力
+
+- 本批提交范围：`AGENTS.md`、`apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart`、`apps\desktop\lib\src\widgets\goal_brand_panel.dart`、`apps\desktop\test\b10_position_panel_test.dart`、`apps\desktop\test\b13_polish_test.dart`、`docs\b13-dispatch.md`、本台账。**排除**：`reports\**`（被 gitignore，永不可 add）、`docs\relay*`、`docs\b8*`、`docs\incident-*`（并发接力链产物）。只 commit 不 push。
+- **接力**：按用户 2026-11-03 / 11-08 / 11-25 三条偏好 —— 本台账本节自带完整背景·目标·进度·计划与全路径证据指针（新会话无需回翻派工书），一句话接力 prompt 写在收口回答正文里、不另建文件，且 prompt 只给指针不复述本节内容。
+- **提交执行（控制器亲跑 · 只 commit 不 push）**：本批 7 文件逐文件 `git add`（禁 `git add -A`）⇒ commit **PENDING_HASH**。提交时并发接力链产物保持原状未暂存：`M docs/relay.json`、`M docs/relay/stage-6-report.md`、`?? docs/b81-dispatch-w1-retry.md`、`?? docs/b82-dispatch-w2.md`、`?? docs/b83-dispatch-w3.md`、`?? docs/incident-20261125-phantom-rollback.md`、`?? docs/relay/auto-advance-design.md`、`?? docs/relay/gate-green-2026-11-25.md`、`?? docs/relay/relay-lock.ps1`、`?? docs/relay/start-relay.ps1`；`reports\` 全目录被 gitignore，本轮新增的 `task95-*` 装置与日志一律不入库。回写本 commit 号会产生第二个仅含本台账的 commit（其号不再自指，见收口回答）。

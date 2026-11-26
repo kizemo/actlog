@@ -61,7 +61,9 @@ Future<void> _pumpPanel(
       home: l10nScope(
         ProviderScope(
           overrides: <Override>[
-            currentPreferencesProvider.overrideWithValue(AppPreferences.defaults),
+            currentPreferencesProvider.overrideWithValue(
+              AppPreferences.defaults,
+            ),
             todayProvider.overrideWithValue('2026-11-25'),
             repositoriesProvider.overrideWithValue(repos),
             goalStoreProvider.overrideWithValue(GoalStore(repos)),
@@ -213,11 +215,7 @@ void main() {
       greaterThanOrEqualTo(inputRect.bottom),
       reason: '浮窗应贴在输入框下方',
     );
-    expect(
-      first.left,
-      closeTo(inputRect.left, 0.01),
-      reason: '浮窗左缘与输入框对齐',
-    );
+    expect(first.left, closeTo(inputRect.left, 0.01), reason: '浮窗左缘与输入框对齐');
 
     // 同一个输入框内换另一个 hover 点 ⇒ 浮窗位置必须一模一样（不跟鼠标走）。
     final Offset center = tester.getCenter(input);
@@ -232,9 +230,7 @@ void main() {
     );
   });
 
-  testWidgets('Q2 指针停在浮窗上：3 秒计时暂停；离开浮窗才重新计时', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('Q2 指针停在浮窗上：3 秒计时暂停；离开浮窗才重新计时', (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos);
     final TestGesture gesture = await _hoverInput(tester, 'values');
 
@@ -251,9 +247,7 @@ void main() {
     expect(find.byKey(_overlayKey), findsNothing);
   });
 
-  testWidgets('Q3 点标签：写进输入框、chip 高亮，且立即落库', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('Q3 点标签：写进输入框、chip 高亮，且立即落库', (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos);
     await _hoverInput(tester, 'values');
 
@@ -271,14 +265,9 @@ void main() {
 
     expect(_inputText(tester, 'values'), tag);
     final BuildContext ctx = tester.element(chip);
-    expect(
-      _chipFill(tester, chip),
-      ctx.tokens.inkWash,
-      reason: '已选中的标签要有底色高亮',
-    );
-    final List<GoalRow> rows = await GoalStore(
-      repos,
-    ).listGoals(kind: GoalKind.brand);
+    expect(_chipFill(tester, chip), ctx.tokens.inkWash, reason: '已选中的标签要有底色高亮');
+    final List<GoalRow> rows = await GoalStore(repos)
+        .listGoals(kind: GoalKind.brand);
     expect(
       rows.map((GoalRow row) => row.title),
       contains(tag),
@@ -286,9 +275,7 @@ void main() {
     );
   });
 
-  testWidgets('Q4 点输入框：打开浮窗，钉住态 4 秒不自动消失', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('Q4 点输入框：打开浮窗，钉住态 4 秒不自动消失', (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos);
     // B12：标签库没有独立开关，「点 / 聚焦输入框」就是唯一入口。
     expect(
@@ -304,11 +291,7 @@ void main() {
     expect(find.byKey(_overlayKey), findsOneWidget, reason: '点输入框应打开浮窗');
 
     await tester.pump(const Duration(seconds: 4));
-    expect(
-      find.byKey(_overlayKey),
-      findsOneWidget,
-      reason: '点开的浮窗是钉住态，不该自动消失',
-    );
+    expect(find.byKey(_overlayKey), findsOneWidget, reason: '点开的浮窗是钉住态，不该自动消失');
   });
 
   testWidgets('Q5 点浮窗外部：关闭', (WidgetTester tester) async {
@@ -375,17 +358,33 @@ void main() {
   // C 段：蓝图页范围内填写框整体压缩（2026-11-26 用户意见）
   // ---------------------------------------------------------------------------
 
-  testWidgets('C1 面板 4 个输入框压到单行高度', (WidgetTester tester) async {
+  // 口径变更来源：B13 第 1 条 个人定位四框等高（固定标题槽 40 +
+  // minLines==maxLines==3 + 固定状态槽 20）⇒ 四框恒定等高、不再随内容变化，
+  // 故原「压到单行高度 < 60」与「多行撑高」两条判据整体作废旧口径。
+  testWidgets('C1 面板 4 个输入框等高（固定 3 行高度）', (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos);
-    for (final String code in <String>['values', 'strengths', 'value', 'proof']) {
-      final double height = tester
-          .getSize(find.byKey(ValueKey<String>('goal-position-input-$code')))
-          .height;
-      expect(height, lessThan(60), reason: '$code 输入框太高：$height');
+    final List<double> heights = <double>[
+      for (final String code in <String>[
+        'values',
+        'strengths',
+        'value',
+        'proof',
+      ])
+        tester
+            .getSize(find.byKey(ValueKey<String>('goal-position-input-$code')))
+            .height,
+    ];
+    for (final double height in heights) {
+      expect(height, equals(heights.first), reason: '四框必须等高：$heights');
     }
+    expect(
+      heights.first,
+      closeTo(76.0, 1.0),
+      reason: '3 行固定高度：${heights.first}',
+    );
   });
 
-  testWidgets('C2 长文本照常换行：框被撑高、文字不溢出', (WidgetTester tester) async {
+  testWidgets('C2 长文本固定 3 行高：不撑高、文字不溢出', (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos);
     final Finder input = find.byKey(
       const ValueKey<String>('goal-position-input-values'),
@@ -394,16 +393,18 @@ void main() {
     await tester.enterText(input, '第一行\n第二行\n第三行');
     await tester.pump();
     final double after = tester.getSize(input).height;
-    expect(after, greaterThan(before), reason: '多行内容应把框撑高');
+    // 口径变更来源同 C1：B13 第 1 条 个人定位四框等高 ⇒ 超长内部滚动、框高不变。
+    expect(after, equals(before), reason: '固定 3 行高，多行内容不得把框撑高');
     final double textHeight = tester
-        .getSize(find.descendant(of: input, matching: find.byType(EditableText)))
+        .getSize(
+          find.descendant(of: input, matching: find.byType(EditableText)),
+        )
         .height;
     expect(textHeight, lessThanOrEqualTo(after), reason: '文字不得溢出框外');
+    expect(tester.takeException(), isNull, reason: '不得有 overflow 异常');
   });
 
-  testWidgets('C3 蓝图新建目标弹窗 / 拆分弹窗：输入框都压到更矮', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('C3 蓝图新建目标弹窗 / 拆分弹窗：输入框都压到更矮', (WidgetTester tester) async {
     await _pumpDialogHost(tester);
 
     // 原版式（修复前）先量一次：紧凑版必须明显更矮。
@@ -412,7 +413,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     final double looseHeight = tester
-        .getSize(find.byKey(const ValueKey<String>('goal-blueprint-form-title')))
+        .getSize(
+          find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
+        )
         .height;
     await tester.tap(
       find.byKey(const ValueKey<String>('goal-blueprint-form-cancel')),
@@ -422,13 +425,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('open-form-dialog')));
     await tester.pumpAndSettle();
     final double formHeight = tester
-        .getSize(find.byKey(const ValueKey<String>('goal-blueprint-form-title')))
+        .getSize(
+          find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
+        )
         .height;
-    expect(
-      formHeight,
-      lessThan(48),
-      reason: '新建目标弹窗输入框太高：$formHeight',
-    );
+    expect(formHeight, lessThan(48), reason: '新建目标弹窗输入框太高：$formHeight');
     expect(
       formHeight,
       lessThan(looseHeight - 8),
@@ -444,11 +445,7 @@ void main() {
     final double splitHeight = tester
         .getSize(find.byKey(const ValueKey<String>('goal-split-title-0')))
         .height;
-    expect(
-      splitHeight,
-      lessThan(30),
-      reason: '拆分弹窗输入框太高：$splitHeight',
-    );
+    expect(splitHeight, lessThan(30), reason: '拆分弹窗输入框太高：$splitHeight');
   });
 }
 
@@ -487,10 +484,8 @@ Future<void> _pumpDialogHost(WidgetTester tester) async {
               ),
               TextButton(
                 key: const ValueKey<String>('open-form-dialog-loose'),
-                onPressed: () => showGoalFormDialog(
-                  context,
-                  t: AppLocalizations.zh,
-                ),
+                onPressed: () =>
+                    showGoalFormDialog(context, t: AppLocalizations.zh),
                 child: const Text('form-loose'),
               ),
               TextButton(

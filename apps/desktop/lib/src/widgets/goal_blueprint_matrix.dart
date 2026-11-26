@@ -40,8 +40,11 @@
 //       不一致才是「填了日期第三列不显示」的根因；页面侧同步写 `period_end`，
 //       矩阵侧再兜底显示 `due_date` ⇒ 新旧数据都能在第三列看到日期。
 //
-// 本模块使用 2 个 Material 图标：`Icons.edit_outlined`（铅笔）与 `Icons.call_split`
-// （拆分）；「+」用文字符号（坑 51：桌面测试不预载 MaterialIcons 字体）。
+// 本模块使用 3 个 Material 图标，一律 `*_outlined` 系（AGENTS.md 例外清单以外
+// 不自造；坑 105）：`Icons.edit_outlined`（改目标）、`Icons.call_split`（拆待办）、
+// `Icons.date_range_outlined`（B13 第 3 条：起止日期入口 —— 原先用文字「起止日期」
+// 占满单元格，与相邻图标语言不统一；换图标后 tooltip、键名与对话框语义一字未改）。
+// 「+」仍用文字符号（坑 51：桌面测试不预载 MaterialIcons 字体）。
 // =============================================================================
 
 import 'package:core_domain/core_domain.dart';
@@ -49,6 +52,7 @@ import 'package:flutter/material.dart';
 
 import '../data/goal_store.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_fonts.dart';
 import '../theme/theme_tokens.dart';
 import 'goal_year_matrix.dart';
 
@@ -148,13 +152,31 @@ class GoalBlueprintMatrix extends StatefulWidget {
   static const double chromeTabTopRadius = 8;
 
   /// 活动标签高度（px）。
-  static const double tabActiveHeight = 34;
+  ///
+  /// B13 第 2 条：34 → 38（字号 15 + 衬线体后垂直方向更舒展；靠 `minimumSize`
+  /// 撑高，`padding` 不加 `vertical`，避免与 `minimumSize` 打架）。
+  static const double tabActiveHeight = 38;
 
   /// 非活动标签高度（px）。
-  static const double tabInactiveHeight = 28;
+  ///
+  /// B13 第 2 条：28 → 31（与活动态同幅加 3px，保持两者 7px 落差）。
+  static const double tabInactiveHeight = 31;
 
   /// 非活动标签底边相对内容区抬高的高度（px）⇒ 不与内容区相接。
   static const double tabInactiveLift = 6;
+
+  /// 档位标签字号（px）。
+  ///
+  /// B13 第 2 条。**为什么不能走主题槽位**：`labelLarge.fontSize` 由
+  /// `DensityProfile` 三档密度决定（12 / 12.5 / 13.5），而档位标签是本页的顶层
+  /// 导航，需在三档密度下保持同一视觉权重 ⇒ 显式钉死 15。
+  static const double _tabFontSize = 15;
+
+  /// 档位标签水平内边距（px）。
+  ///
+  /// B13 第 2 条：10 → 18（字变大后需要更松的内边距，否则字贴着标签轮廓）。
+  /// 写成命名常量以满足 §2 E4「不新增魔法数」。
+  static const double _tabPadding = 18;
 
   /// 单元格内边距：垂直 11px、水平 8px。
   ///
@@ -306,7 +328,10 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
   ///    免得切断它与内容区融合的那条边）。
   ///
   /// 整条标签条用 `FittedBox(scaleDown)` 兜底 ⇒ 窄视口（1920 / 2520）不溢出。
-  Widget _tabStrip({required ThemeTokens tokens, required TextStyle? tabStyle}) {
+  Widget _tabStrip({
+    required ThemeTokens tokens,
+    required TextStyle? tabStyle,
+  }) {
     final List<GoalHorizon> tabs = GoalBlueprintMatrix.tabs;
     return Container(
       key: const ValueKey<String>('goal-blueprint-tab-strip'),
@@ -320,9 +345,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
             for (int i = 0; i < tabs.length; i++) ...<Widget>[
-              if (i > 0 &&
-                  tabs[i] != _selected &&
-                  tabs[i - 1] != _selected)
+              if (i > 0 && tabs[i] != _selected && tabs[i - 1] != _selected)
                 Padding(
                   padding: const EdgeInsets.only(
                     bottom: GoalBlueprintMatrix.tabInactiveLift,
@@ -366,7 +389,10 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
             // 活动 = 内容区底色（融合）；非活动 = 下沉色（偏灰）。
             backgroundColor: active ? tokens.card : tokens.sunken,
             foregroundColor: active ? tokens.ink : tokens.meta,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            // B13 第 2 条：水平内边距 10 → 18（`_tabPadding`）。
+            padding: const EdgeInsets.symmetric(
+              horizontal: GoalBlueprintMatrix._tabPadding,
+            ),
             minimumSize: Size(
               0,
               active
@@ -378,17 +404,22 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
             shape: const RoundedRectangleBorder(
               // 只圆顶部两角（浏览器标签轮廓）；底部是直角 ⇒ 能与内容区对齐。
               borderRadius: BorderRadius.vertical(
-                top: Radius.circular(
-                  GoalBlueprintMatrix.chromeTabTopRadius,
-                ),
+                top: Radius.circular(GoalBlueprintMatrix.chromeTabTopRadius),
               ),
             ),
           ),
           child: Text(
             _horizonLabel(horizon),
-            style: active
-                ? style?.copyWith(color: tokens.ink, fontWeight: FontWeight.w600)
-                : style?.copyWith(color: tokens.meta),
+            // B13 第 2 条：在既有 `labelLarge` 基础上显式覆写字号 + 衬线族。
+            // 字体名一律从 `AppFonts` 取，**不得**自写 `'Fraunces'` /
+            // `'Noto Serif SC'`（theme 是唯一真源）。
+            style: (style ?? const TextStyle()).copyWith(
+              fontSize: GoalBlueprintMatrix._tabFontSize,
+              fontFamily: AppFonts.display,
+              fontFamilyFallback: AppFonts.displayFallback,
+              color: active ? tokens.ink : tokens.meta,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+            ),
           ),
         ),
       ),
@@ -538,7 +569,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               children: <Widget>[
                 Text(
                   _periodText(goal),
-                  key: ValueKey<String>('goal-blueprint-period-text-${goal.id}'),
+                  key: ValueKey<String>(
+                    'goal-blueprint-period-text-${goal.id}',
+                  ),
                   // 等宽数字（`tabularFigures`）：日期列纵向对齐，不抖动。
                   style: bodyStyle?.copyWith(
                     fontFeatures: const <FontFeature>[
@@ -557,9 +590,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                   Text(
                     '${widget.t.goalBlueprintDonePrefix}'
                     '${_momentText(goal.archivedAt)}',
-                    key: ValueKey<String>(
-                      'goal-blueprint-done-on-${goal.id}',
-                    ),
+                    key: ValueKey<String>('goal-blueprint-done-on-${goal.id}'),
                     style: metaStyle,
                   ),
                 // 年目标的周期归年页管，本页只改蓝图目标（与 _actions 同门槛）。
@@ -573,10 +604,12 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                       goal.periodEnd,
                     ),
                     tooltip: widget.t.goalBlueprintPeriodTitle,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(widget.t.goalBlueprintPeriodTitle),
-                    ),
+                    // B13 第 3 条：文字「起止日期」→ 日历图标。入口语义不变：
+                    // 键名、tooltip（仍为「起止日期」，语义树不丢）与点击打开的
+                    // 对话框一律照旧。尺寸/颜色走 `_compactButton` 既有机制
+                    // （`iconSize` + `IconButton` 前景色），不在图标上重复覆写。
+                    child: const Icon(Icons.date_range_outlined),
+                    iconSize: 16,
                   ),
               ],
             ),
@@ -762,11 +795,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
 
   /// 年刻度条（A 稿 `.scale`）：跨年内按年份等分，每年一根 1px 刻度 + 年份标签。
   /// 窄列靠 `FittedBox` 缩字，不换行、不溢出、不截断业务值。
-  Widget _yearScale(
-    _DateSpan span,
-    ThemeTokens tokens,
-    TextStyle? metaStyle,
-  ) {
+  Widget _yearScale(_DateSpan span, ThemeTokens tokens, TextStyle? metaStyle) {
     final int years = span.endYear >= span.startYear
         ? span.endYear - span.startYear + 1
         : 1;
@@ -829,8 +858,10 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
           }
           // 至少 2px 宽：跨度极短的目标也要看得见，且不给 `clamp` 反区间。
           final double left = (startFraction * width).clamp(0.0, width - 2);
-          final double barWidth = ((endFraction - startFraction) * width)
-              .clamp(2.0, width - left);
+          final double barWidth = ((endFraction - startFraction) * width).clamp(
+            2.0,
+            width - left,
+          );
           return Stack(
             children: <Widget>[
               Positioned.fill(

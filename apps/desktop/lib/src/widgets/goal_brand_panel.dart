@@ -87,6 +87,27 @@ final RegExp _tagSeparators = RegExp(r'[、，,\n]');
 /// 四问并成 1×4 单行所需的最小面板宽度；窄于此回落纵向堆叠（键位与浮窗逻辑不变）。
 const double _inlineBreakpoint = 720;
 
+/// 标题槽固定高度（B13 第 1 条：四框等高、上下边界对齐）。
+///
+/// `titleMedium` 是 15px × 1.3 ≈ 19.5，两行 ≈ 39 ⇒ 取 40 容纳最长标题；
+/// 标题在槽内**底对齐** ⇒ 无论文案一行还是两行，输入框的起始 y 都一致。
+const double _titleSlotHeight = 40;
+
+/// 输入框固定行数（B13 第 1 条）。
+///
+/// `minLines == maxLines` ⇒ 高度不随内容行数变化；超长内容走输入框内部滚动。
+const int _positionInputLines = 3;
+
+/// 状态行（「已自动保存」/ 错误）槽固定高度（B13 第 1 条）。
+///
+/// 状态行**出现与否都占同一槽位** ⇒ 四列总高一致、底边对齐。
+const double _statusSlotHeight = 20;
+
+/// 四列竖分隔线上下端头留白（B13 第 4 条）。
+///
+/// 满高实线会把一行切成四个「格子」；上下各断 8px 后四列读作一组表单。
+const double _dividerInset = 8;
+
 /// 一项问答的渲染数据。
 class _PositionItem {
   /// 构造。
@@ -293,17 +314,12 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
     try {
       final GoalRow? existing = _rows[code];
       if (existing == null) {
-        await ref.read(goalStoreProvider).createGoal(
-              kind: GoalKind.brand,
-              facet: item.facet,
-              title: text,
-            );
+        await ref
+            .read(goalStoreProvider)
+            .createGoal(kind: GoalKind.brand, facet: item.facet, title: text);
       } else {
         // 不传 `facet`（`null` 的语义是「不动」）。
-        await ref.read(goalStoreProvider).updateGoal(
-              existing.id,
-              title: text,
-            );
+        await ref.read(goalStoreProvider).updateGoal(existing.id, title: text);
       }
       if (!mounted) {
         return;
@@ -811,9 +827,8 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
           children: <Widget>[
             Text(
               t.goalPositionSection,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: tokens.ink),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(color: tokens.ink),
             ),
             const SizedBox(height: 8),
             Container(height: 1, color: tokens.hair),
@@ -833,23 +848,32 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
                   children: <Widget>[
                     for (int i = 0; i < items.length; i++)
                       Expanded(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            border: i == 0
-                                ? null
-                                : Border(
-                                    left: BorderSide(
-                                      color: tokens.hair,
-                                      width: 1,
-                                    ),
-                                  ),
+                        // B13 第 4 条：竖线只跨内容高度、上下各留 8px 端头空隙。
+                        // `Padding` 必须在 `DecoratedBox` **外层** —— 放在内层时
+                        // 边框仍会顶满整列高度，端头空隙就没了。
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: _dividerInset,
                           ),
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              left: i == 0 ? 0.0 : 12.0,
-                              right: i == items.length - 1 ? 0.0 : 12.0,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: i == 0
+                                  ? null
+                                  : Border(
+                                      left: BorderSide(
+                                        // B13 第 4 条：`hair` → `hairSoft`（分栏线软化）。
+                                        color: tokens.hairSoft,
+                                        width: 1,
+                                      ),
+                                    ),
                             ),
-                            child: _buildItem(items[i], tokens),
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: i == 0 ? 0.0 : 12.0,
+                                right: i == items.length - 1 ? 0.0 : 12.0,
+                              ),
+                              child: _buildItem(items[i], tokens),
+                            ),
                           ),
                         ),
                       ),
@@ -878,34 +902,47 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           // 说明浮层的锚点就是标题自身；`SizedBox` 只为拿到它的 `RenderBox`。
+          // B13 第 1 条：槽高固定 + 标题底对齐 ⇒ 四列输入框起始 y 一致；
+          // 锚点 key 仍挂在这个 `SizedBox` 上（锚定语义不变）。
           MouseRegion(
             onEnter: (PointerEnterEvent event) => _openHint(item),
             onHover: (PointerHoverEvent event) => _cancelHintHide(),
             onExit: (PointerExitEvent event) => _scheduleHintHide(),
             child: SizedBox(
               key: _titleKeys[code],
-              child: Text(
-                item.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: tokens.ink),
+              height: _titleSlotHeight,
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Text(
+                  item.title,
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(color: tokens.ink),
+                ),
               ),
             ),
           ),
           const SizedBox(height: 6),
           _buildInput(item),
-          if (_savedCode == code)
-            Text(
-              t.goalBrandSaved,
-              key: const ValueKey<String>('goal-position-saved'),
-              style: _metaStyle(context),
+          // B13 第 1 条：状态行槽常驻（出现与否都占 20px）⇒ 四列总高一致。
+          SizedBox(
+            height: _statusSlotHeight,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _savedCode == code
+                  ? Text(
+                      t.goalBrandSaved,
+                      key: const ValueKey<String>('goal-position-saved'),
+                      style: _metaStyle(context),
+                    )
+                  : _failedCode == code && _error != null
+                  ? Text(
+                      _error!,
+                      key: const ValueKey<String>('goal-position-error'),
+                      style: _metaStyle(context),
+                    )
+                  : const SizedBox.shrink(),
             ),
-          if (_failedCode == code && _error != null)
-            Text(
-              _error!,
-              key: const ValueKey<String>('goal-position-error'),
-              style: _metaStyle(context),
-            ),
+          ),
         ],
       ),
     );
@@ -916,20 +953,18 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   /// B12 入口：**点击 / 聚焦输入框即展开标签库**（钉住态，输入时不消失）；
   /// 回车（`onSubmitted`）把文字拆成标签并入多值文本后立即落库。
   ///
-  /// 整体压缩：单行起步（最多 4 行）、`isDense`、收紧内边距与行高 ——
-  /// 长文本照常换行并把框撑高，不裁切、不溢出。
+  /// 整体压缩：固定 3 行（B13 第 1 条，四框等高）、`isDense`、收紧内边距与行高 ——
+  /// 超长文本走框内滚动，不再把框撑高（撑高会破坏四列底边对齐）。
   Widget _buildInput(_PositionItem item) {
     final TextField field = TextField(
       key: ValueKey<String>('goal-position-input-${item.code}'),
       controller: _controllers[item.code],
       focusNode: _focusNodes[item.code],
-      minLines: 1,
-      maxLines: 4,
+      minLines: _positionInputLines,
+      maxLines: _positionInputLines,
       onTap: () => _openTags(item.code, pinned: true),
       onSubmitted: (String _) => _submitTags(item),
-      style: Theme.of(
-        context,
-      ).textTheme.bodyMedium?.copyWith(height: 1.35),
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35),
       decoration: const InputDecoration(
         isDense: true,
         border: OutlineInputBorder(),
@@ -949,9 +984,9 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   }
 
   /// 次级文字样式。
-  TextStyle? _metaStyle(BuildContext context) => Theme.of(
-    context,
-  ).textTheme.labelSmall?.copyWith(color: context.tokens.meta);
+  TextStyle? _metaStyle(BuildContext context) =>
+      Theme.of(context).textTheme.labelSmall
+          ?.copyWith(color: context.tokens.meta);
 }
 
 /// 说明浮层：悬停定位分类标题时出现，锚在标题**上方**。
@@ -984,9 +1019,8 @@ class _HintBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle? style = Theme.of(
-      context,
-    ).textTheme.labelSmall?.copyWith(color: tokens.ink2, height: 1.4);
+    final TextStyle? style = Theme.of(context).textTheme.labelSmall
+        ?.copyWith(color: tokens.ink2, height: 1.4);
     return CustomSingleChildLayout(
       delegate: _HintLayout(anchorRect: anchorRect),
       child: MouseRegion(
@@ -1098,9 +1132,8 @@ class _TagsBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle? chipStyle = Theme.of(
-      context,
-    ).textTheme.labelSmall?.copyWith(color: tokens.ink);
+    final TextStyle? chipStyle = Theme.of(context).textTheme.labelSmall
+        ?.copyWith(color: tokens.ink);
     // `SizedBox.expand`：让布局 delegate 拿到整块 overlay 区域 —— 浮层才能贴到
     // 输入框下方的任意位置（父盒若只有浮层那么大，命中测试会落空，标签就点不到）。
     return SizedBox.expand(
@@ -1162,7 +1195,9 @@ class _TagsBubble extends StatelessWidget {
           ),
           child: Text(
             tag,
-            style: selected ? style?.copyWith(fontWeight: FontWeight.w600) : style,
+            style: selected
+                ? style?.copyWith(fontWeight: FontWeight.w600)
+                : style,
           ),
         ),
       ),
@@ -1193,8 +1228,14 @@ class _TagsLayout extends SingleChildLayoutDelegate {
 
   @override
   Offset getPositionForChild(Size size, Size childSize) {
-    final double maxX = math.max(_tagsEdge, size.width - childSize.width - _tagsEdge);
-    final double maxY = math.max(_tagsEdge, size.height - childSize.height - _tagsEdge);
+    final double maxX = math.max(
+      _tagsEdge,
+      size.width - childSize.width - _tagsEdge,
+    );
+    final double maxY = math.max(
+      _tagsEdge,
+      size.height - childSize.height - _tagsEdge,
+    );
     final Rect? anchor = anchorRect;
     if (anchor == null) {
       return const Offset(_tagsEdge, _tagsEdge);
