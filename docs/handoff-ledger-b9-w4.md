@@ -258,3 +258,51 @@ python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py
 - [x] `AGENTS.md` §7 当前状态快照更新（HEAD / 包 sha16 / 测试基线 / l10n 基线）
 - [x] 本文件 §2 回填 W3 实测、§4 回填新包四要素、§5 回填帧文件名
 - [x] `task_query status=running` 清点；ack 文件保住 `acks` 外层键
+---
+
+## 8. B10-a 拆分链逐级真机取证（**2026-11-26 上午 · 沙箱口径 · 四级全链双证齐**）
+
+> 本节把 §5.2 末尾登记的「逐级分支未逐级真机实测」缺口闭掉：终极 → 远期 → 中期 → 短期 → 年目标 / 待办，**每一级都有「帧 + SQLite 读回」双证**。
+
+### 8.1 沙箱口径与环境（与 §5.1 同路线）
+
+| 项 | 实测 |
+|---|---|
+| 被测件 | 构建树 `apps\desktop\build\windows\x64\runner\Release\actlog.exe`（`data\app.so` 9,175,944 B / sha16 `27D68DEEA7233AAA`） |
+| 启动参数 | `--data-dir=F:\soft\00selfmade\practilog\reports\task72-seeddb` ⇒ **用户活库零写入**（`D:\Program Files\actlog\userdata\actlog.db` = 352,256 B / sha16 `B5F9070FC63068B1` 未变） |
+| 进程 / 窗口 | PID **98244**；runner HWND **1446736** / `FLUTTERVIEW` HWND **1250136**；runner 2520×1575 / view 2496×1563（设备像素） |
+| 焦点纪律 | 全程 **`FG_SAME=True`**（用户前台始终 = Edge，hwnd 69660）；runner 停 `(-32000,-32000)` + `WS_EX_NOACTIVATE|WS_EX_TOOLWINDOW`（ex=0x8000180）⇒ **不抢 Windows 焦点、不出现在用户交互桌面** |
+| 输入通道 | `WM_MOUSEMOVE` + `WM_LBUTTONDOWN` + `WM_LBUTTONUP` **发往 `FLUTTERVIEW` 子窗口**（发顶层 runner 无效）；文字走 `WM_CHAR` |
+| 取帧 | `PrintWindow(view, hdc, 2)`（flag 0/1 全黑 ⇒ 必须 2）；缩略图 900 宽 ↔ 全宽 2496 ⇒ 缩放比 2.7733 |
+| 坐标口径 | **设备像素聚类实测**（黑像素列聚类 + 间隙阈值），不用目测缩略图 |
+| 脚本落点 | `E:\Users\Duanyi\AppData\Local\Temp\`（`actlog-b10-act.ps1` 等）⇒ **不进仓库 ⇒ 不影响 `PS1_SCANNED`** |
+
+### 8.2 逐级取证结果（**全部 PASS · 帧 + DB 双证**）
+
+| 级 | 父档 → 子档 | 新增行 | 关键字段（盘上读回） | 帧（`reports\task80-frames\`） |
+|---|---|---|---|---|
+| ① | 终极(1) → 远期(2) | `goal` `B10-MID-1` | `01a215ba-b03d-7476-aa78-97b7ba20311b` / `kind=blueprint` / `horizon=2` / `parent_id=01a21574-ebc9-784a-adc8-92a8704e4e40`（SBXGOALA）/ `domain=career` / `status=active` | `b10-act-after-confirm.png`（`1A87317DD0681F04`） |
+| ② | 远期(2) → 中期(3) | `goal` `B10-MID-A` | `01a215c3-eef1-78ad-a781-763d8fae18c7` / `horizon=3` / `parent_id=01a215ba-b03d-7476-aa78-97b7ba20311b` | `b10-act-after-confirm-mid-a.png`（`1C730E32312AF9D7`）/ `b10-act-tab-mid2.png`（`1992476692929A2C`） |
+| ③ | 中期(3) → 短期(4) | `goal` `B10-SHORT-A` | `01a215c5-b64f-7bf3-a836-578e91af533e` / `horizon=4` / `parent_id=01a215c3-eef1-78ad-a781-763d8fae18c7` | `b10-act-after-confirm-short-a.png`（`5B5CEFBCE34EBE7F`）/ `b10-act-tab-short2.png`（`ACC7FD1C760B8440`） |
+| ④ | 短期(4) → **待办** | `todo` `B10-TODO-A` | `01a215c7-57bf-7698-84be-fdf74f2af743` / `status=open`；`goal_link`（`goal_id=01a215c5-…` / `target_type=todo` / `target_id=01a215c7-57bf-7698-…` / `relation=tracks`） | `b10-act-chip-todo-selected.png`（`29A8A51ADBFD36F5`）/ `b10-act-typed-todo-a.png`（`78A258D2851302B3`）/ `b10-act-after-confirm-todo-a.png`（`81712C1A0D804ED5`） |
+| ⑤ | 短期(4) → **年目标** | `goal` `B10-YEAR-A` | `01a215c7-89bd-75bd-844f-3f67783a1772` / `kind=yearly` / `horizon=NULL` / `parent_id=01a215c5-b64f-7bf3-a836-578e91af533e` / `period_start=1767225600000` / `period_end=1798761599999`；`goal_link`（`target_type=goal` / `relation=serves`） | `b10-act-typed-year-a.png`（`CA6A4B6B3D3E9EE1`）/ `b10-act-after-confirm-year-a.png`（`63136B0EF253FB18`） |
+
+- **两种关系都实测出现**：`serves`（蓝图子级 + 年目标）与 `tracks`（待办）⇒ `_writeSplit`（`apps\desktop\lib\src\pages\goals_blueprint_page.dart:291-364`）三条分支全部命中。
+- **父目标状态未被改**：四级父链 `status` 始终 `active`（符合「派生只增行，状态只由目标自身编辑改」）。
+- **命名瑕疵（如实登记，不改库）**：`B10-MID-1` 实际是**远期(2)** 目标（B9 命名习惯沿用），保留原行；② 级起改用正确命名。
+- **读回口径（重要）**：种子库主文件 `reports\task72-seeddb\actlog.db` = **417,792 B / sha16 `68180820D9D03ADA`（主文件字节未变）**，本轮写入全部落在旁车 `actlog.db-wal`（2,999,392 B）⇒ **读回必须用 sqlite3 API（WAL 感知），不能用主库字节数判断有无落库**；读回行数 `goal` 14 / `goal_link` 12 / `todo` 2。
+- **枚举口径更正**：`GoalHorizon` 取值**从 1 起**（`ultimate(1) / long(2) / mid(3) / short(4) / near(5)`，`packages\core_domain\lib\src\goal.dart:113-128`）⇒ 上轮「中期 Tab 为空」是**枚举取值误判**，矩阵渲染逻辑无缺陷。
+- **弹窗几何（实测，像素级）**：父档为长期档时（**无 ChoiceChip**）输入行 1 `(1109, 688)`、确认拆分 `(1617, 1057)`；父档为短期档时（**出现「年目标 / 待办任务」ChoiceChip**）输入行 1 y≈648、「拆成」标签 y 908–935、chip 行 y 940–995（**年目标** 选中态 x 788–948 / **待办任务** x 963–1110，标签中心 `(1035, 977)`）、确认拆分按钮 `(1590, 1114)`、取消 x≈1425–1465。
+- **关卡判据**：芯片切换用**区域像素和变化**判定（待办 chip 区 5,305,783 → 4,911,417，年目标 chip 区 5,615,647 → 5,840,986 ⇒ 两枚 chip 互斥切换成立）。
+
+### 8.3 本节新增工具坑（编号 116–118，接在坑 112 之后；**113–115 由并发接力链占用**）
+
+- **坑 116**：向 `FLUTTERVIEW` 投 `WM_CHAR` 传中文会被 embedder 错误映射（`中期推进一` → `-! 程N`）⇒ 真机取证标题一律用 ASCII（不影响双证效力）。
+- **坑 117**：`$env:TEMP`（`C:\Users\Duanyi\…`）≠ 沙箱脚本实落盘（`E:\Users\Duanyi\…`）⇒ 驱动计划**静默不执行**，必须绝对路径 + 查 `$LASTEXITCODE`。
+- **坑 118**：`AGENTS.md` / 项目台账为**纯 LF**，改写一律 python 字节级，禁用 PS `Get-Content`/`Set-Content`。
+
+### 8.4 未决 / 下一步
+
+1. **装机复验（B10-b）**：本包**仍未覆盖安装** ⇒ 装机侧 `data\app.so` 仍是旧载荷 `1A5E09068403A98A` ⇒ **不得登记「已装机验收」**；需用户拍板后覆盖安装，再按 §8.1 配方重跑同一取证链。
+2. **B8 两项待用户裁决**：今日页右栏「目标/项目」卡 = 只读保留 vs 整卡移除；窄屏 `KeyBar` 是否补 `Ctrl+7` 提示（见 §6）。
+3. **沙箱实例仍在跑**：PID 98244（隐藏窗口，runner/view 均在 `(-32000,-32000)`）⇒ 收工时须终止；用户活库全程零写入。
