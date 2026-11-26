@@ -1029,3 +1029,43 @@ ASCII 检查全过：`relay-lock.ps1` / `start-relay.ps1` / `relay-spawn.ps1` �
 
 **本节写入时台账状态**：写前 **948 行 / 142151 B / sha16 `774BDA94AE90ADD6`**；写后行数 **1031 行**，写后字节数与 sha16 由追加脚本当场盘上回读并写入 `reports\task103-ledger-b14-close-after.txt`（台账正文不自指哈希）。
 
+
+### 11.22 · B14 收口三项落点（AGENTS.md 回写 / 两次提交 / B15 接力链起环）· 2026-11-27 凌晨 · 控制器
+
+**背景**：B14 的实现、verifier 审查、补做、权威门禁、出包与静默装配均已在 §11.21 闭合。本节记录本轮最后三项动作的落点与证据，并登记一处规则冲突。
+
+#### 一、AGENTS.md 的 B14 回写（已落盘）
+
+- 工具：`reports\task103-update-agents.ps1`（纯 ASCII，5 对 `###ANCHOR###`/`###NEW###` 配对）+ 配对块 `reports\task103-agents-b14-block.md`。
+- 首跑按「锚点唯一性」纪律中止（`IDX=1 COUNT=0`，**AGENTS.md 零写入**）：锚点转录多写一个 `+`（盘上原文是 `**1012(Task 95 · B13 收口 +12)**`，`1012` 前无 `+`）。订正后重跑：**`PAIRS=5` / `PAIR_OK IDX=1..5` / `UPDATE_RESULT=PASS`**。
+- 盘上回读：**646 → 652 行 / 359,928 → 367,562 字节 / sha16 `0548A1BC9469C63B` → `3905CD3D26E28B9A`**；无 BOM；RELAY-PORT 托管块 BEGIN/END 标记各 1（未被回写破坏）。
+- 五个落点：R2 阶梯段（测试数阶梯更新到 1039）、R3 分发禁令新真源行（B14 唯一可分发包）、§7 标题由 B13 改为 B14、§7.1 前插「批次 B14 收口」条、§8 前插「B14 三条新增口径」。
+
+#### 二、B14 提交（只 commit 不 push）
+
+- 提交一 `5506c60`「feat(desktop): B14 观感与配色收口…」：**22 files changed, +2312 / −178**（11 个 lib 文件 + 7 个测试文件，含 3 个新建 `b14_*` 测试 + `docs\b14-dispatch.md` + `docs\b14-fixup-dispatch.md` + `AGENTS.md`）。
+- 提交二 `fd6d6d8`「docs(ledger): 追加 §11.19/§11.20/§11.21」：**1 file changed, +187**（`docs\handoff-ledger-b9-w4.md`）。
+- **AGENTS.md 的 RELAY-PORT 托管块不随本批提交**（链装置物不搭车批次提交）。做法：临时剥离托管块 → `git add` → 立即还原工作区（还原后 sha16 逐字等于 `3905CD3D26E28B9A`）⇒ index 内只有 B14 部分，工作区仍保留托管块（`git status` 显示 ` M AGENTS.md`）。
+- 留在工作区未提交：`docs\relay\*`、`docs\relay.json`、`docs\RELAY-SOP.md`、`docs\plan-relay.md`、`docs\RELAY-ADAPTATION.md`、`docs\relay\stage-6-report.md`、`docs\b8*`、`docs\incident-*`。
+- **本机新坑**：这台机器的 git `update-index --cacheinfo` 两种写法都不可用（`expects <mode>,<sha1>,<path>` / `takes no value`）⇒ 改用「worktree 临时剥离 + `git add` + 还原」。
+
+#### 三、B15 接力链起环（已起）
+
+- 旧台账 `docs\relay.json`（上一批链，`status=done` / `current_stage=6` / `max_stages=6`）**归档**为 `docs\relay\relay-ledger-prev-batch-20261127.json`（`Move-Item`，不删，文件仍在盘上）。
+- 起环走装置合法路径：`docs\relay\start-relay.ps1` 在台账不存在时 bootstrap，种子自带 `status='running'` ⇒ **不需要手改 JSON**（`relay-ledger.ps1` 的 `set_status=running` 硬拒是链内会话自启用的护栏，bootstrap 才是人侧起环路径）。
+- 实测输出链：`OK ledger_absent` → `LOCK_ACQUIRED holder=start-relay:44428 stage=1 ttl_s=1800` → `OK ledger_bootstrapped bytes=1972` → `OK prompt_written docs\relay\next-relay-prompt.txt bytes=2808` → `DONE exit=0`。
+- 新台账盘上回读：`status=running` / `current_stage=1` / `max_stages=6` / `plan_doc=docs\b15-plan.md`。
+- B15 派工口径落盘 `docs\b15-plan.md`（3,523 字节，中文正文）：工作队列**不在该文件臆造**，stage 1 必须从台账 §11.21 原文摘出遗留清单并分 A（可自动闭合）/ B（需人拍板）/ C（需肉眼）三类。
+- 起环会话：`session_create` → **`mvs_c93243cc190945aba8c0379306c85a5a`**（title `relay-1-b15-scope-inventory`，workspace_dir `F:\soft\00selfmade\practilog`，model `custom_provider:provider-aa5659/deepseek-v4.1-flash-1017`，turn `turn_acc155f2-91d8-4114-bcfe-06becc747150`，mode `activated`）；随后 `relay-lock.ps1 -Action adopt -SessionId` 把锁交给该会话（TTL 1800 秒，链内每环自行 renew）。
+- **规则冲突登记（已裁决）**：AGENTS.md R8 要求起子会话显式给 `effort`（只接受 high/max），但 `session_create` 的 input_schema 实测**没有** `effort` 字段且 `additionalProperties:false` ⇒ 按 schema 不传 effort；起环模型仍按 R8 显式给 `custom_provider:provider-aa5659/deepseek-v4.1-flash-1017`。
+
+#### 四、门禁脚本维护（控制器职责）
+
+- `reports\task51-gate.ps1` 的 `$excluded` 补 `docs/b15-plan.md`（B15 链的派工契约，与 `docs/relay/*` 同属链装置物，不属任何产品批次）⇒ 防止新文件把 `OUT_OF_SET` 打红。
+- 改后回读：CRLF=True / BOM=False / `NON_ASCII=0` / 521 行 / 23,479 → 23,646 字节；`reports\task57-ps1-ascii-scan.ps1 -Mode Check` ⇒ `PS1_ASCII_VIOLATIONS=0` / `PS1_NEW_NON_ASCII=0` / `PS1_SCANNED=536`。
+
+#### 未验证 / 遗留
+
+- B15 链首环（stage 1）刚起，其产出与门禁结果**本轮尚未回读**；链内会话须自行续锁。
+- B14 观感仍待用户肉眼确认（条目 2 就地编辑、条目 4 浅绿/浅蓝主题）。
+- 跨页合成取帧通道仍是死路（§11.21 已记），界面证据只能靠带 `ValueKey` 的 widget 测试 + 用户肉眼。
