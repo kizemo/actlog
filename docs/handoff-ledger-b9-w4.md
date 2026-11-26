@@ -143,7 +143,9 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File F:\soft\00selfmade\practilog\repor
 
 ---
 
-## 5. 真机取证（**未判定**：根因 = 本机锁屏）
+## 5. 真机取证（**2026-11-26 上午补跑完成 · 四项全部坐实**）
+
+> 上轮登记的「根因 = 本机锁屏」**只解释了一半**。实测坐实**第二根因：探针进程 DPI-unaware**（见 §5.1 根因订正）。补跑后 §5.2 四项由 `UNDETERMINED` 改判为**已坐实**，逐项附帧证据与落库双证。
 
 ### 5.1 判据与实测
 
@@ -158,20 +160,62 @@ Flutter 的 Impeller/DXGI 表面只在窗口为前台时才进表面 ⇒ `PrintW
 **已排除的误判方向（别再试）**：① 切 `WinSta0`/`Default` —— `OpenWindowStationW`/`OpenDesktopW` 会成功，但
 `SetThreadDesktop` 报 `ERROR_BUSY=170`；② `schtasks /Create ... /IT` 交互式任务 —— `FG_AT_START` 仍为 0。
 
-### 5.2 四项待取证（**全部 UNDETERMINED，不写 PASS、不写「已修」也不写「回归」**）
+**补跑环境与方法（2026-11-26 上午，控制器盘上实测）**
 
-| # | 待证 | 运行时判据 | 状态 |
-|---|---|---|---|
-| 1 | 蓝图页顶部「个人品牌管理」模块在矩阵**上方** | 帧内品牌卡纵向位置 < 矩阵卡 | **UNDETERMINED（根因=锁屏）** |
-| 2 | 4 标签页 终极/远期/中期/短期 + 无「人生蓝图矩阵」标题 + 空单元格**右下角「+」** | 帧内 4 个 tab 与单元格右下角「+」 | **UNDETERMINED（根因=锁屏）** |
-| 3 | 已添加内容右侧 **铅笔 + 拆分** 两按钮 | 帧内 `Icons.edit_outlined` / `Icons.call_split` 可辨；`call_split` 是否 tofu 同属未判定 | **UNDETERMINED（根因=锁屏）** |
-| 4 | 拆分确认后**直接落库** | `task77-goal-dump.py` 读回新增子目标（`parent_id` + `serves`）或年目标/待办（`tracks`） | **UNDETERMINED（根因=锁屏）** |
+| 项 | 实测值 |
+|---|---|
+| 被测件 | 构建树 `apps\desktop\build\windows\x64\runner\Release\actlog.exe`（`data\app.so` = 9,175,944 B / sha16 `27D68DEEA7233AAA` / mtime 2026-11-26 00:11:02，与 §4.1 同源） |
+| 进程 / 窗口 | PID **275944**；runner HWND **1642722**（class `FLUTTER_RUNNER_WIN32_WINDOW`）；子窗 `FLUTTERVIEW` HWND **1115588**（client 2536×1588 设备像素，origin (12,0)） |
+| 启动参数 | `actlog.exe --data-dir=F:\soft\00selfmade\practilog\reports\task72-seeddb` ⇒ **用户活库全程零写入** |
+| 窗口 / 缩放 | 设备像素 2560×1600 @ (0,0)；系统缩放 **175%** |
+| 取证方式 | **沙箱驱动**：`SendMessage` / `PostMessage` 定向投递到 `FLUTTERVIEW` + `PrintWindow(hwnd,hdc,2)` 离屏抓帧；**全程未使用** `SetForegroundWindow` / `BringWindowToTop` / `AttachThreadInput` / `keybd_event` / 全局 `mouse_event` / 移动系统光标 ⇒ **不抢 Windows 焦点、不与用户其它操作冲突**（用户 2026-11-26 明令硬约束） |
+| 脚本落点 | 沙箱驱动 + 读回脚本全部在 `E:\Users\Duanyi\AppData\Local\Temp\`（**不进仓库 ⇒ 不影响 `PS1_SCANNED`**） |
+| 帧证据 | `reports\task80-frames\` 下 `s1-blueprint-top.png` / `s2-max.png` / `s3-maxfresh.png` / `sb-plus1.png` / `sb-typed1-dialog.png` / `sb-save1.png` / `sb-save1-row.png` / `sb-save1-icons4x.png` / `sb-split1.png` / `sb-splittype2.png` / `sb-splitdone.png` |
+| 日志 | `reports\task80-frames\sandbox-drive-log.txt`（逐步 sha16）+ `reports\task80-frames\split-readback-after.txt`（DB 读回全量） |
 
-- 单测 `apps\desktop\test\task79_b9_split_chain_test.dart`（10 例）只证明**代码路径与映射**，
-  **不能替代**运行时双证（R5：结论必须打到运行时产物）。
-- W1/W2 的 l10n / ValueKey / 落库读回证据均在**测试进程内**取得，同属「非真机」证据口径。
+**根因订正（重要，防再次误判）**：此前登记的「内容被裁 / 布局不跟随窗口」**全部是误判**，真因是**探针进程 DPI-unaware**。
+系统缩放 175% 下，DPI-unaware 进程的 `SetWindowPos` / `GetWindowRect` 坐标被**虚拟化（×1.75）** ⇒ 实为「只截到窗口左上角 + 位图按虚拟化尺寸分配」。
+真相：app 布局**会**跟随窗口尺寸；只要窗口**设备像素宽 ≥ 约 2520**，矩阵整块（含「+」与图标区）全部进入可视区。
+⇒ 正确姿势 = **进程内 `SetProcessDpiAwarenessContext(-4)`（PER_MONITOR_AWARE_V2）+ 全程设备像素坐标**。
 
-### 5.3 解锁后复现配方（可直接粘贴执行）
+**已排除的失败方向（别再试）**：① 旧实例（PID 198332 / HWND 4523536）上所有输入（点击 / PageDown / Down / 滚轮 / 两种编码的 `WM_MOUSEWHEEL` / 拖拽）实测 pixels=0；② 抢焦点路径（`SetForegroundWindow` / `BringWindowToTop` / `AttachThreadInput` / `keybd_event`）—— **已被用户明令禁用**；③ `Find-MainWindow` 只按面积会选隐藏窗、只按可见+面积会选 158×26 工具窗 ⇒ 规则 = 可见 + 宽 ≥ 400 + 高 ≥ 300 + 面积最大；④ 错误 `SetWindowPos(HWND_TOPMOST,0,0,0,0,0x0003)` 曾把窗口写到 -18286,-18286 并最小化；⑤ UIA 探语义树：runner 下 descendants=0、`FLUTTERVIEW` 下=0 ⇒ Flutter 未开语义树，此路不通。
+
+### 5.2 四项待取证（**补跑后四项全部坐实**）
+
+| # | 待证 | 运行时判据 | 状态 | 帧证据 | 落库 / 读回双证 |
+|---|---|---|---|---|---|
+| 1 | 蓝图页顶部「个人品牌管理」模块在矩阵**上方** | 帧内品牌卡纵向位置 < 矩阵卡 | **PASS（已坐实）** | `s1-blueprint-top.png` / `s2-max.png` / `s3-maxfresh.png`（页顶为「个人品牌管理」模块：左侧 10 切面导航 + 右侧「对象（他人视角）」编辑区，其下才是矩阵区） | — |
+| 2 | 4 标签页 终极/远期/中期/短期 + 无「人生蓝图矩阵」标题 + 空单元格**右下角「+」** | 帧内 4 个 tab 与单元格右下角「+」 | **PASS（已坐实）** | `sb-plus1.png`（四标签页 + 各格右下角「+」）/ `sb-typed1-dialog.png` | 点「+」→ 弹「新建目标」（领域=事业 / 档位=终极 预填）；保存后 `goal` all **7→8**、alive **5→6** |
+| 3 | 已添加内容右侧 **铅笔 + 拆分** 两按钮 | 帧内 `Icons.edit_outlined` / `Icons.call_split` 可辨 | **PASS（已坐实 · 非 tofu）** | `sb-save1-row.png` / `sb-save1-icons4x.png`（设备像素：铅笔 ≈(1652,1105) / 拆分 ≈(1706,1103) / 删除目标文本 1750-1835,1105） | 同上新增行 `id=01a21574-ebc9-784a-adc8-92a8704e4e40 kind=blueprint title=SBXGOALA status=active domain=career horizon=1 rev=1`（`horizon=1` = 终极档） |
+| 4 | 拆分确认后**直接落库** | 读回新增子目标（`parent_id` + `serves`）或年目标/待办（`tracks`） | **PASS（帧 + DB 双证）** | `sb-split1.png`（拆分弹窗）/ `sb-splittype2.png`（两行已填）/ `sb-splitdone.png`（弹窗已关，页顶提示「已拆分并写入对应表格」） | `goal` all **8→10**、alive **6→8**；新增 `SBXSPLIT1`（`01a21576-df27-7181-8e76-a33c96d4fb82`）、`SBXSPLIT2`（`01a21576-df28-7a25-bb5b-4dd65b49d1ee`），均 `kind=blueprint status=active domain=career horizon=2 parent_id=01a21574-ebc9-784a-adc8-92a8704e4e40`；`goal_link` **5→7**，两条 `relation=serves / target_type=goal / target_id=<父目标 SBXGOALA>` |
+
+**取证 4 的映射核对（源码 + 落库互证）**：`_writeSplit`（`apps\desktop\lib\src\pages\goals_blueprint_page.dart:312`）对**终极 → 远期**产出 `horizon=2`（`GoalHorizon.long`）的蓝图子目标 + `serves` 链接 ⇒ **实测 `horizon=2` 与源码映射一致，不是缺陷**；父目标 `status` 未被改（仍 `active`），符合「派生只增行，状态只由目标自身编辑改」。
+**本轮未覆盖的分支（不得写 PASS）**：终极→远期→中期→短期的**逐级链**，以及「短期/近期 → 年目标（`period_start`）/ 待办（`tracks`）」分支**未逐级真机实测**（该侧仅由单测 `apps\desktop\test\task79_b9_split_chain_test.dart` 10 例覆盖映射）⇒ 登记为剩余挂账。
+单测 `apps\desktop\test\task79_b9_split_chain_test.dart`（10 例）只证明**代码路径与映射**，**不能替代**运行时双证（R5：结论必须打到运行时产物）；上表 1-4 项均已取得**运行时帧 + 运行时落库读回**双证，故改判为已坐实。
+
+### 5.3 复现配方（**已实测可跑 · 2026-11-26 上午 · 沙箱口径**）
+
+```powershell
+# 0) 沙箱驱动（Temp 内，不进仓库 => 不影响 PS1_SCANNED）
+$s='E:\Users\Duanyi\AppData\Local\Temp\actlog-sandbox.ps1'
+#    坐标一律用**设备像素**；脚本内部换算为 FLUTTERVIEW 客户区坐标
+powershell -NoProfile -ExecutionPolicy Bypass -File $s -Verb click -X 1836 -Y 1074 -Name plus1    # 空单元格右下角「+」
+powershell -NoProfile -ExecutionPolicy Bypass -File $s -Verb type -Text 'SBXGOALA' -Name typed1    # WM_CHAR 注入
+powershell -NoProfile -ExecutionPolicy Bypass -File $s -Verb click -X 1433 -Y 1111 -Name save1     # 保存
+powershell -NoProfile -ExecutionPolicy Bypass -File $s -Verb click -X 1706 -Y 1103 -Name split1    # 拆分图标
+powershell -NoProfile -ExecutionPolicy Bypass -File $s -Verb shot  -Name shot1                     # 离屏抓帧
+
+# 1) 落库读回（只读 mode=ro；脚本第 4 行硬编码 reports\task72-seeddb\actlog.db）
+python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py PRE
+```
+
+- **禁用**（用户 2026-11-26 明令）：`SetForegroundWindow` / `BringWindowToTop` / `AttachThreadInput` / `keybd_event` / 全局 `mouse_event` / `SetCursorPos` 移光标 / 剪贴板 Ctrl+V 注入。
+- **必须**：脚本首行 `SetProcessDpiAwarenessContext(-4)`（PER_MONITOR_AWARE_V2），否则坐标被 ×1.75 虚拟化。
+- **窗口宽度**：设备像素宽 ≥ 2520 才让矩阵右列（图标区）完整入画。
+- 窗口自最小化时用 `ShowWindow(SW_SHOWNA=8)` 恢复，**不做** `SW_RESTORE`（避免激活）。
+- 沙箱驱动 + 读回脚本全部在 `%TEMP%`（**不进仓库 ⇒ 不影响 `PS1_SCANNED`**）。
+
+### 5.3b 旧配方（锁屏 + 抢焦点口径，**已作废**，仅留档）
 
 ```powershell
 # 0) 先判锁屏：期望最后一行 TREAT_AS_LOCKED=False；为 True 就到此为止，别硬跑驱动
@@ -187,8 +231,8 @@ python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py
 
 - 被测件：**重编后**的 `apps\desktop\build\windows\x64\runner\Release\actlog.exe`（验 `data\app.so` mtime = 2026-11-26 00:11:02）。
 - 数据：`--data-dir=F:\soft\00selfmade\practilog\reports\task72-seeddb`（种子副本，用户活库零写入）。
-- 驱动约束（坑 106）：注入只认 `paste:`；编辑弹窗打开后**不要先点输入框**；屏幕坐标 = 参数 + (20, −56)。
-- 探针脚本 `reports\task80-lockprobe.ps1` 为本轮新增（纯 ASCII），**下次门禁 `PS1_SCANNED` 预期 516**（非违规，`PS1_ASCII_VIOLATIONS` 仍应为 0）。
+- **旧驱动约束（坑 106）已作废**：「注入只认 `paste:`」「屏幕坐标 = 参数 + (20, −56)」对应**抢焦点 + DPI-unaware** 路径，本轮起禁用（见 §5.1 根因订正 + AGENTS.md 坑 111 / 112）。
+- 本轮新增仓库内工具脚本 `reports\task81-blueprint-drive.ps1`（**旧抢焦点路径，已加 ASCII 禁用抬头**，仅留作取证记录）与 `reports\task82-scroll-probe.ps1`，均**纯 ASCII / CRLF / 无 BOM** ⇒ 门禁 `PS1_SCANNED` 由 B9 门禁时的 **515** 增至 **518**（多 task80 / 81 / 82 三份），**非违规**，`PS1_ASCII_VIOLATIONS` 必须为 0。
 
 ---
 
