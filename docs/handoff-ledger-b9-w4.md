@@ -596,3 +596,26 @@ No issues found! (ran in 5.0s)        ANALYZE_EXIT=0
 1. **未做装机复验**：新包已出但未装到 `D:\Program Files\actlog`，意见 ①②③ 的最终验收需用户装新包后肉眼确认（尤其审美与「标签浮窗可点选」的体感）。
 2. **`AGENTS.md` §7 分发指针待订正**（见上）。
 3. 沙箱启动瞬间 `FG_AFTER SAME=False`（前台从 MiniMax Code 切到沙箱窗口）：属 OS 建窗默认行为，未调用任何合成焦点 API，后续驱动轮 `FG_SAME=True`，记账不处理。
+
+## §11.16 B11 装机复验（2026-11-26 20:08）
+
+### 装配与指纹
+- 用户先自行退出知行日志（`PID 85004` 已不存在，`Get-Process actlog` 为空），随后控制器用 `release\actlog-Setup-1.0.0_20261126-174718.exe` 静默装配：`ELEVATED=True`、`INSTALL_EXIT=0`。
+- 装配后装机件：`D:\Program Files\actlog\data\app.so` = **9,241,480 B / sha16 `633C2FDDE97BFBE9`**（mtime 2026-11-26 17:43:32，与构建树逐字一致）；`actlog.exe` = 484,352 B / sha16 `89293205FAF8C3DE`。
+- `C:\ProgramData\actlog\setup.log` 记录 `ACTLOG_MIGRATE=NONE instdir=D:\Program Files\actlog`（就地升级，未触发 legacy 目录迁移）。
+- 用户活库 `D:\Program Files\actlog\userdata\actlog.db` 装配前后同为 352,256 B / sha16 **`B5F9070FC63068B1`**，未被安装器或取证触碰。
+
+### 装机件运行取证
+- 用**装机件本体** `D:\Program Files\actlog\actlog.exe` 指向种子副本 `reports\task91-seeddb-b11a` 启动（`pid=192032`），窗口停 `(-31988,-32000)`，`VIEW_RECT=2496x1456`；帧目录 `reports\task91-frames-b11inst\`。
+- 启动（首页）帧 `t90-00-launch.png` sha16 `4E72EC0174387243`：`#302820` 仅 0.23%，主色 `#F0F0E8` 55.75% + `#F8F8F0` 35.81%。
+- 点导航「蓝图」后 `t90-inst-bp-01.png` sha16 `AEFCE270F591F111`：`#302820` = **9.92%**、纸色合计 82.56%、近黑 63 px。两帧 ink 占比 0.23% → 9.92% 是**有鉴别力的差异**，证明装机件真的渲染出了方向 A 的墨色片头带，而非只是二进制相同。
+- 取证后已 Stop（`INST_SANDBOX_DEAD=True`，无残留 actlog 进程）；用户库 sha16 复读仍 `B5F9070FC63068B1`。
+
+### 本轮踩到并已绕开的坑
+- 把「启动 + 取 pid + 驱动 + 杀进程」串在一条 `bash` 里会挂住：`Select-Object -Last N` 把上游输出全缓冲，直到该语句结束才吐，外部看不到任何进度；且用嵌套 `pwsh -Command "Get-Process ..."` 反查 pid 再传参，链路一长就没有中间可见状态。
+- 正确姿势：启动脚本自己写 `t90-launch.log`（含 `LAUNCHED pid=` 与 `PID/RUNNER/VIEW`），驱动步骤**显式传上层读到的 pid**，并 `Tee-Object` 把每行实时落日志。分步后 5 秒内完成。
+- `-ParkW 2520 -ParkH 1575` 实际得到的视口是 2496x1456（高度被夹），与 B11 前一轮的 2496x1563 不同；沿用旧点击坐标 `(111,663)` 仍命中导航项，但**坐标不能假设窗口高度不变**。
+
+### 仍然未验证
+1. **审美与体感**：方向 A 的排版观感、候选标签浮窗「能否顺手点选」只能由用户肉眼判定（本机模型不支持读图）。
+2. `AGENTS.md` §7 的分发指针尚未指向 `actlog-Setup-1.0.0_20261126-174718.exe`（`317436F79DAF631F`）——该文件带并发接力链会话改动，挂账待其可整体提交时补。
