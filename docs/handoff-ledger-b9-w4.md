@@ -303,6 +303,76 @@ python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py
 
 ### 8.4 未决 / 下一步
 
-1. **装机复验（B10-b）**：本包**仍未覆盖安装** ⇒ 装机侧 `data\app.so` 仍是旧载荷 `1A5E09068403A98A` ⇒ **不得登记「已装机验收」**；需用户拍板后覆盖安装，再按 §8.1 配方重跑同一取证链。
+1. **装机复验（B10-b）—— 已由 §9 关闭**：2026-11-26 上午已覆盖安装唯一可分发包（装机侧 `data\app.so` = 9,175,944 B / sha16 `27D68DEEA7233AAA` = 构建树逐字一致 ⇒ 新载荷确已装机）并按 §8.1 配方在**装机件**上重跑同一取证链，五级「帧 + SQLite 读回」双证齐 ⇒ **本包登记为「已装机验收」**（详见 §9）。
 2. **B8 两项待用户裁决**：今日页右栏「目标/项目」卡 = 只读保留 vs 整卡移除；窄屏 `KeyBar` 是否补 `Ctrl+7` 提示（见 §6）。
-3. **沙箱实例仍在跑**：PID 98244（隐藏窗口，runner/view 均在 `(-32000,-32000)`）⇒ 收工时须终止；用户活库全程零写入。
+3. **沙箱实例已全部终止（已闭）**：B10-a 的 PID 98244 与 B10-b 的 PID 28076 **均已终止**（`Stop-Process` ⇒ `APP_ALIVE=0`）⇒ 收工无须再杀；用户活库全程零写入。
+---
+
+## 9. B10-b 装机复验（**2026-11-26 上午 · 覆盖安装 + 同配方重跑拆分链 · 装机件五级双证齐**）
+
+> 关闭 §8.4 第 1 条「装机复验（B10-b）」：把唯一可分发包**覆盖安装**到用户机，再按 §8.1 同口径（沙箱化、不抢焦点）重跑同一拆分链取证；被测件 = **装机件**（不再是构建树），**每一级都有「帧 + SQLite 读回」双证**。
+
+### 9.1 覆盖安装结果（唯一可分发包 → 用户机）
+
+| 项 | 实测 |
+|---|---|
+| 安装包 | `release\actlog-Setup-1.0.0_20261126-001138.exe`（**22,830,357 B / sha16 `9F7ABEAC7B4C191A` / mtime 2026-11-26 00:12:03**；`release\` 下 58 个 exe 中**仅此 1 个可分发**） |
+| 安装方式 | NSIS 静默 `/S`，`System.Diagnostics.Process` + `WaitForExit()`（**不用 `Start-Process -Wait`**，对 GUI 程序会挂死）⇒ `INSTALL_EXIT=0` / `ELAPSED_S=7` |
+| 装机后载荷 | `D:\Program Files\actlog\data\app.so` = **9,175,944 B / sha16 `27D68DEEA7233AAA`**（= 构建树 `apps\desktop\build\windows\x64\runner\Release\data\app.so` **逐字一致** ⇒ 新载荷确已装机） |
+| 装机后壳 | `D:\Program Files\actlog\actlog.exe` = 484,352 B / sha16 `89293205FAF8C3DE`（**未变、不得用作判据**，坑 110） |
+| 用户活库 | `D:\Program Files\actlog\userdata\actlog.db` = 352,256 B / sha16 `B5F9070FC63068B1` **未变** ⇒ 覆盖安装**零改动用户数据** |
+| mtime 陷阱 | 装机后 `app.so` 的 mtime **不刷新**（仍为打包时间 2026-11-26 00:11:02）⇒ 判「装机件含不含新代码」只认 **sha16**（坑 124） |
+
+⇒ 结论：**本包自此登记为「已装机验收」**（AGENTS.md §2 R3 真源行同步更新）。
+
+### 9.2 装机件重跑拆分链（沙箱口径同 §8.1）
+
+| 项 | 实测 |
+|---|---|
+| 被测件 | **装机件** `D:\Program Files\actlog\actlog.exe --data-dir=reports\task85-seeddb-b10b`（**独立种子库**，用户活库零写入） |
+| 进程 / 窗口 | PID **28076**；runner HWND **3737056** / `FLUTTERVIEW` HWND **987566**；view 2496×1563（设备像素） |
+| 焦点纪律 | 全程 **`FG_AFTER h=266104 FG_SAME=True`**（**未抢焦点**）；runner 停 `(-32000,-32000)` + `WS_EX_NOACTIVATE|WS_EX_TOOLWINDOW`（ex=0x8000180） |
+| 输入 / 取帧 | `WM_MOUSEMOVE`+`WM_LBUTTONDOWN`+`WM_LBUTTONUP` **定向投递 `FLUTTERVIEW`**；文字 `WM_CHAR` **ASCII**（坑 116）；`PrintWindow(view,hdc,2)` 离屏抓帧 |
+| 收尾 | 沙箱实例已终止（`Stop-Process -Id 28076` ⇒ `APP_ALIVE=0`）；DB 快照留存 `reports\task85-frames-b10b\db-snapshot\`（64 份帧 + 日志 + 读回文本） |
+
+### 9.3 五级逐级「帧 + SQLite 双证」结果（**全部 PASS**）
+
+| 级 | 父档 → 子档 | 新增行 | 关键字段（盘上读回） | 帧（`reports\task85-frames-b10b\`） |
+|---|---|---|---|---|
+| ① | 终极(1) → 远期(2) | `goal` `B10B-LONG-1` | `01a215e8-7ac6-754f-8e91-89f537902eeb` / `kind=blueprint` / `horizon=2` / `parent_id=01a21574-ebc9-784a-adc8-92a8704e4e40`（SBXGOALA）/ `domain=career` / `status=active` | `b10b-typed-long-1.png`（`961E1C60341CF8AA`）/ `b10b-after-long-1.png`（`1A87317DD0681F04`） |
+| ② | 远期(2) → 中期(3) | `goal` `B10B-MID-1` | `01a215ea-07db-7903-a8cb-9bba403597c5` / `horizon=3` / `parent_id=01a215e8-…2eeb` | `b10b-tab-long.png`（`A646A6FBBD4BAF53`）/ `b10b-typed-mid-1.png`（`F4C994360BA66F24`）/ `b10b-after-mid-1.png`（`40CE18A468C9E3E9`） |
+| ③ | 中期(3) → 短期(4) | `goal` `B10B-SHORT-1` | `01a215ed-9dc9-7218-8525-4bf52e6e6652` / `horizon=4` / `parent_id=01a215ea-…597c5` | `b10b-l3-pre1.png`（`D9BAAD099F7ADA95`）/ `b10b-l3-dlg.png`（`0009C7CB2CD4698D`）/ `b10b-typed-short-1.png`（`3701E77BD9BF53EE`）/ `b10b-after-short-1.png`（`00A1105CC8CC3448`） |
+| ④ | 短期(4) → **待办** | `todo` `B10B-TODO-1` | `01a215ed-c194-733a-9623-403bef6146c6` / `status=open`；`goal_link`（`goal_id=01a215ed-…6652` / `target_type=todo` / `target_id=01a215ed-…14c6` / `relation=tracks`） | `b10b-l4-pre1.png`（`5888523EBAF025D1`）/ `b10b-l4-dlg.png`（`3BF10ADCF6083210`）/ `b10b-chip-todo-selected.png`（`18F29BE0D4635EE1`）/ `b10b-typed-todo-1.png`（`CCD14C1DC265125E`）/ `b10b-after-todo-1.png`（`8715BF12EE24D4EC`） |
+| ⑤ | 短期(4) → **年目标** | `goal` `B10B-YEAR-1` | `01a215ed-d9fc-7cac-a951-2f854f655b89` / `kind=yearly` / `horizon=NULL` / `parent_id=01a215ed-…6652` / `period_start=1767225600000` / `period_end=1798761599999`；`goal_link`（`target_type=goal` / `relation=serves`） | `b10b-l5-dlg.png`（`E087695019E9E892`）/ `b10b-typed-year-1.png`（`CB174691A6DD759C`）/ `b10b-after-year-1.png`（`CC4F0C47E25539AD`） |
+
+- **读回口径**：`reports\task85-frames-b10b\b10b-readback.txt`（WAL 感知 + **拷副本查询**，避免改动证据库主文件字节）；行数 `goal` 14→**18** / `goal_link` 12→**17**（新增 `serves`×4 + `tracks`×1）/ `todo` 2→**3**；全部新行 `domain=career` / `status=active` / `origin_device_id=dev-hnww4ok5hp`。
+- **父链未被改写**：四级父链 `status` 始终 `active`（派生只增行，状态只由目标自身编辑改）。
+- **两种关系都实测出现**：`serves`（蓝图子级 + 年目标）与 `tracks`（待办）⇒ `_writeSplit`（`apps\desktop\lib\src\pages\goals_blueprint_page.dart:291-364`）三条分支全部命中。
+- **链路一致性**：父链固定 `SBXGOALA → B10B-LONG-1 → B10B-MID-1 → B10B-SHORT-1 → B10B-YEAR-1 / B10B-TODO-1`。
+- **成功链日志**：`reports\task85-frames-b10b\b10b-chain.log`（sha16 `7725DC33FAFF97DB`）末段 `CHAIN_DONE / CHAIN_EXIT=0`。
+- **帧肉眼确认**：`b10b-l3-pre1.png` 可见中期页 `B10-MID-A` + `B10B-MID-1`「未落位」；`b10b-l4-pre1.png` 可见短期页 `B10-SHORT-A` / `B10B-SHORT-1` / `B10-YEAR-A` + 铅笔 / 拆分 / 删除图标。
+
+### 9.4 本节新增工具坑（编号 119–124，接在坑 118 之后）
+
+- **坑 119**：helper 返回 `ArrayList<object[]>` ⇒ **管道展开后每个元素摊平成 `int[]`**，`$_[0] + '-'` 报 `Cannot convert value "-" to type System.Int32`（整段脚本无输出，像"没执行"）⇒ 一律返回 **PSCustomObject**（具名 `Y1`/`Y2`）。
+- **坑 120**：**坐标 (x,y) 顺序反转 ⇒ 静默空点**：`findIcon` 返回 `(cy, 1678)` 而 `ClickAt` 期望 `(x,y)` ⇒ 点到 (1082,1678) 越界，**所有帧字节完全相同**，全程不报错 ⇒ 坐标一律 (x,y) + 配坑 123 守卫。
+- **坑 121**：`return ,$arr` 的逗号**抑制数组展开** ⇒ 调用方只拿到 1 个 `object[]`，≥2 个 band 时 `$r.Y1` 变 `System.Object[]` ⇒ 不要写逗号。
+- **坑 122**：**band 扫描期间列表会重排**：`GetPixel` 扫约 2 万像素耗时 1–2 s，扫完再点时 y 已陈旧 ⇒ 点落空 ⇒ **点击前重取帧、重扫并立即点击**（`Open-Split` 内重试 ≤3 次，失败记 `DLG_NOT_OPEN`）。
+- **坑 123**：**「点击后帧哈希未变 ⇒ 空点/无效」必须作为显式守卫**，否则静默空点一路走到「DB 无新增」才暴露。
+- **坑 124**：**覆盖安装后 `app.so` 的 mtime 不刷新**（NSIS 保留打包时间）⇒ 判「装机件含不含新代码」只认 **sha16**。
+
+### 9.5 纪律瑕疵登记（如实登记，不改库）
+
+1. **标题用 ASCII**（坑 116）：`WM_CHAR` 传中文被 embedder 错误映射，故五级标题用 `B10B-*-1`；不影响「帧 + SQLite 双证」效力。
+2. **链条脚本幂等可续跑**：支持 `-StartLevel N`；L1 已提交后再跑 L1 会产生重复行 ⇒ 失败后**按级续跑**，不从头重跑。
+3. **失败日志不删（R4）**：`Move-Item` 归档为 `b10b-chain-failN.log`（4 份失败日志留存），成功日志保留为 `b10b-chain.log`。
+4. **读回一律拷副本查询**：证据库主文件保持 438,272 B（写入落 `actlog.db-wal`，读回时 572,712 B）⇒ 不得用主文件字节数判断有无落库。
+5. **沙箱脚本一律落 `%TEMP%` 且用绝对路径**（坑 117）：`E:\Users\Duanyi\AppData\Local\Temp\` 下 `b10b-chain.ps1` / `b10b-run.ps1` / `b10b-probe.ps1` / `b10b-crop.ps1` / `b10b-readback.py` / `b10b-readback.ps1` ⇒ **不进仓库 ⇒ 不影响 `PS1_SCANNED`**。
+6. **本轮只 commit 不 push**；`reports\**` 仍被 gitignore ⇒ **不得 `git add reports/`**。
+7. **`AGENTS.md` 并发写集**：工作树 `AGENTS.md` 另有并发接力链改动（§2 R3 增补 Task72/B7 行、§5 坑 94/95/100–105 等，39 增 / 10 删）⇒ 本轮按坑 97 **部分暂存**（index = HEAD + 本批补丁），他人行留在工作树不动。
+
+### 9.6 未决 / 下一步
+
+1. **B8 两项待用户裁决**（承接未决）：今日页右栏「目标/项目」卡 = 只读保留 vs 整卡移除；窄屏 `KeyBar` 是否补 `Ctrl+7` 提示（见 §6 第 1/2 项）。
+2. **沙箱实例**：B10-a PID 98244 与 B10-b PID 28076 **均已终止** ⇒ 收工无须再杀；用户活库全程零写入。
+3. **再出包路线**：如需新包，走 `tools\build\make_installer.ps1 -Version '1.0.0'`（坑 104：`task51-ship.ps1 -Stage ship` 会连带**覆盖安装**，属用户决定）。
