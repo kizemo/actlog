@@ -619,3 +619,54 @@ No issues found! (ran in 5.0s)        ANALYZE_EXIT=0
 ### 仍然未验证
 1. **审美与体感**：方向 A 的排版观感、候选标签浮窗「能否顺手点选」只能由用户肉眼判定（本机模型不支持读图）。
 2. `AGENTS.md` §7 的分发指针尚未指向 `actlog-Setup-1.0.0_20261126-174718.exe`（`317436F79DAF631F`）——该文件带并发接力链会话改动，挂账待其可整体提交时补。
+
+### 11.15 B12 用户三条反馈收口（2026-11-26 22:26；门禁绿 + 出包；装配被运行实例拦下 ⇒ 真机取证 UNDETERMINED）
+
+**背景与目标（自带完整正文，下一会话不必回翻派工书）**
+用户在 B11 包装机之后提三条界面反馈：①个人定位的「填写说明」要放进悬浮框、鼠标悬停在定位分类标题上才显示；去掉输入的确认按键与「标签库」链接；点选标签即自动保存；手动输入回车即录入保存、以符号分隔。②目标模块美化不理想，标签请参照 Chrome 或 Edge 浏览器的标签；表格内容上下边距偏紧。③目标输入的结束日期点开应弹出日期选择框可点选；填好的日期不出现在第三列（判为缺陷）；目标框中不要显示「条做法」「未落位」。本轮即围绕这三条改码、改测试、跑门禁、出包、装配取证与台账。
+
+**代码落点（已提交 `36efc43`；行号为提交时盘上读回）**
+- 反馈① `apps\desktop\lib\src\widgets\goal_brand_panel.dart`：新增 `_openHint`/`_scheduleHintHide`(220ms)/`_cancelHintHide`/`_removeHintOverlay`/`_computeAnchorRect`/`_itemFor`/`_onFocusChanged`；分类标题用 `MouseRegion(onEnter/onHover/onExit)` 包 `SizedBox(key: _titleKeys[code])`；新增 `_HintBubble`（key `goal-position-hint-overlay`，宽 280）与 `_HintLayout`；删除 `_buildTagsToggle`/`_toggleKeys`/`_toggleTags`（确认按钮与标签库链接）；`TextField` 补 `focusNode`/`onTap`/`onSubmitted`；`_submitTags` 回车即并入保存、以「、」连接、同值不重复追加。
+- 反馈② `apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart`：标签页参照 Chrome/Edge —— 激活 `tokens.card` + `tokens.ink` + `w600` + 顶部圆角单点常量 `chromeTabTopRadius = 8`（唯一超出 `AppTokens.radius(4px)` 的例外，带注释），未激活 `tokens.sunken` + `tokens.meta`；`cellPadding = EdgeInsets.symmetric(horizontal: 8, vertical: 11)`。
+- 反馈③ `apps\desktop\lib\src\widgets\goals\goal_form_dialog.dart` `_pickDue`（due 只读 + `showDatePicker`）；`apps\desktop\lib\src\pages\goals_blueprint_page.dart` `_periodEndFor` 写 `periodEnd` 与 `dueDate` 同值；矩阵 `_periodText` 在 `periodStart <= 0 && dueDate > 0` 时回退显示 `dueDate`；删除格内「条做法 N」「未落位」及 key `goal-blueprint-unplaced-<id>`。
+
+**测试（新增 2 个文件 + 改写 8 个）**
+- 新建 `apps\desktop\test\b12_position_panel_test.dart`（B1–B8；B3 硬断言 `hint.bottom <= input.top`，即浮窗必须在输入框之上）、`apps\desktop\test\b12_matrix_tabs_date_test.dart`（R2-1…R2-6：标签页双态、圆角、内边距、日期回退、无「条做法/未落位」）。
+- 改写 `b10_blueprint_matrix_done_test.dart`、`b10_position_panel_test.dart`、`b11_blueprint_roulette_test.dart`、`task66_goals_blueprint_page_test.dart`、`task73_b8_w1_blueprint_edit_test.dart`、`task74_goal_edit_shared_test.dart`、`task78_b9_brand_panel_test.dart`。
+- 五条失败收口时逐条判定（**零 lib 改动**）：B5 假红（`requestFocus()` 后需补第二帧 `pump`）／T4 假红（旧断言按「整值覆盖」写，裁决语义是「并入」⇒ 改断言、不改实现）／B1 假红（旧断言钉 `inkWash`，新契约是 `tokens.card`）／R2-5 假红（用例自造标题含「周目标」，`textContaining` 恒双命中 ⇒ 改按 key 取子级 `Text` 断整句）／R2-6 写法错（`EdgeInsets.symmetric(horizontal:8).horizontal == 16`）。
+
+**门禁（控制器亲跑，不采信 worker 自报）**
+- `flutter analyze` → 逐字 `No issues found! (ran in 7.0s)` / `ANALYZE_EXIT=0`。
+- desktop 全量 `flutter test --reporter compact` → 尾行 `+1000: All tests passed!` / `TEST_EXIT=0`（日志 `E:\Users\Duanyi\AppData\Local\Temp\b12-full3.log`）；跑前先 `Move-Item` 把 `apps\desktop\build\test_cache\build` 挪成 `build_stale_20261126-221536`（不改名会 OS Error 183 挂死）。
+- `packages\` 三包零改动 ⇒ core_data 204 / core_db 96 / core_domain 91 沿用上一轮读数。
+
+**出包（两阶段，先 build 再 makensis，见 §5 坑 127）**
+- `BUILD_EXIT=0` / `INSTALLER_EXIT=0`；产物 `release\actlog-Setup-1.0.0_20261126-221923.exe` = **22,849,443 B / sha16 `104FEDE1513FB06E` / mtime 2026-11-26 22:19:56**；`release\` 下 exe **62 个**，仅此 1 个可分发。
+- 重编判据：构建树 `apps\desktop\build\windows\x64\runner\Release\data\app.so` = **9,241,480 B / `A9752C00FDDF0D80` / mtime 2026-11-26 22:19:18**（≠ B11 的 `633C2FDDE97BFBE9` ⇒ 确为重编）；`actlog.exe` = 484,352 B / `89293205FAF8C3DE`（未变，不得作判据）。
+- NSIS 探针：`Type = Nsis; Method = LZMA:23; Solid = +; SubType = NSIS-3 Unicode`；`excluded_paths = userdata\actlog_startup.log; userdata\actlog.db; …practilog.db-wal`（用户数据不进包）。
+
+**装配：守卫生效，未覆盖（本轮唯一未完成项）**
+- 装配前查活实例：`RUNNING_ACTLOG=1` / `RUN_PID=20660`（2026-11-26 20:43:33 启动）⇒ 按纪律 `SKIP_INSTALL_RUNNING_INSTANCE`，未杀用户进程、未覆盖安装目录（半覆盖会让装机件处于半损坏状态）。
+- 装机目录实测仍是 B11 载荷：`D:\Program Files\actlog\data\app.so` = **9,241,480 B / `633C2FDDE97BFBE9` / mtime 2026-11-26 17:43:32**；`actlog.exe` sha16 与构建树相同（`89293205FAF8C3DE`，不可作判据）。
+- 用户活库 `D:\Program Files\actlog\userdata\actlog.db` 实测 **352,256 B / sha16 `B5F9070FC63068B1`**，全程零写入（活库被锁 ⇒ 一律 `FileShare.ReadWrite` 拷副本再 hash，直接 `Get-FileHash` 会抛错且残留上一条 `$h`）。
+
+**种子库与「第三列」鉴别样本（下一轮直接可用）**
+- 种子副本 `reports\task93-seeddb-b12a`（源 `reports\task91-seeddb-b11a`）；目录内实测只有 `actlog.db` **438,272 B** 与 `actlog_startup.log` 1,592 B，**无 `-wal` / `-shm` 旁车**（已被 checkpoint 合并进主库，取数前不必再拷副本）。
+- `goal` 表 **17 行**；实测鉴别行 `W4GOALB`（id `01a212fe-df54-711f-9690-151798ad6bbc`）= `period_start=0 / period_end=NULL / due_date=2538576000000 / horizon=1 / status=active` ⇒ 新包应在第三列显示该 `due_date`、B11 包应为空 ⇒ 同一份种子即可做 A/B，属有鉴别力的样本。
+
+**未验证 / 残留（不得当已验收）**
+1. **装机件运行时取证 = UNDETERMINED**：新包未装配（用户实例在跑），三条反馈的真机像素证据（悬停浮窗、标签页形态、日期弹层、第三列日期）一次都没跑。
+2. **审美与体感**只能由用户肉眼判定（本机模型不支持读图；`read` 读 PNG 直接报 model does not support images）。
+3. `AGENTS.md` §7 的 R3 真源行已就地改写成 `…_20261126-221923.exe`（`104FEDE1513FB06E`），但**未并入本笔提交**——该文件带并发接力链会话的未暂存改动（§5 坑 100–127 等），整文件提交会把别人的改动混进本笔；挂账待其可整体提交时补。
+4. 上一节 §11.14 的挂账「指针未指向 `…_20261126-174718.exe`」由本节新指针一并覆盖：`174718`（`317436F79DAF631F`）**即日起失效，严禁分发**。
+
+**下一轮复现配方（关掉 actlog 之后照做即可）**
+1) 用户关闭 `actlog.exe`（或用户自行安装）→ 2) `b11-install.ps1 -Exe release\actlog-Setup-1.0.0_20261126-221923.exe`（`/S` 静默，不 `-Wait`）→ 3) 回读装机 `data\app.so` sha16 必须等于 `A9752C00FDDF0D80` → 4) `t90-launch.ps1 -Exe 'D:\Program Files\actlog\actlog.exe' -DataDir 'F:\soft\00selfmade\practilog\reports\task93-seeddb-b12a' -Out '…\reports\task93-frames-b12a' -Width 2520 -Height 1575` → 5) `t90-drive.ps1 -TargetPid <pid> -Plan <plan>`：`click 111 663`（导航「蓝图」）→ `hover` 定位分类标题（浮窗出现，帧 sha16 必须变、且浮窗区墨迹增加）→ 点结束日期（日历弹层）→ 第三列 `W4GOALB` 行应出现日期墨迹（同种子下 B11 包为空，可作阴性对照）。
+
+**本轮新坑**
+- `H` / `h` 是 `Get-History` 的内置别名 ⇒ 自定义函数取名 `H` 会报「无法绑定参数 'Id'，无法将值 <路径> 转换为 System.Int64」，哈希静默为空且不中断脚本；改名 `Get-Sha16` 即正常。
+- 查询 `goal` 表时按 `d.get(k)` 白名单过滤会**静默吞掉**所有非白名单键，输出只剩 `id`，误判成「日期字段没有值」；必须 `select 列名` 直接打印整行 tuple。
+
+**提交**
+- `36efc43` feat(b12)：4 个 lib 文件 + 10 个测试文件 + 3 份派工书（16 files / +2097 / −317）。
+- 本节由紧随其后的一笔 docs 提交入库（`AGENTS.md` 与 `docs\relay*`、`docs\b8*` 并发文件不在任何一笔内）。
