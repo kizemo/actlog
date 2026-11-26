@@ -10,8 +10,9 @@
 //      （回落到原纵向布局，功能一个不少）。
 //  A-3 轴刻度：年刻度由当前档位真实日期派生（不硬编码年份），一条带日期的
 //      目标都没有时整条不渲染；日期条实心段按跨度比例映射，已完成降调。
-//  A-4 四问 1×4：宽视口同一行、窄视口回落纵向；两种宽度下「标签库」开关
-//      与浮窗暂停/恢复语义不变（浮窗细粒度用例在 `b10_position_panel_test`）。
+//  A-4 四问 1×4：宽视口同一行、窄视口回落纵向；两种宽度下都没有「标签库」
+//      开关与「保存」键（B12 起落库走回车、标签库由点 / 聚焦输入框打开），
+//      浮窗暂停 / 恢复语义不变（浮窗细粒度用例在 `b10_position_panel_test`）。
 // =============================================================================
 
 import 'package:actlog/src/data/goal_store.dart';
@@ -497,7 +498,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A-4 四问 1×4：宽视口同一行、从左到右，且开关/保存都在',
+  testWidgets('A-4 四问 1×4：宽视口同一行、从左到右，且无开关/保存键',
       (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos, width: 1400);
 
@@ -526,18 +527,25 @@ void main() {
       );
       expect(rects[i].width, lessThan(rects.first.width * 1.5));
     }
-    // 1×4 后操作行改成 Wrap，但键位与按钮一个都不能少：
-    // 「保存」四问都有；带标签库的只有 values / strengths 两项（另外两项本来就无标签）。
+    // B12 把操作行里的「保存」与「标签库」开关整块删了（派工书 §四）：
+    // 四问只剩输入框，键位与输入框一个都不能少、也不许回流。
     for (final String code in _questionCodes) {
       expect(
         find.byKey(ValueKey<String>('goal-position-save-$code')),
+        findsNothing,
+        reason: '$code 不该再有保存键',
+      );
+      expect(
+        find.byKey(ValueKey<String>('goal-position-input-$code')),
         findsOneWidget,
+        reason: '$code 的输入框必须还在',
       );
     }
     for (final String code in <String>['values', 'strengths']) {
       expect(
         find.byKey(ValueKey<String>('goal-position-tags-toggle-$code')),
-        findsOneWidget,
+        findsNothing,
+        reason: '$code 不该再有标签库开关',
       );
     }
     expect(tester.takeException(), isNull);
@@ -599,11 +607,11 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A-4 显式开关：打开即钉住（不再受 3s 计时约束）',
+  testWidgets('A-4 点输入框：打开即钉住（不再受 3s 计时约束）',
       (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos, width: 1400);
     await tester.tap(
-      find.byKey(const ValueKey<String>('goal-position-tags-toggle-values')),
+      find.byKey(const ValueKey<String>('goal-position-input-values')),
     );
     await tester.pump();
     expect(find.byKey(_overlayKey), findsOneWidget);
@@ -611,10 +619,10 @@ void main() {
     expect(
       find.byKey(_overlayKey),
       findsOneWidget,
-      reason: '显式开关打开 = 钉住，不许被计时关掉',
+      reason: '点输入框打开 = 钉住，不许被计时关掉',
     );
 
-    // 钉住态由 `Esc` 关（浮层本身就盖在操作行上，不指望再点一次开关）。
+    // 钉住态由 `Esc` 关（再点一次输入框只会重新打开，不是关闭）。
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(find.byKey(_overlayKey), findsNothing, reason: 'Esc 必须能关掉钉住的浮层');

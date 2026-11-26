@@ -466,6 +466,11 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
     final String? keywords = _emptyToNull(form.keywords);
     final String? domain = _emptyToNull(form.domain);
     final int? dueDate = form.dueDate;
+    // B12 第 3 条：第三列读的是**起止**（`period_start` / `period_end`），
+    // 而表单写的是**期限**（`due_date`）—— 写入与读取来源不一致，就是
+    // 「填了日期第三列不显示」的根因。这里把期限**同步**写成 `period_end`
+    // （起止缺省时）；矩阵侧另有「只有期限就回退显示期限」的兜底。
+    final int? periodEnd = _periodEndFor(dueDate, existing?.periodStart ?? 0);
 
     setState(() {
       _goalSaved = false;
@@ -483,6 +488,7 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
           domain: domain,
           horizon: form.horizon,
           dueDate: dueDate,
+          periodEnd: periodEnd,
         );
       } else {
         await store.updateGoal(
@@ -493,6 +499,8 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
           domain: domain,
           horizon: form.horizon,
           dueDate: dueDate,
+          // null = 「不动」⇒ 既有周期不会被表单清掉。
+          periodEnd: periodEnd,
           // 表单里清空的字段必须显式进 `clear`：传 null 的语义是「不动」。
           clear: <GoalField>{
             if (domain == null) GoalField.domain,
@@ -601,6 +609,22 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   static String? _emptyToNull(String value) {
     final String text = value.trim();
     return text.isEmpty ? null : text;
+  }
+
+  /// 期限 ⇒ 周期终点（本地午夜毫秒）。
+  ///
+  /// 返回 null = **不动** `period_end`（`updateGoal` 里 null 的语义是「不动」）：
+  ///  * 期限为空 ⇒ 没有可同步的终点；
+  ///  * 既有起始日比期限更晚 ⇒ 不能写成更早的终点（领域层会判
+  ///    「`period_end` 不能早于 `period_start`」而拒绝写入）⇒ 保持原值。
+  static int? _periodEndFor(int? dueDate, int periodStart) {
+    if (dueDate == null) {
+      return null;
+    }
+    if (periodStart > 0 && dueDate < periodStart) {
+      return null;
+    }
+    return dueDate;
   }
 
   /// 次级文字样式。

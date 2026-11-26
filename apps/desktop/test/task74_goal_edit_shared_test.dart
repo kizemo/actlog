@@ -188,10 +188,25 @@ void main() {
     expect(_fieldText(tester, 'goal-blueprint-form-title'), '旧标题');
     expect(_fieldText(tester, 'goal-blueprint-form-note'), '旧备注');
     expect(_fieldText(tester, 'goal-blueprint-form-keywords'), 'a,b');
+    // B12 第 3 条：期限字段改**只读**（点它弹日期选择器）⇒ 断言「显示出来的
+    // 文本」+「只读」两件事（断言强度不降：仍要求既有期限以 YYYY-MM-DD 呈现）。
     expect(
-      _fieldText(tester, 'goal-blueprint-form-due'),
+      find.text('2026-12-31'),
+      findsOneWidget,
+      reason: '期限毫秒必须以 YYYY-MM-DD 显示在表单里，否则用户改别的字段就会把期限写坏',
+    );
+    final TextField dueField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-due')),
+    );
+    expect(
+      dueField.readOnly,
+      isTrue,
+      reason: '期限字段必须只读：点击弹日期选择器，不再手打',
+    );
+    expect(
+      dueField.controller?.text,
       '2026-12-31',
-      reason: '期限毫秒必须以 YYYY-MM-DD 预填，否则用户改别的字段就会把期限写坏',
+      reason: '只读字段的文本仍由既有期限毫秒格式化而来',
     );
     expect(
       tester

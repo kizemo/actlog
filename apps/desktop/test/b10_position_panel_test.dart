@@ -22,7 +22,7 @@ import 'package:actlog/src/widgets/goals/goal_form_dialog.dart';
 import 'package:actlog/src/widgets/goals/goal_split_dialog.dart';
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart' hide Goal, GoalLink;
-import 'package:core_domain/core_domain.dart' show GoalHorizon;
+import 'package:core_domain/core_domain.dart' show GoalHorizon, GoalKind;
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
@@ -251,7 +251,7 @@ void main() {
     expect(find.byKey(_overlayKey), findsNothing);
   });
 
-  testWidgets('Q3 点标签：写进输入框，且该 chip 变「已选中」高亮', (
+  testWidgets('Q3 点标签：写进输入框、chip 高亮，且立即落库', (
     WidgetTester tester,
   ) async {
     await _pumpPanel(tester, repos: repos);
@@ -266,7 +266,8 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey<String>('goal-position-tag-values-0')),
     );
-    await tester.pump();
+    // B12：点标签立即落库（不再有「保存」按钮）⇒ 给异步写库留一帧时间。
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(_inputText(tester, 'values'), tag);
     final BuildContext ctx = tester.element(chip);
@@ -275,37 +276,45 @@ void main() {
       ctx.tokens.inkWash,
       reason: '已选中的标签要有底色高亮',
     );
+    final List<GoalRow> rows = await GoalStore(
+      repos,
+    ).listGoals(kind: GoalKind.brand);
+    expect(
+      rows.map((GoalRow row) => row.title),
+      contains(tag),
+      reason: '点标签必须立即落库',
+    );
   });
 
-  testWidgets('Q4 显式开关：按钮开合，且钉住态 4 秒不自动消失', (
+  testWidgets('Q4 点输入框：打开浮窗，钉住态 4 秒不自动消失', (
     WidgetTester tester,
   ) async {
     await _pumpPanel(tester, repos: repos);
-    final Finder toggle = find.byKey(
-      const ValueKey<String>('goal-position-tags-toggle-values'),
+    // B12：标签库没有独立开关，「点 / 聚焦输入框」就是唯一入口。
+    expect(
+      find.byKey(const ValueKey<String>('goal-position-tags-toggle-values')),
+      findsNothing,
+      reason: 'B12 已删除标签库开关',
     );
-    expect(toggle, findsOneWidget, reason: '缺显式开关按钮');
 
-    await tester.tap(toggle);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('goal-position-input-values')),
+    );
     await tester.pump();
-    expect(find.byKey(_overlayKey), findsOneWidget, reason: '按钮应能打开浮窗');
+    expect(find.byKey(_overlayKey), findsOneWidget, reason: '点输入框应打开浮窗');
 
     await tester.pump(const Duration(seconds: 4));
     expect(
       find.byKey(_overlayKey),
       findsOneWidget,
-      reason: '显式打开的浮窗不该自动消失',
+      reason: '点开的浮窗是钉住态，不该自动消失',
     );
-
-    await tester.tap(toggle);
-    await tester.pump();
-    expect(find.byKey(_overlayKey), findsNothing, reason: '再点按钮应关闭');
   });
 
   testWidgets('Q5 点浮窗外部：关闭', (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos);
     await tester.tap(
-      find.byKey(const ValueKey<String>('goal-position-tags-toggle-values')),
+      find.byKey(const ValueKey<String>('goal-position-input-values')),
     );
     await tester.pump();
     expect(find.byKey(_overlayKey), findsOneWidget);
@@ -318,7 +327,7 @@ void main() {
   testWidgets('Q6 Esc：关闭浮窗', (WidgetTester tester) async {
     await _pumpPanel(tester, repos: repos);
     await tester.tap(
-      find.byKey(const ValueKey<String>('goal-position-tags-toggle-values')),
+      find.byKey(const ValueKey<String>('goal-position-input-values')),
     );
     await tester.pump();
     expect(find.byKey(_overlayKey), findsOneWidget);

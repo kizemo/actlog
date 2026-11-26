@@ -6,7 +6,9 @@
 //     切档位后**只渲染当前档位那一张表**。领域行（6 个）不随档位变化。
 //  2. 「短期」标签页 = 原「短期」列 + 原「近期（1 年）」列（near 蓝图 + 本年度
 //     `kind == yearly` 年目标），与年页**同一份数据源**（`GoalYearView.yearlyGoals`）。
-//  3. **未落位** = 既没有下级目标、也没有任何 `tracks` 执行实体；正例与负例都要断。
+//  3. B12 第 3 条：格内**不再**渲染「条做法 N」与「未落位」（key
+//     `goal-blueprint-unplaced-<id>` 一并撤掉）—— 正例样本（无下级无执行）与
+//     负例样本（有周目标）都要断「不出现」。
 //  4. 拆分图标打开拆分层级对话框（B9-W3 / D-9-e）：确认前库里 0 增量，
 //     确认即落库 —— 终极档拆出的是 3 条远期蓝图目标并挂 `serves`。
 //  5. B10-D1：平衡轮块与「整行留空」说明已下线（组件与 l10n 键保留），页面不渲染。
@@ -256,19 +258,32 @@ void main() {
     expect(find.text('年度主攻'), findsNothing);
   });
 
-  testWidgets('蓝图页：未落位有正例（无下级无执行）也有负例（有周目标）', (WidgetTester tester) async {
+  testWidgets('蓝图页：B12 第 3 条：格内不再渲染「条做法」「未落位」（两种目标都不出现）', (
+    WidgetTester tester,
+  ) async {
     final _Seed seed = await _seed(store);
     await _pumpBlueprint(tester, repos: repos);
 
-    // 正例：终极蓝图既没有下级目标，也没有任何 tracks 执行实体（默认档位里）。
+    // 正例样本：终极蓝图既没有下级目标，也没有任何 tracks 执行实体。
     expect(
       find.byKey(
         ValueKey<String>('goal-blueprint-unplaced-${seed.ultimateId}'),
       ),
-      findsOneWidget,
+      findsNothing,
+      reason: 'B12 第 3 条：格内不再渲染「未落位」',
+    );
+    expect(
+      find.textContaining(AppLocalizations.zh.goalsUnplaced),
+      findsNothing,
+      reason: '「未落位」文案整体下线',
+    );
+    expect(
+      find.textContaining(AppLocalizations.zh.goalBlueprintActionsCount),
+      findsNothing,
+      reason: '「条做法 N」文案整体下线',
     );
 
-    // 负例：中期蓝图下面挂着周目标 ⇒ 不算未落位。先切到「中期」，确认卡片确实
+    // 负例样本：中期蓝图下面挂着周目标 ⇒ 同样不渲染。先切到「中期」，确认卡片确实
     // 渲染了（否则下面的 findsNothing 是空断言）。
     await _switchTab(tester, 'mid');
     expect(

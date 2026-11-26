@@ -277,7 +277,7 @@ void main() {
     expect(tappedEnd, _end2026);
   });
 
-  testWidgets('B1 标签页激活态：inkWash 浅洗底 pill + ink/w600；未激活无底色 + meta', (
+  testWidgets('B1 标签页激活态：card 底 + 顶部 8px 圆角 + ink/w600；未激活 sunken 底 + meta', (
     WidgetTester tester,
   ) async {
     final List<GoalRow> all = await store.listGoals();
@@ -299,34 +299,77 @@ void main() {
         matching: find.byType(Text),
       ),
     );
+    Color? bgOf(String key) =>
+        tabOf(key).style?.backgroundColor?.resolve(const <WidgetState>{});
+    BorderRadius radiusOf(String key) {
+      final OutlinedBorder? shape = tabOf(
+        key,
+      ).style?.shape?.resolve(const <WidgetState>{});
+      expect(shape, isA<RoundedRectangleBorder>(), reason: '页签外形须为圆角矩形');
+      return (shape! as RoundedRectangleBorder).borderRadius.resolve(
+        TextDirection.ltr,
+      );
+    }
+
+    double heightOf(String key) =>
+        tabOf(key).style!.minimumSize!.resolve(const <WidgetState>{})!.height;
 
     // 默认选中「终极」。
+    // B12 第 2 条（浏览器标签风格）：激活页底 = **内容区底色**（card），下边缘与
+    // 下方表格同色、且不画分隔线 ⇒ 视觉上「打开」进内容区。
     expect(
-      tabOf('ultimate').style?.backgroundColor?.resolve(const <WidgetState>{}),
-      tokens.inkWash,
-      reason: '激活页签必须有浅洗底（B-1：不只靠字重）',
+      bgOf('ultimate'),
+      tokens.card,
+      reason: '激活页签底 = tokens.card（与内容区融合；旧契约 inkWash 已作废）',
+    );
+    expect(
+      bgOf('ultimate'),
+      isNot(tokens.inkWash),
+      reason: 'B12 明确不用 inkWash 浅洗底：那是「选中」语义，不是「打开」',
     );
     expect(labelOf('ultimate').style?.color, tokens.ink);
     expect(labelOf('ultimate').style?.fontWeight, FontWeight.w600);
     expect(
-      tabOf('short').style?.backgroundColor?.resolve(const <WidgetState>{}),
-      isNull,
-      reason: '未激活页签不铺底色',
+      heightOf('ultimate'),
+      GoalBlueprintMatrix.tabActiveHeight,
+      reason: '激活页更高（B12 第 2 条）',
     );
+    // 圆角 8px 是**唯一**超出 `AppTokens.radius`（4px）的例外，必须钉住。
+    expect(
+      GoalBlueprintMatrix.chromeTabTopRadius,
+      8,
+      reason: 'B12 第 2 条：chrome 页签顶部圆角 8px（唯一超出 AppTokens.radius 的例外）',
+    );
+    expect(
+      radiusOf('ultimate'),
+      const BorderRadius.vertical(top: Radius.circular(8)),
+      reason: '只给上边两角 8px（不是四角，也不是 AppTokens 的 4px）',
+    );
+    expect(
+      bgOf('short'),
+      tokens.sunken,
+      reason: '未激活页签 = 下沉色（≠ 内容区底色）',
+    );
+    expect(bgOf('short'), isNot(tokens.card), reason: '未激活页不许有同款底色');
     expect(labelOf('short').style?.color, tokens.meta);
+    expect(labelOf('short').style?.fontWeight, isNot(FontWeight.w600));
+    expect(
+      heightOf('short'),
+      GoalBlueprintMatrix.tabInactiveHeight,
+      reason: '未激活页更矮（再叠加 tabInactiveLift 抬高）',
+    );
 
     // 切到「中期」后，激活态跟着走（不是写死在第一个）。
     await _tapKey(tester, const ValueKey<String>('goal-blueprint-tab-mid'));
-    expect(
-      tabOf('mid').style?.backgroundColor?.resolve(const <WidgetState>{}),
-      tokens.inkWash,
-    );
-    expect(
-      tabOf('ultimate').style?.backgroundColor?.resolve(const <WidgetState>{}),
-      isNull,
-    );
+    expect(bgOf('mid'), tokens.card);
+    expect(bgOf('ultimate'), tokens.sunken);
     expect(labelOf('mid').style?.fontWeight, FontWeight.w600);
     expect(labelOf('ultimate').style?.fontWeight, isNot(FontWeight.w600));
+    expect(
+      radiusOf('mid'),
+      const BorderRadius.vertical(top: Radius.circular(8)),
+      reason: '激活态跟到哪页，8px 顶部圆角就在哪页',
+    );
   });
 
   testWidgets('B2 四档标签页悬停时长：四条 tooltip 都在', (WidgetTester tester) async {

@@ -6,14 +6,20 @@
 //     当前档位那一张表 —— **6 行（domain）× 3 列（领域 | 目标 | 日期）**，
 //     不渲染表头行。目标格里显示 `title` 一行 + `keywords` 标签 + 做法条数；
 //     点标题展开三层（目标 → 关键词 → 做法）。
-//  2. **标签页激活态**（B10-B1）：激活 = 圆角 pill + `tokens.inkWash` 浅洗底 +
-//     `tokens.ink` + `FontWeight.w600`；未激活 = 无底色 + `tokens.meta`。
-//     四档都用 `Tooltip` 悬停显示时长（B10-B2，文案来自 `t.` getter）。
+//  2. **标签页 = Chrome/Edge 浏览器标签**（B12 第 2 条，用户给的参照物）：
+//     标签条底 = 纸（`tokens.paper`）；**活动标签 = 内容区底色（`tokens.card`）**
+//     ⇒ 下边缘与下方表格同色、无下边框，视觉上「打开」进内容区；非活动标签 =
+//     下沉色（`tokens.sunken`，偏灰）+ 底边抬高 6px（不与内容区相接）+ 标签之间
+//     1px hairline 分隔。顶部圆角 8px（[GoalBlueprintMatrix.chromeTabTopRadius]）
+//     是本轮**唯一**超出 `AppTokens.radius`（4px）的例外，其余圆角/配色一律走
+//     `theme_tokens.dart` 的 `LightPalette`。四档都用 `Tooltip` 悬停显示时长
+//     （B10-B2，文案来自 `t.` getter）。
 //  3. **短期页 = 原「短期」列 + 原「近期（1 年）」列**：near 蓝图与本年度 yearly 目标
 //     都由页面侧并入 `GoalHorizon.short` 那一格（与年页**同一份数据源**
 //     `GoalYearView.yearlyGoals`，保证单一真源）。
-//  4. **链断裂可视化**：沿 `serves` 链向下探；格内目标既没有下级（年/月/周）
-//     也没有任何 `tracks` 执行实体时，角标显示「未落位」；可一键拆分。
+//  4. **链断裂可视化已下线**（B12 第 3 条）：格内**不再**渲染「条做法 N」与
+//     「未落位」（key `goal-blueprint-unplaced-<id>` 一并撤掉）；`serves` 仍用于
+//     展开层里列周目标子级，`tracksCount` 仍作为构造参数保留（不再渲染）。
 //  5. **空格合法**：矩阵不校验、不强制、不给红字（计划 §5.4 末句）；空格子的唯一
 //     入口是右下角「+」（不渲染「（空）」）。
 //  6. **编辑入口**：`onAddGoal` / `onEditGoal` / `onDeleteGoal` / `onToggleGoalDone` /
@@ -29,6 +35,10 @@
 //       否则东八区 00:00–08:00 勾完成会显示成前一天；
 //       改期按钮（`goal-blueprint-period-<id>`）只在传了 `onEditGoalPeriod` 时渲染，
 //       且只管**蓝图目标**（年目标在本页改周期会与年页口径打架）。
+//     * B12 第 3 条：**起止缺省时回退显示期限**（`dueDate`，本地午夜毫秒 ⇒ 按本地
+//       时区取日）。表单写的是 `due_date`、第三列读的是 `period_*` —— 两侧来源
+//       不一致才是「填了日期第三列不显示」的根因；页面侧同步写 `period_end`，
+//       矩阵侧再兜底显示 `due_date` ⇒ 新旧数据都能在第三列看到日期。
 //
 // 本模块使用 2 个 Material 图标：`Icons.edit_outlined`（铅笔）与 `Icons.call_split`
 // （拆分）；「+」用文字符号（坑 51：桌面测试不预载 MaterialIcons 字体）。
@@ -81,6 +91,8 @@ class GoalBlueprintMatrix extends StatefulWidget {
   final GoalServesIndex serves;
 
   /// 目标 id → `tracks` 执行实体条数（做法条数）。
+  ///
+  /// B12 第 3 条起**不再渲染**「条做法 N」；参数保留（既有调用点逐字不动）。
   final Map<String, int> tracksCount;
 
   /// 拆分回调（B9-W3：打开拆分层级对话框，**确认即落库**；D-9-e 已废止
@@ -129,6 +141,30 @@ class GoalBlueprintMatrix extends StatefulWidget {
     GoalHorizon.short,
   ];
 
+  /// **Chrome/Edge 标签风格参照，唯一超出 `AppTokens.radius`（4px）的例外。**
+  ///
+  /// 只用于标签的**顶部**两角（浏览器标签的标志性轮廓）；其余圆角与全部配色
+  /// 一律走 `theme_tokens.dart` 的 `LightPalette`（`ThemeTokens`）。
+  static const double chromeTabTopRadius = 8;
+
+  /// 活动标签高度（px）。
+  static const double tabActiveHeight = 34;
+
+  /// 非活动标签高度（px）。
+  static const double tabInactiveHeight = 28;
+
+  /// 非活动标签底边相对内容区抬高的高度（px）⇒ 不与内容区相接。
+  static const double tabInactiveLift = 6;
+
+  /// 单元格内边距：垂直 11px、水平 8px。
+  ///
+  /// B12 第 2 条（用户反馈「表格中的内容，适当增加上下边距」）：原先四边各 4px
+  /// 太挤；列宽比例（2 / 5 / 3）不变，窄视口不溢出。
+  static const EdgeInsets cellPadding = EdgeInsets.symmetric(
+    horizontal: 8,
+    vertical: 11,
+  );
+
   @override
   State<GoalBlueprintMatrix> createState() => _GoalBlueprintMatrixState();
 }
@@ -155,8 +191,6 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         ?.copyWith(color: tokens.ink);
     final TextStyle? metaStyle = Theme.of(context).textTheme.labelSmall
         ?.copyWith(color: tokens.meta);
-    final TextStyle? warnStyle = Theme.of(context).textTheme.labelSmall
-        ?.copyWith(color: tokens.accentInk);
     final TextStyle? tabStyle = Theme.of(context).textTheme.labelLarge;
     // 当前档位的日期跨度（年刻度条 + 日期列 track 共用同一份派生值）。
     // **由真实数据派生**，不硬编码「2026–2035」这类业务口径。
@@ -166,15 +200,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            for (final GoalHorizon horizon in GoalBlueprintMatrix.tabs)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: _tab(horizon, style: tabStyle, tokens: tokens),
-              ),
-          ],
-        ),
+        _tabStrip(tokens: tokens, tabStyle: tabStyle),
         if (_selected == GoalHorizon.short)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
@@ -200,7 +226,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                   const SizedBox.shrink(),
                   Padding(
                     key: const ValueKey<String>('goal-blueprint-year-scale'),
-                    padding: const EdgeInsets.fromLTRB(4, 0, 4, 3),
+                    // 水平 8px：与下方日期列单元格的内边距对齐（垂直不占位）。
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 3),
                     child: _yearScale(span, tokens, metaStyle),
                   ),
                 ],
@@ -222,7 +249,10 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               TableRow(
                 children: <Widget>[
                   Padding(
-                    padding: const EdgeInsets.all(4),
+                    key: ValueKey<String>(
+                      'goal-blueprint-pad-domain-${row.domainKey}',
+                    ),
+                    padding: GoalBlueprintMatrix.cellPadding,
                     child: Text(
                       widget.t.projectDomainLabel(row.domainKey),
                       key: ValueKey<String>(
@@ -232,18 +262,23 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(4),
+                    key: ValueKey<String>(
+                      'goal-blueprint-pad-goal-${row.domainKey}',
+                    ),
+                    padding: GoalBlueprintMatrix.cellPadding,
                     child: _cell(
                       goals: row.cells[_selected] ?? const <GoalRow>[],
                       domainKey: row.domainKey,
                       horizon: _selected,
                       bodyStyle: bodyStyle,
                       metaStyle: metaStyle,
-                      warnStyle: warnStyle,
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(4),
+                    key: ValueKey<String>(
+                      'goal-blueprint-pad-date-${row.domainKey}',
+                    ),
+                    padding: GoalBlueprintMatrix.cellPadding,
                     child: _dates(
                       goals: row.cells[_selected] ?? const <GoalRow>[],
                       bodyStyle: bodyStyle,
@@ -260,7 +295,57 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     );
   }
 
-  /// 一个档位标签页（B10-B1 激活态 + B10-B2 时长提示）。
+  /// 标签条（Chrome/Edge 浏览器标签风格，B12 第 2 条）。
+  ///
+  /// 结构与「与内容区融合」的做法：
+  ///  * 标签条底 = 纸（`tokens.paper`）—— 相当于浏览器的工具条；
+  ///  * **活动标签底 = 内容区底色（`tokens.card`）** ⇒ 它下边缘与下方表格（内容区）
+  ///    同色、且没有分隔线 ⇒ 视觉上「打开」进内容区（这就是浏览器标签的融合感）；
+  ///  * 非活动标签 = 下沉色（`tokens.sunken`，偏灰）+ 底边抬高 6px ⇒ 不与内容区相接；
+  ///  * 标签之间的 1px hairline 只画在**两个非活动标签之间**（活动标签两侧留空，
+  ///    免得切断它与内容区融合的那条边）。
+  ///
+  /// 整条标签条用 `FittedBox(scaleDown)` 兜底 ⇒ 窄视口（1920 / 2520）不溢出。
+  Widget _tabStrip({required ThemeTokens tokens, required TextStyle? tabStyle}) {
+    final List<GoalHorizon> tabs = GoalBlueprintMatrix.tabs;
+    return Container(
+      key: const ValueKey<String>('goal-blueprint-tab-strip'),
+      color: tokens.paper,
+      padding: const EdgeInsets.only(left: 4),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: <Widget>[
+            for (int i = 0; i < tabs.length; i++) ...<Widget>[
+              if (i > 0 &&
+                  tabs[i] != _selected &&
+                  tabs[i - 1] != _selected)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: GoalBlueprintMatrix.tabInactiveLift,
+                  ),
+                  child: Container(
+                    width: 1,
+                    height: 14,
+                    color: tokens.hairSoft,
+                  ),
+                ),
+              _tab(tabs[i], style: tabStyle, tokens: tokens),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 一个档位标签页（Chrome/Edge 浏览器标签风格）。
+  ///
+  /// 活动标签 = 内容区底色 + 顶部圆角 8px + 无下边框（与内容区融合）；
+  /// 非活动标签 = 下沉色 + 顶部圆角 8px + 底边抬高 6px。
+  /// 仍用 `TextButton`（保留按钮语义与键盘可达性），键名与文案一字未改。
   Widget _tab(
     GoalHorizon horizon, {
     required TextStyle? style,
@@ -269,24 +354,42 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     final bool active = horizon == _selected;
     return Tooltip(
       message: _horizonSpan(horizon),
-      child: TextButton(
-        key: ValueKey<String>('goal-blueprint-tab-${_horizonKey(horizon)}'),
-        onPressed: () => setState(() => _selected = horizon),
-        style: TextButton.styleFrom(
-          // 激活 = 浅洗底 pill；未激活 = 透明（不是靠字重「猜」哪个选中）。
-          backgroundColor: active ? tokens.inkWash : null,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(999)),
-          ),
+      child: Padding(
+        // 非活动标签整体抬高 ⇒ 底边不与内容区相接（浏览器观感）。
+        padding: EdgeInsets.only(
+          bottom: active ? 0 : GoalBlueprintMatrix.tabInactiveLift,
         ),
-        child: Text(
-          _horizonLabel(horizon),
-          style: active
-              ? style?.copyWith(color: tokens.ink, fontWeight: FontWeight.w600)
-              : style?.copyWith(color: tokens.meta),
+        child: TextButton(
+          key: ValueKey<String>('goal-blueprint-tab-${_horizonKey(horizon)}'),
+          onPressed: () => setState(() => _selected = horizon),
+          style: TextButton.styleFrom(
+            // 活动 = 内容区底色（融合）；非活动 = 下沉色（偏灰）。
+            backgroundColor: active ? tokens.card : tokens.sunken,
+            foregroundColor: active ? tokens.ink : tokens.meta,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            minimumSize: Size(
+              0,
+              active
+                  ? GoalBlueprintMatrix.tabActiveHeight
+                  : GoalBlueprintMatrix.tabInactiveHeight,
+            ),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            elevation: 0,
+            shape: const RoundedRectangleBorder(
+              // 只圆顶部两角（浏览器标签轮廓）；底部是直角 ⇒ 能与内容区对齐。
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(
+                  GoalBlueprintMatrix.chromeTabTopRadius,
+                ),
+              ),
+            ),
+          ),
+          child: Text(
+            _horizonLabel(horizon),
+            style: active
+                ? style?.copyWith(color: tokens.ink, fontWeight: FontWeight.w600)
+                : style?.copyWith(color: tokens.meta),
+          ),
         ),
       ),
     );
@@ -320,13 +423,15 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
   };
 
   /// 一个格子：列出该格的目标（空格子只留「+」入口，**合法**）。
+  ///
+  /// B12 第 3 条：格内**不再**渲染「条做法 N」与「未落位」（含 key
+  /// `goal-blueprint-unplaced-<id>`）—— 目标框只留标题 + 展开层。
   Widget _cell({
     required List<GoalRow> goals,
     required String domainKey,
     required GoalHorizon horizon,
     required TextStyle? bodyStyle,
     required TextStyle? metaStyle,
-    required TextStyle? warnStyle,
   }) {
     if (goals.isEmpty) {
       if (widget.onAddGoal == null) {
@@ -383,20 +488,6 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                         onTap: () => _toggle(goal.id),
                         child: Text(goal.title, style: bodyStyle),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${widget.t.goalBlueprintActionsCount} '
-                        '${widget.tracksCount[goal.id] ?? 0}',
-                        style: metaStyle,
-                      ),
-                      if (_isUnplaced(goal))
-                        Text(
-                          widget.t.goalsUnplaced,
-                          key: ValueKey<String>(
-                            'goal-blueprint-unplaced-${goal.id}',
-                          ),
-                          style: warnStyle,
-                        ),
                       if (_expanded.contains(goal.id)) ...<Widget>[
                         if (goal.keywords != null &&
                             goal.keywords!.trim().isNotEmpty)
@@ -552,6 +643,11 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
 
   /// 起止日期文案：无起始 ⇒ 整体 `—`；无结束 ⇒ 右端 `—`。
   ///
+  /// **B12 第 3 条的回退**：起止都缺省时**回退显示期限**（`dueDate`）。
+  /// 表单写的是 `due_date`、本列读的是 `period_*` —— 两侧来源不一致才是
+  /// 「填了日期第三列不显示」的根因；页面侧已同步写 `period_end`，这里再兜底
+  /// 显示 `due_date` ⇒ 新建目标与历史目标（只有 `due_date`）都能看到日期。
+  ///
   /// 口径按「这条起止是谁写的」分流 —— 库里 `period_start` / `period_end` 有**两种**
   /// 存储语义并存：
   ///  * 蓝图目标（`kind == blueprint`）：起止只由 B10 改期对话框写入
@@ -562,8 +658,15 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
   ///  * 年 / 月 / 周目标：起止由 `GoalPeriod.startMillis` / `endMillis` 写入 =
   ///    **UTC 午夜毫秒**（起点 00:00.000Z、终点 23:59:59.999Z）⇒ 按 UTC 取年月日；
   ///    按本地解释会把终点（周期最后一刻）显示成第二天（如 2026-12-31 → 2027-01-01）。
+  ///
+  /// 期限 `dueDate` 一律按**本地** midnight 口径显示（蓝图目标的期限就是本地午夜
+  /// 毫秒，B11 裁决，不得改回 UTC）。
   String _periodText(GoalRow goal) {
     if (goal.periodStart <= 0) {
+      final int? due = goal.dueDate;
+      if (due != null && due > 0) {
+        return _dateText(due, localMidnight: true);
+      }
       return '—';
     }
     final bool localMidnight = goal.kind == GoalKind.blueprint;
@@ -756,11 +859,6 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
       ),
     );
   }
-
-  /// 未落位：既没有下级目标，也没有任何 `tracks` 执行实体。
-  bool _isUnplaced(GoalRow goal) =>
-      !widget.serves.hasChildren(goal.id) &&
-      (widget.tracksCount[goal.id] ?? 0) == 0;
 
   /// 该目标下的周目标（做法层的下一层）。
   List<GoalRow> _weeklyChildren(GoalRow goal) => widget.serves

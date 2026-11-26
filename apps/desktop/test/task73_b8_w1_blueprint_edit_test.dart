@@ -255,10 +255,28 @@ void main() {
       find.byKey(const ValueKey<String>('goal-blueprint-form-keywords')),
       '游泳,呼吸',
     );
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-due')),
-      '2026-12-31',
+    // 期限（B12 第 3 条）：字段改只读 ⇒ 点它弹日期选择器，点一天再确定。
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-due'));
+    expect(
+      find.byType(DatePickerDialog),
+      findsOneWidget,
+      reason: '点期限字段必须弹日期选择器（不再是手打文本框）',
     );
+    final DateTime now = DateTime.now();
+    final DateTime picked = DateTime(now.year, now.month, 15);
+    await tester.tap(
+      find
+          .descendant(
+            // `DatePicker` 是 Flutter 私有的 `_DatePicker`，测试里只能用公开的
+            // 日历体 `CalendarDatePicker`（`DatePickerDialog` 的 body）。
+            of: find.byType(CalendarDatePicker),
+            matching: find.text('15'),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'OK'));
+    await tester.pumpAndSettle();
     await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-save'));
 
     final List<_RawGoal> created = await _goalsByTitle(db, '学会游泳');
@@ -269,7 +287,17 @@ void main() {
     expect(g.horizon, GoalHorizon.ultimate.value + 3, reason: '短期存 4');
     expect(g.note, '先练憋气');
     expect(g.keywords, '游泳,呼吸');
-    expect(_dayOf(g.dueDate), '2026-12-31', reason: '期限要落库成毫秒');
+    expect(
+      g.dueDate,
+      picked.millisecondsSinceEpoch,
+      reason: '期限要落库成**本地午夜毫秒**（B11 口径：蓝图目标的期限按本地午夜）',
+    );
+    expect(
+      _dayOf(g.dueDate),
+      '${picked.year}-${picked.month.toString().padLeft(2, '0')}-'
+      '${picked.day.toString().padLeft(2, '0')}',
+      reason: '期限要落库成用户选的那一天',
+    );
     expect(g.deletedAt, isNull, reason: '新建不是删除');
     expect(
       find.byKey(const ValueKey<String>('goal-blueprint-goal-saved')),

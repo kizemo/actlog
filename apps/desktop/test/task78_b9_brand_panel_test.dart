@@ -3,12 +3,15 @@
 // =============================================================================
 // 文件名保留（派工书 §3.5），内容整篇改写为新面板口径：
 //  T1 面板渲染在人生蓝图矩阵块**上方**；
-//  T2 四项问答齐备（values / strengths / value / proof），各有输入框与保存键；
-//  T3 保存落库：`kind='brand'`、`facet='identity'`、`rev=1`、`deleted_at` 为空；
-//  T4 同一项再保存走 `updateGoal`：仍只有一行、`facet` 不被改掉、`rev` 递增到 2；
-//  T5 空文本点保存 ⇒ 一行都不写（派工书 §3.1「空文本不写行」）；
+//  T2 四项问答齐备（values / strengths / value / proof），各有输入框、**没有保存键**；
+//  T3 回车落库：`kind='brand'`、`facet='identity'`、`rev=1`、`deleted_at` 为空；
+//  T4 同一项再次回车走 `updateGoal`：仍只有一行、`facet` 不被改掉、`rev` 递增到 2；
+//  T5 空文本回车 ⇒ 一行都不写（派工书 §3.1「空文本不写行」）；
 //  T6 库里已有该切面的行 ⇒ 输入框回填（读到的是库里的值）；
 //  T7 悬停价值观输入框 ⇒ 标签浮层出现、2 秒仍在、4 秒消失；点标签填入输入框。
+//
+// B12 口径（派工书 §四）：面板上没有「保存」按钮、也没有「标签库」开关，
+// 落库只走输入框回车（IME 的 `done`）；标签库由点 / 聚焦输入框打开。
 //
 // 判据一律回读 SQLite（原生 SQL `customSelect`），不看像素、不做字形断言。
 // =============================================================================
@@ -80,11 +83,11 @@ Future<void> _pumpBlueprint(
   await tester.pumpAndSettle();
 }
 
-/// 滚到某个 key 上并点它（页面在长表格里，不 ensureVisible 点不到）。
-Future<void> _tapKey(WidgetTester tester, Key key) async {
-  final Finder target = find.byKey(key);
-  await tester.ensureVisible(target);
-  await tester.tap(target);
+/// 回车（IME 的 `done`）⇒ `TextField.onSubmitted` ⇒ 落库。
+///
+/// B12 删掉了「保存」按钮：面板上落库只剩这一条路（派工书 §四）。
+Future<void> _submit(WidgetTester tester) async {
+  await tester.testTextInput.receiveAction(TextInputAction.done);
   await tester.pumpAndSettle();
 }
 
@@ -129,7 +132,9 @@ void main() {
     );
   });
 
-  testWidgets('T2 四项问答齐备（输入框 + 保存键 + 标题）', (WidgetTester tester) async {
+  testWidgets('T2 四项问答齐备（输入框 + 标题，且没有保存键）', (
+    WidgetTester tester,
+  ) async {
     await _pumpBlueprint(tester, repos: repos);
     final AppLocalizations zh = AppLocalizations.zh;
 
@@ -141,8 +146,8 @@ void main() {
       );
       expect(
         find.byKey(ValueKey<String>('goal-position-save-$code')),
-        findsOneWidget,
-        reason: '缺保存键 $code',
+        findsNothing,
+        reason: 'B12 起面板上不许再有保存键 $code',
       );
     }
     expect(find.text(zh.goalPositionSection), findsOneWidget);
@@ -152,14 +157,14 @@ void main() {
     expect(find.text(zh.goalPositionProofTitle), findsOneWidget);
   });
 
-  testWidgets('T3 保存落库：kind=brand、facet=identity、rev=1', (WidgetTester tester) async {
+  testWidgets('T3 回车落库：kind=brand、facet=identity、rev=1', (WidgetTester tester) async {
     await _pumpBlueprint(tester, repos: repos);
 
     await tester.enterText(
       find.byKey(const ValueKey<String>('goal-position-input-values')),
       '自主、成长',
     );
-    await _tapKey(tester, const ValueKey<String>('goal-position-save-values'));
+    await _submit(tester);
 
     final List<QueryRow> rows = await _brandRows(db);
     expect(rows.length, 1);
@@ -174,38 +179,53 @@ void main() {
     );
   });
 
-  testWidgets('T4 同一项再保存：仍一行、facet 不变、rev 递增到 2', (WidgetTester tester) async {
+  testWidgets('T4 同一项再次回车：并入（不是覆盖）、仍一行、facet 不变、rev 递增到 2', (
+    WidgetTester tester,
+  ) async {
     await _pumpBlueprint(tester, repos: repos);
 
     await tester.enterText(
       find.byKey(const ValueKey<String>('goal-position-input-values')),
       '第一版',
     );
-    await _tapKey(tester, const ValueKey<String>('goal-position-save-values'));
+    await _submit(tester);
     await tester.enterText(
       find.byKey(const ValueKey<String>('goal-position-input-values')),
       '第二版',
     );
-    await _tapKey(tester, const ValueKey<String>('goal-position-save-values'));
+    await _submit(tester);
 
     final List<QueryRow> rows = await _brandRows(db);
     expect(rows.length, 1, reason: '同一切面只该有一行');
     expect(rows.single.data['facet'], 'identity');
-    expect(rows.single.data['title'], '第二版');
+    // B12 已裁决的产品语义：回车 = **并入**（`_mergedTags` 取「库值 ∪ 输入框」并按
+    // `、` 连接），不是「整值覆盖」。旧断言写 '第二版'，与实现语义相反。
+    expect(rows.single.data['title'], '第一版、第二版');
     expect(rows.single.data['rev'], 2);
+
+    // 同值再回车：并集去重 ⇒ 不重复追加、也不多出一行。
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-position-input-values')),
+      '第二版',
+    );
+    await _submit(tester);
+    final List<QueryRow> again = await _brandRows(db);
+    expect(again.length, 1, reason: '同一切面仍只有一行');
+    expect(
+      again.single.data['title'],
+      '第一版、第二版',
+      reason: '重复标签只保留一份（_mergedTags 去重）',
+    );
   });
 
-  testWidgets('T5 空文本点保存：一行都不写', (WidgetTester tester) async {
+  testWidgets('T5 空文本回车：一行都不写', (WidgetTester tester) async {
     await _pumpBlueprint(tester, repos: repos);
 
     await tester.enterText(
       find.byKey(const ValueKey<String>('goal-position-input-strengths')),
       '   ',
     );
-    await _tapKey(
-      tester,
-      const ValueKey<String>('goal-position-save-strengths'),
-    );
+    await _submit(tester);
 
     expect(await _brandRows(db), isEmpty);
   });

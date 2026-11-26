@@ -17,6 +17,14 @@
 //  3. **ValueKey 契约不动**：`goal-blueprint-form-*` 与
 //     `goal-blueprint-delete-*` 是 W1 已落地的测试契约，名字带 `blueprint`
 //     但已由三页共用，**不改名**（改名会撕毁既有用例）。
+//
+// B12 第 3 条（用户反馈「结束日期点击请弹出日期选择框」）：
+//  * 期限字段（`goal-blueprint-form-due`）**改只读**，显示 `YYYY-MM-DD`；
+//    点它弹 `showDatePicker`（与 `goal_period_dialog.dart` 同一用法），
+//    选中后写入**本地午夜毫秒**（B11 裁决：蓝图目标的期限 = 本地午夜毫秒）。
+//  * 字段不再手打 ⇒ 不再需要「格式非法」提示与手打解析。
+//  * 保留一个「清除」入口（复用 `t.commonClear`，无新 l10n 键）⇒ 不丢原来
+//    「把期限清空」的能力。
 // =============================================================================
 
 import 'package:core_domain/core_domain.dart';
@@ -150,8 +158,14 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
   /// 档位。
   late GoalHorizon _horizon;
 
-  /// 期限格式错误提示（null = 无错）。
-  String? _dueError;
+  /// 期限（**本地午夜毫秒**；null = 未设置）。
+  ///
+  /// 唯一真源；`_due` 控制器只是它的显示镜像（`YYYY-MM-DD`）。
+  int? _dueMs;
+
+  /// 日期选择器的可选区间（与改期对话框 `goal_period_dialog.dart` 同口径）。
+  static final DateTime _pickerFirst = DateTime(2000);
+  static final DateTime _pickerLast = DateTime(2100);
 
   @override
   void initState() {
@@ -160,7 +174,8 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
     _title = TextEditingController(text: existing?.title ?? '');
     _note = TextEditingController(text: existing?.note ?? '');
     _keywords = TextEditingController(text: existing?.keywords ?? '');
-    _due = TextEditingController(text: _formatDay(existing?.dueDate));
+    _dueMs = existing?.dueDate;
+    _due = TextEditingController(text: _formatDay(_dueMs));
     // 编辑时预填既有领域；库里存的 key 不在六 key 里（同步进来的历史值）
     // 就退回「未设置」，避免下拉框的 value 不在 items 里触发断言。
     final String? current = existing?.domain;
@@ -252,15 +267,32 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
               onChanged: (GoalHorizon? value) =>
                   setState(() => _horizon = value ?? _horizon),
             ),
-            TextField(
-              key: const ValueKey<String>('goal-blueprint-form-due'),
-              controller: _due,
-              style: fieldStyle,
-              decoration: _decoration(
-                t.goalBlueprintFieldDue,
-                hintText: 'YYYY-MM-DD',
-                errorText: _dueError,
-              ),
+            // 期限（B12 第 3 条）：只读字段，点一下弹日期选择器。
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey<String>('goal-blueprint-form-due'),
+                    controller: _due,
+                    readOnly: true,
+                    style: fieldStyle,
+                    onTap: _pickDue,
+                    decoration: _decoration(
+                      t.goalBlueprintFieldDue,
+                      hintText: 'YYYY-MM-DD',
+                    ),
+                  ),
+                ),
+                if (_dueMs != null)
+                  TextButton(
+                    key: const ValueKey<String>(
+                      'goal-blueprint-form-due-clear',
+                    ),
+                    onPressed: _clearDue,
+                    child: Text(t.commonClear),
+                  ),
+              ],
             ),
           ],
         ),
@@ -285,34 +317,61 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
   ///
   /// 紧凑版（[compact] = true）：`isDense` + 收紧内边距 —— 蓝图页的填写框要
   /// 更紧凑；目标月 / 周 / 年页传 false，保持原版式不动。
-  InputDecoration _decoration(
-    String? labelText, {
-    String? hintText,
-    String? errorText,
-  }) {
+  InputDecoration _decoration(String? labelText, {String? hintText}) {
     if (!widget.compact) {
-      return InputDecoration(
-        labelText: labelText,
-        hintText: hintText,
-        errorText: errorText,
-      );
+      return InputDecoration(labelText: labelText, hintText: hintText);
     }
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
-      errorText: errorText,
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
     );
   }
 
-  /// 校验期限格式后把结果交回页面（本函数**不写库**）。
-  void _submit() {
-    final int? dueDate = _parseDay(_due.text);
-    if (dueDate == null && _due.text.trim().isNotEmpty) {
-      setState(() => _dueError = widget.t.goalBlueprintFieldDueInvalid);
+  /// 弹日期选择器；选中的是**本地**某日 00:00（毫秒口径同 B11 裁决）。
+  Future<void> _pickDue() async {
+    final DateTime now = DateTime.now();
+    final DateTime initial = _dueMs == null
+        ? now
+        : DateTime.fromMillisecondsSinceEpoch(_dueMs!);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _clampToPickerRange(initial),
+      firstDate: _pickerFirst,
+      lastDate: _pickerLast,
+    );
+    if (picked == null || !mounted) {
       return;
     }
+    setState(() {
+      // `showDatePicker` 给的是本地 `DateTime`（00:00）⇒ 取毫秒即本地午夜毫秒。
+      _dueMs = picked.millisecondsSinceEpoch;
+      _due.text = _formatDay(_dueMs);
+    });
+  }
+
+  /// 既有期限可能落在选择器区间之外（别的来源写的）⇒ 先夹进区间再打开。
+  DateTime _clampToPickerRange(DateTime value) {
+    if (value.isBefore(_pickerFirst)) {
+      return _pickerFirst;
+    }
+    if (value.isAfter(_pickerLast)) {
+      return _pickerLast;
+    }
+    return value;
+  }
+
+  /// 清空期限（保留原来「把期限清掉」的能力）。
+  void _clearDue() {
+    setState(() {
+      _dueMs = null;
+      _due.text = '';
+    });
+  }
+
+  /// 把结果交回页面（本函数**不写库**）。
+  void _submit() {
     Navigator.of(context).pop(
       GoalFormResult(
         title: _title.text,
@@ -320,18 +379,9 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
         keywords: _keywords.text,
         domain: _domain,
         horizon: _horizon,
-        dueDate: dueDate,
+        dueDate: _dueMs,
       ),
     );
-  }
-
-  /// `YYYY-MM-DD` → 毫秒；空串 = null；非法格式 = 由调用方判错。
-  static int? _parseDay(String raw) {
-    final String text = raw.trim();
-    if (text.isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(text)?.millisecondsSinceEpoch;
   }
 
   /// 毫秒 → `YYYY-MM-DD`（本地日）；null = 空串。

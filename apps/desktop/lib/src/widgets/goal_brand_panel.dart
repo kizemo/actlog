@@ -1,9 +1,9 @@
 // =============================================================================
-// 目标 · 个人定位面板（B10-D1 棒 A；原「个人品牌管理」B9-W1 **原地改造**）
+// 目标 · 个人定位面板（B10-D1 棒 A；B12 第 1 项：说明入浮层 + 去确认键）
 // =============================================================================
 // 位置：蓝图页 `GoalsBlueprintPage` 的**人生蓝图矩阵块上方**。
 //
-// 口径（派工书 docs\b10-dispatch-d1.md §3）：
+// 口径（派工书 docs\b10-dispatch-d1.md §3；B12 用户反馈第 1 条在其上改）：
 //  * 四项问答（顺序即渲染顺序，逐项落库到既有 `facet`）：
 //      values    「我的价值观」  → `GoalFacet.identity`
 //      strengths 「我的优势」    → `GoalFacet.strength`
@@ -13,17 +13,21 @@
 //    每项最多一行 ⇒ 已有行走 `updateGoal`（不传 `facet`），无行走 `createGoal`；
 //  * **旧 10 切面里另外 6 个切面**（statement / word / audience / cost / contrast /
 //    errc）的历史行**保留不删**，本面板不再显示、也不再改写它们；
-//  * 空文本点保存**不写行**（不建空行、不写空 title）；成功显示「已保存」，
-//    失败显示错误行；
-//  * 价值观 / 优势带标签库（Schwartz 10 项 / VIA 24 项，文案在 l10n 的
-//    `List<String>` getter）：输入框悬停 ⇒ `OverlayEntry` 浮层**锚在输入框自身**
-//    （下方优先、下方放不下就翻上方，**不再跟随鼠标**）；鼠标离开输入框 **3 秒**
-//    后消失；进入浮层内部**暂停**计时、离开浮层才重新计时；标签可点选，写进
-//    输入框后该标签呈「已选中」高亮；输入框右侧有**显式开关按钮**（钉住态，
-//    不自动消失）；浮层开着时**点外部**或按 **Esc** 关闭。
+//  * **没有「保存」按钮、也没有「标签库」开关**（B12）：保存改成自动 ——
+//      · 点标签库里的标签 ⇒ 并入该项的多值文本并**立即落库**，状态行跟着更新；
+//      · 手动输入后**回车** ⇒ 文本按 `、`、`，`、`,`、换行 拆成多个标签，
+//        并入多值文本并**自动落库**，落库成功后清空输入框；
+//      · 空文本回车 / 空内容**不写行**（不建空行、不写空 title）；成功显示
+//        「已保存」，失败显示错误行；
+//  * **填写说明不再常驻渲染**（B12）：鼠标悬停在定位分类标题上时，在标题附近
+//    弹出**自绘**浮层显示该条说明（离开后延迟消失；浮层不吃指针，不挡输入）。
+//  * 标签库入口改成**点击 / 聚焦输入框**（外加原来的悬停）：浮层仍**锚在输入框
+//    自身**（下方优先、下方放不下就翻上方，**不跟随鼠标**）；指针进入浮层内部
+//    **暂停** 3 秒计时、离开浮层才重新计时；聚焦打开的浮层是**钉住态**（输入时
+//    不自动消失）；浮层开着时**点外部**或按 **Esc** 关闭；同一项绝不叠加第二个。
 //  * 输入框整体压缩（`isDense` + 收紧 `contentPadding` + 收紧行高），单行起步、
 //    最多 4 行，长文本照常换行、不裁切。
-//  * 本模块**不使用 Material 图标**（仓库禁新增图标常量）；标签浮层里**不放
+//  * 本模块**不使用 Material 图标**（仓库禁新增图标常量）；浮层里**不放
 //    Tooltip**（Tooltip 承载可点内容会被既有 `find.byKey` 计数断言打破）。
 //
 // 面板自己取数（`listGoals(kind: GoalKind.brand)`），不污染蓝图页的 `_load()`。
@@ -68,8 +72,17 @@ const Duration _tagsLinger = Duration(seconds: 3);
 /// 浮层宽度上限。
 const double _tagsMaxWidth = 360;
 
+/// 说明浮层宽度上限（比标签浮层窄：说明是短句）。
+const double _hintMaxWidth = 280;
+
 /// 浮层锚点与输入框的最小间距（夹在窗口内用）。
 const double _tagsEdge = 8;
+
+/// 多值分隔符：顿号、中文逗号、英文逗号、换行。
+///
+/// 「以符号分隔」是用户当轮的原话；顿号是**写回库里的口径**（拆分只用于判
+/// 重与合并，落库一律用顿号连接）。
+final RegExp _tagSeparators = RegExp(r'[、，,\n]');
 
 /// 四问并成 1×4 单行所需的最小面板宽度；窄于此回落纵向堆叠（键位与浮窗逻辑不变）。
 const double _inlineBreakpoint = 720;
@@ -137,7 +150,7 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   /// 布局时只读这个纯值。
   Rect? _tagsAnchorRect;
 
-  /// 浮层是否「钉住」（显式按钮打开 ⇒ 不自动消失，直到 Esc / 点外部 / 再点按钮）。
+  /// 浮层是否「钉住」（聚焦输入框打开 ⇒ 不自动消失，直到 Esc / 点外部）。
   bool _tagsPinned = false;
 
   /// Esc 钩子是否已挂上。
@@ -155,16 +168,33 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   /// 项 code → 输入框锚点键（浮层锚在输入框自身的矩形上）。
   final Map<String, GlobalKey> _anchorKeys = <String, GlobalKey>{};
 
-  /// 项 code → 标签开关按钮的键（点它不算「点外部」，由按钮自己开合）。
-  final Map<String, GlobalKey> _toggleKeys = <String, GlobalKey>{};
+  /// 项 code → 标题锚点键（说明浮层锚在标题自身的矩形上）。
+  final Map<String, GlobalKey> _titleKeys = <String, GlobalKey>{};
+
+  /// 项 code → 输入框的焦点节点（聚焦即开标签库；回车键也靠它兜底）。
+  final Map<String, FocusNode> _focusNodes = <String, FocusNode>{};
+
+  /// 正在落库的项 code：同一项重复触发（回车键 + IME「done」可能同时到）
+  /// 只让第一个写库，避免同一切面写两行。
+  final Set<String> _saving = <String>{};
+
+  /// 说明浮层（悬停标题时出现；同一时刻最多一个）。
+  OverlayEntry? _hintOverlay;
+  Timer? _hintTimer;
+  String? _hintCode;
+
+  /// 说明浮层锚点矩形（**标题自身**的矩形，相对 root overlay 原点）。
+  Rect? _hintAnchorRect;
 
   @override
   void initState() {
     super.initState();
     for (final String code in _positionCodes) {
       _controllers[code] = TextEditingController();
+      _focusNodes[code] = FocusNode(debugLabel: 'goal-position-$code');
       _anchorKeys[code] = GlobalKey();
-      _toggleKeys[code] = GlobalKey();
+      _titleKeys[code] = GlobalKey();
+      _focusNodes[code]!.addListener(() => _onFocusChanged(code));
     }
     _reload();
   }
@@ -173,8 +203,12 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   void dispose() {
     // 先摘浮层再取消计时：顺序反了会让 Timer 回调碰已 dispose 的 State。
     _removeTagsOverlay();
+    _removeHintOverlay();
     for (final TextEditingController controller in _controllers.values) {
       controller.dispose();
+    }
+    for (final FocusNode node in _focusNodes.values) {
+      node.dispose();
     }
     super.dispose();
   }
@@ -183,7 +217,10 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   ///
   /// [fillCode] 为 null ⇒ 回填全部四项（首次装载）；非 null ⇒ 只回填这一项
   /// （保存后刷新），避免把别的项里**还没保存**的输入冲掉。
-  Future<void> _reload({String? fillCode}) async {
+  ///
+  /// [fill] = false ⇒ 只刷库值、**不回填输入框**（回车录入路径：落库后要清空
+  /// 输入框，回填会把它又填回来）。
+  Future<void> _reload({String? fillCode, bool fill = true}) async {
     try {
       final List<GoalRow> rows = await ref
           .read(goalStoreProvider)
@@ -203,6 +240,9 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
         }
       }
       setState(() {});
+      if (!fill) {
+        return;
+      }
       if (fillCode == null) {
         for (final String code in _positionCodes) {
           _fillInput(code);
@@ -224,9 +264,18 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   }
 
   /// 保存一项：已有行改行、无行建行、空文本不写库。
-  Future<void> _save(_PositionItem item) async {
+  ///
+  /// 写库的值 = 输入框当前文本（多值文本）。
+  ///
+  /// [clearInput] = true ⇒ 落库成功后**清空输入框**（回车录入路径）。
+  Future<void> _save(_PositionItem item, {bool clearInput = false}) async {
     final AppLocalizations t = AppLocalizations.of(context);
     final String code = item.code;
+    if (_saving.contains(code)) {
+      // 同一项正在落库：重复触发（回车键 + IME「done」可能同时到）直接忽略，
+      // 免得同一切面写两行。
+      return;
+    }
     final String text = _controllers[code]!.text.trim();
 
     setState(() {
@@ -240,6 +289,7 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
       return;
     }
 
+    _saving.add(code);
     try {
       final GoalRow? existing = _rows[code];
       if (existing == null) {
@@ -259,7 +309,11 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
         return;
       }
       setState(() => _savedCode = code);
-      await _reload(fillCode: code);
+      await _reload(fillCode: code, fill: !clearInput);
+      if (clearInput && mounted) {
+        // 回车录入：落库成功后清空输入框（下一批标签从空开始录）。
+        _controllers[code]?.clear();
+      }
     } on Object {
       if (!mounted) {
         return;
@@ -268,35 +322,57 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
         _failedCode = code;
         _error = t.goalBrandSaveFailed;
       });
+    } finally {
+      _saving.remove(code);
     }
   }
 
-  /// 点击标签：追加到对应输入框（同一标签不重复）。
-  void _appendTag(String code, String tag) {
+  /// 把一段文本拆成标签列表（去空白、去空项、去重、保序）。
+  List<String> _splitTags(String text) {
+    final List<String> tags = <String>[];
+    for (final String part in text.split(_tagSeparators)) {
+      final String tag = part.trim();
+      if (tag.isEmpty) {
+        continue;
+      }
+      if (!tags.contains(tag)) {
+        tags.add(tag);
+      }
+    }
+    return tags;
+  }
+
+  /// 某项当前的「多值文本」：**库值与输入框工作副本的并集**（去重、保序）。
+  ///
+  /// 落库一律以这份并集为准 ⇒ 点标签、回车录入都是「往已有内容上并入」，
+  /// 不会因为输入框被清空而把先前录好的标签弄丢。
+  List<String> _mergedTags(String code) {
+    final List<String> merged = <String>[];
+    for (final String tag in <String>[
+      ..._splitTags(_rows[code]?.title ?? ''),
+      ..._splitTags(_controllers[code]?.text ?? ''),
+    ]) {
+      if (!merged.contains(tag)) {
+        merged.add(tag);
+      }
+    }
+    return merged;
+  }
+
+  /// 点标签：并入该项的多值文本 ⇒ **立即落库**（B12：不再有「保存」按钮）。
+  Future<void> _pickTag(String code, String tag) async {
     final TextEditingController? controller = _controllers[code];
     if (controller == null) {
       return;
     }
-    final String current = controller.text;
-    for (final String part in current.split(RegExp(r'[、，,\n]'))) {
-      if (part.trim() == tag) {
-        return;
-      }
+    final List<String> merged = _mergedTags(code);
+    if (!merged.contains(tag)) {
+      merged.add(tag);
     }
-    final String next;
-    if (current.trim().isEmpty) {
-      next = tag;
-    } else if (current.endsWith('、') ||
-        current.endsWith('，') ||
-        current.endsWith(',') ||
-        current.endsWith('\n')) {
-      next = '$current$tag';
-    } else {
-      next = '$current、$tag';
-    }
+    final String text = merged.join('、');
     controller.value = TextEditingValue(
-      text: next,
-      selection: TextSelection.collapsed(offset: next.length),
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
     setState(() {
       // 文本变了，上一次的「已保存」不再成立。
@@ -306,24 +382,44 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
     });
     // 浮层是独立于面板的 `OverlayEntry`：要手动刷新才能把 chip 切成「已选中」。
     _tagsOverlay?.markNeedsBuild();
-    // 文本变长可能把输入框撑高 ⇒ 锚点矩形要重算（帧后，避免布局期读 RenderBox）。
-    _scheduleAnchorRefresh();
-  }
-
-  /// 某个标签是否已经在输入框里（用于「已选中」高亮）。
-  bool _hasTag(String code, String tag) {
-    final String text = _controllers[code]?.text ?? '';
-    for (final String part in text.split(RegExp(r'[、，,\n]'))) {
-      if (part.trim() == tag) {
-        return true;
-      }
+    final _PositionItem? item = _itemFor(code);
+    if (item == null) {
+      return;
     }
-    return false;
+    await _save(item);
   }
 
-  /// 鼠标进入带标签库的输入框：开出浮层（**锚在输入框自身**，不跟鼠标）。
+  /// 回车录入：输入框里的文字拆成多个标签 ⇒ 并入多值文本 ⇒ **自动落库**。
   ///
-  /// [pinned] 为 true ⇒ 钉住态（显式按钮打开），不参与 3 秒自动隐藏计时。
+  /// 空文本回车**不写库**。
+  Future<void> _submitTags(_PositionItem item) async {
+    final String code = item.code;
+    final TextEditingController? controller = _controllers[code];
+    if (controller == null) {
+      return;
+    }
+    final String raw = controller.text.trim();
+    if (raw.isEmpty) {
+      // 空文本回车：不写库（也不动已落库的值）。
+      return;
+    }
+    final List<String> merged = _mergedTags(code);
+    final String text = merged.join('、');
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    await _save(item, clearInput: true);
+  }
+
+  /// 某个标签是否已经在该项的多值文本里（用于「已选中」高亮）。
+  bool _hasTag(String code, String tag) => _mergedTags(code).contains(tag);
+
+  /// 开标签库浮层（**锚在输入框自身**，不跟鼠标）。
+  ///
+  /// 入口有三个：鼠标悬停输入框、点击输入框、输入框获得焦点。
+  ///
+  /// [pinned] 为 true ⇒ 钉住态（点击 / 聚焦打开），不参与 3 秒自动隐藏计时。
   void _openTags(String code, {bool pinned = false}) {
     final AppLocalizations t = AppLocalizations.of(context);
     final List<String> tags = _tagsFor(t, code);
@@ -331,12 +427,19 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
       return;
     }
 
+    // 说明浮层与标签浮层不叠着：开标签浮层时先把说明浮层摘掉。
+    _removeHintOverlay();
+
     final OverlayEntry? existing = _tagsOverlay;
     if (existing != null) {
       if (_tagsCode == code) {
         // 同一 code：只刷新，**绝不叠加第二个 OverlayEntry**。
         _cancelTagsHide();
-        _tagsAnchorRect = _computeAnchorRect(code);
+        if (pinned) {
+          // 点击 / 聚焦可以把已开着的浮层升级成钉住态。
+          _tagsPinned = true;
+        }
+        _tagsAnchorRect = _computeAnchorRect(_anchorKeys[code]!);
         existing.markNeedsBuild();
         return;
       }
@@ -345,7 +448,7 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
 
     final ThemeTokens tokens = context.tokens;
     // 锚点矩形在布局期之外先量好（布局期读 RenderBox.size 会触发断言）。
-    _tagsAnchorRect = _computeAnchorRect(code);
+    _tagsAnchorRect = _computeAnchorRect(_anchorKeys[code]!);
     final OverlayEntry entry = OverlayEntry(
       builder: (BuildContext _) => _TagsBubble(
         t: t,
@@ -355,7 +458,7 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
         code: code,
         tags: tags,
         isSelected: (String tag) => _hasTag(code, tag),
-        onPick: (String tag) => _appendTag(code, tag),
+        onPick: (String tag) => _pickTag(code, tag),
         onEnter: _cancelTagsHide,
         onExit: _scheduleTagsHide,
       ),
@@ -370,9 +473,8 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   }
 
   /// 算锚点矩形（相对 root overlay 原点）；**只能在布局期之外调用**。
-  Rect? _computeAnchorRect(String code) {
-    final RenderObject? anchor =
-        _anchorKeys[code]?.currentContext?.findRenderObject();
+  Rect? _computeAnchorRect(GlobalKey key) {
+    final RenderObject? anchor = key.currentContext?.findRenderObject();
     final RenderObject? overlay = Overlay.maybeOf(
       context,
       rootOverlay: true,
@@ -409,21 +511,12 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
     if (code == null || _tagsOverlay == null) {
       return;
     }
-    final Rect? rect = _computeAnchorRect(code);
+    final Rect? rect = _computeAnchorRect(_anchorKeys[code]!);
     if (rect == null || rect == _tagsAnchorRect) {
       return;
     }
     _tagsAnchorRect = rect;
     _tagsOverlay?.markNeedsBuild();
-  }
-
-  /// 标签开关按钮：开 / 合（显式打开的浮层「钉住」，不自动消失）。
-  void _toggleTags(String code) {
-    if (_tagsOverlay != null && _tagsCode == code) {
-      _removeTagsOverlay();
-      return;
-    }
-    _openTags(code, pinned: true);
   }
 
   /// 离开输入框 / 离开浮层：重新起 3 秒计时（钉住态不计时）。
@@ -450,6 +543,88 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
     _tagsCode = null;
     _tagsPinned = false;
     _tagsAnchorRect = null;
+  }
+
+  /// 输入框焦点变化：**获得焦点即开标签库**（钉住态，输入时不自动消失）。
+  ///
+  /// B12 删掉了「标签库」开关，点击 / 聚焦输入框就是新的入口。
+  void _onFocusChanged(String code) {
+    if (!mounted) {
+      return;
+    }
+    final FocusNode? node = _focusNodes[code];
+    if (node == null || !node.hasFocus) {
+      return;
+    }
+    final _PositionItem? item = _itemFor(code);
+    if (item == null) {
+      return;
+    }
+    _openTags(code, pinned: true);
+  }
+
+  /// code → 该项渲染数据（找不到返回 null）。
+  _PositionItem? _itemFor(String code) {
+    for (final _PositionItem item in _items(AppLocalizations.of(context))) {
+      if (item.code == code) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  /// 悬停标题 ⇒ 开说明浮层（自绘，锚在标题附近）。
+  ///
+  /// 说明**不常驻**：只在指针停在标题上时出现；同一时刻最多一个。
+  void _openHint(_PositionItem item) {
+    _cancelHintHide();
+    final Rect? rect = _computeAnchorRect(_titleKeys[item.code]!);
+    final OverlayEntry? existing = _hintOverlay;
+    if (existing != null && _hintCode == item.code) {
+      // 同一项：只刷新锚点，**绝不叠加第二个 OverlayEntry**。
+      _hintAnchorRect = rect;
+      existing.markNeedsBuild();
+      return;
+    }
+    if (existing != null) {
+      _removeHintOverlay();
+    }
+    _hintAnchorRect = rect;
+    final ThemeTokens tokens = context.tokens;
+    final OverlayEntry entry = OverlayEntry(
+      builder: (BuildContext _) => _HintBubble(
+        text: item.hint,
+        tokens: tokens,
+        anchorRect: _hintAnchorRect,
+        onEnter: _cancelHintHide,
+        onExit: _scheduleHintHide,
+      ),
+    );
+    _hintCode = item.code;
+    _hintOverlay = entry;
+    Overlay.of(context, rootOverlay: true).insert(entry);
+  }
+
+  /// 离开标题 / 离开说明浮层：短暂延迟后消失（留出「移到浮层上」的时间）。
+  void _scheduleHintHide() {
+    _cancelHintHide();
+    // 220ms：够指针从标题移到浮层而不闪断，又不至于赖在屏幕上。
+    _hintTimer = Timer(const Duration(milliseconds: 220), _removeHintOverlay);
+  }
+
+  /// 取消说明浮层的消失计时（指针进入浮层或回到标题）。
+  void _cancelHintHide() {
+    _hintTimer?.cancel();
+    _hintTimer = null;
+  }
+
+  /// 摘掉说明浮层并停表（幂等；`dispose` 里也走这条）。
+  void _removeHintOverlay() {
+    _cancelHintHide();
+    _hintOverlay?.remove();
+    _hintOverlay = null;
+    _hintCode = null;
+    _hintAnchorRect = null;
   }
 
   /// 挂上「Esc 关闭」与「点外部关闭」两套钩子。
@@ -491,7 +666,7 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
     return true;
   }
 
-  /// 点浮层外部 ⇒ 关闭（点开关按钮不算外部，由按钮自己开合）。
+  /// 点浮层外部 ⇒ 关闭（点输入框不算外部：点完会由焦点 / onTap 重新打开）。
   void _onPointerEvent(PointerEvent event) {
     if (event is! PointerDownEvent) {
       return;
@@ -500,10 +675,6 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
       return;
     }
     if (_hitsKey(_tagsBubbleKey, event.position)) {
-      return;
-    }
-    final String? code = _tagsCode;
-    if (code != null && _hitsKey(_toggleKeys[code]!, event.position)) {
       return;
     }
     _removeTagsOverlay();
@@ -678,7 +849,7 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
                               left: i == 0 ? 0.0 : 12.0,
                               right: i == items.length - 1 ? 0.0 : 12.0,
                             ),
-                            child: _buildItem(items[i], tokens, inline: true),
+                            child: _buildItem(items[i], tokens),
                           ),
                         ),
                       ),
@@ -692,11 +863,12 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
     );
   }
 
-  /// 一项：标题 + 要点指引 + 多行输入框 + 标签开关 + 右侧「保存」+ 状态行。
+  /// 一项：标题（悬停出说明浮层）+ 多行输入框 + 状态行。
   ///
-  /// [inline] = true（宽视口的 1×4 单行版）时，操作行改成输入框**上方**的
-  /// 「标签库 + 保存」右对齐 `Wrap`；其余键位与行为与纵向版完全一致。
-  Widget _buildItem(_PositionItem item, ThemeTokens tokens, {bool inline = false}) {
+  /// B12：**没有「保存」按钮、也没有「标签库」开关** —— 保存由「点标签」或
+  /// 「回车」触发，标签库由「点 / 聚焦输入框」触发；说明文字不再常驻，
+  /// 改成悬停标题时弹出的自绘浮层。
+  Widget _buildItem(_PositionItem item, ThemeTokens tokens) {
     final AppLocalizations t = AppLocalizations.of(context);
     final String code = item.code;
     return Padding(
@@ -705,52 +877,23 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text(
-            item.title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: tokens.ink),
+          // 说明浮层的锚点就是标题自身；`SizedBox` 只为拿到它的 `RenderBox`。
+          MouseRegion(
+            onEnter: (PointerEnterEvent event) => _openHint(item),
+            onHover: (PointerHoverEvent event) => _cancelHintHide(),
+            onExit: (PointerExitEvent event) => _scheduleHintHide(),
+            child: SizedBox(
+              key: _titleKeys[code],
+              child: Text(
+                item.title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: tokens.ink),
+              ),
+            ),
           ),
-          const SizedBox(height: 2),
-          Text(item.hint, style: _metaStyle(context)),
           const SizedBox(height: 6),
-          // 单行版：操作行（标签库 + 保存）上移到输入框**之上**并右对齐。
-          // 1/4 宽度塞不下「输入框 + 开关 + 保存」，硬塞必溢出；而放在输入框
-          // 下方又会被展开的标签浮窗整块盖住（浮窗锚定输入框下方），
-          // 出现「点开关打不开 / 打不开关不掉」——故整行上移。
-          if (inline) ...<Widget>[
-            Wrap(
-              alignment: WrapAlignment.end,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 4,
-              runSpacing: 4,
-              children: <Widget>[
-                if (item.tags.isNotEmpty) _buildTagsToggle(item),
-                TextButton(
-                  key: ValueKey<String>('goal-position-save-$code'),
-                  onPressed: () => _save(item),
-                  child: Text(t.goalBrandSave),
-                ),
-              ],
-            ),
-            _buildInput(item),
-          ] else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(child: _buildInput(item)),
-                if (item.tags.isNotEmpty) ...<Widget>[
-                  const SizedBox(width: 4),
-                  _buildTagsToggle(item),
-                ],
-                const SizedBox(width: 8),
-                TextButton(
-                  key: ValueKey<String>('goal-position-save-$code'),
-                  onPressed: () => _save(item),
-                  child: Text(t.goalBrandSave),
-                ),
-              ],
-            ),
+          _buildInput(item),
           if (_savedCode == code)
             Text(
               t.goalBrandSaved,
@@ -768,32 +911,10 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
     );
   }
 
-  /// 标签浮层的**显式开关**（钉住态，不自动消失）。
-  ///
-  /// 不用 Tooltip 承载可点内容（既有 `find.byKey` 计数断言会被打破）。
-  Widget _buildTagsToggle(_PositionItem item) {
-    final AppLocalizations t = AppLocalizations.of(context);
-    final bool open = _tagsOverlay != null && _tagsCode == item.code;
-    return SizedBox(
-      key: _toggleKeys[item.code],
-      child: TextButton(
-        key: ValueKey<String>('goal-position-tags-toggle-${item.code}'),
-        onPressed: () => _toggleTags(item.code),
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          minimumSize: const Size(0, 32),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.compact,
-        ),
-        child: Text(
-          open ? '${t.goalPositionTagsToggle} ▴' : '${t.goalPositionTagsToggle} ▾',
-          style: _metaStyle(context),
-        ),
-      ),
-    );
-  }
-
   /// 输入框；带标签库的项再套一层 `MouseRegion` 驱动浮层。
+  ///
+  /// B12 入口：**点击 / 聚焦输入框即展开标签库**（钉住态，输入时不消失）；
+  /// 回车（`onSubmitted`）把文字拆成标签并入多值文本后立即落库。
   ///
   /// 整体压缩：单行起步（最多 4 行）、`isDense`、收紧内边距与行高 ——
   /// 长文本照常换行并把框撑高，不裁切、不溢出。
@@ -801,8 +922,11 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
     final TextField field = TextField(
       key: ValueKey<String>('goal-position-input-${item.code}'),
       controller: _controllers[item.code],
+      focusNode: _focusNodes[item.code],
       minLines: 1,
       maxLines: 4,
+      onTap: () => _openTags(item.code, pinned: true),
+      onSubmitted: (String _) => _submitTags(item),
       style: Theme.of(
         context,
       ).textTheme.bodyMedium?.copyWith(height: 1.35),
@@ -828,6 +952,112 @@ class _GoalPositionPanelState extends ConsumerState<GoalPositionPanel> {
   TextStyle? _metaStyle(BuildContext context) => Theme.of(
     context,
   ).textTheme.labelSmall?.copyWith(color: context.tokens.meta);
+}
+
+/// 说明浮层：悬停定位分类标题时出现，锚在标题**上方**。
+///
+/// 只占自身盒子大小（**不** `SizedBox.expand`）⇒ 命中测试不会扩到整块
+/// overlay，指针照常落到下面的输入框上（B12 硬要求：浮层不得遮挡输入）。
+class _HintBubble extends StatelessWidget {
+  const _HintBubble({
+    required this.text,
+    required this.tokens,
+    required this.anchorRect,
+    required this.onEnter,
+    required this.onExit,
+  });
+
+  /// 该条的说明文字。
+  final String text;
+
+  /// 配色令牌（只走 LightPalette 的 card / ink2 / hair）。
+  final ThemeTokens tokens;
+
+  /// 锚点（标题）矩形，相对 root overlay 原点；null = 还没量到。
+  final Rect? anchorRect;
+
+  /// 指针进入浮层：取消消失计时（不闪断）。
+  final VoidCallback onEnter;
+
+  /// 指针离开浮层：重新起计时。
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle? style = Theme.of(
+      context,
+    ).textTheme.labelSmall?.copyWith(color: tokens.ink2, height: 1.4);
+    return CustomSingleChildLayout(
+      delegate: _HintLayout(anchorRect: anchorRect),
+      child: MouseRegion(
+        onEnter: (PointerEnterEvent event) => onEnter(),
+        onExit: (PointerExitEvent event) => onExit(),
+        child: Container(
+          key: const ValueKey<String>('goal-position-hint-overlay'),
+          width: _hintMaxWidth,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: tokens.card,
+            borderRadius: BorderRadius.circular(AppTokens.radius),
+            border: Border.all(color: tokens.hair, width: 1),
+          ),
+          child: Text(text, style: style),
+        ),
+      ),
+    );
+  }
+}
+
+/// 把说明浮层钉在**标题上方**（上方放不下就夹在窗口内：宁压标题、不压输入框）。
+///
+/// 锚点矩形在布局期之外算好（见 `_GoalPositionPanelState._computeAnchorRect`），
+/// 布局期只读这个纯值 —— 布局期读 `RenderBox.size` 会触发 Flutter 断言。
+class _HintLayout extends SingleChildLayoutDelegate {
+  const _HintLayout({required this.anchorRect});
+
+  /// 锚点（标题）矩形，相对 overlay 原点；null = 还没量到。
+  final Rect? anchorRect;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
+    final Rect? anchor = anchorRect;
+    final double maxWidth = math.max(
+      0,
+      math.min(_hintMaxWidth, constraints.maxWidth - 16),
+    );
+    // 高度上限 = 标题上方到窗口上沿的可用高度 ⇒ 浮层永远进不到输入框区域。
+    final double above = anchor == null
+        ? constraints.maxHeight - 16
+        : anchor.top - _tagsGap - _tagsEdge;
+    // 上方空间太小（< 24）就别硬压：退回整窗高度，让文本自身折行。
+    final double maxHeight = above >= 24
+        ? math.min(constraints.maxHeight - 16, above)
+        : constraints.maxHeight - 16;
+    return BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight);
+  }
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final double maxX = math.max(
+      _tagsEdge,
+      size.width - childSize.width - _tagsEdge,
+    );
+    final Rect? anchor = anchorRect;
+    if (anchor == null) {
+      return const Offset(_tagsEdge, _tagsEdge);
+    }
+    final double y = math.max(
+      _tagsEdge,
+      anchor.top - _tagsGap - childSize.height,
+    );
+    final double x = math.max(_tagsEdge, math.min(anchor.left, maxX));
+    return Offset(x, y);
+  }
+
+  @override
+  bool shouldRelayout(_HintLayout oldDelegate) =>
+      // 锚点随滚动移动 ⇒ 每次都重算（浮层只有一个短句，成本可忽略）。
+      true;
 }
 
 /// 标签浮层：标题 + chip 流式换行；自己进入取消计时、离开重新计时。
