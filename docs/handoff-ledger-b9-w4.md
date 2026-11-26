@@ -670,3 +670,57 @@ No issues found! (ran in 5.0s)        ANALYZE_EXIT=0
 **提交**
 - `36efc43` feat(b12)：4 个 lib 文件 + 10 个测试文件 + 3 份派工书（16 files / +2097 / −317）。
 - 本节由紧随其后的一笔 docs 提交入库（`AGENTS.md` 与 `docs\relay*`、`docs\b8*` 并发文件不在任何一笔内）。
+
+### 11.16 B12 装机运行时取证：已静默装配 = B12 载荷；三条反馈界面细节 UNDETERMINED（本机不可取证）
+
+**一句话**：B12 安装包 `release\actlog-Setup-1.0.0_20261126-221923.exe`（22,849,443 B / `104FEDE1513FB06E`）已用 NSIS `/S` 静默装进 `D:\Program Files\actlog`，装机 `data\app.so` = 9,241,480 B / `A9752C00FDDF0D80`（= 构建树逐字一致）；装机件以种子库副本启动并导航到「目标」页成功、用户活库零写入、零抢焦点。但三条反馈的**界面细节**（悬停浮层 / 标签页双态与行高 / 第三列日期）在本机注入通道下拿不到运行时像素证据，一律记 UNDETERMINED，契约证据只认 widget 测试。
+
+#### 一、装配与启动（本节读数全部为本次盘上回读）
+
+| 项 | 读数 |
+|---|---|
+| 安装包 | `release\actlog-Setup-1.0.0_20261126-221923.exe` / 22,849,443 B / `104FEDE1513FB06E` / mtime 2026-11-26 22:19:56；`release\` 共 62 个 exe，仅此 1 个可分发 |
+| 装配方式 | `Start-Process <安装包> -ArgumentList '/S'`（**不** `-Wait`）⇒ `INSTALLER_PID=82572`；6 秒内装机 app.so 由 `633C2FDDE97BFBE9`（B11）变 `A9752C00FDDF0D80`；`INSTALLER_EXITED=True EXITCODE=0`；未自动拉起实例 |
+| 装机载荷 | `D:\Program Files\actlog\data\app.so` 9,241,480 B / **`A9752C00FDDF0D80`** / mtime 2026-11-26 22:19:18（= 构建树逐字一致；判重编只认 sha16，`actlog.exe` 484,352 B / `89293205FAF8C3DE` 两版相同、不得作判据，坑 110） |
+| 用户活库 | `D:\Program Files\actlog\userdata\actlog.db` 352,256 B / `B5F9070FC63068B1` / mtime 2026-11-21 21:37:03 —— 装配前、装机件运行后、收实例后三次回读**完全一致** ⇒ 零写入 |
+| 启动 | `t90-launch.ps1 -Exe '…\actlog.exe' -DataDir reports\task93-seeddb-b12a -Out reports\task93-frames-b12a -Width 2520 -Height 1575` ⇒ `pid=298712` / runner=4852740 / view=2690002 / `viewrect=2496x1456` / 首帧 `5D4BEE7166767612` |
+| 导航 | `t90-drive.ps1 -Plan b12-plan-a.txt`（`click 111 663`）⇒ 帧 `03EF6B2A91AFEB66` / ink 13659 / `VIEW_RECT=(-31988,-32000) 2496x1456` / `FG_SAME=True fg0=266104 fg1=266104 title1=MiniMax Code`（前台始终是 MiniMax Code，未抢焦点） |
+
+**取证资产**：`reports\task93-frames-b12a\` 15 张 PNG 共 2,007,459 B + `t90-launch.log` 378 B + `t90-drive.log` 1,903 B。实例收尾：`Stop-Process -Id 298712 -Force` ⇒ `AFTER STOP: GONE`。
+
+#### 二、像素标定（`t90-nav.png`，2496×1456；token 真源 `apps\desktop\lib\src\theme\theme_tokens.dart:375-408`）
+
+token 精确值：paper `#F6F4EF` / card `#FBFAF6` / sunken `#F0EDE5` / ink `#322B23` / meta `#5F584B` / hair `#DCD5C6`。
+
+- 页背景 paper；顶部深色 hero 面板 y91–367 / x506–1856，主色 ink。
+- 区段标题 y420–450。
+- **个人定位面板**卡片为 hair 描边：顶线 y=469（x531–1831，`#DCD5C6` 连续 1301 px，全帧唯一一条 >150 px 的精确 hair 横线）；四列分隔竖线 **x=850 / 1180 / 1500**（宽 2 px）；四列标题文字各在 y498–523；四列输入框为 hair 描边矩形，纵向 **y542–591（高 50 px）**。
+- **鉴别力说明**：三个右侧输入框内逐行墨迹计数恒为 7（= 左右两条 2 px 描边 + 抗锯齿），**证明框内无文字**；因此「某文案不存在」不能由像素空缺推出，反之亦然。
+
+#### 三、为什么界面细节取证失败（不得重复尝试）
+
+1. **合成 hover 无效**：`t90-drive.ps1` 的 `HoverAt` = `SendMessage(view, WM_MOUSEMOVE=0x0200, 0, MAKELPARAM(x,y))`。在已标定坐标上连打 13 步（`hover 1400 430` / `hover 590 505 title1` / `hover 915 505 title2` / 两次离开…），**13 帧 sha16 全为 `03EF6B2A91AFEB66`、ink 全 13659、`CHANGED/SAME` 全 SAME**；同通道 `WM_LBUTTONDOWN/UP`（`click 111 663`）能改帧 ⇒ 点击可达、hover 不可达，Flutter 不从 `WM_MOUSEMOVE` 合成 `PointerHoverEvent`。`WM_MOUSEWHEEL`（0x020A）两种坐标口径同样零变化 ⇒ 滚动取证也不可用。
+2. **UIA 拿不到语义树**：枚举 actlog 窗口只得 1 个 `ControlType.Pane name=[FLUTTERVIEW] rect=(-31988,-32000,2496x1456)`，无控件级 Name/Rect ⇒ 文案存在性/缺失性（「条做法」「未落位」「第三列日期」）走不通。
+3. **本会话模型不能读图**：`read` 读 PNG 返回 "model does not support images" ⇒ 判据只能是帧 sha16 / ink 计数 / 指定坐标精确 RGB / token 精确计数。
+4. 结论：反馈① 悬停浮层、反馈② 标签页双态配色与表格行高、反馈③ 第三列出现日期 —— **运行时像素证据在本机不可得，记 UNDETERMINED（不记 PASS、不记回归）**。
+
+#### 四、三条反馈的证据等级（本轮如实口径）
+
+| 反馈 | 代码落点（提交 `36efc43`） | 契约证据（绿） | 装机运行时 |
+|---|---|---|---|
+| ① 定位说明入悬浮框 + 去确认键/标签库链接 + 点选/回车自动保存 | `widgets\goal_brand_panel.dart`（`_onFocusChanged:551` / `_openHint:579` / `_scheduleHintHide:609` / `_HintBubble:961` / `_HintLayout:1015` / `_buildInput:921` / `_submitTags`） | `test\b12_position_panel_test.dart` B1–B8（驱动真实 `PointerHoverEvent`；B3 硬断言 `hint.bottom <= input.top`） | **UNDETERMINED**（hover 注入不可用）；仅「目标页渲染、四列标题 + 输入框齐」smoke |
+| ② 标签页参照 Chrome/Edge + 表格上下边距 | `goal_blueprint_matrix.dart`（`.355-395` 双态：激活 card+ink+w600+顶部圆角 `chromeTabTopRadius=8`；未激活 sunken+meta；`cellPadding:163-166` = `symmetric(h:8, v:11)`） | `test\b12_matrix_tabs_date_test.dart` R2-1…R2-4 | **UNDETERMINED**（未定位到标签页带，且无读图能力） |
+| ③ 结束日期点击弹日期框 + 第三列出日期 + 不显示「条做法」「未落位」 | `goals\goal_form_dialog.dart:270`（`_pickDue`）+ `pages\goals_blueprint_page.dart:620`（`_periodEndFor` 同写 periodEnd 与 dueDate）+ `goal_blueprint_matrix.dart:664`（`_periodText` 回退 dueDate）+ `.429-515` 删「条做法/未落位」 | `test\b12_matrix_tabs_date_test.dart` R2-5 / R2-6 + `task66` 断言同步 | **UNDETERMINED**（矩阵主体在窗口底被截断：窗口 1456 高，y737 以下才是矩阵首段） |
+
+#### 五、可复用装置（都在 `%TEMP%`，不进仓库）
+
+- `b12-zone.py`：`<png> x0 y0 x1 y1 cols rows [thresh]`，ASCII 密度图 + 行墨迹剖面 + 区内地色 Top12；`thresh` 传负数切「亮字模式」。
+- `b12-forensics2.py`：六个 token 色的**精确计数**（逐像素等值比对）+ 指定带 modal + ink bbox。
+- `b12-layout2.py`：整页墨迹带剖面 + sunken 连通簇（bucket 8）+ 精确 hair 横线（最长游程 >150 px）。
+- `b12-layout3.py`：区段 ASCII 图 + 竖/横 hair 游程 + 32 px 分带 ink bbox。
+- `t90-launch.ps1` / `t90-drive.ps1`：后者动词 `click / hover / type / key / wheel / sleep / shot / crop / info`，每步自动 Repark 到 `(-32000,-32000)` + `PrintWindow(view,hdc,2)` + 记 `sha16 / CHANGED|SAME / ink`。
+
+#### 六、残留与下一步
+
+- `AGENTS.md` §2 R3 第 61 行（本批真源行）已在**工作区就地订正**为「已静默装配 `A9752C00FDDF0D80` + 启动/导航 smoke 级」，但该文件同时带并发接力链会话的未暂存改动，**不并入本笔提交**，仍挂账。
+- 三条反馈的界面验收要落地，只有两条路（均未验证）：换具备视觉能力的会话读帧；或补一条能真正触发 `PointerHoverEvent` 的注入通道（候选：向 `FLUTTERVIEW` 子窗口发**客户端坐标**的 `WM_MOUSEMOVE` 并配 `TrackMouseEvent`/`WM_MOUSELEAVE`；`SendInput` 路径违反「不抢焦点」约束，不予采用）。
