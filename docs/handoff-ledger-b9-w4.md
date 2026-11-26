@@ -370,6 +370,7 @@ python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py
 5. **沙箱脚本一律落 `%TEMP%` 且用绝对路径**（坑 117）：`E:\Users\Duanyi\AppData\Local\Temp\` 下 `b10b-chain.ps1` / `b10b-run.ps1` / `b10b-probe.ps1` / `b10b-crop.ps1` / `b10b-readback.py` / `b10b-readback.ps1` ⇒ **不进仓库 ⇒ 不影响 `PS1_SCANNED`**。
 6. **本轮只 commit 不 push**；`reports\**` 仍被 gitignore ⇒ **不得 `git add reports/`**。
 7. **`AGENTS.md` 并发写集**：工作树 `AGENTS.md` 另有并发接力链改动（§2 R3 增补 Task72/B7 行、§5 坑 94/95/100–105 等，39 增 / 10 删）⇒ 本轮按坑 97 **部分暂存**（index = HEAD + 本批补丁），他人行留在工作树不动。
+8. **首次部分暂存被 PowerShell 逗号数组化拆参**：`git update-index --cacheinfo 100644,<blob>,AGENTS.md` 的逗号在 PS 里是数组运算符 ⇒ git 收到 3 个独立参数并报 `option 'cacheinfo' expects <mode>,<sha1>,<path>`（退出码 129）⇒ **暂存静默失败**，首笔提交**只含台账、AGENTS.md 未入库**；⇒ 整个参数用**双引号包裹**再传（或改用 `git update-index --index-info`），并以 `git diff --cached --numstat` 回读确认。
 
 ### 9.6 未决 / 下一步
 

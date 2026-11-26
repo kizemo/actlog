@@ -404,6 +404,7 @@ practilog/
 122. **band 扫描期间列表会重排**：`GetPixel` 扫约 2 万像素耗时 1–2 s，扫完再点时 y 已陈旧 ⇒ 点击落空；⇒ **点击前重新取帧、重扫并立即点击**（`Open-Split` 内重试 ≤3 次，失败记 `DLG_NOT_OPEN`）。
 123. **「点击后帧哈希未变 ⇒ 空点/无效」必须作为显式守卫**：否则静默空点会一路走到「DB 无新增」才暴露（B10-b 踩过此坑）。
 124. **覆盖安装后 `app.so` 的 mtime 不刷新**（NSIS 保留打包时间 2026-11-26 00:11:02）⇒ 判「装机件是否含新代码」只认 **sha16**，不看 mtime 新鲜度。
+125. **PowerShell 会把 `git update-index --cacheinfo` 的逗号参数数组化** ⇒ 暂存**静默失败**：写成 `100644,<blob>,AGENTS.md` 时逗号是 PS 数组运算符，git 收到 3 个独立参数并报 `option 'cacheinfo' expects <mode>,<sha1>,<path>`（退出码 **129**）⇒ 首笔提交**只含台账、AGENTS.md 根本没进索引**（易误判为「已部分暂存」）；⇒ 整个参数用**双引号包裹**再传，或改用 `git update-index --index-info` 从 stdin 喂。
 
 
 ## 6. 权威文档导航（哪件事以谁为准）
