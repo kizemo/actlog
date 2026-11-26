@@ -94,8 +94,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _createShortcut() async {
     final AppLocalizations t = ref.read(appLocalizationsProvider);
-    final bool ok =
-        await ref.read(systemIntegrationProvider).createDesktopShortcut();
+    final bool ok = await ref
+        .read(systemIntegrationProvider)
+        .createDesktopShortcut();
     if (!mounted) {
       return;
     }
@@ -176,10 +177,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            t.settingsSubtitle,
-            style: _hintStyle(tokens),
-          ),
+          Text(t.settingsSubtitle, style: _hintStyle(tokens)),
           const SizedBox(height: AppTokens.gapCard),
 
           // ---------------- 外观 ----------------
@@ -214,6 +212,43 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   onTap: () => ref
                       .read(preferencesStoreProvider)
                       .setThemeMode(ThemeMode.dark),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppTokens.gapSec),
+
+          // 配色（B14 第 4 条）：只换纸面与中性阶，赭石语义三档恒定。
+          _SettingRow(
+            label: t.settingsAccentLabel,
+            hint: null,
+            control: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                _ChoiceChip(
+                  chipKey: const ValueKey<String>('settings-accent-ink'),
+                  label: t.settingsAccentInk,
+                  selected: prefs.accent == AppAccent.ink,
+                  onTap: () => ref
+                      .read(preferencesStoreProvider)
+                      .setAccent(AppAccent.ink),
+                ),
+                _ChoiceChip(
+                  chipKey: const ValueKey<String>('settings-accent-green'),
+                  label: t.settingsAccentGreen,
+                  selected: prefs.accent == AppAccent.green,
+                  onTap: () => ref
+                      .read(preferencesStoreProvider)
+                      .setAccent(AppAccent.green),
+                ),
+                _ChoiceChip(
+                  chipKey: const ValueKey<String>('settings-accent-blue'),
+                  label: t.settingsAccentBlue,
+                  selected: prefs.accent == AppAccent.blue,
+                  onTap: () => ref
+                      .read(preferencesStoreProvider)
+                      .setAccent(AppAccent.blue),
                 ),
               ],
             ),
@@ -351,7 +386,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       .setDensity(DensityProfile.compact),
                 ),
                 _ChoiceChip(
-                  chipKey: const ValueKey<String>('settings-density-comfortable'),
+                  chipKey: const ValueKey<String>(
+                    'settings-density-comfortable',
+                  ),
                   label: t.densityComfortable,
                   selected: prefs.density == DensityProfile.comfortable,
                   onTap: () => ref
@@ -424,10 +461,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
 
           const SizedBox(height: AppTokens.gapCard),
-          Text(
-            t.settingsFootnote,
-            style: _hintStyle(tokens),
-          ),
+          Text(t.settingsFootnote, style: _hintStyle(tokens)),
         ],
       ),
     );
@@ -528,9 +562,7 @@ class _ChoiceChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? tokens.ink : tokens.card,
           borderRadius: BorderRadius.circular(AppTokens.radius),
-          border: Border.all(
-            color: selected ? tokens.ink : tokens.hair,
-          ),
+          border: Border.all(color: selected ? tokens.ink : tokens.hair),
         ),
         child: Text(
           label,

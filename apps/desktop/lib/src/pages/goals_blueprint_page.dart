@@ -305,6 +305,7 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
       onSplitTodos: _openSplit,
       onAddGoal: _openCreateGoal,
       onEditGoal: _openEditGoal,
+      onRenameGoal: _renameGoal,
       onDeleteGoal: _confirmDeleteGoal,
       onToggleGoalDone: _toggleGoalDone,
       onEditGoalPeriod: _editGoalPeriod,
@@ -341,8 +342,7 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
     });
     try {
       final GoalStore store = ref.read(goalStoreProvider);
-      final GoalHorizon parentHorizon =
-          parent.horizon ?? GoalHorizon.ultimate;
+      final GoalHorizon parentHorizon = parent.horizon ?? GoalHorizon.ultimate;
       final GoalHorizon? childHorizon = goalSplitChildHorizon(parentHorizon);
       final GoalPeriod year = GoalPeriod.year(_period.year);
       for (final String title in result.titles) {
@@ -383,13 +383,17 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
         return;
       }
       setState(
-        () => _splitFailed =
-            AppLocalizations.of(context).goalSplitDialogFailed,
+        () => _splitFailed = AppLocalizations.of(context).goalSplitDialogFailed,
       );
     }
   }
 
   /// 格内「+ 新建目标」（D-8-e：领域 + 档位由所在格带入）。
+  ///
+  /// B14 补做 D2：新建**不弹五字段全量表**。裁决依据见
+  /// `docs/b14-fixup-dispatch.md:29` —— 本路径复用紧凑表单，形态由 D3 决定：
+  /// `compact == true` 时备注 / 关键词折进「更多」，首屏只剩标题（已 autofocus）、
+  /// 领域、档位、期限；领域与档位仍由所在格带入并照旧落库。
   Future<void> _openCreateGoal(String domainKey, GoalHorizon horizon) async {
     // `showDialog` 的 builder 在 Navigator 的 overlay 里构建，那里**在
     // `L10nScope` 之上**（L10nScope 包的是 `home`，不是 `MaterialApp`），
@@ -448,6 +452,34 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
         return;
       }
       setState(() => _goalDeleted = true);
+      _future = _load();
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(
+        () => _goalFailed = AppLocalizations.of(context).operationFailed,
+      );
+    }
+  }
+
+  /// 就地改名（B14 第 2 条）：只写 `title`，不碰备注 / 周期 / 领域。
+  ///
+  /// 为什么不复用 [_writeGoal]：那条路会按 `_periodEndFor` 重算周期，并按
+  /// `clear` 清空表单里看不到的字段；就地编辑只改标题 ——
+  /// 「没动过的列一个字节都不许变」，所以走 `GoalStore.updateGoal` 的最小写法。
+  Future<void> _renameGoal(GoalRow goal, String title) async {
+    final String next = title.trim();
+    if (next.isEmpty || next == goal.title) {
+      return;
+    }
+    try {
+      final GoalStore store = ref.read(goalStoreProvider);
+      await store.updateGoal(goal.id, title: next);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _goalSaved = true);
       _future = _load();
     } on Object {
       if (!mounted) {

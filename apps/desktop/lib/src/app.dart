@@ -152,8 +152,8 @@ class _ActLogAppState extends State<ActLogApp> {
       child: MaterialApp(
         title: t.appName,
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(prefs.density),
-        darkTheme: AppTheme.dark(prefs.density),
+        theme: AppTheme.light(prefs.density, accent: prefs.accent),
+        darkTheme: AppTheme.dark(prefs.density, accent: prefs.accent),
         themeMode: prefs.themeMode,
         // 裁定 B：字号缩放只施加在这一层，页面代码一律不感知。
         builder: (BuildContext context, Widget? child) {
@@ -241,20 +241,27 @@ class _ShellHostState extends State<ShellHost> {
     return Shortcuts(
       // 键条最后两条「切页」的真身：只认有落点的导航项。
       shortcuts: const <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.digit1, control: true):
-            _NavIntent(ShellHost.kTodayNavId),
-        SingleActivator(LogicalKeyboardKey.digit2, control: true):
-            _NavIntent('inbox'),
-        SingleActivator(LogicalKeyboardKey.digit3, control: true):
-            _NavIntent('habits'),
-        SingleActivator(LogicalKeyboardKey.digit4, control: true):
-            _NavIntent('calendar'),
-        SingleActivator(LogicalKeyboardKey.digit5, control: true):
-            _NavIntent('projects'),
-        SingleActivator(LogicalKeyboardKey.digit6, control: true):
-            _NavIntent('goals'),
-        SingleActivator(LogicalKeyboardKey.digit7, control: true):
-            _NavIntent('blueprint'),
+        SingleActivator(LogicalKeyboardKey.digit1, control: true): _NavIntent(
+          ShellHost.kTodayNavId,
+        ),
+        SingleActivator(LogicalKeyboardKey.digit2, control: true): _NavIntent(
+          'inbox',
+        ),
+        SingleActivator(LogicalKeyboardKey.digit3, control: true): _NavIntent(
+          'habits',
+        ),
+        SingleActivator(LogicalKeyboardKey.digit4, control: true): _NavIntent(
+          'calendar',
+        ),
+        SingleActivator(LogicalKeyboardKey.digit5, control: true): _NavIntent(
+          'projects',
+        ),
+        SingleActivator(LogicalKeyboardKey.digit6, control: true): _NavIntent(
+          'goals',
+        ),
+        SingleActivator(LogicalKeyboardKey.digit7, control: true): _NavIntent(
+          'blueprint',
+        ),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{

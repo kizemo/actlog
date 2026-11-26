@@ -1,5 +1,21 @@
 import 'package:flutter/material.dart';
 
+/// 配色档（设置页「配色」三选一）。
+///
+/// 只换**纸面与中性阶**：赭石三件套（[ThemeTokens.accent] /
+/// [ThemeTokens.accentWash] / [ThemeTokens.accentInk]）三档恒定 ——
+/// 它承载「缺口 / 警示」语义，跟着变绿变蓝会跟「正常 / 成功」撞车。
+enum AppAccent {
+  /// 墨（默认）：B13 及之前的唯一配色，米纸 + 暖墨。
+  ink,
+
+  /// 浅绿：纸面带极淡绿相的浅色档 + 墨绿深色档。
+  green,
+
+  /// 浅蓝：纸面带极淡蓝相的浅色档 + 墨蓝深色档。
+  blue,
+}
+
 /// B 版「墨径 · 账页流」的**解析式**设计 token 包（浅色 + 深色两套）。
 ///
 /// 唯一真源是 `design-demos/TOKENS.md`；改这里之前必须先改那份口径文件。
@@ -235,6 +251,117 @@ class ThemeTokens extends ThemeExtension<ThemeTokens> {
     shadowTint: Color(0xFF0D0A07),
   );
 
+  /// 按配色档派生的浅色 token。
+  ///
+  /// [AppAccent.ink] 直接返回 [light] **常量实例**（历史断言零风险）；
+  /// 绿 / 蓝两档只覆盖纸面、卡面、分隔线与文字四阶，
+  /// 四态底与三段底色、以及 `slotXxxInk` 别名必须显式跟着覆盖 ——
+  /// 它们是**别名而非计算字段**，`copyWith` 只改 `ink` / `meta` / `card`
+  /// 时别名仍是旧值，会出现「格底换色、格内文字仍旧墨」的半截配色。
+  static ThemeTokens lightFor(AppAccent accent) => switch (accent) {
+    AppAccent.ink => light,
+    AppAccent.green => light.copyWith(
+      paper: const Color(0xFFF5F8F1),
+      card: const Color(0xFFFAFCF7),
+      sunken: const Color(0xFFEAEFE4),
+      dock: const Color(0xFFF6F8F2),
+      keybg: const Color(0xFFEDF1E7),
+      inkWash: const Color(0xFFE6EDDF),
+      ink: const Color(0xFF232B1C),
+      ink2: const Color(0xFF3B4532),
+      meta: const Color(0xFF4F5A46),
+      faint: const Color(0xFF6B7563),
+      hair: const Color(0xFFD8DFCE),
+      hairSoft: const Color(0xFFE7ECDF),
+      hairStrong: const Color(0xFF8A927F),
+      shadowTint: const Color(0xFF232B1C),
+      slotPlan: const Color(0xFFF0F3EA),
+      slotDone: const Color(0xFFE8EAE2),
+      slotBackfill: const Color(0xFFF1F4E9),
+      slotHabit: const Color(0xFFE9EEE3),
+      slotPlanInk: const Color(0xFF232B1C),
+      slotDoneInk: const Color(0xFF4F5A46),
+      slotBackfillInk: const Color(0xFF232B1C),
+      slotHabitInk: const Color(0xFF232B1C),
+      gridSectionMorning: const Color(0xFFFAFCF7),
+      gridSectionNoon: const Color(0xFFF5F8F1),
+      gridSectionEvening: const Color(0xFFFAFCF7),
+    ),
+    AppAccent.blue => light.copyWith(
+      paper: const Color(0xFFF2F6FA),
+      card: const Color(0xFFF8FAFD),
+      sunken: const Color(0xFFE8EEF5),
+      dock: const Color(0xFFF4F7FA),
+      keybg: const Color(0xFFEDF2F7),
+      inkWash: const Color(0xFFE3EAF3),
+      ink: const Color(0xFF1E2A38),
+      ink2: const Color(0xFF374759),
+      meta: const Color(0xFF4A5768),
+      faint: const Color(0xFF67737F),
+      hair: const Color(0xFFD5DEE8),
+      hairSoft: const Color(0xFFE5EBF2),
+      hairStrong: const Color(0xFF8792A0),
+      shadowTint: const Color(0xFF1E2A38),
+      slotPlan: const Color(0xFFEEF2F7),
+      slotDone: const Color(0xFFE6E9EE),
+      slotBackfill: const Color(0xFFEFF3F8),
+      slotHabit: const Color(0xFFE7EDF4),
+      slotPlanInk: const Color(0xFF1E2A38),
+      slotDoneInk: const Color(0xFF4A5768),
+      slotBackfillInk: const Color(0xFF1E2A38),
+      slotHabitInk: const Color(0xFF1E2A38),
+      gridSectionMorning: const Color(0xFFF8FAFD),
+      gridSectionNoon: const Color(0xFFF2F6FA),
+      gridSectionEvening: const Color(0xFFF8FAFD),
+    ),
+  };
+
+  /// 按配色档派生的深色 token。
+  ///
+  /// 深色档只挪**暗层表面的色相**，`ink` / `ink2` / `meta` / `faint` 与赭石
+  /// 全部沿用 [dark]：底色只在暗层里换色相，正文对比度不重算也不会掉。
+  static ThemeTokens darkFor(AppAccent accent) => switch (accent) {
+    AppAccent.ink => dark,
+    AppAccent.green => dark.copyWith(
+      paper: const Color(0xFF171B13),
+      card: const Color(0xFF1F2419),
+      sunken: const Color(0xFF12150F),
+      dock: const Color(0xFF1C2117),
+      keybg: const Color(0xFF181C14),
+      inkWash: const Color(0xFF262E1F),
+      hair: const Color(0xFF333A2B),
+      hairSoft: const Color(0xFF262C20),
+      hairStrong: const Color(0xFF7C8870),
+      shadowTint: const Color(0xFF0A0C07),
+      slotPlan: const Color(0xFF1F2418),
+      slotDone: const Color(0xFF363A32),
+      slotBackfill: const Color(0xFF232A1B),
+      slotHabit: const Color(0xFF2A3121),
+      gridSectionMorning: const Color(0xFF1F2419),
+      gridSectionNoon: const Color(0xFF171B13),
+      gridSectionEvening: const Color(0xFF1F2419),
+    ),
+    AppAccent.blue => dark.copyWith(
+      paper: const Color(0xFF14171B),
+      card: const Color(0xFF1B1F25),
+      sunken: const Color(0xFF0F1215),
+      dock: const Color(0xFF181C21),
+      keybg: const Color(0xFF161A1E),
+      inkWash: const Color(0xFF232A33),
+      hair: const Color(0xFF2F353C),
+      hairSoft: const Color(0xFF232830),
+      hairStrong: const Color(0xFF75808C),
+      shadowTint: const Color(0xFF07090B),
+      slotPlan: const Color(0xFF1B2026),
+      slotDone: const Color(0xFF33373C),
+      slotBackfill: const Color(0xFF1E242B),
+      slotHabit: const Color(0xFF262C34),
+      gridSectionMorning: const Color(0xFF1B1F25),
+      gridSectionNoon: const Color(0xFF14171B),
+      gridSectionEvening: const Color(0xFF1B1F25),
+    ),
+  };
+
   /// 取当前主题的 token 包。
   ///
   /// **兜底 [light]**：既有 widget 测试里有裸 `MaterialApp()`（没有挂
@@ -337,18 +464,18 @@ class ThemeTokens extends ThemeExtension<ThemeTokens> {
       slotDoneInk: Color.lerp(slotDoneInk, other.slotDoneInk, t) ?? slotDoneInk,
       slotBackfillInk:
           Color.lerp(slotBackfillInk, other.slotBackfillInk, t) ??
-              slotBackfillInk,
+          slotBackfillInk,
       slotHabitInk:
           Color.lerp(slotHabitInk, other.slotHabitInk, t) ?? slotHabitInk,
       gridSectionMorning:
           Color.lerp(gridSectionMorning, other.gridSectionMorning, t) ??
-              gridSectionMorning,
+          gridSectionMorning,
       gridSectionNoon:
           Color.lerp(gridSectionNoon, other.gridSectionNoon, t) ??
-              gridSectionNoon,
+          gridSectionNoon,
       gridSectionEvening:
           Color.lerp(gridSectionEvening, other.gridSectionEvening, t) ??
-              gridSectionEvening,
+          gridSectionEvening,
       shadowTint: Color.lerp(shadowTint, other.shadowTint, t) ?? shadowTint,
     );
   }

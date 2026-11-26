@@ -13,6 +13,7 @@ import 'package:actlog/src/app.dart';
 import 'package:actlog/src/l10n/app_localizations.dart';
 import 'package:actlog/src/pages/settings_page.dart';
 import 'package:actlog/src/providers.dart';
+import 'package:actlog/src/theme/theme_tokens.dart';
 import 'package:actlog/src/widgets/timeline/day_grid.dart';
 import 'package:actlog/src/widgets/timeline/slot_state.dart';
 import 'package:core_data/core_data.dart';
@@ -214,6 +215,44 @@ void main() {
     expect(
       tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
       ThemeMode.dark,
+    );
+  });
+
+  testWidgets('B14-D6 配色档落库：重建 provider 容器后仍是 AppAccent.green', (
+    WidgetTester tester,
+  ) async {
+    _useTallSurface(tester);
+    final _Harness h = _Harness.create();
+    await h.mount(tester, _settingsHost());
+    await _settle(tester);
+
+    // 正例控制：默认档是墨档（= 出厂观感）。
+    expect(
+      h.container.read(currentPreferencesProvider).accent,
+      AppAccent.ink,
+      reason: '默认配色应为墨档（AppPreferences.defaults）',
+    );
+
+    await tester.tap(find.byKey(_key('settings-accent-green')));
+    await _settle(tester);
+    expect(await h.repos.settings.get(settingsKeyAccent), 'green');
+
+    // D6：跨容器重建 —— 新容器不共享任何内存态，只共享同一个库；
+    // 能读回 green 才说明是**落库**，而不是留在某个 provider 的内存里。
+    final ProviderContainer fresh = ProviderContainer(
+      overrides: <Override>[
+        databaseProvider.overrideWithValue(h.container.read(databaseProvider)),
+        todayProvider.overrideWithValue(_today),
+      ],
+    );
+    addTearDown(fresh.dispose);
+    final AppPreferences? persisted = await tester.runAsync<AppPreferences>(
+      () => fresh.read(appPreferencesProvider.future),
+    );
+    expect(
+      persisted?.accent,
+      AppAccent.green,
+      reason: '配色必须真落库：重建容器后读回的仍是 green（D6）',
     );
   });
 

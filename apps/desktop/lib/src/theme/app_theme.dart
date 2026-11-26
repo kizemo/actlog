@@ -23,13 +23,22 @@ class AppTheme {
   const AppTheme._();
 
   /// 浅色档主题。
-  static ThemeData light(DensityProfile density) => _buildLight(density);
+  ///
+  /// [accent] 只换纸面与中性阶（见 [ThemeTokens.lightFor]）；
+  /// 默认 [AppAccent.ink] 逐字节等于 B13 的渲染结果。
+  static ThemeData light(
+    DensityProfile density, {
+    AppAccent accent = AppAccent.ink,
+  }) => _buildLight(density, accent);
 
   /// 深色档主题（暖墨深褐，设计文档 §4 全表）。
-  static ThemeData dark(DensityProfile density) => _buildDark(density);
+  static ThemeData dark(
+    DensityProfile density, {
+    AppAccent accent = AppAccent.ink,
+  }) => _buildDark(density, accent);
 
-  static ThemeData _buildLight(DensityProfile density) {
-    final ThemeTokens tokens = ThemeTokens.light;
+  static ThemeData _buildLight(DensityProfile density, AppAccent accent) {
+    final ThemeTokens tokens = ThemeTokens.lightFor(accent);
 
     final scheme = ColorScheme.fromSeed(
       seedColor: tokens.ink,
@@ -70,8 +79,8 @@ class AppTheme {
     );
   }
 
-  static ThemeData _buildDark(DensityProfile density) {
-    final ThemeTokens tokens = ThemeTokens.dark;
+  static ThemeData _buildDark(DensityProfile density, AppAccent accent) {
+    final ThemeTokens tokens = ThemeTokens.darkFor(accent);
 
     // 47 个现役字段逐条落地（设计文档 §3.3 左 24 + 右 23 = 47）。
     final scheme = ColorScheme.fromSeed(

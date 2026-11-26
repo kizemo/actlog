@@ -32,6 +32,18 @@ abstract class SettingsL10n {
   /// 主题：深色。
   String get themeDark;
 
+  /// 分组：配色（B14 第 4 条）。
+  String get settingsAccentLabel;
+
+  /// 配色：墨绿（默认，存量观感）。
+  String get settingsAccentInk;
+
+  /// 配色：浅绿。
+  String get settingsAccentGreen;
+
+  /// 配色：浅蓝。
+  String get settingsAccentBlue;
+
   /// 分组：语言。
   String get sectionLanguage;
 
@@ -132,6 +144,18 @@ mixin SettingsZhL10n implements SettingsL10n {
   String get themeDark => '深色';
 
   @override
+  String get settingsAccentLabel => '配色';
+
+  @override
+  String get settingsAccentInk => '墨绿（默认）';
+
+  @override
+  String get settingsAccentGreen => '浅绿';
+
+  @override
+  String get settingsAccentBlue => '浅蓝';
+
+  @override
   String get sectionLanguage => '语言';
 
   @override
@@ -199,8 +223,7 @@ mixin SettingsZhL10n implements SettingsL10n {
   String get resetPreferences => '恢复默认设置';
 
   @override
-  String get resetPreferencesConfirm =>
-      '把主题、语言、起止时间、密度等偏好写回默认值？（不动你的待办与计划数据）';
+  String get resetPreferencesConfirm => '把主题、语言、起止时间、密度等偏好写回默认值？（不动你的待办与计划数据）';
 
   @override
   String get resetPreferencesHint => '只清偏好，不动数据';
@@ -231,6 +254,18 @@ mixin SettingsEnL10n implements SettingsL10n {
 
   @override
   String get themeDark => 'Dark';
+
+  @override
+  String get settingsAccentLabel => 'Accent';
+
+  @override
+  String get settingsAccentInk => 'Ink (default)';
+
+  @override
+  String get settingsAccentGreen => 'Green';
+
+  @override
+  String get settingsAccentBlue => 'Blue';
 
   @override
   String get sectionLanguage => 'Language';

@@ -31,6 +31,18 @@ abstract final class L10nKeys {
   /// 分组：外观。
   static const String settingsSectionAppearance = 'settings-section-appearance';
 
+  /// 配色分组标签（B14 第 4 条）。
+  static const String settingsAccentLabel = 'settings-accent-label';
+
+  /// 配色：墨绿（默认，存量观感）。
+  static const String settingsAccentInk = 'settings-accent-ink-mode';
+
+  /// 配色：浅绿。
+  static const String settingsAccentGreen = 'settings-accent-green-mode';
+
+  /// 配色：浅蓝。
+  static const String settingsAccentBlue = 'settings-accent-blue-mode';
+
   /// 主题：跟随系统。
   static const String settingsThemeSystem = 'settings-theme-system';
 
@@ -1883,8 +1895,7 @@ abstract final class L10nKeys {
   static const String goalSplitDialogAddRow = 'goal-split-dialog-add-row';
 
   /// 拆分层级对话框：删除这一行。
-  static const String goalSplitDialogRemoveRow =
-      'goal-split-dialog-remove-row';
+  static const String goalSplitDialogRemoveRow = 'goal-split-dialog-remove-row';
 
   /// 拆分层级对话框：确认拆分（确认即落库）。
   static const String goalSplitDialogConfirm = 'goal-split-dialog-confirm';
@@ -1985,7 +1996,8 @@ abstract final class L10nKeys {
   static const String goalBlueprintBandKicker = 'goal-blueprint-band-kicker';
 
   /// 蓝图页片头带：一句话副标。
-  static const String goalBlueprintBandSubtitle = 'goal-blueprint-band-subtitle';
+  static const String goalBlueprintBandSubtitle =
+      'goal-blueprint-band-subtitle';
 
   /// 蓝图页片头带：右侧署名。
   static const String goalBlueprintBandBrand = 'goal-blueprint-band-brand';
@@ -2183,7 +2195,8 @@ abstract final class L10nKeys {
       'goal-position-strengths-title';
 
   /// 优势：要点指引。
-  static const String goalPositionStrengthsHint = 'goal-position-strengths-hint';
+  static const String goalPositionStrengthsHint =
+      'goal-position-strengths-hint';
 
   /// 独特价值：标题。
   static const String goalPositionValueTitle = 'goal-position-value-title';
@@ -2225,6 +2238,10 @@ abstract final class L10nKeys {
     'themeSystem': settingsThemeSystem,
     'themeLight': settingsThemeLight,
     'themeDark': settingsThemeDark,
+    'settingsAccentLabel': settingsAccentLabel,
+    'settingsAccentInk': settingsAccentInk,
+    'settingsAccentGreen': settingsAccentGreen,
+    'settingsAccentBlue': settingsAccentBlue,
     'sectionLanguage': settingsSectionLanguage,
     'languageChinese': settingsLanguageZh,
     'languageEnglish': settingsLanguageEn,

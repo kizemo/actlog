@@ -12,6 +12,7 @@ import 'app_version.dart';
 import 'data/goal_store.dart';
 import 'l10n/app_localizations.dart';
 import 'theme/density_profile.dart';
+import 'theme/theme_tokens.dart';
 import 'widgets/timeline/slot_state.dart';
 import 'widgets/timeline/timeline_store.dart';
 
@@ -121,9 +122,11 @@ final calendarMonthProvider =
   final habits = await repos.habit.listActive();
 
   final byDate = <String, CalendarDaySummary>{};
-  for (var day = first;
+      for (
+        var day = first;
       !day.isAfter(last);
-      day = DateTime(day.year, day.month, day.day + 1)) {
+        day = DateTime(day.year, day.month, day.day + 1)
+      ) {
     final date = isoDate(day);
     byDate[date] = CalendarDaySummary(
       date: date,
@@ -158,7 +161,8 @@ final calendarMonthProvider =
       date: checkin.date,
       planDone: summary.planDone,
       planTotal: summary.planTotal,
-      habitDone: summary.habitDone +
+          habitDone:
+              summary.habitDone +
           (checkin.status == CheckinStatus.done.code ? 1 : 0),
       habitTotal: summary.habitTotal,
       moodAverage: summary.moodAverage,
@@ -197,9 +201,11 @@ final calendarMonthProvider =
   }
 
   for (final habit in habits) {
-    for (var day = first;
+        for (
+          var day = first;
         !day.isAfter(last);
-        day = DateTime(day.year, day.month, day.day + 1)) {
+          day = DateTime(day.year, day.month, day.day + 1)
+        ) {
       final date = isoDate(day);
       final summary = byDate[date];
       if (summary == null ||
@@ -252,6 +258,9 @@ const String settingsKeyDailyEndHour = 'daily_end_hour';
 /// 设置键：界面密度（`compact` / `comfortable` / `roomy`）。
 const String settingsKeyDensity = 'density';
 
+/// 设置键：配色档（`ink` / `green` / `blue`，见 `AppAccent`）。
+const String settingsKeyAccent = 'accent';
+
 /// 设置键：目标页上次停留的页签（`week` / `month` / `year` / `blueprint`）。
 const String settingsKeyGoalsTab = 'goals_tab';
 
@@ -285,6 +294,7 @@ const List<String> kAllPreferenceKeys = <String>[
   settingsKeyDailyStartHour,
   settingsKeyDailyEndHour,
   settingsKeyDensity,
+  settingsKeyAccent,
   settingsKeyGoalsTab,
 ];
 
@@ -303,6 +313,7 @@ class AppPreferences {
     required this.dailyEndHour,
     required this.density,
     required this.goalsTab,
+    required this.accent,
   });
 
   /// 默认值 = 参数化之前应用的实际行为。
@@ -317,6 +328,7 @@ class AppPreferences {
     dailyEndHour: kGridEndHour,
     density: DensityProfile.comfortable,
     goalsTab: kGoalsTabWeek,
+    accent: AppAccent.ink,
   );
 
   /// 主题模式。
@@ -340,6 +352,9 @@ class AppPreferences {
   /// 目标页上次停留的页签（`week` / `month` / `year` / `blueprint`）。
   final String goalsTab;
 
+  /// 配色档（B14 第 4 条）：默认 [AppAccent.ink]。
+  final AppAccent accent;
+
   /// 每天计划窗口（网格裁剪用）。
   DayWindow get dayWindow => DayWindow.fromHours(dailyStartHour, dailyEndHour);
 
@@ -355,6 +370,7 @@ class AppPreferences {
     int? dailyEndHour,
     DensityProfile? density,
     String? goalsTab,
+    AppAccent? accent,
   }) {
     return AppPreferences(
       themeMode: themeMode ?? this.themeMode,
@@ -364,6 +380,7 @@ class AppPreferences {
       dailyEndHour: dailyEndHour ?? this.dailyEndHour,
       density: density ?? this.density,
       goalsTab: goalsTab ?? this.goalsTab,
+      accent: accent ?? this.accent,
     );
   }
 
@@ -395,7 +412,12 @@ class AppPreferences {
   }
 
   /// 解析小时；无法识别回落 [fallback]，并夹进 `[low, high]`。
-  static int parseHour(String? code, {required int fallback, required int low, required int high}) {
+  static int parseHour(
+    String? code, {
+    required int fallback,
+    required int low,
+    required int high,
+  }) {
     final int? parsed = int.tryParse((code ?? '').trim());
     return (parsed ?? fallback).clamp(low, high);
   }
@@ -406,6 +428,19 @@ class AppPreferences {
   /// 比把设置页炸掉好。
   static String parseGoalsTab(String? code) =>
       kGoalsTabIds.contains(code) ? code! : kGoalsTabWeek;
+
+  /// 配色档的持久化码值（= 枚举名）。
+  static String encodeAccent(AppAccent accent) => accent.name;
+
+  /// 解析配色档；无法识别回落墨档（= 默认观感）。
+  static AppAccent parseAccent(String? code) {
+    for (final AppAccent accent in AppAccent.values) {
+      if (accent.name == code) {
+        return accent;
+      }
+    }
+    return AppAccent.ink;
+  }
 }
 
 /// 读取全部偏好（任何异常 ⇒ 默认值，绝不把设置页炸掉）。
@@ -418,6 +453,7 @@ final appPreferencesProvider = FutureProvider<AppPreferences>((ref) async {
   final String? end = await settings.get(settingsKeyDailyEndHour);
   final String? density = await settings.get(settingsKeyDensity);
   final String? goalsTab = await settings.get(settingsKeyGoalsTab);
+  final String? accent = await settings.get(settingsKeyAccent);
 
   final int startHour = AppPreferences.parseHour(
     start,
@@ -439,6 +475,7 @@ final appPreferencesProvider = FutureProvider<AppPreferences>((ref) async {
     dailyEndHour: endHour > startHour ? endHour : (startHour + 1).clamp(1, 24),
     density: AppPreferences.parseDensity(density),
     goalsTab: AppPreferences.parseGoalsTab(goalsTab),
+    accent: AppPreferences.parseAccent(accent),
   );
 });
 
@@ -446,7 +483,8 @@ final appPreferencesProvider = FutureProvider<AppPreferences>((ref) async {
 ///
 /// 主题与文案必须在**第一帧**就有值，所以这里给一个不会抛的同步视图。
 final currentPreferencesProvider = Provider<AppPreferences>(
-  (ref) => ref.watch(appPreferencesProvider).asData?.value ??
+  (ref) =>
+      ref.watch(appPreferencesProvider).asData?.value ??
       AppPreferences.defaults,
 );
 
@@ -507,6 +545,10 @@ class PreferencesStore {
   Future<void> setGoalsTab(String tabId) =>
       write(settingsKeyGoalsTab, AppPreferences.parseGoalsTab(tabId));
 
+  /// 配色档（B14 第 4 条）。
+  Future<void> setAccent(AppAccent accent) =>
+      write(settingsKeyAccent, AppPreferences.encodeAccent(accent));
+
   /// 恢复默认：把全部偏好键写回默认值（没有 delete 方法，只能写回）。
   Future<void> resetToDefaults() async {
     await setThemeMode(AppPreferences.defaults.themeMode);
@@ -518,6 +560,7 @@ class PreferencesStore {
     );
     await setDensity(AppPreferences.defaults.density);
     await setGoalsTab(AppPreferences.defaults.goalsTab);
+    await setAccent(AppPreferences.defaults.accent);
     await _settings.setPriorityDisplayMode(PriorityDisplayMode.quadrant);
     _ref.invalidate(appPreferencesProvider);
     _ref.invalidate(priorityDisplayModeProvider);
@@ -660,16 +703,18 @@ class WindowsSystemIntegration implements SystemIntegration {
   @override
   Future<String?> readLaunchOnBoot() async {
     try {
-      final ProcessResult result = await Process.run(
-        'reg',
-        <String>['QUERY', runKey, '/v', runValueName],
-      );
+      final ProcessResult result = await Process.run('reg', <String>[
+        'QUERY',
+        runKey,
+        '/v',
+        runValueName,
+      ]);
       if (result.exitCode != 0) {
         return null;
       }
       final String out = '${result.stdout}';
-      final RegExpMatch? match =
-          RegExp('$runValueName\\s+REG_SZ\\s+(.+)').firstMatch(out);
+      final RegExpMatch? match = RegExp('$runValueName\\s+REG_SZ\\s+(.+)')
+          .firstMatch(out);
       return match?.group(1)?.trim();
     } on Object {
       return null;
@@ -711,8 +756,10 @@ class WindowsSystemIntegration implements SystemIntegration {
     try {
       // `rundll32 url.dll,FileProtocolHandler` 不起控制台，比 `cmd /c start`
       // 少一次黑窗闪烁（brief §3 允许两种，实测选后者）。
-      final ProcessResult result =
-          await Process.run('rundll32', <String>['url.dll,FileProtocolHandler', url]);
+      final ProcessResult result = await Process.run('rundll32', <String>[
+        'url.dll,FileProtocolHandler',
+        url,
+      ]);
       return result.exitCode == 0;
     } on Object {
       return false;
@@ -809,21 +856,25 @@ class GitHubReleaseChecker implements ReleaseChecker {
   Future<ReleaseCheckResult> check() async {
     final HttpClient client = HttpClient()..connectionTimeout = timeout;
     try {
-      final HttpClientRequest request =
-          await client.getUrl(endpoint).timeout(timeout);
+      final HttpClientRequest request = await client
+          .getUrl(endpoint)
+          .timeout(timeout);
       request.headers
         ..set(HttpHeaders.userAgentHeader, 'actlog/$currentVersion')
         ..set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
-      final HttpClientResponse response =
-          await request.close().timeout(timeout);
+      final HttpClientResponse response = await request.close().timeout(
+        timeout,
+      );
       if (response.statusCode == HttpStatus.notFound) {
         return const ReleaseCheckResult(ReleaseCheckStatus.noRelease);
       }
       if (response.statusCode != HttpStatus.ok) {
         return const ReleaseCheckResult(ReleaseCheckStatus.networkError);
       }
-      final String body =
-          await response.transform(utf8.decoder).join().timeout(timeout);
+      final String body = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(timeout);
       final Object? decoded = jsonDecode(body);
       if (decoded is! Map<String, dynamic>) {
         return const ReleaseCheckResult(ReleaseCheckStatus.noRelease);

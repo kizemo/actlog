@@ -52,6 +52,8 @@ class _RawGoal {
     this.horizon,
     this.facet,
     this.dueDate,
+    this.periodStart,
+    this.periodEnd,
     this.priorityAbc,
     this.quadrant,
     this.deletedAt,
@@ -65,6 +67,8 @@ class _RawGoal {
   final int? horizon;
   final String? facet;
   final int? dueDate;
+  final int? periodStart;
+  final int? periodEnd;
   final String? priorityAbc;
   final int? quadrant;
   final int? deletedAt;
@@ -72,7 +76,7 @@ class _RawGoal {
 
 const String _goalColumns =
     'title, kind, note, keywords, domain, horizon, facet, due_date, '
-    'priority_abc, quadrant, deleted_at';
+    'period_start, period_end, priority_abc, quadrant, deleted_at';
 
 /// 按 id 回读一条目标（行不存在返回 null）。
 Future<_RawGoal?> _goalById(ActLogDatabase db, String id) async {
@@ -102,6 +106,8 @@ _RawGoal _fromRow(Map<String, Object?> d) => _RawGoal(
   horizon: d['horizon'] as int?,
   facet: d['facet'] as String?,
   dueDate: d['due_date'] as int?,
+  periodStart: d['period_start'] as int?,
+  periodEnd: d['period_end'] as int?,
   priorityAbc: d['priority_abc'] as String?,
   quadrant: d['quadrant'] as int?,
   deletedAt: d['deleted_at'] as int?,
@@ -247,6 +253,19 @@ void main() {
       find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
       '学会游泳',
     );
+    // D2/D3（docs\b14-fixup-dispatch.md:23-42）：新建首屏不再摊开备注 / 关键词，
+    // 「更多」区默认收起 ⇒ 展开之前这两个字段根本不在树上。
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
+      findsNothing,
+      reason: '新建首屏不许摊开备注字段（D2：不弹五字段全量表）',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-keywords')),
+      findsNothing,
+      reason: '新建首屏不许摊开关键词字段',
+    );
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-more'));
     await tester.enterText(
       find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
       '先练憋气',
@@ -347,7 +366,16 @@ void main() {
       findsOneWidget,
       reason: '目标卡片上要有「编辑」入口',
     );
-    await _tapKey(tester, ValueKey<String>('goal-blueprint-edit-${seed.bpId}'));
+    // B14 第 2 条：铅笔改成**就地改名**（用户原话），全量编辑（备注 / 关键词 /
+    // 领域 / 档位 / 期限）的入口挪进卡片的「展开层」⇒ 先展开再进全量编辑。
+    // 这条同时守住 D-8-e：「领域选未设置 ⇒ 写回 NULL」链路必须仍然可达。
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-cell-${seed.bpId}'));
+    await _tapKey(
+      tester,
+      ValueKey<String>('goal-blueprint-edit-full-${seed.bpId}'),
+    );
+    // D3：紧凑表单里备注 / 关键词默认折叠 ⇒ 先展开再断言预填值（不改断言）。
+    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-more'));
 
     final TextField titleField = tester.widget<TextField>(
       find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
@@ -566,6 +594,59 @@ void main() {
       tester,
       const ValueKey<String>('goal-blueprint-delete-cancel'),
     );
+  });
+
+  testWidgets('T5 就地改名只写 title：note/keywords/domain/due_date/period_end 逐字未变', (
+    WidgetTester tester,
+  ) async {
+    await _seed(store);
+    // 靶子单独造、五列都带值：否则「没变」是一句空断言（D5）。
+    final GoalPeriod period = GoalPeriod.year(2026);
+    final String id = await store.createGoal(
+      kind: GoalKind.blueprint,
+      title: '旧标题',
+      note: '原备注',
+      keywords: '原关键词',
+      domain: 'career',
+      horizon: GoalHorizon.ultimate,
+      periodStart: period.startMillis,
+      periodEnd: period.endMillis,
+      dueDate: DateTime(2026, 12, 31).millisecondsSinceEpoch,
+    );
+    final _RawGoal before = (await _goalById(db, id))!;
+    // 正例控制：改前必须真有值，否则后面的「逐字未变」证明不了任何事。
+    expect(before.note, '原备注');
+    expect(before.keywords, '原关键词');
+    expect(before.domain, 'career');
+    expect(before.dueDate, isNotNull);
+    expect(before.periodEnd, isNotNull);
+    await _pumpBlueprint(tester, repos: repos);
+
+    // D1：点**标题文字本身**（不是铅笔、不是整格）⇒ 直接进就地编辑。
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-goal-text-$id'));
+    final Finder editor = find.byKey(
+      ValueKey<String>('goal-blueprint-inline-$id'),
+    );
+    expect(editor, findsOneWidget, reason: 'D1：点标题文字必须进就地编辑态');
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-edit-full-$id')),
+      findsNothing,
+      reason: '点文字不许顺带展开格子（cell 键的展开/收起语义不变）',
+    );
+
+    await tester.enterText(editor, '新标题');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('新标题'), findsOneWidget, reason: '提交后卡片上要显示新标题');
+
+    final _RawGoal after = (await _goalById(db, id))!;
+    expect(after.title, '新标题', reason: '就地编辑必须把标题写进 SQLite');
+    expect(after.note, before.note, reason: '就地改名不许碰备注');
+    expect(after.keywords, before.keywords, reason: '就地改名不许碰关键词');
+    expect(after.domain, before.domain, reason: '就地改名不许碰领域');
+    expect(after.dueDate, before.dueDate, reason: '就地改名不许碰期限');
+    expect(after.periodStart, before.periodStart, reason: '就地改名不许碰周期起点');
+    expect(after.periodEnd, before.periodEnd, reason: '就地改名不许重算周期终点');
   });
 
   testWidgets('N1 B9-W2：切遍 4 个标签页都不出现 near 新建入口', (WidgetTester tester) async {

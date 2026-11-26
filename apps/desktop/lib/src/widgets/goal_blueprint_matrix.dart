@@ -7,9 +7,9 @@
 //     不渲染表头行。目标格里显示 `title` 一行 + `keywords` 标签 + 做法条数；
 //     点标题展开三层（目标 → 关键词 → 做法）。
 //  2. **标签页 = Chrome/Edge 浏览器标签**（B12 第 2 条，用户给的参照物）：
-//     标签条底 = 纸（`tokens.paper`）；**活动标签 = 内容区底色（`tokens.card`）**
-//     ⇒ 下边缘与下方表格同色、无下边框，视觉上「打开」进内容区；非活动标签 =
-//     下沉色（`tokens.sunken`，偏灰）+ 底边抬高 6px（不与内容区相接）+ 标签之间
+//     标签条底 = 纸（`tokens.paper`）；**活动标签 = 浅洗底（`tokens.inkWash`）**
+//     + 顶部 3px 实色指示条 ⇒ 靠「底色差 + 指示条」标出当前档；非活动标签 =
+//     下沉色（`tokens.sunken`，偏灰）+ 底边抬高 6px + 标签之间
 //     1px hairline 分隔。顶部圆角 8px（[GoalBlueprintMatrix.chromeTabTopRadius]）
 //     是本轮**唯一**超出 `AppTokens.radius`（4px）的例外，其余圆角/配色一律走
 //     `theme_tokens.dart` 的 `LightPalette`。四档都用 `Tooltip` 悬停显示时长
@@ -49,6 +49,7 @@
 
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/goal_store.dart';
 import '../l10n/app_localizations.dart';
@@ -82,6 +83,7 @@ class GoalBlueprintMatrix extends StatefulWidget {
     this.onDeleteGoal,
     this.onToggleGoalDone,
     this.onEditGoalPeriod,
+    this.onRenameGoal,
     super.key,
   });
 
@@ -128,6 +130,12 @@ class GoalBlueprintMatrix extends StatefulWidget {
   ///
   /// null = 不渲染日期列的改期按钮（同上）。
   final void Function(GoalRow goal, int startMs, int? endMs)? onEditGoalPeriod;
+
+  /// 就地改名（B14 第 2 条）：点铅笔 → 格内出现输入框 → 提交只写 `title`。
+  ///
+  /// `title` 已 trim、且调用前已保证**非空且与旧值不同**。
+  /// null ⇒ 铅笔退回 [onEditGoal] 的全量弹窗（坑 48：既有调用点逐字不变）。
+  final void Function(GoalRow goal, String title)? onRenameGoal;
 
   /// 档位顺序（终极 → 近期）。
   ///
@@ -187,6 +195,33 @@ class GoalBlueprintMatrix extends StatefulWidget {
     vertical: 11,
   );
 
+  /// 活动标签顶部实色条高度（px，B14 第 3 条）。
+  ///
+  /// 选中态不能再靠「底色 = 内容区底色」表达（那会让标签与表格融为一体、
+  /// 看不出选中），改成「淡染底 + 顶部 3px 实色条」。
+  static const double tabIndicatorHeight = 3;
+
+  /// 三列宽度比例（领域 : 目标 : 起止），B14 第 2 条显式钉死。
+  ///
+  /// 起止列 3 → 4：`yyyy-MM-dd ~ yyyy-MM-dd` 是 23 个字符，3 份宽在
+  /// 760px 视口下必须缩字才能整行放下；4 份宽给足空间，配合 [cellPadding]
+  /// 与日期的 `FittedBox` 兜底 ⇒ 常态不缩字、极窄视口也不折行。
+  static const double columnFlexDomain = 2;
+
+  /// 目标列占比（见 [columnFlexDomain]）。
+  static const double columnFlexGoal = 5;
+
+  /// 起止列占比（见 [columnFlexDomain]）。
+  static const double columnFlexPeriod = 4;
+
+  /// 年刻度条与主表**共用**的列宽；抽成一处，避免两张表比例漂移。
+  static const Map<int, TableColumnWidth> columnWidths =
+      <int, TableColumnWidth>{
+        0: FlexColumnWidth(columnFlexDomain),
+        1: FlexColumnWidth(columnFlexGoal),
+        2: FlexColumnWidth(columnFlexPeriod),
+      };
+
   @override
   State<GoalBlueprintMatrix> createState() => _GoalBlueprintMatrixState();
 }
@@ -204,6 +239,102 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         _expanded.add(goalId);
       }
     });
+  }
+
+  /// 就地编辑中的目标 id（null = 没有在编辑）。
+  ///
+  /// B14 第 2 条：**同一时刻只允许一条**在编辑 —— 单份控制器 + 单份焦点节点，
+  /// 避免 6 行 × 多目标的格子里堆一屏 `TextEditingController`。
+  String? _editingGoalId;
+
+  /// 就地编辑输入框的控制器（State 生命周期内复用一份）。
+  final TextEditingController _inline = TextEditingController();
+
+  /// 就地编辑的焦点节点：失焦即提交（点空白/切页签/点别的格子都能收口）。
+  final FocusNode _inlineFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _inlineFocus.addListener(_onInlineFocusChanged);
+  }
+
+  @override
+  void dispose() {
+    _inlineFocus.removeListener(_onInlineFocusChanged);
+    _inlineFocus.dispose();
+    _inline.dispose();
+    super.dispose();
+  }
+
+  /// 失焦 ⇒ 提交（不丢用户刚敲的字；语义等同点空白确认）。
+  void _onInlineFocusChanged() {
+    if (_inlineFocus.hasFocus) {
+      return;
+    }
+    _commitInline();
+  }
+
+  /// 进入就地编辑：预填旧标题，**光标置末**（不抢全选，避免误删整条标题）。
+  void _startInline(GoalRow goal) {
+    if (widget.onRenameGoal == null) {
+      // 没传改名回调 ⇒ 保持旧行为：打开全量表单弹窗（坑 48）。
+      widget.onEditGoal?.call(goal);
+      return;
+    }
+    _inline.text = goal.title;
+    _inline.selection = TextSelection.collapsed(offset: goal.title.length);
+    setState(() => _editingGoalId = goal.id);
+  }
+
+  /// 提交就地编辑：只把**标题**交给调用方，其余字段一律不碰。
+  ///
+  /// 为什么不经页面侧的表单落库：`_writeGoal` 会重算 `period_end` 并按
+  /// `clear` 集合清空 note/keywords —— 改个错别字不该有这种副作用。
+  void _commitInline() {
+    if (!mounted) {
+      return;
+    }
+    final String? id = _editingGoalId;
+    if (id == null) {
+      return;
+    }
+    final GoalRow? goal = _goalById(id);
+    final String next = _inline.text.trim();
+    setState(() => _editingGoalId = null);
+    if (goal == null || next.isEmpty || next == goal.title) {
+      return;
+    }
+    widget.onRenameGoal?.call(goal, next);
+  }
+
+  /// 放弃就地编辑（Esc）：不写库、不改数据。
+  void _cancelInline() {
+    if (_editingGoalId == null || !mounted) {
+      return;
+    }
+    setState(() => _editingGoalId = null);
+  }
+
+  /// 回车提交；**IME 组合态（拼音还在候选窗里）回车是上屏，不是提交**。
+  void _onInlineSubmitted(String _) {
+    final TextEditingValue value = _inline.value;
+    if (value.composing.isValid && !value.composing.isCollapsed) {
+      return;
+    }
+    _commitInline();
+  }
+
+  /// 当前档位里按 id 找目标（就地编辑提交时取旧标题做比较）。
+  GoalRow? _goalById(String id) {
+    for (final GoalBlueprintRow row in widget.rows) {
+      for (final GoalRow goal in row.cells[_selected] ?? const <GoalRow>[]) {
+        if (goal.id == id) {
+          return goal;
+        }
+      }
+    }
+    return null;
   }
 
   @override
@@ -236,11 +367,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         // 当前档位没有任何日期时整条不渲染（空格子合法，不摆空刻度）。
         if (span != null)
           Table(
-            columnWidths: <int, TableColumnWidth>{
-              0: const FlexColumnWidth(2),
-              1: const FlexColumnWidth(5),
-              2: const FlexColumnWidth(3),
-            },
+            columnWidths: GoalBlueprintMatrix.columnWidths,
             children: <TableRow>[
               TableRow(
                 children: <Widget>[
@@ -257,11 +384,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
             ],
           ),
         Table(
-          columnWidths: <int, TableColumnWidth>{
-            0: const FlexColumnWidth(2),
-            1: const FlexColumnWidth(5),
-            2: const FlexColumnWidth(3),
-          },
+          columnWidths: GoalBlueprintMatrix.columnWidths,
           border: TableBorder(
             horizontalInside: BorderSide(color: tokens.hairSoft, width: 1),
             verticalInside: BorderSide(color: tokens.hairSoft, width: 1),
@@ -319,13 +442,12 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
 
   /// 标签条（Chrome/Edge 浏览器标签风格，B12 第 2 条）。
   ///
-  /// 结构与「与内容区融合」的做法：
+  /// 结构与「当前档」的标法：
   ///  * 标签条底 = 纸（`tokens.paper`）—— 相当于浏览器的工具条；
-  ///  * **活动标签底 = 内容区底色（`tokens.card`）** ⇒ 它下边缘与下方表格（内容区）
-  ///    同色、且没有分隔线 ⇒ 视觉上「打开」进内容区（这就是浏览器标签的融合感）；
-  ///  * 非活动标签 = 下沉色（`tokens.sunken`，偏灰）+ 底边抬高 6px ⇒ 不与内容区相接；
-  ///  * 标签之间的 1px hairline 只画在**两个非活动标签之间**（活动标签两侧留空，
-  ///    免得切断它与内容区融合的那条边）。
+  ///  * **活动标签底 = 浅洗底（`tokens.inkWash`）** + 顶部 3px 实色指示条
+  ///    ⇒ 靠「底色差 + 指示条」标出当前档（不再与内容区同色融合）；
+  ///  * 非活动标签 = 下沉色（`tokens.sunken`，偏灰）+ 底边抬高 6px；
+  ///  * 标签之间的 1px hairline 只画在**两个非活动标签之间**（活动标签两侧留空）。
   ///
   /// 整条标签条用 `FittedBox(scaleDown)` 兜底 ⇒ 窄视口（1920 / 2520）不溢出。
   Widget _tabStrip({
@@ -366,8 +488,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
 
   /// 一个档位标签页（Chrome/Edge 浏览器标签风格）。
   ///
-  /// 活动标签 = 内容区底色 + 顶部圆角 8px + 无下边框（与内容区融合）；
-  /// 非活动标签 = 下沉色 + 顶部圆角 8px + 底边抬高 6px。
+  /// 活动标签 = 浅洗底（`tokens.inkWash`）+ 顶部圆角 8px + 顶部 3px 指示条；
+  /// 非活动标签 = 下沉色（`tokens.sunken`）+ 顶部圆角 8px + 底边抬高 6px。
   /// 仍用 `TextButton`（保留按钮语义与键盘可达性），键名与文案一字未改。
   Widget _tab(
     GoalHorizon horizon, {
@@ -382,12 +504,20 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         padding: EdgeInsets.only(
           bottom: active ? 0 : GoalBlueprintMatrix.tabInactiveLift,
         ),
-        child: TextButton(
-          key: ValueKey<String>('goal-blueprint-tab-${_horizonKey(horizon)}'),
+        // 选中态 = 淡染底 + **顶部 3px 实色条**（B14 第 3 条）。
+        // 指示条单独铺在标签顶边：底色与内容区同色时它提供唯一的方向线索；
+        // 用 `IgnorePointer` 包住，免得抢走标签顶部 3px 的点击。
+        child: Stack(
+          children: <Widget>[
+            TextButton(
+              key: ValueKey<String>(
+                'goal-blueprint-tab-${_horizonKey(horizon)}',
+              ),
           onPressed: () => setState(() => _selected = horizon),
           style: TextButton.styleFrom(
-            // 活动 = 内容区底色（融合）；非活动 = 下沉色（偏灰）。
-            backgroundColor: active ? tokens.card : tokens.sunken,
+                // 活动 = 「当前」浅洗底（**不再**用内容区底色，否则融为一体）；
+                // 非活动 = 下沉色（偏灰）。
+                backgroundColor: active ? tokens.inkWash : tokens.sunken,
             foregroundColor: active ? tokens.ink : tokens.meta,
             // B13 第 2 条：水平内边距 10 → 18（`_tabPadding`）。
             padding: const EdgeInsets.symmetric(
@@ -404,7 +534,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
             shape: const RoundedRectangleBorder(
               // 只圆顶部两角（浏览器标签轮廓）；底部是直角 ⇒ 能与内容区对齐。
               borderRadius: BorderRadius.vertical(
-                top: Radius.circular(GoalBlueprintMatrix.chromeTabTopRadius),
+                    top: Radius.circular(
+                      GoalBlueprintMatrix.chromeTabTopRadius,
+                    ),
               ),
             ),
           ),
@@ -421,6 +553,30 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               fontWeight: active ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
+            ),
+            if (active)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    key: ValueKey<String>(
+                      'goal-blueprint-tab-indicator-${_horizonKey(horizon)}',
+                    ),
+                    height: GoalBlueprintMatrix.tabIndicatorHeight,
+                    decoration: BoxDecoration(
+                      color: tokens.ink,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(
+                          GoalBlueprintMatrix.chromeTabTopRadius,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -514,23 +670,66 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      InkWell(
-                        key: ValueKey<String>('goal-blueprint-cell-${goal.id}'),
-                        onTap: () => _toggle(goal.id),
-                        child: Text(goal.title, style: bodyStyle),
-                      ),
-                      if (_expanded.contains(goal.id)) ...<Widget>[
-                        if (goal.keywords != null &&
-                            goal.keywords!.trim().isNotEmpty)
-                          Text(goal.keywords!, style: metaStyle),
-                        for (final GoalRow child in _weeklyChildren(goal))
-                          Text(
-                            '${widget.t.goalBlueprintWeeklyTarget} ${child.title}',
+                      if (_editingGoalId == goal.id)
+                        _inlineEditor(goal, bodyStyle)
+                      else ...<Widget>[
+                        // D1：格子按键（整格）仍是**展开/收起**，语义逐字不变；
+                        // 文本节点自己再挂一个手势，只盖住文字自身尺寸 ⇒
+                        // 点文字进就地编辑、点格子空白处照旧展开。
+                        SizedBox(
+                          width: double.infinity,
+                          child: InkWell(
                             key: ValueKey<String>(
-                              'goal-blueprint-child-${child.id}',
+                              'goal-blueprint-cell-${goal.id}',
                             ),
-                            style: metaStyle,
+                            onTap: () => _toggle(goal.id),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: GestureDetector(
+                                key: ValueKey<String>(
+                                  'goal-blueprint-goal-text-${goal.id}',
+                                ),
+                                onTap: () => _startInline(goal),
+                                child: Text(goal.title, style: bodyStyle),
+                              ),
+                            ),
                           ),
+                        ),
+                        if (_expanded.contains(goal.id)) ...<Widget>[
+                          if (goal.keywords != null &&
+                              goal.keywords!.trim().isNotEmpty)
+                            Text(goal.keywords!, style: metaStyle),
+                          for (final GoalRow child in _weeklyChildren(goal))
+                            Text(
+                              '${widget.t.goalBlueprintWeeklyTarget} ${child.title}',
+                              key: ValueKey<String>(
+                                'goal-blueprint-child-${child.id}',
+                              ),
+                              style: metaStyle,
+                            ),
+                          // B14 第 2 条：铅笔改成**就地改名**后，全量编辑
+                          // （备注 / 关键词 / 领域 / 档位 / 期限）的唯一入口
+                          // 必须另开 —— 否则 B8 D-8-e 的「领域可清空」链路
+                          // 在 UI 上失去可达性（T2 就是钉这条的）。
+                          if (goal.kind == GoalKind.blueprint &&
+                              widget.onEditGoal != null)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: IconButton(
+                                key: ValueKey<String>(
+                                  'goal-blueprint-edit-full-${goal.id}',
+                                ),
+                                onPressed: () => widget.onEditGoal!(goal),
+                                icon: const Icon(Icons.tune, size: 15),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 24,
+                                  minHeight: 24,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                        ],
                       ],
                     ],
                   ),
@@ -542,6 +741,35 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
             ),
           ),
       ],
+    );
+  }
+
+  /// 就地编辑框（B14 第 2 条）：单行、自动聚焦、Esc 取消、失焦 / 回车提交。
+  ///
+  /// 入口有两个（B14 补做 D1）：格内标题文本（`goal-blueprint-goal-text-<id>`，
+  /// 点文字直接进）与铅笔。`goal-blueprint-cell-<id>` 的点击仍归**展开三层**
+  /// （B9/B12 收口）；文字手势只覆盖文字自身尺寸，点格子空白处照旧展开。
+  Widget _inlineEditor(GoalRow goal, TextStyle? bodyStyle) {
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.escape): _cancelInline,
+      },
+      child: TextField(
+        key: ValueKey<String>('goal-blueprint-inline-${goal.id}'),
+        controller: _inline,
+        focusNode: _inlineFocus,
+        autofocus: true,
+        maxLines: 1,
+        style: bodyStyle,
+        textInputAction: TextInputAction.done,
+        onSubmitted: _onInlineSubmitted,
+        decoration: const InputDecoration(
+          isDense: true,
+          // 与相邻单元格的文字左缘对齐（不额外撑高行）。
+          contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+          border: InputBorder.none,
+        ),
+      ),
     );
   }
 
@@ -567,16 +795,26 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Text(
-                  _periodText(goal),
-                  key: ValueKey<String>(
-                    'goal-blueprint-period-text-${goal.id}',
-                  ),
-                  // 等宽数字（`tabularFigures`）：日期列纵向对齐，不抖动。
+                // B14 第 2 条：起止日期**单行不折行**。
+                // 23 个字符在 760px 视口的起止列里仍可能超宽 ⇒ `FittedBox`
+                // 等比缩字（保留 `yyyy-MM-dd ~ yyyy-MM-dd` 全量信息，不截年份、
+                // 不省略号），常态宽度下 scaleDown 不生效、字号原样。
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _periodText(goal),
+                    key: ValueKey<String>(
+                      'goal-blueprint-period-text-${goal.id}',
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
+                    // 等宽数字（`tabularFigures`）：日期列纵向对齐，不抖动。
                   style: bodyStyle?.copyWith(
                     fontFeatures: const <FontFeature>[
                       FontFeature.tabularFigures(),
                     ],
+                    ),
                   ),
                 ),
                 // 日期条（A 稿 `.track`）：整条宽 = 当前档位的跨度，实心段 = 本条；
@@ -626,7 +864,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         if (widget.onEditGoal != null)
           _compactButton(
             key: ValueKey<String>('goal-blueprint-edit-${goal.id}'),
-            onPressed: () => widget.onEditGoal!(goal),
+            // B14 第 2 条：点铅笔 ⇒ **格内就地编辑**（不再弹全量表单弹窗）。
+            // `onRenameGoal` 为 null 的既有调用点仍走旧弹窗（坑 48）。
+            onPressed: () => _startInline(goal),
             tooltip: widget.t.goalBlueprintEditGoal,
             child: const Icon(Icons.edit_outlined),
             iconSize: 16,

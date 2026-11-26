@@ -210,6 +210,22 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
     final TextStyle? fieldStyle = widget.compact
         ? Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35)
         : null;
+    // B14 补做 D3：备注 / 关键词只在**紧凑版**（蓝图页）折进「更多」里，
+    // 字段本身不删；周 / 月 / 年页（`compact == false`）仍原样平铺。
+    final List<Widget> noteAndKeywords = <Widget>[
+      TextField(
+        key: const ValueKey<String>('goal-blueprint-form-note'),
+        controller: _note,
+        style: fieldStyle,
+        decoration: _decoration(t.goalBlueprintFieldNote),
+      ),
+      TextField(
+        key: const ValueKey<String>('goal-blueprint-form-keywords'),
+        controller: _keywords,
+        style: fieldStyle,
+        decoration: _decoration(t.goalBlueprintFieldKeywords),
+      ),
+    ];
     return AlertDialog(
       title: Text(
         widget.existing == null ? t.goalBlueprintAddGoal : t.goalBlueprintEditGoal,
@@ -222,20 +238,27 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
               key: const ValueKey<String>('goal-blueprint-form-title'),
               controller: _title,
               style: fieldStyle,
+              // 新建只写标题即可（B14 补做 D2 的快速通道）：打开表单即聚焦。
+              autofocus: widget.compact && widget.existing == null,
               decoration: _decoration(t.commonTitle),
             ),
-            TextField(
-              key: const ValueKey<String>('goal-blueprint-form-note'),
-              controller: _note,
-              style: fieldStyle,
-              decoration: _decoration(t.goalBlueprintFieldNote),
-            ),
-            TextField(
-              key: const ValueKey<String>('goal-blueprint-form-keywords'),
-              controller: _keywords,
-              style: fieldStyle,
-              decoration: _decoration(t.goalBlueprintFieldKeywords),
-            ),
+            if (widget.compact)
+              ExpansionTile(
+                key: const ValueKey<String>('goal-blueprint-form-more'),
+                title: Text(
+                  '${t.goalBlueprintFieldNote} / '
+                  '${t.goalBlueprintFieldKeywords}',
+                  style: fieldStyle,
+                ),
+                // 去 M3 自带的上下分隔线与额外缩进，与相邻字段对齐。
+                tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                childrenPadding: const EdgeInsets.only(bottom: 8),
+                shape: const Border(),
+                collapsedShape: const Border(),
+                children: noteAndKeywords,
+              )
+            else
+              ...noteAndKeywords,
             DropdownButtonFormField<String>(
               key: const ValueKey<String>('goal-blueprint-form-domain'),
               initialValue: _domain,

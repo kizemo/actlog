@@ -315,17 +315,17 @@ void main() {
         tabOf(key).style!.minimumSize!.resolve(const <WidgetState>{})!.height;
 
     // 默认选中「终极」。
-    // B12 第 2 条（浏览器标签风格）：激活页底 = **内容区底色**（card），下边缘与
-    // 下方表格同色、且不画分隔线 ⇒ 视觉上「打开」进内容区。
+    // B14 条目 3：激活页底 = 淡染底 `inkWash` + 顶部 3px 实色条；B12 的
+    // 「与内容区同色（card）」契约被用户否决——融为一体就看不出哪个是活动标签。
     expect(
       bgOf('ultimate'),
-      tokens.card,
-      reason: '激活页签底 = tokens.card（与内容区融合；旧契约 inkWash 已作废）',
+      tokens.inkWash,
+      reason: '激活页签底 = tokens.inkWash（淡染底；B12 的 card 契约已作废）',
     );
     expect(
       bgOf('ultimate'),
-      isNot(tokens.inkWash),
-      reason: 'B12 明确不用 inkWash 浅洗底：那是「选中」语义，不是「打开」',
+      isNot(tokens.card),
+      reason: '激活页不得与内容区同色（用户原话：融为一体）',
     );
     expect(labelOf('ultimate').style?.color, tokens.ink);
     expect(labelOf('ultimate').style?.fontWeight, FontWeight.w600);
@@ -361,7 +361,7 @@ void main() {
 
     // 切到「中期」后，激活态跟着走（不是写死在第一个）。
     await _tapKey(tester, const ValueKey<String>('goal-blueprint-tab-mid'));
-    expect(bgOf('mid'), tokens.card);
+    expect(bgOf('mid'), tokens.inkWash);
     expect(bgOf('ultimate'), tokens.sunken);
     expect(labelOf('mid').style?.fontWeight, FontWeight.w600);
     expect(labelOf('ultimate').style?.fontWeight, isNot(FontWeight.w600));

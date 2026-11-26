@@ -827,16 +827,16 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBlueprintColumnGoal => '目标';
 
   @override
-  String get goalBlueprintHorizonUltimate => '终极';
+  String get goalBlueprintHorizonUltimate => '终极目标';
 
   @override
-  String get goalBlueprintHorizonLong => '远期';
+  String get goalBlueprintHorizonLong => '远期目标';
 
   @override
-  String get goalBlueprintHorizonMid => '中期';
+  String get goalBlueprintHorizonMid => '中期目标';
 
   @override
-  String get goalBlueprintHorizonShort => '短期';
+  String get goalBlueprintHorizonShort => '短期目标';
 
   @override
   String get goalBlueprintHorizonNear => '近期（1 年）';
@@ -1446,16 +1446,16 @@ mixin GoalsEnL10n implements GoalsL10n {
   String get goalBlueprintColumnGoal => 'Goal';
 
   @override
-  String get goalBlueprintHorizonUltimate => 'Ultimate';
+  String get goalBlueprintHorizonUltimate => 'Ultimate Goal';
 
   @override
-  String get goalBlueprintHorizonLong => 'Long-term';
+  String get goalBlueprintHorizonLong => 'Long-term Goal';
 
   @override
-  String get goalBlueprintHorizonMid => 'Mid-term';
+  String get goalBlueprintHorizonMid => 'Mid-term Goal';
 
   @override
-  String get goalBlueprintHorizonShort => 'Short-term';
+  String get goalBlueprintHorizonShort => 'Short-term Goal';
 
   @override
   String get goalBlueprintHorizonNear => 'Near-term (1 year)';
