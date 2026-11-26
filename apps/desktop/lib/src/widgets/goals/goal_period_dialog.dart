@@ -11,6 +11,9 @@
 //  2. 结束为空 ⇒ `endMs == null`；调用方负责补 `clear: {GoalField.periodEnd}`。
 //  3. 结束早于起始 ⇒ 确认时按起始对齐（不弹错、不写非法周期）。
 //  4. 文案一律走 `t.` getter；日期按 `yyyy-MM-dd` 显示，缺值占位符 `—`（与年页同口径）。
+//  5. **存储口径（B11 核实）**：起止毫秒 = 「**本地**某日 00:00 那一刻的毫秒数」
+//     （`showDatePicker` 给的是本地 `DateTime`，落库取它的 `millisecondsSinceEpoch`），
+//     因此解析与显示一律按**本地时区**；按 UTC 解释会让东八区整体提前一天。
 //
 // 键（测试用）：`goal-period-dialog` / `goal-period-start` / `goal-period-end` /
 // `goal-period-clear` / `goal-period-cancel` / `goal-period-confirm`。
@@ -25,10 +28,10 @@ class GoalPeriodResult {
   /// 构造。
   const GoalPeriodResult({required this.startMs, required this.endMs});
 
-  /// 起始（UTC 毫秒；`0` = 清空起始）。
+  /// 起始（**本地午夜毫秒**；`0` = 清空起始）。
   final int startMs;
 
-  /// 结束（UTC 毫秒；null = 无固定终点）。
+  /// 结束（**本地午夜毫秒**；null = 无固定终点）。
   final int? endMs;
 }
 
@@ -159,9 +162,12 @@ class _GoalPeriodDialogState extends State<_GoalPeriodDialog> {
   }
 
   Future<DateTime?> _pick(int? millis) {
+    // 起止是「本地某日 00:00 那一刻的毫秒数」⇒ 按**本地时区**还原成那一天再喂给
+    // 日期选择器。（原先的 `isUtc: true` + `toLocal()` 绕了一圈回到同一个本地时刻，
+    // 结果相同但读起来像「按 UTC 解释」，容易再写错；这里直接用本地口径。）
     final DateTime initial = millis == null
         ? DateTime.now()
-        : DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal();
+        : DateTime.fromMillisecondsSinceEpoch(millis);
     return showDatePicker(
       context: context,
       initialDate: initial,
@@ -180,15 +186,16 @@ class _GoalPeriodDialogState extends State<_GoalPeriodDialog> {
     Navigator.of(context).pop(GoalPeriodResult(startMs: start, endMs: end));
   }
 
-  /// UTC 毫秒 → `yyyy-MM-dd`（null = 缺值 → `—`）。
+  /// 本地午夜毫秒 → `yyyy-MM-dd`（null = 缺值 → `—`）。
+  ///
+  /// 口径：起止存的是「**本地**某日 00:00 那一刻的毫秒数」（`showDatePicker` 给的
+  /// 就是本地 `DateTime`，落库取它的 `millisecondsSinceEpoch`）⇒ 解析与显示都按
+  /// **本地时区**；按 UTC 解释会让东八区整体提前一天（装机实测：选 11-01 显示成 10-31）。
   String _dateText(int? millis) {
     if (millis == null || millis <= 0) {
       return '—';
     }
-    final DateTime moment = DateTime.fromMillisecondsSinceEpoch(
-      millis,
-      isUtc: true,
-    );
+    final DateTime moment = DateTime.fromMillisecondsSinceEpoch(millis);
     final String month = moment.month.toString().padLeft(2, '0');
     final String day = moment.day.toString().padLeft(2, '0');
     return '${moment.year}-$month-$day';

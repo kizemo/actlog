@@ -1981,6 +1981,15 @@ abstract final class L10nKeys {
   /// 个人品牌管理：切面导航小标题。
   static const String goalBrandFacetNavLabel = 'goal-brand-facet-nav-label';
 
+  /// 蓝图页片头带：左侧小标。
+  static const String goalBlueprintBandKicker = 'goal-blueprint-band-kicker';
+
+  /// 蓝图页片头带：一句话副标。
+  static const String goalBlueprintBandSubtitle = 'goal-blueprint-band-subtitle';
+
+  /// 蓝图页片头带：右侧署名。
+  static const String goalBlueprintBandBrand = 'goal-blueprint-band-brand';
+
   /// 个人品牌管理：指引块标题。
   static const String goalBrandGuideTitle = 'goal-brand-guide-title';
 
@@ -2190,6 +2199,9 @@ abstract final class L10nKeys {
 
   /// 标签浮层标题。
   static const String goalPositionTagsTitle = 'goal-position-tags-title';
+
+  /// 标签浮层的显式开关按钮文案。
+  static const String goalPositionTagsToggle = 'goal-position-tags-toggle';
 
   /// 价值观标签库（Schwartz 10 项）。
   static const String goalPositionValueTags = 'goal-position-value-tags';
@@ -2427,6 +2439,9 @@ abstract final class L10nKeys {
     'goalBrandTitleLabel': goalBrandTitleLabel,
     'goalBrandNoteLabel': goalBrandNoteLabel,
     'goalBrandFacetNavLabel': goalBrandFacetNavLabel,
+    'goalBlueprintBandKicker': goalBlueprintBandKicker,
+    'goalBlueprintBandSubtitle': goalBlueprintBandSubtitle,
+    'goalBlueprintBandBrand': goalBlueprintBandBrand,
     'goalBrandGuideTitle': goalBrandGuideTitle,
     'goalBrandGuideFormula': goalBrandGuideFormula,
     'goalBrandGuideLayers': goalBrandGuideLayers,
@@ -2490,6 +2505,7 @@ abstract final class L10nKeys {
     'goalPositionProofTitle': goalPositionProofTitle,
     'goalPositionProofHint': goalPositionProofHint,
     'goalPositionTagsTitle': goalPositionTagsTitle,
+    'goalPositionTagsToggle': goalPositionTagsToggle,
     // 应用外壳（Task 61 起；Task 64 补导航「目标」/ 快捷键「切到目标」，
     // Task 72 补快捷键「切到蓝图」⇒ Ctrl+7）
     'shellNavToday': shellNavToday,

@@ -420,6 +420,15 @@ abstract class GoalsL10n {
   /// 品牌面板：左侧切面导航的小标题。
   String get goalBrandFacetNavLabel;
 
+  /// 蓝图页片头带：左侧小标（`07 / 蓝图`）。
+  String get goalBlueprintBandKicker;
+
+  /// 蓝图页片头带：主标题下的一句话副标。
+  String get goalBlueprintBandSubtitle;
+
+  /// 蓝图页片头带：右侧署名的第一行。
+  String get goalBlueprintBandBrand;
+
   /// 品牌面板：指引块标题。
   String get goalBrandGuideTitle;
 
@@ -591,6 +600,9 @@ abstract class GoalsL10n {
 
   /// 标签浮层标题。
   String get goalPositionTagsTitle;
+
+  /// 标签浮层的显式开关按钮文案。
+  String get goalPositionTagsToggle;
 
   /// 价值观标签库（Schwartz 基本价值理论 10 项）。
   List<String> get goalPositionValueTags;
@@ -981,6 +993,17 @@ mixin GoalsZhL10n implements GoalsL10n {
   String get goalBrandFacetNavLabel => '切面';
 
   @override
+  String get goalBlueprintBandKicker => '07 / 蓝图';
+
+  @override
+  String get goalBlueprintBandSubtitle =>
+      '终极 → 远期 → 中期 → 短期：四层目标放在同一张制图纸上。'
+      '先回答「我为什么做」，再排下一步。';
+
+  @override
+  String get goalBlueprintBandBrand => '知行日志 ACTLOG';
+
+  @override
   String get goalBrandGuideTitle => '个人品牌建设全解';
 
   @override
@@ -1156,6 +1179,9 @@ mixin GoalsZhL10n implements GoalsL10n {
 
   @override
   String get goalPositionTagsTitle => '点击标签填入';
+
+  @override
+  String get goalPositionTagsToggle => '标签库';
 
   @override
   List<String> get goalPositionValueTags => const <String>[
@@ -1591,6 +1617,17 @@ mixin GoalsEnL10n implements GoalsL10n {
   String get goalBrandFacetNavLabel => 'Facets';
 
   @override
+  String get goalBlueprintBandKicker => '07 / Blueprint';
+
+  @override
+  String get goalBlueprintBandSubtitle =>
+      'Ultimate → Long-term → Mid-term → Short-term: four goal layers on one '
+      'drafting sheet. Answer "why I do this" first, then lay out the next step.';
+
+  @override
+  String get goalBlueprintBandBrand => 'ACTLOG · ZhiXing Journal';
+
+  @override
   String get goalBrandGuideTitle => 'Personal brand, end to end';
 
   @override
@@ -1795,6 +1832,9 @@ mixin GoalsEnL10n implements GoalsL10n {
 
   @override
   String get goalPositionTagsTitle => 'Click a tag to fill in';
+
+  @override
+  String get goalPositionTagsToggle => 'Tags';
 
   @override
   List<String> get goalPositionValueTags => const <String>[

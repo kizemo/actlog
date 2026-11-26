@@ -42,6 +42,7 @@ import '../widgets/goal_balance_wheel.dart';
 import '../widgets/goal_blueprint_matrix.dart';
 import '../widgets/goal_brand_panel.dart';
 import '../widgets/goal_year_matrix.dart';
+import '../widgets/goals/goal_blueprint_band.dart';
 import '../widgets/goals/goal_form_dialog.dart';
 import '../widgets/goals/goal_period_dialog.dart';
 import '../widgets/goals/goal_split_dialog.dart';
@@ -89,6 +90,19 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   /// 读模型（缓存一次，避免 FutureBuilder 重建循环）。
   Future<_BlueprintData>? _future;
 
+  /// 今天（`yyyy-MM-dd`，片头带元信息用）。
+  ///
+  /// `initState` 取一次：不在 `build` 里 `ref.read`，也不 watch
+  /// （today 变化时页面本来就靠上层重建，不必在这里再挂一条依赖）。
+  late String _todayText;
+
+  /// rail 出现的最小宽度：窄于此只渲染内容列（rail 是导航示意，缺了不影响操作，
+  /// 但绝不能因为塞 rail 让窄窗口溢出）。
+  static const double _railBreakpoint = 980;
+
+  /// rail 宽度（对应 A 稿 `.page` 的 `220px 1fr`）。
+  static const double _railWidth = 220;
+
   /// 拆分是否已写入（B9-W3：确认即落库，没有中间队列）。
   bool _splitSaved = false;
 
@@ -120,6 +134,7 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   @override
   void initState() {
     super.initState();
+    _todayText = ref.read(todayProvider);
     _future = _load();
   }
 
@@ -185,18 +200,15 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations t = AppLocalizations.of(context);
-    final ThemeTokens tokens = context.tokens;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(
-          t.shellNavBlueprint,
-          key: const ValueKey<String>('blueprint-title'),
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(color: tokens.ink),
-        ),
+        // B11 方向 A「秒数轮盘」：片头带（kicker + 巨标题 + 副标 + mono 元信息
+        // + 静态折线波形）。大标题 key 仍是 `blueprint-title`，文案仍是
+        // `t.shellNavBlueprint`（既有契约，见 `blueprint_page_test.dart`）。
+        GoalBlueprintBand(t: t, today: _todayText),
         if (_goalSaved)
           Text(
             t.goalBlueprintGoalSaved,
@@ -228,10 +240,34 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
             style: _metaStyle(context),
           ),
         const SizedBox(height: AppTokens.gapCard),
-        const GoalPositionPanel(),
-        const SizedBox(height: AppTokens.gapCard),
-        // B9-W2：矩阵不再有段头（标签页本身已经是分档入口）。
-        _block(t, null, (_BlueprintData data) => _buildMatrix(data, t)),
+        LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final Widget content = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const GoalPositionPanel(),
+                const SizedBox(height: AppTokens.gapCard),
+                // B9-W2：矩阵不再有段头（标签页本身已经是分档入口）。
+                _block(t, null, (_BlueprintData data) => _buildMatrix(data, t)),
+              ],
+            );
+            if (constraints.maxWidth < _railBreakpoint) {
+              return content;
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SizedBox(
+                  width: _railWidth,
+                  child: GoalBlueprintFacetRail(t: t),
+                ),
+                const SizedBox(width: 30),
+                Expanded(child: content),
+              ],
+            );
+          },
+        ),
       ],
     );
   }
@@ -364,6 +400,8 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
       t: t,
       domainKey: domainKey,
       horizon: horizon,
+      // 蓝图页的填写框整体要紧凑（目标月 / 周 / 年页保持原样）。
+      compact: true,
     );
     if (result == null || !mounted) {
       return;
@@ -381,6 +419,8 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
       domainKey: goal.domain ?? '',
       horizon: goal.horizon ?? GoalHorizon.ultimate,
       existing: goal,
+      // 蓝图页的填写框整体要紧凑（目标月 / 周 / 年页保持原样）。
+      compact: true,
     );
     if (result == null || !mounted) {
       return;

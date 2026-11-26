@@ -70,6 +70,7 @@ Future<GoalFormResult?> showGoalFormDialog(
   String domainKey = '',
   GoalHorizon horizon = GoalHorizon.ultimate,
   GoalRow? existing,
+  bool compact = false,
 }) => showDialog<GoalFormResult>(
   context: context,
   builder: (BuildContext context) => GoalFormDialog(
@@ -77,6 +78,7 @@ Future<GoalFormResult?> showGoalFormDialog(
     domainKey: domainKey,
     horizon: horizon,
     existing: existing,
+    compact: compact,
   ),
 );
 
@@ -113,6 +115,7 @@ class GoalFormDialog extends StatefulWidget {
     required this.domainKey,
     required this.horizon,
     this.existing,
+    this.compact = false,
     super.key,
   });
 
@@ -127,6 +130,9 @@ class GoalFormDialog extends StatefulWidget {
 
   /// 编辑时的既有目标；null = 新建。
   final GoalRow? existing;
+
+  /// 是否用紧凑版式（蓝图页要更紧凑；目标月 / 周 / 年页默认保持原版式）。
+  final bool compact;
 
   @override
   State<GoalFormDialog> createState() => _GoalFormDialogState();
@@ -185,6 +191,10 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations t = widget.t;
+    // 紧凑版：收紧行高（长文本照常换行，不裁切）。
+    final TextStyle? fieldStyle = widget.compact
+        ? Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.35)
+        : null;
     return AlertDialog(
       title: Text(
         widget.existing == null ? t.goalBlueprintAddGoal : t.goalBlueprintEditGoal,
@@ -196,26 +206,25 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
             TextField(
               key: const ValueKey<String>('goal-blueprint-form-title'),
               controller: _title,
-              decoration: InputDecoration(labelText: t.commonTitle),
+              style: fieldStyle,
+              decoration: _decoration(t.commonTitle),
             ),
             TextField(
               key: const ValueKey<String>('goal-blueprint-form-note'),
               controller: _note,
-              decoration: InputDecoration(labelText: t.goalBlueprintFieldNote),
+              style: fieldStyle,
+              decoration: _decoration(t.goalBlueprintFieldNote),
             ),
             TextField(
               key: const ValueKey<String>('goal-blueprint-form-keywords'),
               controller: _keywords,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldKeywords,
-              ),
+              style: fieldStyle,
+              decoration: _decoration(t.goalBlueprintFieldKeywords),
             ),
             DropdownButtonFormField<String>(
               key: const ValueKey<String>('goal-blueprint-form-domain'),
               initialValue: _domain,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldDomain,
-              ),
+              decoration: _decoration(t.goalBlueprintFieldDomain),
               items: <DropdownMenuItem<String>>[
                 DropdownMenuItem<String>(
                   value: '',
@@ -232,9 +241,7 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
             DropdownButtonFormField<GoalHorizon?>(
               key: const ValueKey<String>('goal-blueprint-form-horizon'),
               initialValue: _horizon,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldHorizon,
-              ),
+              decoration: _decoration(t.goalBlueprintFieldHorizon),
               items: <DropdownMenuItem<GoalHorizon?>>[
                 for (final GoalHorizon horizon in GoalBlueprintMatrix.horizons)
                   DropdownMenuItem<GoalHorizon?>(
@@ -248,8 +255,9 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
             TextField(
               key: const ValueKey<String>('goal-blueprint-form-due'),
               controller: _due,
-              decoration: InputDecoration(
-                labelText: t.goalBlueprintFieldDue,
+              style: fieldStyle,
+              decoration: _decoration(
+                t.goalBlueprintFieldDue,
                 hintText: 'YYYY-MM-DD',
                 errorText: _dueError,
               ),
@@ -270,6 +278,31 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
           child: Text(t.commonSave),
         ),
       ],
+    );
+  }
+
+  /// 字段外框。
+  ///
+  /// 紧凑版（[compact] = true）：`isDense` + 收紧内边距 —— 蓝图页的填写框要
+  /// 更紧凑；目标月 / 周 / 年页传 false，保持原版式不动。
+  InputDecoration _decoration(
+    String? labelText, {
+    String? hintText,
+    String? errorText,
+  }) {
+    if (!widget.compact) {
+      return InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        errorText: errorText,
+      );
+    }
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      errorText: errorText,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
     );
   }
 

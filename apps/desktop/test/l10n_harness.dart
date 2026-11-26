@@ -301,6 +301,12 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
   L10nKeys.goalBrandNoteLabel: (AppLocalizations t) => t.goalBrandNoteLabel,
   L10nKeys.goalBrandFacetNavLabel: (AppLocalizations t) =>
       t.goalBrandFacetNavLabel,
+  L10nKeys.goalBlueprintBandKicker: (AppLocalizations t) =>
+      t.goalBlueprintBandKicker,
+  L10nKeys.goalBlueprintBandSubtitle: (AppLocalizations t) =>
+      t.goalBlueprintBandSubtitle,
+  L10nKeys.goalBlueprintBandBrand: (AppLocalizations t) =>
+      t.goalBlueprintBandBrand,
   L10nKeys.goalBrandGuideTitle: (AppLocalizations t) => t.goalBrandGuideTitle,
   L10nKeys.goalBrandGuideFormula: (AppLocalizations t) =>
       t.goalBrandGuideFormula,
@@ -405,6 +411,8 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
       t.goalPositionProofHint,
   L10nKeys.goalPositionTagsTitle: (AppLocalizations t) =>
       t.goalPositionTagsTitle,
+  L10nKeys.goalPositionTagsToggle: (AppLocalizations t) =>
+      t.goalPositionTagsToggle,
   // 应用外壳 25 条（Task 61 的 23 条 + Task 64 的 2 条）
   L10nKeys.shellNavToday: (AppLocalizations t) => t.shellNavToday,
   L10nKeys.shellNavInbox: (AppLocalizations t) => t.shellNavInbox,

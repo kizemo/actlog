@@ -489,6 +489,7 @@ No issues found! (ran in 5.0s)        ANALYZE_EXIT=0
 ### 11.8 未验证 / 残留（如实登记，不得当成已验收）
 
 1. **视觉判据零证据**：本会话模型不支持读图（工具回 `model does not support images`）⇒ ①悬停 3 秒浮窗 ②标签页激活/未激活观感 ③三列排版是否挤压 ④平衡轮是否真的消失，**全部只有 widget 测试与代码回读，没有人工看帧确认**。装机后需用户目视一次。
+  **【2026-11-26 16:2x 已由 §11.10 的真实帧逐项判读取代：判据 1/2/3/4/6/7 已看图判定；判据 5 = 显示 FAIL（差一天），根因与修法见 §11.10。】**
 2. 勾选框**未按 `kind` 设门槛**，现仅靠 `onToggleGoalDone == null` 门控；蓝图矩阵内只渲染 blueprint 行，暂无暴露面。
 3. `goal_store._diff` 新增 `archived_at` ⇒ oplog 字段集扩大；下游若有字段白名单需复核（**本轮未查**）。
 4. 勾选热区 24×24，低于 Material 建议 48dp；窄视口三列（Flex 2/5/3）挤压**未实测**。
@@ -497,3 +498,101 @@ No issues found! (ran in 5.0s)        ANALYZE_EXIT=0
 ### 11.9 提交
 
 - 只 commit **不 push**；`AGENTS.md` / `docs\relay.json` / `docs\relay\stage-6-report.md` 的未暂存改动属并发接力链会话，**不并入本笔**（`AGENTS.md` 按坑 97 部分暂存）。
+
+### 11.10 B10 装机真机验收（2026-11-26 16:0x–16:2x，worker `bg_be524268-2539-4a45-a81d-ecd0b41db359`）
+
+- **装机件与构建树逐字一致（盘上回读）**：`D:\Program Files\actlog\data\app.so` = **9,192,328 B / sha16 `E0AD7A2E635FE17D` @2026-11-26 15:30:06**；构建树 `apps\desktop\build\windows\x64\runner\Release\data\app.so` = 同字节同 sha16 @15:30:07 ⇒ **本包确已装机**（订正 §2 R3 B10 行「本包尚未装机 / 9,175,944 B / `27D68DEEA7233AAA`」的过期读数）。
+- **取证产物**：帧目录 `reports\task90-frames-b10accept\` = **102 文件（99 PNG + `t90-drive.log` + `t90-launch.log` + `manifest-sha16.txt`）**；种子副本 `reports\task90-seeddb-b10accept\actlog.db`（438,272 B）。
+- **七项判据逐条结论**（全部基于装机件二进制运行时帧）：
+  - ① 个人定位四问（我的价值观 / 我的优势 / 独特价值 / 信任背书）在矩阵上方且各有输入框 = **PASS**（帧 `t90-tall-3200.png` `0A7F1F1AAA63A4D9`）。
+  - ② 候选标签浮窗 = 出现 / Schwartz 10 项齐全 / **可点选** / 落库 = **PASS**；但**触发时机与要求相反**（实测「悬停即现 + 约 3.1–3.6 s 自动消失」，要求是「约 3 秒后出现」）⇒ 记为**偏差**，不粉饰。点选落库已坐实（`goal` id=`01a216de-692a-767a-a49e-aba7620b6f29` kind=brand/facet=identity/title=自我导向）。
+  - ③ 矩阵四标签页（终级 / 远期 / 中期 / 短期）= **PASS**；`horizon=5` 判别样本 `T90NEAR1` 运行时坐实 → near 并入短期档、**无独立 near 标签**。
+  - ④ 每行勾选完成（`status=done` + 「完成：<本地日>」）= **PASS**；时区判别样本 `archived_at=1795723200000`（= 本地 2026-11-27 04:00）显示「完成：2026-11-27」 ⇒ 确为**本地日口径**。
+  - ⑤ 第三列起止日期 = 落库 **PASS** / **界面显示 FAIL（差一天）**：选 2026-11-01 / 11-30 → 界面显示 `2026-10-31 ~ 2026-11-29`，而落库正确（`period_start=1793462400000` = 本地 11-01 00:00）。
+  - ⑥ 页面底部「平衡轮」消失 = **PASS**（旧帧对照 `z-old-balancewheel.png` `5BECFA5E85F2C8A9` + 新帧像素带 ink=0 双证）。
+  - ⑦ 2520 / 1920 两档窄视口三列无溢出 = **PASS**（两档均无 Flutter RenderFlex 溢出条纹）。
+- **判据 ⑤ 根因（已坐实，待修）**：`period_start/period_end` 存的是**本地某日 00:00 的毫秒数**（`1793462400000` = 本地 2026-11-01 00:00 +08:00），而 `goal_period_dialog.dart`（`:164` `DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal()` / `:190`）与 `goal_blueprint_matrix.dart`（`:527`）按 `isUtc: true` 渲染 ⇒ UTC+8 下整体提前一天。**存储正确、显示错误**。修法 = 这三处改按**本地时区**解析/渲染（`isUtc: false`），**不改存储语义**（避免波及历史数据）。另有三处 `isUtc: true` 在 `goals_year_page.dart:630` / `goal_week_table.dart:229` / `goal_year_matrix.dart:135`，存储语义待单独核实，**本轮不动**。
+- **用户活库零写入**：主库 `userdata\actlog.db` sha16 `B5F9070FC63068B1`（352,256 B / mtime 2026-11-21 21:37:03）**全程未变**（起止 + 收尾两次 FileShare 只读直读）；全部写入只落种子副本。用户自己实例 **PID 85004 全程未 kill**，自起实例 PID 60280 / 261144 已回收。
+- **焦点纪律**：未使用任何合成焦点 API（禁 `SetForegroundWindow` / `BringWindowToTop` / `AttachThreadInput` / `keybd_event` / `SetCursorPos`）；除启动瞬间 Windows 默认激活外，全程前台恒为 266104 `MiniMax Code`，`FG_SAME=True`。
+- **方法替代（如实登记）**：`WM_MOUSEWHEEL` 两种坐标口径帧哈希零变化 ⇒ 判据 ⑥ 改用「加高窗口让整页入视口」取证，结论由像素带 ink=0 + 旧帧对照双证支撑，**非滚动证据**；`ParkH=3200` 被系统夹到 2176（整页已在视口内）。
+- **《 §2 R3》行的订正待接**：`AGENTS.md` §2 R3 的 B10 真源行仍写「本包尚未装机」，已被本节盘上读数否定 ⇒ 改正工作留给本批收口时一并做（避开并发接力链会话对 `AGENTS.md` 的未暂存改动）。
+
+### 11.11 B11 蓝图页交互修正（用户意见 1 + 2，worker `bg_879bdcf5-646f-4005-bc81-d230c5239533`）
+
+- **意见 1 · 候选标签悬浮窗「随鼠标移动 ⇒ 无法点选」** → 改为**锚定输入框**的管理方式：浮窗锚在**输入框自身**下方（放不下则翻上方）、指针进入浮窗则**暂停 3 s 计时**、离开才重新计时、无显式 **▾ 标签库**开关（打开即钉住、不参与自动隐藏）、点外部 / `Esc` 关闭、同 code 不叠加第二个浮层、**不用 `Tooltip` 承载可点内容**（会破坏既有 `find.byKey` 计数断言）。锚点矩形**一律在布局期之外算好**（早期版在 delegate 里读 `RenderBox.size` 触发 Flutter `sizeAccessAllowed` 断言，已修）。
+- **意见 2 · 蓝图页填写框内容精练 → 缩小高度**：个人定位 4 框改单行起步（`isDense: true` + 收紧 `contentPadding` + 行高 1.35）；新建目标弹窗新增可选 `compact: true`（仅蓝图页传 true，月/周/年页不变）；拆分弹窗无条件压缩（唯一调用方就是蓝图页）。
+- **改动集**（9 个文件，全在 `apps\desktop\{lib,test}\` 写集内，合计 +894 / -119）：`goal_brand_panel.dart` +396/-100、`goal_form_dialog.dart` +46/-13、`goal_split_dialog.dart` +8/-1、`goals_blueprint_page.dart` +4/-0、`l10n/parts/goals.dart` +9/-0（新 getter `goalPositionTagsToggle`）、`l10n/l10n_keys.dart` +4/-0、`test/l10n_harness.dart` +2/-0、`test/l10n_base_test.dart` +5/-5（基线 604→605 / 663→664）、`test/b10_position_panel_test.dart` +320/-0。
+- **门禁（worker 自报，控制器待复跑）**：`flutter analyze` 逐字 `No issues found! (ran in 8.9s)` / `ANALYZE_EXIT=0`；`flutter test` 逐字 `02:06 +968: All tests passed!` ⇒ **新确切用例数 = 968 = 基线 958 + 新增 10**（Q1–Q7 共 7 + C1–C3 共 3）；9 个文件均无 BOM / 无 CRLF / 无 `print(`。
+- **判别性用例（修复前必红）**：Q1 锚定不跟鼠标 / Q3 选中高亮 / Q4 显式开关 / Q5 点外部关闭 / Q6 `Esc` 关闭 / Q7 不叠加 / C1 输入框压到单行 / C3 弹窗 `compact` 参数与高度对比 = **8 个真判别**；Q2（计时暂停）与 C2（长文换行）修复前亦绿 → **防回归用例**，已如实标注。
+- **已知取舍（如实登记）**：未做「修复前必红」的整仓实跑回放（工作树有并发会话改动，临时回滚会污染对方证据），改用「HEAD 代码逐条对照 + C3 用例内 loose/compact 实测对照」；C1 的修复前高度 83.8 px 为**版式推算值，非实测**。
+- **未做**：未真机（exe）验收（本轮为 Widget 层行为与版式改动）、未 commit / 未 push、未改 `packages/**` 与任何台账 `.md`。**浮窗会遮住下一项输入框**（下拉式弹层的固有形态）→ 需 `Esc` / 点外部 / 再点开关后才能切下一项，未做「侧向展开」额外形态。
+
+### 11.12 蓝图页三版设计初稿（huashu-design 硬门：三方向均已出真实稿，**待用户选定**）
+
+- **共同 spec**：`design-demos\b11-blueprint-spec.md`（8,681 B）—— 真实文案（四问 / Schwartz 10 / VIA 24 / 四档位 / 三列 领域｜目标｜日期）、反 slop 九条自查项、统一 1440×900、**图片需求判定 = 不需要**（工具型界面，配图即 slop）。
+- 视觉母题「纸·墨·刻度·索引」；三版均落在既有已批准方向（`design-demos\direction-approved.md` = B 墨径·账页流 + 赭石=警示 + 4px 圆角）与**源码 token 真源**（`apps\desktop\lib\src\theme\theme_tokens.dart` 的 `LightPalette`）之内；**`design-demos\TOKENS.md` 的 ink 系旧值已过期，一律以源码为准**。
+- **A · 秒数轮盘**（`b11-blueprint-roulette.html` 37,841 B / `b11-blueprint-roulette.png` 218,088 B）：按 `秒 % 20 + 1` 命中风格库网页分区 → 网页 8 号「电影感声波可视化 Cinematic Sound-Viz Dark」（还原度 72%）；与 spec 冲突的纯黑底 + 蓝紫渐变 + glow 已**显式降级**为 token 墨色暗场片头 + 静态 SVG 波形线（零 glow、零 gradient）。骨架 = 顶部墨色片头带 + 左侧 10 切面 rail + 个人定位 1×4 + 矩阵年刻度三列。
+- **B · 现实参照**（`b11-blueprint-benchmark.html` 32,741 B / `b11-blueprint-benchmark.png` 231,744 B）：参照 **Things 3 / Things（Cultured Code）**；证据链 = culturedcode.com 官网 "Honored twice with the prestigious Apple Design Award" + `/things/features/` 设计描述 + Apple App Store 页。迁移 5 点（索引即目录 / 一行一念字段收角上 / 渐进披露标签库 / 唯一「+」入口 / 单一纸面底 + hairline），**不**迁移 7 点（品牌蓝橙、SF Pro、iOS 大圆角柔影、深色渐变侧栏、进度环、emoji 标签、单栏窄列表）。骨架 = 190px 左导航 + 172 切面索引 / 620 四问 2×2 / 374 标签库检视栏 + 四档胶囊 + 列头式三列表格。
+- **C · 最佳设计师**（`b11-blueprint-studio.html` 27,103 B / `b11-blueprint-studio.png` 206,907 B）：**Edward Tufte**，主导原则 = **data-ink ratio（数据墨水比）+ layering & separation（分层与分离）**。骨架 = 190px 常驻导航 + 单一图纸主栏 + 满宽标签库抽屉 + 无框表格 + **起止日期跨度尺（字级图形）+ 共享年份轴 2026/2028/2030**；四问用**下划线式输入框**（border-bottom 1px）替代高耸方框，顺带呼应用户意见 2「缩小高度」。
+- 三版均为**真实可看稿**（Edge headless `--screenshot`，退出码 0，1440×900），**控制器已逐张读图确认可判读**；`design-demos\` 被 `.gitignore` 忽略 ⇒ 对门禁写集零风险。
+- **未决（用户裁决）**：按 huashu-design 硬门**控制器不得代选**；待用户选定后由控制器写 `design-demos\direction-approved.md`，再进入 Flutter 实现。
+- 三版共有的已知不足：① 浮窗形态与源码有出入（C 版把 Schwartz 10 + VIA 24 合并成满宽抽屉，源码是每字段单浮窗）—— **实现时以已落地的「锚定输入框 + 3 s 计时在浮窗内暂停」方案为准**；② 矩阵内容为 l10n 示例人设文案，非真实数据；③ 静态图只展开一个浮窗、交互未回归；④ 字体依赖仓库相对路径（`../apps/desktop/assets/fonts/*.ttf`），单独拷走即断。
+
+### 11.13 B11 蓝图第三列日期差一天缺陷修复（B10 判据 ⑤ 的 FAIL，worker `bg_f48c6488-24cf-4692-9c5c-5e5f1763ab59`）
+
+- **根因**：蓝图目标的 `period_start` / `period_end` 存的是「**本地**某日 00:00 那一刻的毫秒数」（`showDatePicker` 给的是本地 `DateTime` → `millisecondsSinceEpoch`），而 `goal_period_dialog.dart`（`_pick` / `_dateText`）与 `goal_blueprint_matrix.dart`（`_dateText`）按 `isUtc: true` 解析/渲染 ⇒ 东八区整体提前一天（装机实测：选 11-01 / 11-30 显示成 10-31 / 10-29）。**存储正确、显示错误**。
+- **修法 = 按写入来源分流，不改存储语义**：`goal_period_dialog.dart` 两处改按本地时区解析（`fromMillisecondsSinceEpoch(millis)`，并删掉 `+ toLocal()` 绕圈）；`goal_blueprint_matrix.dart` 的 `_dateText` 加 `localMidnight` 开关，`_periodText` 按 `goal.kind == GoalKind.blueprint` 分流 —— **蓝图目标 = 本地午夜毫秒 ⇒ 本地时区**；**年/月/周目标 = `GoalPeriod` 的 UTC 午夜毫秒 ⇒ 保持 UTC**（若一律改本地，年目标终点 `2026-12-31T23:59:59.999Z` 会显示成 `2027-01-01`，等于在同一列引入新缺陷）。**控制器裁决：接受该偏离派工书「一律本地」字面要求的分流实现**（有第 4 条用例守护）。
+- **判别性测试**（新文件 `apps\desktop\test\b11_period_date_test.dart`，4 例）—— **修复前红**：`Expected: '2026-11-01'` / `Actual: '2026-10-31'`；`Expected: '2026-11-01 ~ 2026-11-30'` / `Actual: '2026-10-31 ~ 2026-11-29'`；逐字 `00:14 +2 -2: Some tests failed.` ⇒ **修复后绿**逐字 `00:11 +4: All tests passed!`。
+- **门禁（worker 自报，控制器待亲跑）**：`flutter analyze` 逐字 `No issues found! (ran in 4.8s)` / `ANALYZE_EXIT=0`；全量 `flutter test` 逐字 `01:51 +972: All tests passed!` / `TEST_EXIT=0` ⇒ **总数 972 = 基线 958 + 并发 l10n 新增 10 + 本任务新增 4**。
+- **另三处 `isUtc: true` 的只读核实结论**：`goals_year_page.dart:628-631`（年目标起止，`GoalPeriod.year()` 写的是 UTC 午夜毫秒）**不是缺陷，保持不动**；`goal_year_matrix.dart:133-136`（月目标归桶）**不是缺陷，保持不动**；`goal_week_table.dart:227-230`（`dueDate` 由 `goal_form_dialog.dart:334` 写本地午夜毫秒、此处却按 UTC 读）**是同类缺陷 ⇒ 已另派单修**。
+- **未做**：未 commit / 未 push；未写用户活库；`build\test_cache\build` 均以 `Move-Item` 改名挪走（`build_stale_20261126-b11a/b11b/b11c/b11e`），未删除。
+
+### 11.14 控制器亲跑门禁核验（B11 收口前）
+
+- 前置动作：`Move-Item apps\desktop\build\test_cache\build` → `build_stale_<ts>`（实得 `MOVED=True`）
+- `flutter analyze`（cwd=`apps\desktop`）：逐字 `No issues found! (ran in 7.6s)`，`ANALYZE_EXIT=0`
+- `flutter test --reporter compact`（cwd=`apps\desktop`）：逐字 `03:01 +975: All tests passed!`，`TEST_EXIT=0`
+- 计数核对：`975 = 972（§11.13 收口实测）+ 3（b11_week_due_date_test.dart 新增 D1–D3）`，与台面预期精确等值
+- 由此裁决：周视图 `dueDate` 同类日期缺陷（worker `bg_954d6667` 已改码 `goal_week_table.dart` 并落测试，但跑全量时因 Token Plan 2056 被打断）**门禁缺口已补齐，判为验收通过**
+- `packages\**` 本轮零改动（`git status --porcelain=v1 -uall` 无 packages 条目）⇒ core_data 204 / core_db 96 / core_domain 91 基线未复跑，沿用 §11.13 读数
+- 越界比对：`apps/**` 全部改动均在本轮写集内，`VIOLATIONS=0`；外部仅 `AGENTS.md` / `docs\relay.json` / `docs\relay\stage-6-report.md` 未暂存改动 + `docs\b8*.md` / `docs\relay\*` 未跟踪，属并发接力链，未并入
+- **本轮未做**：未提交、未出包、未装机复验。用户意见 3（蓝图页设计排版）三版真实初稿 A/B/C 已齐并已逐张读图，**等用户选定方向**后才写 `design-demos\direction-approved.md` 并进入 Flutter 实现
+
+## §11.15 B11 收口：方向 A 落地 + 交互修正 + 日期缺陷 + 出包（2026-11-26 17:50）
+
+### 背景与目标
+用户当轮三条修改意见：① 候选标签浮窗随鼠标移动导致无法点选，要求换成更符合操作体验的管理方式；② 蓝图部分填写框内容精炼，要求缩小高度；③ 调用 `/huashu-design` 优化蓝图页设计排版。意见 ③ 已按 huashu-design 硬门先出三版真实初稿（A 秒数轮盘 / B 现实参照 / C 最佳设计师），用户选定 **A**，裁决登记于 `design-demos\direction-approved.md` §6。
+
+### 已落地实现
+- 新增 `apps\desktop\lib\src\widgets\goals\goal_blueprint_band.dart`（360 行）：墨色片头带 + 静态线条波形，零 gradient / 零 BoxShadow / 零 glow / 零位图；色值全部取自 `theme_tokens.dart` 的 `LightPalette`，赭石 `#8C5A2B` 只表缺口。`design-demos\TOKENS.md` 的 ink 系旧值已过期，不得回抄。
+- 候选标签浮窗：锚定输入框下方（放不下翻上方）、指针进入浮窗暂停 3 s、显式 `▾ 标签库` 开关（打开即钉住）、`Esc` 与点外关闭、同 code 不叠加、不使用 `Tooltip`。
+- 四问填写框：`isDense` + 收紧 `contentPadding` + 行高 1.35；`goal_form_dialog` 仅蓝图页传 `compact`，`goal_split_dialog` 无条件压缩。
+- 日期差一天：按写入来源分流修（蓝图目标落库为本地午夜毫秒 ⇒ 本地时区；年/月/周 `GoalPeriod` 为 UTC 午夜 ⇒ 保持 UTC）；周视图 `dueDate` 同类缺陷一并修。
+
+### 门禁（控制器亲跑，读数逐字）
+- `flutter analyze`（cwd=`apps\desktop`）→ `No issues found! (ran in 6.3s)`，`ANALYZE_EXIT=0`。
+- `flutter test --reporter compact`（先 `Move-Item build\test_cache\build` → `build_stale_<ts>`）→ `03:09 +986: All tests passed!`，`TEST_EXIT=0`。986 = 原 975 + 新增 11（`b11_blueprint_roulette_test.dart`），l10n 基线由 605/664 升至 608/667。
+- `packages\**` 本轮零改动；core_data 204 / core_db 96 / core_domain 91 读数沿用。
+
+### release 构建与真机取证
+- `flutter build windows --release` → `BUILD_EXIT=0`；`build\windows\x64\runner\Release\data\app.so` = **9,241,480 B / sha16 `633C2FDDE97BFBE9`**（2026-11-26 17:43:32）；`actlog.exe` = 484,352 B / sha16 `89293205FAF8C3DE`。
+- 沙箱实例（构建树 exe + 种子副本，`--data-dir=reports\task91-seeddb-b11a`，种子 438,272 B / sha16 `C548CC134227E814`）启动得 `pid=145520`，窗口停 `(-31988,-32000) 2496x1563`，取证后已 Stop（`SANDBOX_DEAD=True`）。用户实例 `pid=85004` 全程存活、活库零写入。
+- 帧目录 `reports\task91-frames-b11a\`：launch `t90-launch.png` sha16 `EC12197B61DD0638`；点「蓝图」后 `t90-bp-01.png` 2496×1563 sha16 `5D361A2D61794E7E`（与 launch 不同 ⇒ 导航生效）；窄视口 `t90-narrow-1920.png` 1872×1551 sha16 `CF1177A0B6132415`。
+- 客观像素判据：宽帧 `OVERFLOW_YELLOW_PX=0` / `NEAR_BLACK_PX=262` / `INK_BAND_PX=90607` / `#F0F0E8` 42.96% + `#F8F8F0` 40.35% + `#302820` 9.26%；窄帧 `NEAR_BLACK_PX=105` / `#F8F8F0` 46.23% + `#F0F0E8` 29.89% + `#302820` 17.34% / `OVERFLOW_YELLOW_PX=0`。结论：纸 + 墨双色、无渐变、无黑底，符合反 slop 裁决。
+- **判据的诚实边界**：release 构建不绘制 overflow 指示条，故 `OVERFLOW_YELLOW_PX=0` 不能单独证明窄宽无溢出，窄宽结论依赖 widget 测试；审美结论仍需人眼或视觉模型（本机模型 `deepseek-v4.1-flash-1017` 不支持读图，`read` PNG 直接拒绝）。
+
+### 新增安装包（R3 指针变更）
+- `tools\build\make_installer.ps1 -Version '1.0.0'` → `MAKE_EXIT=0`；产物 `release\actlog-Setup-1.0.0_20261126-174718.exe`，**22,846,044 B / sha16 `317436F79DAF631F`**（2026-11-26 17:48:23）。`release\*.exe` 计数 61。
+- 载荷一致性：`release\payload_20261126-174718\data\app.so` = 9,241,480 B / sha16 `633C2FDDE97BFBE9`，与构建树逐字一致。
+- **R3 唯一可分发指针自此改为上面这个新包**；旧包 `release\actlog-Setup-1.0.0_20261126-153023.exe`（22,832,030 B / `083A68D840FD657B`）仍留在 `release\` 但已不是最新装配，其余 59 个 exe 照旧严禁分发。
+- **未完成的记账**：`AGENTS.md` §7 末的分发指针仍未指向新包 —— 该文件当前带有并发接力链会话的未暂存改动，本笔提交不得并入，故 §7 订正挂账，待 `AGENTS.md` 可整体提交时补。
+
+### 提交
+- 本笔提交内容：16 个 `apps\desktop\{lib,test}\` 文件 + 本台账，共 2,587 insertions / 167 deletions。
+- 明确排除（属并发接力链会话 `mvs_222fc708226e43599f3b9a0e12984f62` 的 B17 relay）：`AGENTS.md`、`docs\relay.json`、`docs\relay\stage-6-report.md` 的未暂存改动，以及 `docs\b8*.md`、`docs\incident-20261125-phantom-rollback.md`、`docs\relay\*` 未跟踪文件。
+- `reports\**` 被 gitignore，任何情况下不得 `git add reports/`。
+
+### 未验证 / 挂账
+1. **未做装机复验**：新包已出但未装到 `D:\Program Files\actlog`，意见 ①②③ 的最终验收需用户装新包后肉眼确认（尤其审美与「标签浮窗可点选」的体感）。
+2. **`AGENTS.md` §7 分发指针待订正**（见上）。
+3. 沙箱启动瞬间 `FG_AFTER SAME=False`（前台从 MiniMax Code 切到沙箱窗口）：属 OS 建窗默认行为，未调用任何合成焦点 API，后续驱动轮 `FG_SAME=True`，记账不处理。

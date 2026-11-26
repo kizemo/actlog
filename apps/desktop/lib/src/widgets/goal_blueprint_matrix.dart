@@ -22,7 +22,9 @@
 //     * B10-B3：勾选框（`goal-blueprint-done-<id>`）只在传了 `onToggleGoalDone` 时渲染；
 //       归档时刻由 `GoalStore.updateGoal` 按 `status` 派生，本组件不写库。
 //     * B10-B4：日期列（`yyyy-MM-dd ~ yyyy-MM-dd`，缺值 `—`，已完成追加完成日）；
-//       起止日期是**日期型**字段（UTC 午夜毫秒 ⇒ 按 UTC 显示，与方法 `_dateText` 一致），
+//       起止日期是**日期型**字段，但库里的「午夜」有两种语义（蓝图目标 = 本地午夜毫秒
+//       ⇒ 按本地时区显示；年/月/周目标 = `GoalPeriod` 的 UTC 午夜毫秒 ⇒ 按 UTC 显示，
+//       分流理由见 `_periodText`），
 //       而「完成：」取 `archivedAt` 这个**时刻**（⇒ 按本地时区显示，`_momentText`），
 //       否则东八区 00:00–08:00 勾完成会显示成前一天；
 //       改期按钮（`goal-blueprint-period-<id>`）只在传了 `onEditGoalPeriod` 时渲染，
@@ -156,6 +158,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     final TextStyle? warnStyle = Theme.of(context).textTheme.labelSmall
         ?.copyWith(color: tokens.accentInk);
     final TextStyle? tabStyle = Theme.of(context).textTheme.labelLarge;
+    // 当前档位的日期跨度（年刻度条 + 日期列 track 共用同一份派生值）。
+    // **由真实数据派生**，不硬编码「2026–2035」这类业务口径。
+    final _DateSpan? span = _span();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -178,6 +183,29 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               key: const ValueKey<String>('goal-blueprint-short-tab-note'),
               style: metaStyle,
             ),
+          ),
+        // 年刻度条（A 稿 `.scale`）：与下方表格**同一套列宽**，只占日期列；
+        // 当前档位没有任何日期时整条不渲染（空格子合法，不摆空刻度）。
+        if (span != null)
+          Table(
+            columnWidths: <int, TableColumnWidth>{
+              0: const FlexColumnWidth(2),
+              1: const FlexColumnWidth(5),
+              2: const FlexColumnWidth(3),
+            },
+            children: <TableRow>[
+              TableRow(
+                children: <Widget>[
+                  const SizedBox.shrink(),
+                  const SizedBox.shrink(),
+                  Padding(
+                    key: const ValueKey<String>('goal-blueprint-year-scale'),
+                    padding: const EdgeInsets.fromLTRB(4, 0, 4, 3),
+                    child: _yearScale(span, tokens, metaStyle),
+                  ),
+                ],
+              ),
+            ],
           ),
         Table(
           columnWidths: <int, TableColumnWidth>{
@@ -220,6 +248,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                       goals: row.cells[_selected] ?? const <GoalRow>[],
                       bodyStyle: bodyStyle,
                       metaStyle: metaStyle,
+                      tokens: tokens,
+                      span: span,
                     ),
                   ),
                 ],
@@ -398,6 +428,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     required List<GoalRow> goals,
     required TextStyle? bodyStyle,
     required TextStyle? metaStyle,
+    required ThemeTokens tokens,
+    required _DateSpan? span,
   }) {
     if (goals.isEmpty) {
       return const SizedBox.shrink();
@@ -416,8 +448,20 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                 Text(
                   _periodText(goal),
                   key: ValueKey<String>('goal-blueprint-period-text-${goal.id}'),
-                  style: bodyStyle,
+                  // 等宽数字（`tabularFigures`）：日期列纵向对齐，不抖动。
+                  style: bodyStyle?.copyWith(
+                    fontFeatures: const <FontFeature>[
+                      FontFeature.tabularFigures(),
+                    ],
+                  ),
                 ),
+                // 日期条（A 稿 `.track`）：整条宽 = 当前档位的跨度，实心段 = 本条；
+                // 已完成用 hairStrong 降调，赭石留给「未落位」那类缺口信号。
+                if (span != null && goal.periodStart > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: _track(goal, span, tokens),
+                  ),
                 if (goal.isDone)
                   Text(
                     '${widget.t.goalBlueprintDonePrefix}'
@@ -507,25 +551,37 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
   }
 
   /// 起止日期文案：无起始 ⇒ 整体 `—`；无结束 ⇒ 右端 `—`。
+  ///
+  /// 口径按「这条起止是谁写的」分流 —— 库里 `period_start` / `period_end` 有**两种**
+  /// 存储语义并存：
+  ///  * 蓝图目标（`kind == blueprint`）：起止只由 B10 改期对话框写入
+  ///    （`goals_blueprint_page.dart` 只给蓝图目标渲染改期按钮），写进去的是
+  ///    「**本地**某日 00:00 那一刻的毫秒数」⇒ 必须按**本地时区**取年月日；
+  ///    按 UTC 解释会让东八区整体提前一天（装机实测：选 11-01 / 11-30 显示成
+  ///    10-31 / 11-29）。
+  ///  * 年 / 月 / 周目标：起止由 `GoalPeriod.startMillis` / `endMillis` 写入 =
+  ///    **UTC 午夜毫秒**（起点 00:00.000Z、终点 23:59:59.999Z）⇒ 按 UTC 取年月日；
+  ///    按本地解释会把终点（周期最后一刻）显示成第二天（如 2026-12-31 → 2027-01-01）。
   String _periodText(GoalRow goal) {
     if (goal.periodStart <= 0) {
       return '—';
     }
-    return '${_dateText(goal.periodStart)} ~ ${_dateText(goal.periodEnd)}';
+    final bool localMidnight = goal.kind == GoalKind.blueprint;
+    return '${_dateText(goal.periodStart, localMidnight: localMidnight)} ~ '
+        '${_dateText(goal.periodEnd, localMidnight: localMidnight)}';
   }
 
-  /// **日期型字段**专用：UTC 毫秒 → `yyyy-MM-dd`（null / 非正数 → `—`，与年页同口径）。
+  /// **日期型字段**专用：毫秒 → `yyyy-MM-dd`（null / 非正数 → `—`）。
   ///
-  /// 只给 `periodStart` / `periodEnd` 用 —— 这两个是全项目统一约定存
-  /// UTC 午夜毫秒的「日期」，必须按 UTC 取年月日。
-  String _dateText(int? millis) {
+  /// [localMidnight] = true ⇒ 值是「本地午夜毫秒」，按**本地时区**取年月日；
+  /// false ⇒ 值是「UTC 午夜毫秒」，按 UTC 取年月日（分流理由见 [_periodText]）。
+  String _dateText(int? millis, {required bool localMidnight}) {
     if (millis == null || millis <= 0) {
       return '—';
     }
-    final DateTime moment = DateTime.fromMillisecondsSinceEpoch(
-      millis,
-      isUtc: true,
-    );
+    final DateTime moment = localMidnight
+        ? DateTime.fromMillisecondsSinceEpoch(millis)
+        : DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
     final String month = moment.month.toString().padLeft(2, '0');
     final String day = moment.day.toString().padLeft(2, '0');
     return '${moment.year}-$month-$day';
@@ -546,6 +602,161 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     return '${moment.year}-$month-$day';
   }
 
+  /// 当前档位的日期跨度；**一条带日期的目标都没有 ⇒ null**（不摆空刻度、不画空轨道）。
+  ///
+  /// 毫秒值跨 `kind` 可直接比较（都是 epoch 毫秒）；只有「取年」这一步要按
+  /// [_periodText] 的口径分流 —— 蓝图目标是本地午夜毫秒、年/月/周目标是 UTC 午夜，
+  /// 所以起止两端各自记住给自己那个边界的目标属于哪种口径，避免东八区跨年错位。
+  _DateSpan? _span() {
+    int? minStart;
+    bool minLocal = true;
+    int? maxEnd;
+    bool maxLocal = true;
+    for (final GoalBlueprintRow row in widget.rows) {
+      for (final GoalRow goal in row.cells[_selected] ?? const <GoalRow>[]) {
+        if (goal.periodStart <= 0) {
+          continue;
+        }
+        final bool local = goal.kind == GoalKind.blueprint;
+        final int? declaredEnd = goal.periodEnd;
+        final int end = (declaredEnd != null && declaredEnd > 0)
+            ? declaredEnd
+            : goal.periodStart;
+        if (minStart == null || goal.periodStart < minStart) {
+          minStart = goal.periodStart;
+          minLocal = local;
+        }
+        if (maxEnd == null || end > maxEnd) {
+          maxEnd = end;
+          maxLocal = local;
+        }
+      }
+    }
+    if (minStart == null) {
+      return null;
+    }
+    // 只有一天的目标（起 == 止）也给一条满格日条：跨度缩成 24h，
+    // 否则「这天要做什么」会看起来像没排日期。
+    final int start = minStart;
+    final int end = (maxEnd == null || maxEnd <= start)
+        ? start + Duration.millisecondsPerDay
+        : maxEnd;
+    return _DateSpan(
+      startMillis: start,
+      endMillis: end,
+      startYear: _yearOf(start, localMidnight: minLocal),
+      endYear: _yearOf(end, localMidnight: maxLocal),
+    );
+  }
+
+  /// 毫秒 → 年份（口径分流同 [_dateText]）。
+  int _yearOf(int millis, {required bool localMidnight}) {
+    final DateTime moment = localMidnight
+        ? DateTime.fromMillisecondsSinceEpoch(millis)
+        : DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+    return moment.year;
+  }
+
+  /// 年刻度条（A 稿 `.scale`）：跨年内按年份等分，每年一根 1px 刻度 + 年份标签。
+  /// 窄列靠 `FittedBox` 缩字，不换行、不溢出、不截断业务值。
+  Widget _yearScale(
+    _DateSpan span,
+    ThemeTokens tokens,
+    TextStyle? metaStyle,
+  ) {
+    final int years = span.endYear >= span.startYear
+        ? span.endYear - span.startYear + 1
+        : 1;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: <Widget>[
+        for (int i = 0; i < years; i++)
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                Container(width: 1, height: 4, color: tokens.hairStrong),
+                const SizedBox(width: 3),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${span.startYear + i}',
+                      key: ValueKey<String>(
+                        'goal-blueprint-year-tick-${span.startYear + i}',
+                      ),
+                      style: metaStyle,
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 日期条（A 稿 `.track`）：整条宽 = 当前档位跨度，实心段 = 本条目标。
+  /// 已完成用 `hairStrong` 降调 —— 赭石只留给「未落位」这类缺口信号。
+  Widget _track(GoalRow goal, _DateSpan span, ThemeTokens tokens) {
+    final int total = span.endMillis - span.startMillis;
+    if (total <= 0) {
+      return const SizedBox.shrink();
+    }
+    final int? declaredEnd = goal.periodEnd;
+    final int rawEnd = (declaredEnd != null && declaredEnd > 0)
+        ? declaredEnd
+        : goal.periodStart;
+    final int from = goal.periodStart.clamp(span.startMillis, span.endMillis);
+    final int to = rawEnd.clamp(from, span.endMillis);
+    final double startFraction = (from - span.startMillis) / total;
+    final double endFraction = (to - span.startMillis) / total;
+    final Color bar = goal.isDone ? tokens.hairStrong : tokens.ink;
+    return SizedBox(
+      key: ValueKey<String>('goal-blueprint-track-${goal.id}'),
+      height: 3,
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final double width = constraints.maxWidth;
+          if (!width.isFinite || width <= 2) {
+            return const SizedBox.shrink();
+          }
+          // 至少 2px 宽：跨度极短的目标也要看得见，且不给 `clamp` 反区间。
+          final double left = (startFraction * width).clamp(0.0, width - 2);
+          final double barWidth = ((endFraction - startFraction) * width)
+              .clamp(2.0, width - left);
+          return Stack(
+            children: <Widget>[
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: tokens.hairSoft,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: left,
+                top: 0,
+                bottom: 0,
+                width: barWidth,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: bar,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   /// 未落位：既没有下级目标，也没有任何 `tracks` 执行实体。
   bool _isUnplaced(GoalRow goal) =>
       !widget.serves.hasChildren(goal.id) &&
@@ -556,4 +767,22 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
       .childrenOf(goal.id)
       .where((GoalRow child) => child.kind == GoalKind.weekly)
       .toList(growable: false);
+}
+
+/// 当前档位的日期跨度：毫秒起止 + 起止两年（年刻度条按年份等分用）。
+///
+/// 两年分开存而不是从毫秒现算，是因为起止两端可能属于不同 `kind`
+/// （本地午夜 / UTC 午夜两种存储口径），见 `_span`。
+class _DateSpan {
+  const _DateSpan({
+    required this.startMillis,
+    required this.endMillis,
+    required this.startYear,
+    required this.endYear,
+  });
+
+  final int startMillis;
+  final int endMillis;
+  final int startYear;
+  final int endYear;
 }

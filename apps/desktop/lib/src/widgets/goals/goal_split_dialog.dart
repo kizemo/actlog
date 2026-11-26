@@ -209,7 +209,14 @@ class _GoalSplitDialogState extends State<_GoalSplitDialog> {
                         child: TextField(
                           key: ValueKey<String>('goal-split-title-${row.id}'),
                           controller: row.controller,
-                          decoration: const InputDecoration(isDense: true),
+                          style: text.bodyMedium?.copyWith(height: 1.3),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 2,
+                            ),
+                          ),
                           onChanged: (String _) {
                             if (_showEmptyRow) {
                               setState(() => _showEmptyRow = false);

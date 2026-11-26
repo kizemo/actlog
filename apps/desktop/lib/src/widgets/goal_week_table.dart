@@ -218,16 +218,22 @@ class _WeekRow extends StatelessWidget {
     return t.priorityUnsetLabel;
   }
 
-  /// 完成期限（UTC 毫秒 → `yyyy-MM-dd`；空 = 无期限）。
+  /// 完成期限（`due_date` 毫秒 → `yyyy-MM-dd`；空 = 无期限）。
+  ///
+  /// 口径：`goal.due_date` 存的是**本地午夜毫秒**（写入方
+  /// `goal_form_dialog.dart` 用 `DateTime.tryParse('yyyy-MM-dd')` 解析，串里没有
+  /// `Z` ⇒ 落库就是本地时区的当天零点；`task73_b8_w1_blueprint_edit_test.dart`
+  /// 的 `_dayOf` 助手亦按本地解析并断言 `2026-12-31`）⇒ 这里必须按**本地时区**
+  /// 解读。若按 UTC 解读（`isUtc: true`），东八区会整整少一天（显示成前一天）。
+  ///
+  /// 注意：`period_start` / `period_end` 是**另一套并存口径**（蓝图目标是本地
+  /// 午夜，年/月/周目标是 `GoalPeriod` 的 UTC 午夜），本函数只管 `due_date`。
   String _dueLabel(GoalRow goal) {
     final int? due = goal.dueDate;
     if (due == null) {
       return '—';
     }
-    final DateTime moment = DateTime.fromMillisecondsSinceEpoch(
-      due,
-      isUtc: true,
-    );
+    final DateTime moment = DateTime.fromMillisecondsSinceEpoch(due);
     final String month = moment.month.toString().padLeft(2, '0');
     final String day = moment.day.toString().padLeft(2, '0');
     return '${moment.year}-$month-$day';
