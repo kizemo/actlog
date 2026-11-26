@@ -842,3 +842,190 @@ token 精确值：paper `#F6F4EF` / card `#FBFAF6` / sunken `#F0EDE5` / ink `#32
 - **装配执行 + 运行时取证（控制器亲跑 · 2026-11-26 23:51–23:52 · 用户本轮授权关实例）**：装置 `reports\task97-install-b13.ps1`（`INSTALL_SCRIPT_EXIT=0`，包 sha 盘上复算 `38B74EB23F8153C6` / 22,851,987 B 与真源一致）⇒ `RUNNING_BEFORE=0`（用户已关 B12 实例）→ `INSTALLER_EXITCODE=0`；**装机 `D:\Program Files\actlog\data\app.so` = `59FF9A762C8EEA29` / 9,241,480 B ⇒ 与构建树逐字一致，B13 三条优化已进装机版**；`LEFT_NEW_FILES=0`；启动器 484,352 B / `89293205FAF8C3DE`（与 B12 同值，不得作判据）；活库 `userdata\actlog.db` 352,256 B / `B5F9070FC63068B1` / mtime 2026-11-21 21:37:03 → 装配后三项全等 ⇒ **零写入**（`-shm` 32,768 / `-wal` 3,811,032 为 22:44 遗留，未因装配变动）。
 - **运行时取帧（`reports\task97-capture-b13.ps1`）**：`DESKTOP=Default`（未进影刀虚拟桌面）⇒ `PrintWindow(hwnd,2)` 成功；窗口 1440×839；帧 `reports\task97-frames-b13\installed-b13.png`（41,403 B / `EDF6C478B38877F9`）；`INK_SAMPLES=15397` / 采样 75,600 ⇒ 约 20% 非背景像素 ⇒ **装机版能启动并绘制真实内容，非白屏**。四栏分栏线判据 `task94-b13-layout-check.ps1` 在本帧上失效且**非产品红**：其 x 区间按基准帧 2496 宽硬编码，1440 宽帧越界抛 `GetPixel` 异常（col1/col2 空段 + `LAYOUT_EXIT=1`）⇒ 个人定位页的运行时像素判据仍 **UNDETERMINED**，观感以 12 例 widget 契约 + 用户肉眼为准（装机版已在屏幕运行，可直接目视）。
 - **坑 J（本轮新增 · 工具）**：`GetThreadDesktop` 宿主是 **user32.dll**（误写 kernel32 ⇒ 「Unable to find an entry point」）；`Add-Type -TypeDefinition` 与 `-UsingNamespace` 在 PS7 属互斥参数集（报「无法使用指定的命名参数解析参数集」），C# 源码内写 `using System.Text;` 即可；`Native97+RECT` 这种嵌套类型取用在 PS7 不稳，改顶层 `struct RECT97`。
+
+
+### 11.19 批次 **B14** 开工（2026-11-27 00:0x–00:5x · 控制器 + 一棒 worker + 一棒 verifier + 两棒补做 · 用户四条观感诉求 + `/relay-port` 装置）
+
+**背景 / 目标（本节自足，新会话不必回翻派工书）**：B13 三条界面优化装机后，用户判定「观感未达标」，当轮给出 B14 四条诉求原文：
+
+1. 目标模块档位标签「终极、远期、中期、短期」全部补文字「目标」→ 终极目标 / 远期目标 / 中期目标 / 短期目标。
+2. 目标内容点铅笔图标**不要弹窗编辑，改为就地直接编辑**；简化掉标题、备注、关键词等字段；重调表格列宽比例自适应内容；尽量让「起止日期」在一行内显示。
+3. 再次美化标签：第一个标签被选中时背景色与模块背景色融成一体，看不出标签形状。
+4. 制作**浅绿色主题、浅蓝色主题**，并在设置页添加主题选择。
+5. 调用 `/relay-port` 工具，持续推进任务，直到块额度接近被消耗完为止。
+
+**控制器勘察（先坐实事实，再派工）**：落盘 `reports\task99-b14-facts.txt`（15,510 B）+ `reports\task99-b14-facts2.txt`（3,581 B）。坐实要点：矩阵档位标签条**真源 = `_tabStrip`**（`goal_blueprint_matrix.dart` L331 定义、**L225 唯一调用点**）；**活动标签底色 `backgroundColor: active ? tokens.card : tokens.sunken`（L390）** 而内容区/卡片本身也是 `tokens.card` ⇒ 用户第 3 条「融于一体」根因坐实；标签条容器 `color: tokens.paper`（L338）、整条 `FittedBox(scaleDown)` 兜底（L340-342）；`_TierBadgeStrip` / `_tierShort` / `_kOnBg` 在 matrix 文件 **0 命中** ⇒ 第二套档位标签在 `goal_brand_panel.dart`；起止日期 `_dates()`（L548-600）四段纵向堆叠；弹窗侧 `goals_blueprint_page.dart` `_confirmDeleteGoal` L434 / `_writeGoal(existing, form)` L463（字段 `title/note/keywords/domain/dueDate`）/ `_periodEndFor(dueDate, periodStart)` L473（B12 第 3 条根因裁决，不得回退）；主题链路 `app_theme.dart` L26-29 `AppTheme.light/dark(DensityProfile)`、L9-12 注释明确**刻意不设 cardTheme/dialogTheme/chipTheme**、外观一律显式引 `context.tokens.<字段>`；设置页主题区 L205-217 三枚 `_ChoiceChip`（键 `settings-theme-light` / `settings-theme-dark`）。
+
+**派工书**：`docs\b14-dispatch.md`（**15,645 B**）—— 本批唯一实现契约，含 §1 事实表 F1–F13 + 未坐实点 U1/U2/U3、§2 档位标签加「目标」+ 760 宽缩放红线、§3 选中态改造（WCAG ≥ 4.5:1 现算断言）、§4 就地编辑（4.1 交互 / 4.2 表单 `compact` 条件渲染 / 4.3 列宽与日期单行）、§5 浅绿浅蓝主题（`AppAccent` = ink/green/blue、赭石 `accentInk` 不得染色、存量默认必须 = ink 且逐字节不变、chip 键 `settings-accent-ink|green|blue`）、§6 全局约束、§7 八条验收。
+
+**一棒 worker（主体实现）**：task `bg_5b746e44-7e94-42ae-a39d-27b574c1f5f6`（session `mvs_3f778aa2b9c8438ebc98acb813264b59`，agent `worker`，model `custom_provider:provider-aa5659/deepseek-v4.1-flash-1017`，**effort `max`**），回报 `reports\task100-b14-report.md`（13,278 B）。写集实测 **14 个 `apps\desktop` 已跟踪文件 + 2 个新测试文件**，`git diff --stat -- apps` = **937+ / 389-**，`packages\**` 零改动。
+
+**控制器亲跑权威门禁（本批 R2 硬判据）**：命令 `pwsh -NoProfile -ExecutionPolicy Bypass -File reports\task51-gate.ps1 -ExpectDesktopTests 1030`。产物 `reports\task51-gate\summary.txt`（**2,166 B / sha16 `EBC723F90DDE065B` / RUN_AT=2026-11-27 00:43:23**）：
+
+```
+GATE_VERDICT=PASS
+GATE_FAILURES=0
+DESKTOP_TESTS=1030
+DESKTOP_EXPECTED=1030
+DESKTOP_ANALYZE=VERBATIM
+CORE_DATA_ANALYZE=VERBATIM
+CORE_DB_ANALYZE=VERBATIM
+CORE_DOMAIN_ANALYZE=VERBATIM
+VIOLATIONS=0
+OUT_OF_SET=0
+PS1_ASCII_VIOLATIONS=0
+CORE_DATA_TESTS=204 / CORE_DB_TESTS=96 / CORE_DOMAIN_TESTS=91
+```
+
+**首轮门禁红灯的根因（控制器自纠，两处）**：① 控制器自写的第一版门禁脚本 `reports\task100-gate-b14.ps1`（2,368 B）在**仓库根目录**跑 `flutter test` ⇒ 根有 `pubspec.yaml` 但**无 `test/` 目录** ⇒ 报 `Test directory "test" not found.`、日志仅 34 字节、`COUNT=-1`。**这不是测试失败，是脚本工作目录错**。权威门禁 `task51-gate.ps1:91-97` 本身是对的（desktop 在 `apps\desktop`、三包在各自 `packages\*` 下跑）。② 首轮权威门禁 `OUT_OF_SET=2`，原因是 relay-port 装置新增的 `docs\RELAY-SOP.md` 与 `docs\plan-relay.md` 未进 `$excluded` ⇒ 控制器已把这两条加进 `reports\task51-gate.ps1` 的 `$excluded`（与 `docs/relay/*` 同源），复跑 `OUT_OF_SET=0`。
+
+**verifier 独立审查（FAIL，14 条缺陷）**：task `bg_87a5bde8-ea7d-432e-a5d1-8816125b8122`（session `mvs_da3bba51176c4d169b02b6b41c2a5db3`，agent `verifier`），报告 `reports\verifier-b14\verdict.md`（**247 行 / 30,165 B / sha16 `D1C560FFDDC28AEF`**），末行 `VERIFIER_VERDICT=FAIL`。判定口径：「①契约明文要求全部实现；②每条硬判据至少有一个自动校验载体；③不越契约写集红线」⇒ 实况 ①违反 3 条（D1/D2/D3，均为条目 2 核心）、②缺 3 处载体（D5/D6/D7）、③破坏 1 处硬红线（D4）。
+
+**控制器批注（`reports\verifier-b14\controller-ruling.txt`，3,341 B，三条）**：
+
+- **批注 1 · verifier 的「未验证项」已闭合**：它因撞 test_cache 锁未能独立跑 analyze/test，把 1030 这个数按未验证处理。控制器已亲跑权威门禁补上（数字见上，`GATE_VERDICT=PASS` / 1030 / OUT_OF_SET=0）。
+- **批注 2 · D4 归因订正为不成立**：`docs/relay*` / `docs/b8*` / `docs/incident-*` 的改动**不是 worker 越界**，是**控制器本人**在 2026-11-27 00:0x 执行 `/relay-port` 安装器（`install-relay.ps1`）产生的装置产物与台账回写；`AGENTS.md` 的 `<!-- BEGIN RELAY-PORT -->` / `<!-- END RELAY-PORT -->` 两处插入 = 装置 adopt（`reason=title`）。worker 写集实测仅 `apps\desktop` 16 个文件。**处置不变**：这批文件与 AGENTS.md 的 RELAY-PORT 托管块**都不进本批提交**。
+- **批注 3 · 待补做清单**：D1 / D2 / D3 / D5 / D6 / D7 / D9 / D11 判为须补做，**D3 采用 verifier 推荐的折叠式最小改法**（note/keywords 折叠而非删除；domain/horizon 保留；T1/T2 改为先展开折叠区再键入，原 SQLite 回读断言整条保留）。D8/D10 由另一棒先做（760 宽实测），避开同改 `goal_blueprint_matrix.dart`。
+
+**760 宽缩放实测棒（契约硬判据闭合）**：task `bg_5dbc1984-b4cc-4b01-82dd-dcc7fa5c4d77`（session `mvs_a81028734bb64df9b592aedf8b79b7ad`），产出 `apps\desktop\test\b14_tab_scale_test.dart`（**21,045 B**，6 个 testWidgets）+ `reports\task101-b14-tab-scale.txt`（**14,269 B / sha16 `9D18BD50C9317223`**）。**产品代码零改动**（`_tabFontSize = 15`、`_tabPadding = 18` 与开工一致）。
+
+| 组 | 视口 | 可用宽 | 标签自然宽 | 实测比例 | layout 期望 | 显示字号 | 判定 |
+|---|---|---|---|---|---|---|---|
+| zh-760 | 760 | 756.0 | 387.6 | **1.000000** | 1.000000 | **15.00px** | PASS |
+| zh-1440 | 1440 | 1436.0 | 387.6 | 1.000000 | 1.000000 | 15.00px | PASS |
+| en-760 | 760 | 756.0 | 976.5 | 0.774194 | 0.774194 | 11.61px | PASS |
+| zh-320（量具自检） | 320 | 316.0 | 387.6 | 0.815273 | 0.815273 | 12.23px | PASS |
+| page-760 zh（真页面） | 760 | 730.0 | 387.6 | **1.000000** | 1.000000 | 15.00px | PASS |
+| page-760 en（真页面） | 760 | 730.0 | 976.5 | **0.747568** | 0.747568 | **11.21px** | PASS（余量仅 0.21px） |
+
+量具可信度：两条独立路径（paint transform 实测 `scale` 与按 `BoxFit.scaleDown` 语义算出的 `expected`）在**每一组逐位相等**。该棒自己发现并修正了第一版量具的错误（用 layout 宽 ÷ child 宽当缩放，得出 1.950464 > 1 的荒谬值），改用绘制阶段真实 scale —— 这条自纠是本批「判据必须有鉴别力」的正面样本。临界边界闭式解：中文触红线需可用宽 < 284.2（窗口 ≈ 314）；英文需 < 716.1（窗口 ≈ 746）⇒ **760 窗口对中文绝对安全，英文只剩 0.21px 字号余量**，是全项目最薄处，**任何**增加标签水平内边距/分隔符/文案长度的改动都会推过红线，必须重跑该测试文件。
+
+**760 棒全量验证**：`flutter analyze` 逐字 `No issues found!`；全量 `flutter test --reporter compact`（跑前已 `Move-Item` 挪走 `build\test_cache\build` → `build_pre_b14_scale_b`，**未删除**）末行逐字 **`01:33 +1036: All tests passed!`**（EXIT=0），数量自洽 = 1030 基线 + 6 新用例。
+
+**补做棒（第二轮）**：派工书 `docs\b14-fixup-dispatch.md`（**11,661 B**，控制器落盘，精确到文件:行号），task `bg_8e9e5528-983a-4c82-844b-0e4d6b690a99`（session `mvs_e5dafd75037c422ca4b2cbb8fbb8f7c2`，agent `worker`，model `custom_provider:provider-aa5659/deepseek-v4.1-flash-1017`，effort `max`）。范围 = D1/D2/D3/D5/D6/D7/D9/D11 + 格式噪声剥离。**约束**：不许跑全量（控制器与 760 棒会撞 test_cache 锁）⇒ 只跑自己改动的测试文件，全量由控制器最后亲跑。
+
+**`/relay-port` 装置（用户第 5 条）**：见 §11.20。
+
+### 11.20 B14 附带：`/relay-port` 自动接力链装置（2026-11-27 00:0x–00:3x · 控制器执行 skill relay-port）
+
+**用户诉求原文**（B14 第 5 条）：「调用 /relay-port 工具，持续推进任务，直到块额度接近被消耗完为止。」
+
+**安装执行**：命令
+`pwsh -NoProfile -ExecutionPolicy Bypass -File 'E:\Users\Duanyi\.minimax\.minimax\skills\relay-port\scripts\install-relay.ps1' -RepoRoot 'F:\soft\00selfmade\practilog' -Target 'B15+ 蓝图页观感与主题持续优化（承接 B14 四条）' -MaxStages 4 -Runtime mcode -WorkspaceDir 'F:\soft\00selfmade\practilog'`
+⇒ **`INSTALL_VERDICT=PASS` / `INSTALL_EXIT=0` / `WARN_COUNT=6`**（第二轮回填裁决后 `WARN_COUNT=5`）。
+
+**落盘清单**：
+
+| 件 | 状态 | 字节 / sha16 |
+|---|---|---|
+| `docs\relay\relay-ledger.ps1` | COPY | 19,826 B / `032C49C2BE21D1A7` |
+| `docs\relay\relay-spawn.ps1` | COPY | 16,484 B / `438D5C375C7D92F4` |
+| `docs\RELAY-SOP.md` | COPY | 7,129 B / `52630B579FB8CDBF` |
+| `docs\plan-relay.md` | CREATE | 608 B（`WARN plan_doc_ambiguous candidates=7`） |
+| `AGENTS.md` | **adopted**（`action=adopted reason=title`） | 359,875 B / `84292CEFA316734E` → **359,928 B / `0548A1BC9469C63B`**，行数 **641 → 646** |
+| `docs\relay\ACTIVATION-PROMPT.txt` | WRITE | 3,053 B |
+| `docs\relay\adaptation-questions.md` | WRITE | `questions=8` |
+| `docs\relay\adaptation-answers.template.json` | WRITE | — |
+| `docs\relay\relay-runtime.json` | WRITE | 443 B（`mode=session_tool`） |
+| `docs\relay\relay-ledger.ps1`（台账本体 `docs\relay.json`） | `LEDGER exists left_untouched bytes=66821` | 未覆盖（幂等） |
+
+ASCII 检查全过：`relay-lock.ps1` / `start-relay.ps1` / `relay-spawn.ps1` 三件 `non_ascii=0 bom=False`；`LOCK_STATUS exit=0 LOCK_FREE`。
+三处 `exists_different kept`（**未覆盖**，因为覆盖会静默抹掉项目自己的裁决）：`relay-lock.ps1`、`start-relay.ps1`、`AGENT-RELAY.md`、`RELAY-ADAPTATION.md`（hint `rerun_with_-Force`）。
+
+**8 项裁决的回填（控制器转录，非新决策）**：首轮 `ADAPTATION_STATUS=pending / ADAPTATION_SOURCE=defaults`（`WARN adaptation_defaults_unconfirmed ask_the_user_before_starting_the_chain`）⇒ 控制器把**项目自己已有权威件**的裁决转录进 `docs\relay\adaptation-answers.json`（**2,228 B**）：`docs\RELAY-ADAPTATION.md` §1–§9 + `AGENTS.md` R1/R2/R3/R8 + `docs\relay.json` 自带的 `human_checkpoints`。回填后复跑安装器 ⇒ **`ADAPTATION_STATUS=confirmed` / `ADAPTATION_SOURCE=answers` / `applied=7/8` / `ADAPT_CHECK placeholders=0 source=answers`**（PATCH `RELAY-ADAPTATION.md sections=3,4,5`）。转录内容：写集允许 = `apps/desktop/{lib,test}` + `packages/core_*` + `docs` + `reports`；禁触 = `release/**`、安装器脚本、`pubspec.lock`、`GeneratedPluginRegistrant`；门禁命令 = `reports\task51-gate.ps1 -ExpectDesktopTests <N>`；**判绿字段 = `GATE_VERDICT`，且只认产物文件里的结论字段、不认管道末端 `$LASTEXITCODE`**（已自动补进 `RELAY-ADAPTATION.md` L59-60）；模型 = `custom_provider:provider-aa5659/deepseek-v4.1-flash-1017` + `effort=max`。
+
+**两处口径冲突已留痕（写在 answers 的 `notes` 里）**：① `RELAY-ADAPTATION.md` §2/§9 说「不传 effort」（因 `session_create` 的 input_schema 无 effort 字段，§9.5 已独立回读坐实），而 `AGENTS.md` R8 要求必须显式给 `effort`（只接受 `high`/`max`）⇒ **R8 是项目家规，在 task/worker 派工路径上生效**；接力跳走 `session_create` 路径时无法表达 effort。② `RELAY-ADAPTATION.md` §9 偏好 `minimax/MiniMax-M3`，但用户 2026-11-25 裁决所有派工用 `deepseek-v4.1-flash-1017`，R8 已记录该裁决，是当前权威。
+
+**链起不来的两条硬阻塞（控制器实测，非猜测）**：
+
+1. **`docs\relay.json` 是上一批已耗尽的台账**：`status=done` / `current_stage=6` / `max_stages=6` / 六个 stage 全 done（Task 68 / W9 批次），磁盘 66,821 B。安装器**没动它**（`LEDGER exists left_untouched`）⇒ dryrun `exit=3` / `chain_exhausted`。这是装置在**正确拒绝**（对真实台账的判定已实测过：判 FAIL reason=chain_exhausted exit 3，不误起链）。
+2. **`set_status` 在代码层被硬拒**：`docs\relay\relay-ledger.ps1:348-350` 写死 —— `if ($want -eq 'running') { Fail 'status_running_is_human_only' 'hint=AGENT-RELAY.md_only_a_human_starts_a_chain_use_done_or_blocked' }`。即**只有人能起链**，与会话侧提交一律被拒。这正是用户 2026-11-25 定的规矩（起环权在目标项目内 + 防并发双写），控制器**没有**改用手工编辑 JSON 去绕开它。
+
+⇒ **用户第 5 条诉求当前只能闭环到「装置就绪 + 裁决确认」**，「持续推进直到额度接近耗尽」需要**用户侧一个动作**：把 `docs\relay.json` 复位/新开一份用于 B15+ 的台账并写 `status=running`。控制器已把该问题挂在屏上等裁决，**未擅自起链**。
+
+**AGENTS.md 水印过期（由此产生的连带订正）**：装置 adopt 使 `AGENTS.md` 从 641 行 / `84292CEFA316734E` 变为 **646 行 / `0548A1BC9469C63B`** ⇒ 此前写进台账的 AGENTS.md 指纹与行号锚点全部过期。收口时按盘上回读重取（本批已重取：R2 阶梯 **L49**、R3 B13 真源行 **L61**、§7 标题 **L447**、§7.1 **L575**、§8 **L614**）。
+
+**本批不使用 relay 链**：`docs\relay*` / `docs\b8*` / `docs\incident-*` 全部**不进本批提交**（纪律 + verifier D4 归因订正的处置）。
+### 11.21 批次 B14 收口（2026-11-27 凌晨 · 控制器 + 三棒 worker + 一棒 verifier · 只 commit 不 push）
+
+**背景与目标**：B13 装机后用户判定「观感未达标」，给出 B14 五条 —— ① 档位标签「终极 / 远期 / 中期 / 短期」全部补文字「目标」；② 点铅笔图标不弹窗、改为就地直接编辑目标内容，简化掉标题 / 备注 / 关键词等字段，重调表格列宽比例自适应内容，尽量让起止日期在一行内显示；③ 再次美化标签，第一个标签被选中时标签背景色不能与模块背景色融于一体；④ 制作浅绿色主题、浅蓝色主题，并在设置页添加主题选择；⑤ 调用 `/relay-port` 工具，持续推进任务直到块额度接近被消耗完。
+
+**四棒流水（R1：控制器零触碰产品代码，实现全部由 worker 落盘 `apps/**`；控制器只写 `AGENTS.md` / `docs\` / `reports\`）**
+
+| 棒 | task_id | 契约 | 产出 |
+|---|---|---|---|
+| 主体 | `bg_5b746e44-7e94-42ae-a39d-27b574c1f5f6` | `docs\b14-dispatch.md`（15,645 B） | 条目 1/2/3/4 主体实现 |
+| 760 宽缩放 | `bg_5dbc1984-b4cc-4b01-82dd-dcc7fa5c4d77` | 契约 §6 红线 | `apps\desktop\test\b14_tab_scale_test.dart`（21,045 B / 6 例），**产品代码零改动** |
+| verifier | `bg_87a5bde8-ea7d-432e-a5d1-8816125b8122` | 只读审查 | `reports\verifier-b14\verdict.md`（30,165 B / 247 行），末行 `VERIFIER_VERDICT=FAIL`，14 条缺陷 |
+| 补做 | `bg_8e9e5528-983a-4c82-844b-0e4d6b690a99` | `docs\b14-fixup-dispatch.md`（11,661 B） | D1/D2/D3/D5/D6/D7/D9/D11 + §2 格式噪声剥离 |
+
+**条目逐条落点（盘上回读）**
+
+- **条目 1（档位标签补「目标」）**：`apps\desktop\lib\src\l10n\parts\goals.dart` 四档中文改「终极 / 远期 / 中期 / 短期**目标**」，英文四档全部加 `Goal`；`near` 档未动。
+- **条目 2（就地编辑 + 简化字段 + 列宽自适应 + 日期单行）**：铅笔图标不再弹窗 —— 改为格内**就地改名**（新增 `onRenameGoal` 回调 → 页面 `_renameGoal` 只发 `store.updateGoal(id, title:)`）；全量编辑入口迁至展开层 `goal-blueprint-form-more` 折叠头；`goal_form_dialog.dart` 的 `note` / `keywords` 在 `compact == true`（蓝图页）时折进 `ExpansionTile`（字段不删，`compact == false` 的周 / 月 / 年页调用点逐字未改）；列宽抽成 `columnWidths`（Domain 2.0 / Goal 5.0 / Period 4.0）；起止日期走 `FittedBox(scaleDown)` 单行。
+- **条目 3（选中标签不与模块底色融一体）**：活动页签底色 `tokens.card` → `tokens.inkWash` + 顶部 3px `tokens.ink` 指示条（键 `goal-blueprint-tab-indicator-{key}`）+ 字重 w600；非活动仍 `tokens.sunken`。
+- **条目 4（浅绿 / 浅蓝主题 + 设置页主题选择）**：`theme\theme_tokens.dart` 新增 `enum AppAccent {ink, green, blue}` + `lightFor` / `darkFor`（**ink 档返回历史常量实例 ⇒ 默认主题逐字节不变**）；`theme\app_theme.dart` 加 `accent` 参数；`app.dart:155-156`（唯一装配点，必要越界）传 `prefs.accent`；`providers.dart` 加 `AppPreferences.accent` / `settingsKeyAccent='accent'` / `encodeAccent` / `parseAccent` / `setAccent`；设置页加「配色」行 + 三枚 chip（`settings-accent-ink|green|blue`）；l10n 新增 4 键（`byGetter` 608 → 612）。
+- **条目 5（`/relay-port`）**：见 §11.20。
+
+**补做棒八条落点**
+
+1. **D1** 几何分离：整格命中区 `SizedBox(width: double.infinity)` → `InkWell(key: goal-blueprint-cell-<id>, onTap: _toggle)`（`goal_blueprint_matrix.dart:683`）→ `Align` → `GestureDetector(key: goal-blueprint-goal-text-<id>, onTap: _startInline)`（:690）→ `Text`。**整格键仍管展开/收起，文本键才进就地编辑**，约 22 处依赖 `goal-blueprint-cell-{id}` 的既有断言逐字未破。
+2. **D2** 新建快通道：`goal_form_dialog.dart` 在 `compact && existing == null` 时标题框 `autofocus`，配合 D3 的折叠表单；**未采用**「行尾空可编辑行」（会撕掉 D-8-e 的 `initialValue` / `DatePickerDialog` 断言）。
+3. **D3** 备注 / 关键词进 `ExpansionTile(key: goal-blueprint-form-more)`，非紧凑路径逐字不变，未新增 l10n key。
+4. **D5** `task73_b8_w1_blueprint_edit_test.dart` 新增 T5：独立 `createGoal` 造满值 → 就地改名 → SQLite 回读 note / keywords / domain / due / period 全等于 before。
+5. **D6** `task39_settings_page_test.dart` 新增 B14-D6：新建 `ProviderContainer` 复用同一内存库读 `appPreferencesProvider`，证明 accent 真落库。
+6. **D7** `b14_theme_test.dart` 新增 T4-T6：`ink × inkWash`、`ink × paper` 浅深两态对比度均 ≥ 4.5（**阈值未放宽**）。
+7. **D9** 光标改为置末 `_inline.selection = TextSelection.collapsed(offset: goal.title.length)`（:286），并同步改掉 `b14_inline_edit_test.dart` 里把「全选」钉死的断言（**改断言，未删测试**）。
+8. **D11** 文件头 / `_tabStrip` / `_tab` 三处文档统一 `inkWash` 口径，并修掉 `_inlineEditor` 的过期入口说明。
+
+**格式噪声剥离（§2）**：新版 `dart format` 的 tall-style 纯重排一度占 55–85%。补做棒用「HEAD 基线 + 只重放非纯空白差异」重建，并以「剥离前后逐行 trim 的有序序列完全相等」做不变量守卫，再定点修掉剥离引入的错位缩进。量化（`git diff --numstat` 求和，`apps/desktop` 全仓）：**+1113 / −413 → +852 / −155**；集合差分实测 app 16/16、settings 22/7、providers 51/18、app_theme 12/6、matrix 159/22。
+
+**门禁（控制器亲跑权威脚本 `reports\task51-gate.ps1`，不采信 worker 自报）**
+
+- 判绿只看产物字段：`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `DESKTOP_TESTS=1039` / `DESKTOP_EXPECTED=1039`。
+- 四包 analyze 全部逐字 `VERBATIM`（desktop / core_data / core_db / core_domain）。
+- 三包测试沿用基线：core_data **204** / core_db **96** / core_domain **91**。
+- `VIOLATIONS=0`（`packages\**` 零改动） / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0`。
+- `RUN_AT=2026-11-27 01:21:46`，产物 `reports\task51-gate\summary.txt`（2385 B / sha16 `76B23965600ED60C`）。
+- **第一轮为假红的自纠**：控制器自写的 `reports\task100-gate-b14.ps1` 在**仓库根**跑 `flutter test` ⇒ 根有 `pubspec.yaml` 但**无 `test/` 目录** ⇒ `Test directory "test" not found.`、日志仅 34 B、`COUNT=-1`。不是测试失败，是脚本工作目录错，改用权威 `task51-gate.ps1`。
+- **第二轮为真红的一次自纠**：本轮 `-ExpectDesktopTests` 先按 1036 + 5 = **1041** 估，实际 **1039** ⇒ 判红项 `desktop.test:COUNT=1039 EXPECT=1041`（**只有这一条，其余全绿**）⇒ 按盘上实测数 1039 复跑转绿。
+- 门禁白名单本轮新增 `apps/desktop/test/b14_tab_scale_test.dart`、`docs/b14-fixup-dispatch.md`（`task51-gate.ps1` 的 `$patterns`）；`docs\RELAY-SOP.md` + `docs\plan-relay.md` 加入 `$excluded`（relay-port 装置产物，与 `docs/relay/*` 同源）。
+
+**verifier 14 条缺陷闭环表**
+
+| 缺陷 | 严重级 | 闭环 |
+|---|---|---|
+| D1 文本常态不可点击 | S1 阻断 | ✅ 补做棒新增 `goal-blueprint-goal-text-<id>` 文本键，点文字直接进编辑态 |
+| D2 新建仍弹全量表单 | S1 阻断 | ✅ 与 D3 联动：标题 `autofocus` + 备注/关键词折叠 |
+| D3 「表单简化」零交付 | S1 阻断 | ✅ 折叠式实现（字段不删，周/月页零改动） |
+| D4 `docs/relay*` 被改 | S1 阻断 | ⚠️ **归因订正**：改动来自控制器本人安装 relay-port 装置，worker 写集实测仅 `apps\desktop` 16 文件；本批提交用 `git diff --cached --name-only` 硬排除 |
+| D5 note / period_end 无 DB 断言 | S2 高 | ✅ T5 SQLite 回读全字段 |
+| D6 accent 持久化无用例 | S2 高 | ✅ B14-D6 重建容器读库 |
+| D7 标签文字对底色对比度无用例 | S2 高 | ✅ T4-T6，浅深各一 |
+| D8 760 宽红线未量得 | S2 高 | ✅ 760 棒 6 例（zh-760 比例 **1.000000** / 15.00px；真页面 760 en **0.747568** / 11.21px） |
+| D9 光标全选 | S3 中 | ✅ 改置末并同步断言 |
+| D10 窄宽只做 Flex 权重无测量 | S3 中 | ✅ 同 D8（取 paint transform 的 `scale`） |
+| D11 陈旧注释矛盾 | S3 中 | ✅ 三处文档统一 `inkWash` |
+| D12 整目录 `dart format` + 还原 226 文件 | S4 低 | ⚠️ 过程卫生，已在补做契约里明令禁止整目录格式化；本轮由补做棒反向做剥离 |
+| D13 契约 §6 数字无载体 | S4 低 | ✅ 760 棒把 `_tabFontSize = 15` / `_tabPadding = 18` 钉成断言 |
+| D14 选中底色与卡片底色色差待真机 | S4 低 | ⏳ **仍 UNDETERMINED**：合成按键注入通道已证伪（见下），只能由用户肉眼确认 |
+
+**取帧证据链（跨页导航仍不可判）**：`reports\task99-capture-b14.ps1` 原「既写日志又 `return`」⇒ 调用方收到 `Object[2]`，自报 `UNIQUE_FRAME_HASHES=4` 而实际 3 帧（假数）。修为「日志走 `Write-Host`、判据从盘上 PNG 回读重算」后实跑：三帧逐字节全等 `6A40222AF4304615` / `UNIQUE_FRAME_HASHES=1 / TOTAL=3` / `NAV_INCONCLUSIVE=1` ⇒ 合成 Ctrl+6/7/1 对界面无可见效果。**已知死路（勿重试）**：合成 `WM_MOUSEMOVE(0x0200)` / `WM_MOUSEWHEEL(0x020A)` 产不出 hover（13 帧恒 `03EF6B2A91AFEB66`）、`SendInput` 抢焦点被禁、UIA 只有 1 个 `FLUTTERVIEW` Pane 无可断言文本。记录 `reports\task99-capture-b14-fix.txt`（1,602 B，纯 ASCII）。
+
+**出包与装机（严格两步，坑 127）**
+
+- ① `flutter build windows --release`（**必须在 `apps\desktop` 目录内跑**，在仓库根跑报 `Target file "lib\main.dart" not found`）⇒ 构建树 `apps\desktop\build\windows\x64\runner\Release\data\app.so` = **9323400 B / sha16 `4ACEC8BA7ADA2068` / mtime 2026-11-27 01:22:31**（≠ B13 的 `59FF9A762C8EEA29` ⇒ 确为重编）；启动器 `actlog.exe` = 484,352 B / `89293205FAF8C3DE`（**未变，不得作判据**，见 §5 坑 110）。
+- ② `tools\build\make_installer.ps1 -Version '1.0.0'` ⇒ `INSTALLER_EXIT=0` ⇒ **`release\actlog-Setup-1.0.0_20261127-012235.exe`（22873139 B / sha16 `C838CE3E1811C666` / mtime 2026-11-27 01:23:02）**；`release\` 下现共 **64** 个 exe，**仅此 1 个可分发**，其余 63 个严禁分发；旧真源 `release\actlog-Setup-1.0.0_20261126-232814.exe`（`38B74EB23F8153C6`，B13 包）**即日起失效，严禁分发**。
+- 装机：**已静默装配（2026-11-27 01:23，控制器亲跑 `reports\task103-install-b14.ps1`）**：先 `WM_CLOSE` 关掉运行中的 B13 装机实例（PID 34680，20 秒未退出后强制结束）⇒ `RUNNING_AFTER_CLOSE=0`；`Start-Process <安装包> -ArgumentList '/S'`（**不** `-Wait`）⇒ `INSTALLER_EXITCODE=0`；装机 `D:\Program Files\actlog\data\app.so` 实测 **9,323,400 B / `4ACEC8BA7ADA2068` / mtime 2026-11-27 01:22:30**，与构建树逐字一致（**B14 已生效**）；用户活库 `userdata\actlog.db` 装配前后全等 **352,256 B / `B5F9070FC63068B1`** ⇒ **零写入**；装配后已把装机件重新拉起（PID 167656，主窗口 1312376）供肉眼验收。**B14 观感仍待用户肉眼确认**（本会话模型不能读图，跨页合成导航通道已证伪，见 §11.21）。
+
+**已知未覆盖 / 遗留**
+
+1. **B14 观感最终验收仍需用户肉眼**（D14 + 条目 2 就地编辑 + 条目 4 浅绿 / 浅蓝主题观感）—— 本会话模型不能读图，跨页合成导航通道已证伪。
+2. **英文态 760 窗余量仅 0.21px**（真实页面 0.747568 / 11.21px，11px 为红线）⇒ 任何增加标签水平内边距 / 分隔符 / 文案长度的改动都会推过红线，必须重跑 `b14_tab_scale_test.dart`。
+3. **接力链仍起不来**：`docs\relay.json` 停在上一批 `done 6/6` 耗尽态；`docs\relay\relay-ledger.ps1:348-350` 代码层写死 `set_status` 永不能为 `running`（`status_running_is_human_only`）⇒ **只有人能起链**。控制器**未**用手工改 JSON 绕开。详见 §11.20。
+4. **`AGENTS.md` 的 RELAY-PORT 托管块（L621-645）是否随本批提交**待用户拍板：纪律上 `docs\relay*` 不得并入，但该块落在 `AGENTS.md` 里。
+5. 契约三处不一致定性为**文档瑕疵，不改产品代码去凑文档**：§6「衬线 12px」实为 `_tabFontSize = 15`（HEAD 已是 15，非回滚）；§4.3「四列」实为 3 列；§2 英文示例仅末档加 Goal 而实现四档全加。
+6. `dart format` 现状：仓库基线本身不是当前 Dart 的 tall-style（HEAD 的 `providers.dart` / `app_theme.dart` / `settings_page.dart` / `goal_blueprint_matrix.dart` 同样不满足），本轮按契约「改回 HEAD 基线排版」执行 ⇒ 门禁不判 `dart format`。
+
+**本节写入时台账状态**：写前 **948 行 / 142151 B / sha16 `774BDA94AE90ADD6`**；写后行数 **1031 行**，写后字节数与 sha16 由追加脚本当场盘上回读并写入 `reports\task103-ledger-b14-close-after.txt`（台账正文不自指哈希）。
+
