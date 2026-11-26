@@ -1,14 +1,14 @@
 // =============================================================================
-// Task 78 · B9-W1：蓝图页「个人品牌管理」面板
+// Task 78 · 蓝图页顶部面板（B9-W1 个人品牌管理 → B10-D1 个人定位）
 // =============================================================================
-// 钉住派工书（docs\b91-dispatch-w1.md）的口径：
-//  T1 面板渲染在人生蓝图矩阵块**上方**，蓝图页既有三块照旧；
-//  T2 左侧 10 个切面齐备，默认选中 audience（派工书 §3.4-1）；
-//  T3 点切面导航 ⇒ 编辑区跟随该切面（ValueKey 带切面码）；
-//  T4 保存落库：`kind='brand'`、`facet='audience'`、`rev=1`、`deleted_at` 为空（R5 证据）；
-//  T5 同一面再保存走 `updateGoal`：仍只有一行、`facet` 不被改掉、`rev` 递增到 2；
-//  T6 标题留空点保存 ⇒ 一行都不写（派工书 §3.3「空内容不写行」）；
-//  T7 库里已有品牌行 ⇒ 切到该面时输入框回填（读到的是库里的值）。
+// 文件名保留（派工书 §3.5），内容整篇改写为新面板口径：
+//  T1 面板渲染在人生蓝图矩阵块**上方**；
+//  T2 四项问答齐备（values / strengths / value / proof），各有输入框与保存键；
+//  T3 保存落库：`kind='brand'`、`facet='identity'`、`rev=1`、`deleted_at` 为空；
+//  T4 同一项再保存走 `updateGoal`：仍只有一行、`facet` 不被改掉、`rev` 递增到 2；
+//  T5 空文本点保存 ⇒ 一行都不写（派工书 §3.1「空文本不写行」）；
+//  T6 库里已有该切面的行 ⇒ 输入框回填（读到的是库里的值）；
+//  T7 悬停价值观输入框 ⇒ 标签浮层出现、2 秒仍在、4 秒消失；点标签填入输入框。
 //
 // 判据一律回读 SQLite（原生 SQL `customSelect`），不看像素、不做字形断言。
 // =============================================================================
@@ -19,12 +19,12 @@ import 'package:actlog/src/pages/goals_blueprint_page.dart';
 import 'package:actlog/src/providers.dart';
 import 'package:actlog/src/theme/app_theme.dart';
 import 'package:actlog/src/theme/density_profile.dart';
-import 'package:actlog/src/widgets/goal_blueprint_matrix.dart';
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart' hide Goal, GoalLink;
 import 'package:core_domain/core_domain.dart' show GoalFacet, GoalKind;
 // `QueryRow` 是 `customSelect` 的行类型，drift 从 2.x 起只在 drift.dart 导出。
 import 'package:drift/drift.dart' show QueryRow;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` 只在 misc.dart 导出（3.5.0 起 flutter_riverpod.dart 不再带它）。
@@ -33,19 +33,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'l10n_harness.dart';
 
-/// 切面顺序（派工书 §3.4-1 逐字，也是导航渲染顺序）。
-const List<String> _facetCodes = <String>[
-  'statement',
-  'word',
-  'audience',
-  'promise',
-  'cost',
-  'evidence',
-  'contrast',
-  'strength',
-  'errc',
-  'identity',
-];
+/// 四项的 code（派工书 §3.1 逐字，也是渲染顺序）。
+const List<String> _codes = <String>['values', 'strengths', 'value', 'proof'];
 
 /// 回读 `goal` 表里所有品牌行（原生列名，按 id 升序 ⇒ 顺序稳定）。
 Future<List<QueryRow>> _brandRows(ActLogDatabase db) => db
@@ -79,7 +68,7 @@ Future<void> _pumpBlueprint(
           child: Scaffold(
             body: SingleChildScrollView(
               child: GoalsBlueprintPage(
-                key: const ValueKey<String>('bp-brand'),
+                key: const ValueKey<String>('bp-position'),
               ),
             ),
           ),
@@ -99,6 +88,14 @@ Future<void> _tapKey(WidgetTester tester, Key key) async {
   await tester.pumpAndSettle();
 }
 
+/// 某个输入框当前的文本。
+String _inputText(WidgetTester tester, String code) {
+  final TextField field = tester.widget<TextField>(
+    find.byKey(ValueKey<String>('goal-position-input-$code')),
+  );
+  return field.controller!.text;
+}
+
 void main() {
   late ActLogDatabase db;
   late ActLogRepositories repos;
@@ -106,7 +103,7 @@ void main() {
 
   setUp(() {
     db = openInMemoryActLogDatabase();
-    repos = ActLogRepositories(db, deviceId: 'task78-brand-panel-test');
+    repos = ActLogRepositories(db, deviceId: 'task78-position-panel-test');
     store = GoalStore(repos);
   });
 
@@ -114,146 +111,164 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T1 品牌面板渲染在人生蓝图矩阵块上方', (WidgetTester tester) async {
+  testWidgets('T1 个人定位面板渲染在人生蓝图矩阵块上方', (WidgetTester tester) async {
     await _pumpBlueprint(tester, repos: repos);
 
     final Finder panel = find.byKey(
-      const ValueKey<String>('goal-brand-panel'),
+      const ValueKey<String>('goal-position-panel'),
+    );
+    final Finder matrixTab = find.byKey(
+      const ValueKey<String>('goal-blueprint-tab-ultimate'),
     );
     expect(panel, findsOneWidget);
-
-    // 位置判据：面板顶边必须在矩阵顶边之上（矩阵块本身仍在页内）。
-    final double panelTop = tester.getTopLeft(panel).dy;
-    final double matrixTop = tester.getTopLeft(
-      find.byType(GoalBlueprintMatrix),
-    ).dy;
-    expect(panelTop, lessThan(matrixTop));
+    expect(matrixTab, findsOneWidget, reason: '矩阵仍在页面里');
+    expect(
+      tester.getBottomLeft(panel).dy,
+      lessThanOrEqualTo(tester.getTopLeft(matrixTab).dy),
+      reason: '面板必须在矩阵上方',
+    );
   });
 
-  testWidgets('T2 十个切面导航齐备，默认选中 audience', (WidgetTester tester) async {
+  testWidgets('T2 四项问答齐备（输入框 + 保存键 + 标题）', (WidgetTester tester) async {
     await _pumpBlueprint(tester, repos: repos);
+    final AppLocalizations zh = AppLocalizations.zh;
 
-    for (final String code in _facetCodes) {
+    for (final String code in _codes) {
       expect(
-        find.byKey(ValueKey<String>('goal-brand-facet-$code')),
+        find.byKey(ValueKey<String>('goal-position-input-$code')),
         findsOneWidget,
-        reason: '切面导航缺 $code',
+        reason: '缺输入框 $code',
+      );
+      expect(
+        find.byKey(ValueKey<String>('goal-position-save-$code')),
+        findsOneWidget,
+        reason: '缺保存键 $code',
       );
     }
-    // 默认切面 = audience：编辑区的三个 ValueKey 都带 audience。
-    expect(
-      find.byKey(const ValueKey<String>('goal-brand-title-audience')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('goal-brand-note-audience')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('goal-brand-save-audience')),
-      findsOneWidget,
-    );
+    expect(find.text(zh.goalPositionSection), findsOneWidget);
+    expect(find.text(zh.goalPositionValuesTitle), findsOneWidget);
+    expect(find.text(zh.goalPositionStrengthsTitle), findsOneWidget);
+    expect(find.text(zh.goalPositionValueTitle), findsOneWidget);
+    expect(find.text(zh.goalPositionProofTitle), findsOneWidget);
   });
 
-  testWidgets('T3 点切面导航后编辑区跟随该切面', (WidgetTester tester) async {
-    await _pumpBlueprint(tester, repos: repos);
-
-    await _tapKey(tester, const ValueKey<String>('goal-brand-facet-word'));
-
-    expect(
-      find.byKey(const ValueKey<String>('goal-brand-title-word')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('goal-brand-save-word')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('goal-brand-title-audience')),
-      findsNothing,
-    );
-  });
-
-  testWidgets('T4 保存写入 goal 行：kind=brand / facet=audience / rev=1 / 软删为空',
-      (WidgetTester tester) async {
+  testWidgets('T3 保存落库：kind=brand、facet=identity、rev=1', (WidgetTester tester) async {
     await _pumpBlueprint(tester, repos: repos);
 
     await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-brand-title-audience')),
-      '刚开业半年、靠一份外卖撑生意的小微餐饮店主',
+      find.byKey(const ValueKey<String>('goal-position-input-values')),
+      '自主、成长',
     );
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-brand-note-audience')),
-      '先写给他看，他决定别人怎么介绍我',
-    );
-    await _tapKey(tester, const ValueKey<String>('goal-brand-save-audience'));
-
-    // 保存成功反馈在场。
-    expect(
-      find.byKey(const ValueKey<String>('goal-brand-saved')),
-      findsOneWidget,
-    );
-
-    // 判据打到运行时产物：直接读 SQLite 的 goal 行。
-    final List<QueryRow> rows = await _brandRows(db);
-    expect(rows, hasLength(1));
-    final Map<String, Object?> row = rows.first.data;
-    expect(row['kind'], 'brand');
-    expect(row['facet'], 'audience');
-    expect(row['title'], '刚开业半年、靠一份外卖撑生意的小微餐饮店主');
-    expect(row['note'], '先写给他看，他决定别人怎么介绍我');
-    expect(row['rev'], 1);
-    expect(row['deleted_at'], isNull);
-  });
-
-  testWidgets('T5 同一面再保存：仍一行、facet 不变、rev 递增到 2',
-      (WidgetTester tester) async {
-    await _pumpBlueprint(tester, repos: repos);
-
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-brand-title-audience')),
-      '第一版受众',
-    );
-    await _tapKey(tester, const ValueKey<String>('goal-brand-save-audience'));
-
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-brand-title-audience')),
-      '第二版受众',
-    );
-    await _tapKey(tester, const ValueKey<String>('goal-brand-save-audience'));
+    await _tapKey(tester, const ValueKey<String>('goal-position-save-values'));
 
     final List<QueryRow> rows = await _brandRows(db);
-    expect(rows, hasLength(1), reason: '每切面最多一行');
-    final Map<String, Object?> row = rows.first.data;
-    expect(row['title'], '第二版受众');
-    expect(row['facet'], 'audience', reason: 'updateGoal 不传 facet ⇒ 不被改掉');
-    expect(row['rev'], 2, reason: '第二版走 updateGoal，rev 递增');
-    expect(row['deleted_at'], isNull);
+    expect(rows.length, 1);
+    expect(rows.single.data['kind'], 'brand');
+    expect(rows.single.data['facet'], 'identity');
+    expect(rows.single.data['title'], '自主、成长');
+    expect(rows.single.data['rev'], 1);
+    expect(rows.single.data['deleted_at'], isNull);
+    expect(
+      find.byKey(const ValueKey<String>('goal-position-saved')),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('T6 标题留空点保存：一行都不写', (WidgetTester tester) async {
+  testWidgets('T4 同一项再保存：仍一行、facet 不变、rev 递增到 2', (WidgetTester tester) async {
     await _pumpBlueprint(tester, repos: repos);
 
-    await _tapKey(tester, const ValueKey<String>('goal-brand-save-audience'));
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-position-input-values')),
+      '第一版',
+    );
+    await _tapKey(tester, const ValueKey<String>('goal-position-save-values'));
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-position-input-values')),
+      '第二版',
+    );
+    await _tapKey(tester, const ValueKey<String>('goal-position-save-values'));
+
+    final List<QueryRow> rows = await _brandRows(db);
+    expect(rows.length, 1, reason: '同一切面只该有一行');
+    expect(rows.single.data['facet'], 'identity');
+    expect(rows.single.data['title'], '第二版');
+    expect(rows.single.data['rev'], 2);
+  });
+
+  testWidgets('T5 空文本点保存：一行都不写', (WidgetTester tester) async {
+    await _pumpBlueprint(tester, repos: repos);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('goal-position-input-strengths')),
+      '   ',
+    );
+    await _tapKey(
+      tester,
+      const ValueKey<String>('goal-position-save-strengths'),
+    );
 
     expect(await _brandRows(db), isEmpty);
-    expect(
-      find.byKey(const ValueKey<String>('goal-brand-saved')),
-      findsNothing,
-      reason: '没写库就不该报「已保存」',
-    );
   });
 
-  testWidgets('T7 库里已有品牌行时输入框回填', (WidgetTester tester) async {
+  testWidgets('T6 库里已有该切面的行 ⇒ 输入框回填', (WidgetTester tester) async {
     await store.createGoal(
       kind: GoalKind.brand,
       facet: GoalFacet.identity,
-      title: '回填校验用的身份声明标题',
+      title: '库里已有的价值观',
     );
+
     await _pumpBlueprint(tester, repos: repos);
 
-    await _tapKey(tester, const ValueKey<String>('goal-brand-facet-identity'));
+    expect(_inputText(tester, 'values'), '库里已有的价值观');
+    expect(_inputText(tester, 'proof'), isEmpty);
+  });
 
-    expect(find.text('回填校验用的身份声明标题'), findsOneWidget);
+  testWidgets('T7 悬停出现标签浮层：离开后 2 秒仍在、4 秒消失、点标签填入', (
+    WidgetTester tester,
+  ) async {
+    await _pumpBlueprint(tester, repos: repos);
+    final Finder overlay = find.byKey(
+      const ValueKey<String>('goal-position-tags-overlay'),
+    );
+    final Finder input = find.byKey(
+      const ValueKey<String>('goal-position-input-values'),
+    );
+
+    final TestGesture gesture = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.addPointer(location: Offset.zero);
+    addTearDown(gesture.removePointer);
+    await tester.pump();
+
+    await gesture.moveTo(tester.getCenter(input));
+    await tester.pump();
+    expect(overlay, findsOneWidget, reason: '悬停即出现');
+
+    await tester.pump(const Duration(seconds: 4));
+    expect(overlay, findsOneWidget, reason: '鼠标还在输入框内 ⇒ 不计时，不消失');
+
+    // 指针离开输入框 ⇒ 才起 3 秒计时（浮层自己也跟着消失）。
+    await gesture.moveTo(const Offset(4, 4));
+    await tester.pump();
+    expect(overlay, findsOneWidget, reason: '刚离开时还没到 3 秒');
+
+    await tester.pump(const Duration(seconds: 2));
+    expect(overlay, findsOneWidget, reason: '2 秒时还没到 3 秒');
+
+    await tester.pump(const Duration(seconds: 4));
+    expect(overlay, findsNothing, reason: '超过 3 秒要消失');
+
+    // 指针移回输入框 ⇒ 重新 onEnter，浮层再出现。
+    await gesture.moveTo(tester.getCenter(input));
+    await tester.pump();
+    expect(overlay, findsOneWidget);
+
+    final String firstTag = AppLocalizations.zh.goalPositionValueTags.first;
+    await tester.tap(
+      find.byKey(const ValueKey<String>('goal-position-tag-values-0')),
+    );
+    await tester.pump();
+    expect(_inputText(tester, 'values'), firstTag);
   });
 }

@@ -269,6 +269,30 @@ abstract class GoalsL10n {
   /// 蓝图档位：近期（1 年）（表单下拉仍有这一档，矩阵已并入短期页）。
   String get goalBlueprintHorizonNear;
 
+  /// 蓝图档位时长（B10-B2）：终极 —— 标签页悬停提示。
+  String get goalBlueprintHorizonUltimateSpan;
+
+  /// 蓝图档位时长（B10-B2）：远期。
+  String get goalBlueprintHorizonLongSpan;
+
+  /// 蓝图档位时长（B10-B2）：中期。
+  String get goalBlueprintHorizonMidSpan;
+
+  /// 蓝图档位时长（B10-B2）：短期。
+  String get goalBlueprintHorizonShortSpan;
+
+  /// 日期列「完成」前缀（后面直接拼 `yyyy-MM-dd`）。
+  String get goalBlueprintDonePrefix;
+
+  /// 起止日期对话框标题。
+  String get goalBlueprintPeriodTitle;
+
+  /// 起止日期对话框：起始。
+  String get goalBlueprintPeriodStart;
+
+  /// 起止日期对话框：结束。
+  String get goalBlueprintPeriodEnd;
+
   /// 蓝图页说明：整行留空合法。
   String get goalBlueprintBlankRowHint;
 
@@ -533,6 +557,46 @@ abstract class GoalsL10n {
 
   /// 切面 identity：反例。
   String get goalBrandFacetIdentityCounterExample;
+
+  // ---------------------------------------------------------------------------
+  // B10-D1 个人定位（4 项问答 + 标签库）
+  // ---------------------------------------------------------------------------
+
+  /// 「个人定位」段标题。
+  String get goalPositionSection;
+
+  /// 价值观：标题。
+  String get goalPositionValuesTitle;
+
+  /// 价值观：要点指引。
+  String get goalPositionValuesHint;
+
+  /// 优势：标题。
+  String get goalPositionStrengthsTitle;
+
+  /// 优势：要点指引。
+  String get goalPositionStrengthsHint;
+
+  /// 独特价值：标题。
+  String get goalPositionValueTitle;
+
+  /// 独特价值：要点指引。
+  String get goalPositionValueHint;
+
+  /// 信任背书：标题。
+  String get goalPositionProofTitle;
+
+  /// 信任背书：要点指引。
+  String get goalPositionProofHint;
+
+  /// 标签浮层标题。
+  String get goalPositionTagsTitle;
+
+  /// 价值观标签库（Schwartz 基本价值理论 10 项）。
+  List<String> get goalPositionValueTags;
+
+  /// 优势标签库（VIA 24 项性格优势）。
+  List<String> get goalPositionStrengthTags;
 }
 
 /// 目标页文案：简体中文。
@@ -764,6 +828,30 @@ mixin GoalsZhL10n implements GoalsL10n {
 
   @override
   String get goalBlueprintHorizonNear => '近期（1 年）';
+
+  @override
+  String get goalBlueprintHorizonUltimateSpan => '60 岁以后';
+
+  @override
+  String get goalBlueprintHorizonLongSpan => '约 10 年内';
+
+  @override
+  String get goalBlueprintHorizonMidSpan => '约 5 年内';
+
+  @override
+  String get goalBlueprintHorizonShortSpan => '约 3 年内';
+
+  @override
+  String get goalBlueprintDonePrefix => '完成：';
+
+  @override
+  String get goalBlueprintPeriodTitle => '起止日期';
+
+  @override
+  String get goalBlueprintPeriodStart => '起始';
+
+  @override
+  String get goalBlueprintPeriodEnd => '结束';
 
   @override
   String get goalBlueprintBlankRowHint => '整行留空合法，不校验、不报错';
@@ -1035,6 +1123,81 @@ mixin GoalsZhL10n implements GoalsL10n {
 
   @override
   String get goalBrandFacetIdentityCounterExample => '我是一个不断学习的人';
+
+  // B10-D1 个人定位
+  @override
+  String get goalPositionSection => '个人定位';
+
+  @override
+  String get goalPositionValuesTitle => '我的价值观';
+
+  @override
+  String get goalPositionValuesHint =>
+      '写下你真正在意的 2–4 条价值取向，它们决定你长期愿意为什么付出代价；可从标签库点选后改写';
+
+  @override
+  String get goalPositionStrengthsTitle => '我的优势';
+
+  @override
+  String get goalPositionStrengthsHint =>
+      '挑 3–5 项最像你的性格优势，各补一句具体表现（什么时候、做过什么）；可从标签库点选后改写';
+
+  @override
+  String get goalPositionValueTitle => '独特价值';
+
+  @override
+  String get goalPositionValueHint => '你能解决什么问题、在什么领域解决；写给谁，替代了谁的什么方案';
+
+  @override
+  String get goalPositionProofTitle => '信任背书';
+
+  @override
+  String get goalPositionProofHint => '我凭什么塑造这个优势：可核验的案例、数据、资质或口碑，一条一句';
+
+  @override
+  String get goalPositionTagsTitle => '点击标签填入';
+
+  @override
+  List<String> get goalPositionValueTags => const <String>[
+    '自我导向',
+    '刺激',
+    '享乐',
+    '成就',
+    '权力',
+    '安全',
+    '遵从',
+    '传统',
+    '仁善',
+    '普世主义',
+  ];
+
+  @override
+  List<String> get goalPositionStrengthTags => const <String>[
+    '创造力',
+    '好奇心',
+    '开放思维',
+    '好学',
+    '洞察力',
+    '勇敢',
+    '坚持',
+    '真诚',
+    '热情',
+    '爱',
+    '善良',
+    '社交智力',
+    '团队精神',
+    '公平',
+    '领导力',
+    '宽恕',
+    '谦逊',
+    '审慎',
+    '自我调节',
+    '欣赏美与卓越',
+    '感恩',
+    '希望',
+    '幽默',
+    '灵性',
+  ];
 }
 
 /// 目标页文案：English。
@@ -1270,6 +1433,30 @@ mixin GoalsEnL10n implements GoalsL10n {
 
   @override
   String get goalBlueprintHorizonNear => 'Near-term (1 year)';
+
+  @override
+  String get goalBlueprintHorizonUltimateSpan => 'After 60';
+
+  @override
+  String get goalBlueprintHorizonLongSpan => 'Within ~10 years';
+
+  @override
+  String get goalBlueprintHorizonMidSpan => 'Within ~5 years';
+
+  @override
+  String get goalBlueprintHorizonShortSpan => 'Within ~3 years';
+
+  @override
+  String get goalBlueprintDonePrefix => 'Done: ';
+
+  @override
+  String get goalBlueprintPeriodTitle => 'Date range';
+
+  @override
+  String get goalBlueprintPeriodStart => 'Start';
+
+  @override
+  String get goalBlueprintPeriodEnd => 'End';
 
   @override
   String get goalBlueprintBlankRowHint =>
@@ -1573,4 +1760,81 @@ mixin GoalsEnL10n implements GoalsL10n {
   @override
   String get goalBrandFacetIdentityCounterExample =>
       'I am someone who keeps learning.';
+
+  // B10-D1 Personal Positioning
+  @override
+  String get goalPositionSection => 'Personal Positioning';
+
+  @override
+  String get goalPositionValuesTitle => 'My values';
+
+  @override
+  String get goalPositionValuesHint =>
+      'Write down the 2-4 values you actually care about; they decide what you are willing to pay for over time. Click a tag to start, then rewrite it in your own words.';
+
+  @override
+  String get goalPositionStrengthsTitle => 'My strengths';
+
+  @override
+  String get goalPositionStrengthsHint =>
+      'Pick the 3-5 character strengths that fit you best and add one concrete example each (when, and what you did). Click a tag to start, then rewrite it.';
+
+  @override
+  String get goalPositionValueTitle => 'Unique value';
+
+  @override
+  String get goalPositionValueHint =>
+      'What problem you solve, and in which field; who you serve and whose approach you replace.';
+
+  @override
+  String get goalPositionProofTitle => 'Proof of trust';
+
+  @override
+  String get goalPositionProofHint =>
+      'Why you can build this strength: verifiable cases, numbers, credentials or reputation, one per line.';
+
+  @override
+  String get goalPositionTagsTitle => 'Click a tag to fill in';
+
+  @override
+  List<String> get goalPositionValueTags => const <String>[
+    'Self-direction',
+    'Stimulation',
+    'Hedonism',
+    'Achievement',
+    'Power',
+    'Security',
+    'Conformity',
+    'Tradition',
+    'Benevolence',
+    'Universalism',
+  ];
+
+  @override
+  List<String> get goalPositionStrengthTags => const <String>[
+    'Creativity',
+    'Curiosity',
+    'Open-mindedness',
+    'Love of learning',
+    'Perspective',
+    'Bravery',
+    'Perseverance',
+    'Honesty',
+    'Zest',
+    'Love',
+    'Kindness',
+    'Social intelligence',
+    'Teamwork',
+    'Fairness',
+    'Leadership',
+    'Forgiveness',
+    'Humility',
+    'Prudence',
+    'Self-regulation',
+    'Appreciation of beauty and excellence',
+    'Gratitude',
+    'Hope',
+    'Humor',
+    'Spirituality',
+  ];
 }

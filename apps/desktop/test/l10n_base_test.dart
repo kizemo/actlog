@@ -24,17 +24,17 @@ import 'l10n_harness.dart';
 
 void main() {
   group('键表结构', () {
-    test('586 条 getter 全部登记在对照表里', () {
-      expect(L10nKeys.byGetter.length, 586);
-      expect(l10nAccessors.length, 586);
+    test('604 条 getter 全部登记在对照表里', () {
+      expect(L10nKeys.byGetter.length, 604);
+      expect(l10nAccessors.length, 604);
       // `byGetter` 是「getter 名 → 键」，访问器表是「键 → 取值」，所以这里比
       // 的是 `byGetter` 的**值**集合（都是 kebab 键）。
       expect(l10nAccessors.keys.toSet(), L10nKeys.byGetter.values.toSet());
     });
 
-    test('4 条列表型 getter 全部登记在列表表里', () {
-      expect(L10nKeys.byListGetter.length, 4);
-      expect(l10nListAccessors.length, 4);
+    test('6 条列表型 getter 全部登记在列表表里', () {
+      expect(L10nKeys.byListGetter.length, 6);
+      expect(l10nListAccessors.length, 6);
       expect(
         l10nListAccessors.keys.toSet(),
         L10nKeys.byListGetter.values.toSet(),
@@ -105,13 +105,13 @@ void main() {
       });
     });
 
-    test('全部键值不重复（586 + 4 + 53 = 643）', () {
+    test('全部键值不重复（604 + 6 + 53 = 663）', () {
       final Set<String> all = <String>{
         ...L10nKeys.byGetter.values,
         ...L10nKeys.byListGetter.values,
         ...L10nKeys.byMethod.values,
       };
-      expect(all.length, 643);
+      expect(all.length, 663);
     });
 
     test('键一律 kebab-case（小写字母数字，单横线分隔）', () {

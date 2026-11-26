@@ -1829,6 +1829,34 @@ abstract final class L10nKeys {
   /// 蓝图档位：近期（1 年）。
   static const String goalBlueprintHorizonNear = 'goal-blueprint-horizon-near';
 
+  /// 蓝图档位时长：终极（`60 岁以后`）。
+  static const String goalBlueprintHorizonUltimateSpan =
+      'goal-blueprint-horizon-ultimate-span';
+
+  /// 蓝图档位时长：远期（`约 10 年内`）。
+  static const String goalBlueprintHorizonLongSpan =
+      'goal-blueprint-horizon-long-span';
+
+  /// 蓝图档位时长：中期（`约 5 年内`）。
+  static const String goalBlueprintHorizonMidSpan =
+      'goal-blueprint-horizon-mid-span';
+
+  /// 蓝图档位时长：短期（`约 3 年内`）。
+  static const String goalBlueprintHorizonShortSpan =
+      'goal-blueprint-horizon-short-span';
+
+  /// 日期列「完成」前缀。
+  static const String goalBlueprintDonePrefix = 'goal-blueprint-done-prefix';
+
+  /// 起止日期对话框标题。
+  static const String goalBlueprintPeriodTitle = 'goal-blueprint-period-title';
+
+  /// 起止日期对话框：起始。
+  static const String goalBlueprintPeriodStart = 'goal-blueprint-period-start';
+
+  /// 起止日期对话框：结束。
+  static const String goalBlueprintPeriodEnd = 'goal-blueprint-period-end';
+
   /// 蓝图页说明：整行留空合法。
   static const String goalBlueprintBlankRowHint =
       'goal-blueprint-blank-row-hint';
@@ -2130,6 +2158,45 @@ abstract final class L10nKeys {
   static const String goalBlueprintBalanceHabit =
       'goal-blueprint-balance-habit';
 
+  // --- B10-D1 个人定位 12 条（段头 + 4 项标题/指引 + 浮层标题 + 2 个标签库）
+
+  /// 「个人定位」段标题。
+  static const String goalPositionSection = 'goal-position-section';
+
+  /// 价值观：标题。
+  static const String goalPositionValuesTitle = 'goal-position-values-title';
+
+  /// 价值观：要点指引。
+  static const String goalPositionValuesHint = 'goal-position-values-hint';
+
+  /// 优势：标题。
+  static const String goalPositionStrengthsTitle =
+      'goal-position-strengths-title';
+
+  /// 优势：要点指引。
+  static const String goalPositionStrengthsHint = 'goal-position-strengths-hint';
+
+  /// 独特价值：标题。
+  static const String goalPositionValueTitle = 'goal-position-value-title';
+
+  /// 独特价值：要点指引。
+  static const String goalPositionValueHint = 'goal-position-value-hint';
+
+  /// 信任背书：标题。
+  static const String goalPositionProofTitle = 'goal-position-proof-title';
+
+  /// 信任背书：要点指引。
+  static const String goalPositionProofHint = 'goal-position-proof-hint';
+
+  /// 标签浮层标题。
+  static const String goalPositionTagsTitle = 'goal-position-tags-title';
+
+  /// 价值观标签库（Schwartz 10 项）。
+  static const String goalPositionValueTags = 'goal-position-value-tags';
+
+  /// 优势标签库（VIA 24 项）。
+  static const String goalPositionStrengthTags = 'goal-position-strength-tags';
+
   // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
@@ -2309,6 +2376,14 @@ abstract final class L10nKeys {
     'goalBlueprintHorizonMid': goalBlueprintHorizonMid,
     'goalBlueprintHorizonShort': goalBlueprintHorizonShort,
     'goalBlueprintHorizonNear': goalBlueprintHorizonNear,
+    'goalBlueprintHorizonUltimateSpan': goalBlueprintHorizonUltimateSpan,
+    'goalBlueprintHorizonLongSpan': goalBlueprintHorizonLongSpan,
+    'goalBlueprintHorizonMidSpan': goalBlueprintHorizonMidSpan,
+    'goalBlueprintHorizonShortSpan': goalBlueprintHorizonShortSpan,
+    'goalBlueprintDonePrefix': goalBlueprintDonePrefix,
+    'goalBlueprintPeriodTitle': goalBlueprintPeriodTitle,
+    'goalBlueprintPeriodStart': goalBlueprintPeriodStart,
+    'goalBlueprintPeriodEnd': goalBlueprintPeriodEnd,
     'goalBlueprintBlankRowHint': goalBlueprintBlankRowHint,
     'goalBlueprintActionsCount': goalBlueprintActionsCount,
     'goalBlueprintWeeklyTarget': goalBlueprintWeeklyTarget,
@@ -2404,6 +2479,17 @@ abstract final class L10nKeys {
     'goalBrandFacetIdentityExample': goalBrandFacetIdentityExample,
     'goalBrandFacetIdentityCounterExample':
         goalBrandFacetIdentityCounterExample,
+    // B10-D1 个人定位 10 条
+    'goalPositionSection': goalPositionSection,
+    'goalPositionValuesTitle': goalPositionValuesTitle,
+    'goalPositionValuesHint': goalPositionValuesHint,
+    'goalPositionStrengthsTitle': goalPositionStrengthsTitle,
+    'goalPositionStrengthsHint': goalPositionStrengthsHint,
+    'goalPositionValueTitle': goalPositionValueTitle,
+    'goalPositionValueHint': goalPositionValueHint,
+    'goalPositionProofTitle': goalPositionProofTitle,
+    'goalPositionProofHint': goalPositionProofHint,
+    'goalPositionTagsTitle': goalPositionTagsTitle,
     // 应用外壳（Task 61 起；Task 64 补导航「目标」/ 快捷键「切到目标」，
     // Task 72 补快捷键「切到蓝图」⇒ Ctrl+7）
     'shellNavToday': shellNavToday,
@@ -2759,7 +2845,7 @@ abstract final class L10nKeys {
     'dialogPoolEmptyLong': dialogPoolEmptyLong,
   };
 
-  /// 列表型 getter 名 → 键（4 条；`byGetter` 只收 String getter）。
+  /// 列表型 getter 名 → 键（6 条；`byGetter` 只收 String getter）。
   ///
   /// 列表型 getter（`List<String>`）无法塞进 `Map<String, String>`，单列一张表，
   /// 好让测试同样能遍历「键一条不少 + 中英两态都非空且不同」。
@@ -2768,6 +2854,8 @@ abstract final class L10nKeys {
     'aboutChangelog': aboutChangelog,
     'calendarWeekdaysShort': calendarWeekdaysShort,
     'domainWeekdayFull': domainWeekdayFull,
+    'goalPositionValueTags': goalPositionValueTags,
+    'goalPositionStrengthTags': goalPositionStrengthTags,
   };
 
   /// 插值方法名 → 键（53 条）。

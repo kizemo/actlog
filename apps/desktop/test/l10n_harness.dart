@@ -214,6 +214,22 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
       t.goalBlueprintHorizonShort,
   L10nKeys.goalBlueprintHorizonNear: (AppLocalizations t) =>
       t.goalBlueprintHorizonNear,
+  L10nKeys.goalBlueprintHorizonUltimateSpan: (AppLocalizations t) =>
+      t.goalBlueprintHorizonUltimateSpan,
+  L10nKeys.goalBlueprintHorizonLongSpan: (AppLocalizations t) =>
+      t.goalBlueprintHorizonLongSpan,
+  L10nKeys.goalBlueprintHorizonMidSpan: (AppLocalizations t) =>
+      t.goalBlueprintHorizonMidSpan,
+  L10nKeys.goalBlueprintHorizonShortSpan: (AppLocalizations t) =>
+      t.goalBlueprintHorizonShortSpan,
+  L10nKeys.goalBlueprintDonePrefix: (AppLocalizations t) =>
+      t.goalBlueprintDonePrefix,
+  L10nKeys.goalBlueprintPeriodTitle: (AppLocalizations t) =>
+      t.goalBlueprintPeriodTitle,
+  L10nKeys.goalBlueprintPeriodStart: (AppLocalizations t) =>
+      t.goalBlueprintPeriodStart,
+  L10nKeys.goalBlueprintPeriodEnd: (AppLocalizations t) =>
+      t.goalBlueprintPeriodEnd,
   L10nKeys.goalBlueprintBlankRowHint: (AppLocalizations t) =>
       t.goalBlueprintBlankRowHint,
   L10nKeys.goalBlueprintActionsCount: (AppLocalizations t) =>
@@ -369,6 +385,26 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
       t.goalBrandFacetIdentityExample,
   L10nKeys.goalBrandFacetIdentityCounterExample: (AppLocalizations t) =>
       t.goalBrandFacetIdentityCounterExample,
+  // B10-D1 个人定位 10 条
+  L10nKeys.goalPositionSection: (AppLocalizations t) => t.goalPositionSection,
+  L10nKeys.goalPositionValuesTitle: (AppLocalizations t) =>
+      t.goalPositionValuesTitle,
+  L10nKeys.goalPositionValuesHint: (AppLocalizations t) =>
+      t.goalPositionValuesHint,
+  L10nKeys.goalPositionStrengthsTitle: (AppLocalizations t) =>
+      t.goalPositionStrengthsTitle,
+  L10nKeys.goalPositionStrengthsHint: (AppLocalizations t) =>
+      t.goalPositionStrengthsHint,
+  L10nKeys.goalPositionValueTitle: (AppLocalizations t) =>
+      t.goalPositionValueTitle,
+  L10nKeys.goalPositionValueHint: (AppLocalizations t) =>
+      t.goalPositionValueHint,
+  L10nKeys.goalPositionProofTitle: (AppLocalizations t) =>
+      t.goalPositionProofTitle,
+  L10nKeys.goalPositionProofHint: (AppLocalizations t) =>
+      t.goalPositionProofHint,
+  L10nKeys.goalPositionTagsTitle: (AppLocalizations t) =>
+      t.goalPositionTagsTitle,
   // 应用外壳 25 条（Task 61 的 23 条 + Task 64 的 2 条）
   L10nKeys.shellNavToday: (AppLocalizations t) => t.shellNavToday,
   L10nKeys.shellNavInbox: (AppLocalizations t) => t.shellNavInbox,
@@ -889,6 +925,10 @@ final Map<String, List<String> Function(AppLocalizations)> l10nListAccessors =
       L10nKeys.calendarWeekdaysShort: (AppLocalizations t) =>
           t.calendarWeekdaysShort,
       L10nKeys.domainWeekdayFull: (AppLocalizations t) => t.domainWeekdayFull,
+      L10nKeys.goalPositionValueTags: (AppLocalizations t) =>
+          t.goalPositionValueTags,
+      L10nKeys.goalPositionStrengthTags: (AppLocalizations t) =>
+          t.goalPositionStrengthTags,
     };
 
 /// 允许中英同值的键（白名单）。

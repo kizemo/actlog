@@ -6,7 +6,7 @@
 // 口径（Task 72 / D-72-b）：蓝图已从「目标页第 4 页签」升级为第 7 个导航项
 // （id `blueprint`、`Ctrl+7`、深链 `/blueprint`）；页面自带标题，不再借目标页的。
 //
-// 三块内容（计划 §5.4）：
+// 两块内容（计划 §5.4；B10-D1 已下线「人生平衡轮」块，组件文件保留不动）：
 //  1. **人生蓝图矩阵**：6 行（领域）× 5 列（档位）。空格合法，不校验、不报错。
 //     「近期（1 年）」列渲染的是**本年度的年度目标**（`GoalYearView.yearlyGoals`）
 //     加上 `horizon='near'` 的蓝图目标 —— 与年页**同一份数据源**，不另建一份。
@@ -17,8 +17,6 @@
 //     终极 → 远期 → 中期 → 短期是蓝图目标（`parent_id` + `serves` 双写）；
 //     短期 / 近期则二选一：年度目标（`period_start` = 本年起点 + `serves`）
 //     或待办任务（`TodoRepository.create` + 父目标 `tracks`）。
-//  3. **人生平衡轮**：纯派生只读 —— 本月/上月自评均值 + 习惯打卡频次，
-//     **界面上看到的数字不回写目标库**。
 //
 // 目标编辑（B8-W1，裁决 D-8-e）：
 //  * 格内「+ 新建目标」：表单的 `domain` + `horizon` **预填所在格子** ⇒ 只填标题
@@ -38,14 +36,17 @@ import '../data/project_domain_catalog.dart';
 import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
+// `GoalBalanceData` / `loadGoalBalanceData` 仍被 `_BlueprintData` 引用（B10-D1
+// 只下线渲染块，数据字段按派工书 §3.4 保留），所以这个 import 不能摘。
 import '../widgets/goal_balance_wheel.dart';
 import '../widgets/goal_blueprint_matrix.dart';
 import '../widgets/goal_brand_panel.dart';
 import '../widgets/goal_year_matrix.dart';
 import '../widgets/goals/goal_form_dialog.dart';
+import '../widgets/goals/goal_period_dialog.dart';
 import '../widgets/goals/goal_split_dialog.dart';
 
-/// 人生蓝图页：蓝图矩阵 + 待确认待办 + 平衡轮。
+/// 人生蓝图页：个人定位 + 蓝图矩阵 + 待确认待办。
 class GoalsBlueprintPage extends ConsumerStatefulWidget {
   /// 创建人生蓝图页。
   const GoalsBlueprintPage({this.period, super.key});
@@ -227,16 +228,10 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
             style: _metaStyle(context),
           ),
         const SizedBox(height: AppTokens.gapCard),
-        const GoalBrandPanel(),
+        const GoalPositionPanel(),
         const SizedBox(height: AppTokens.gapCard),
         // B9-W2：矩阵不再有段头（标签页本身已经是分档入口）。
         _block(t, null, (_BlueprintData data) => _buildMatrix(data, t)),
-        const SizedBox(height: AppTokens.gapCard),
-        _block(
-          t,
-          t.goalBlueprintBalanceSection,
-          (_BlueprintData data) => GoalBalanceWheel(data: data.balance, t: t),
-        ),
       ],
     );
   }
@@ -264,25 +259,19 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
     );
   }
 
-  /// 蓝图矩阵（档位由矩阵自带的标签页切换）+ 整行留空口径说明。
+  /// 蓝图矩阵（档位由矩阵自带的标签页切换）。
   Widget _buildMatrix(_BlueprintData data, AppLocalizations t) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        GoalBlueprintMatrix(
-          t: t,
-          rows: data.rows,
-          serves: data.serves,
-          tracksCount: data.tracksCount,
-          onSplitTodos: _openSplit,
-          onAddGoal: _openCreateGoal,
-          onEditGoal: _openEditGoal,
-          onDeleteGoal: _confirmDeleteGoal,
-        ),
-        const SizedBox(height: 6),
-        Text(t.goalBlueprintBlankRowHint, style: _metaStyle(context)),
-      ],
+    return GoalBlueprintMatrix(
+      t: t,
+      rows: data.rows,
+      serves: data.serves,
+      tracksCount: data.tracksCount,
+      onSplitTodos: _openSplit,
+      onAddGoal: _openCreateGoal,
+      onEditGoal: _openEditGoal,
+      onDeleteGoal: _confirmDeleteGoal,
+      onToggleGoalDone: _toggleGoalDone,
+      onEditGoalPeriod: _editGoalPeriod,
     );
   }
 
@@ -473,6 +462,86 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
           },
         );
       }
+      if (!mounted) {
+        return;
+      }
+      setState(() => _goalSaved = true);
+      _future = _load();
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(
+        () => _goalFailed = AppLocalizations.of(context).operationFailed,
+      );
+    }
+  }
+
+  /// 勾选 / 取消「已完成」（B10-B3）。
+  ///
+  /// 只传 `status`：归档时刻由 `GoalStore.updateGoal` 按 status 派生
+  /// （done ⇒ 首次完成时刻，非 done ⇒ null），页面不直接碰 `archivedAt`
+  /// —— 领域校验要求二者一致，分两次写必撞。
+  Future<void> _toggleGoalDone(GoalRow goal, bool done) async {
+    setState(() {
+      _goalSaved = false;
+      _goalDeleted = false;
+      _goalFailed = null;
+    });
+    try {
+      await ref
+          .read(goalStoreProvider)
+          .updateGoal(
+            goal.id,
+            status: done ? GoalStatus.done : GoalStatus.active,
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _goalSaved = true);
+      _future = _load();
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(
+        () => _goalFailed = AppLocalizations.of(context).operationFailed,
+      );
+    }
+  }
+
+  /// 改目标起止日期（B10-B4）。
+  ///
+  /// 入参就是矩阵日期列带出的这一行既有值（`startMs == 0` = 未设置）。
+  /// 结束日清空必须显式进 `clear`（传 null 的语义是「不动」）；起始日清空走
+  /// `periodStart: 0`（`GoalField` 没有 periodStart，0 即领域里的「未设置」）。
+  Future<void> _editGoalPeriod(GoalRow goal, int startMs, int? endMs) async {
+    final AppLocalizations t = AppLocalizations.of(context);
+    final GoalPeriodResult? result = await showGoalPeriodDialog(
+      context,
+      t: t,
+      startMs: startMs,
+      endMs: endMs,
+    );
+    if (result == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _goalSaved = false;
+      _goalDeleted = false;
+      _goalFailed = null;
+    });
+    try {
+      await ref
+          .read(goalStoreProvider)
+          .updateGoal(
+            goal.id,
+            periodStart: result.startMs,
+            periodEnd: result.endMs,
+            clear: result.endMs == null
+                ? const <GoalField>{GoalField.periodEnd}
+                : const <GoalField>{},
+          );
       if (!mounted) {
         return;
       }

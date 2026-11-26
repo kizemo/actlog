@@ -418,3 +418,82 @@ python F:\soft\00selfmade\practilog\reports\task77-goal-dump.py
 2. **`FG_SAME=False` 未归属**（见 §10.3 末条）：若需坐实「零抢焦点」，须另写采样脚本（打印被测 HWND + 逐 250ms 比对前台窗口 PID 是否属被测进程）。
 3. **种子副本留存**：`reports\task88-smoke-seed`（R4 不删），与 `reports\task85-seeddb-b10b` 等历史种子并存。
 4. **提交口径**：本轮 11 文件 = `apps\desktop` 8 + 根 `analysis_options.yaml` + `AGENTS.md` + 本台账，**只 commit 不 push**；`reports\**` 被 `.gitignore:46` 忽略 ⇒ **不得 `git add reports/`**。
+
+---
+
+## 11. B10 收口：个人定位面板 + 蓝图目标矩阵（标签页 / 勾选 / 日期列）（2026-11-26 下午）
+
+**本轮六项用户诉求全部落盘、门禁绿、新包已出。视觉判据未取证（本会话模型不能读图），见 §11.8。**
+
+### 11.1 六项诉求 → 落点（逐条）
+
+| # | 用户诉求 | 落点 |
+|---|---|---|
+| 1 | 顶部「个人品牌管理」→「个人定位」四问 | `GoalBrandPanel` → `GoalPositionPanel`（**文件路径不变** `apps\desktop\lib\src\widgets\goal_brand_panel.dart`，不删不改名）；四项 `code` = `values` / `strengths` / `value` / `proof`，facet 映射 `identity` / `strength` / `promise` / `evidence`（**复用既有 10 切面，不新增第 11 个**，schema 仍 FROZEN） |
+| 2 | 四项都有输入框；价值观+优势带标签库；悬停浮窗、离开约 3 秒消失；同步改写指引 | `OverlayEntry` + `MouseRegion`（**不用 `Tooltip`**，因为要承载可点标签）；`_tagsLinger = Duration(seconds: 3)`、`_tagsGap = Offset(12,16)`、`_tagsMaxWidth = 360`；浮层自身 `onEnter` 停表 / `onExit` 重新计时；同 `code` 复用单 entry 不叠加；边界夹取 |
+| 3 | 目标模块排版：未激活/激活清晰区分，标签页形式；悬停短期/中期/远期显示时长 | 四档标签页（终极·远期·中期·短期；`GoalHorizon.near` 不进标签页）；激活 = `tokens.inkWash` 底 + `BorderRadius.circular(999)` pill + `tokens.ink` + `w600`，未激活 = 无底 + `tokens.meta`；`Tooltip(message: _horizonSpan(...))` 包每个标签页 |
+| 4 | 目标可勾选完成；增加一列起止日期；勾选后显示完成日期 | 勾选 `goal-blueprint-done-<id>`（24×24，`onToggleGoalDone == null` 时整块不渲染）；`updateGoal` 内按 status 派生 `archived_at`；第三列 Flex 2/5/3（领域\|目标\|日期），`goal-blueprint-period-text-<id>` / `goal-blueprint-done-on-<id>` / 改期按钮 `goal-blueprint-period-<id>` |
+| 5 | 去掉底部「整行留空合法，不校验*」 | `goals_blueprint_page.dart` 的 `_buildMatrix` 删除该行渲染（**l10n 键 `goalBlueprintBlankRowHint` 保留**，故基表计数不变） |
+| 6 | 去掉页面底部「平衡轮」 | 页面不再装配 `_block`；`goal_balance_wheel.dart` 组件与 `loadGoalBalanceData` **文件/接口全留**（不删文件） |
+
+### 11.2 代码落点（盘上回读，非转述）
+
+- `apps\desktop\lib\src\widgets\goal_brand_panel.dart`：+476 / −296（类名改、路径不变）。
+- `apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart`：+199 / −26（538 行）。`_tab` 在 `:234-263`、`_horizonSpan` 在 `:275-281`、三列 `FlexColumnWidth` 在 `:181-187`、`_periodText`(`:510`) / `_dateText`(`:521`，`isUtc: true`) / `_momentText`(`:539`，本地时区)。
+- `apps\desktop\lib\src\widgets\goals\goal_period_dialog.dart`：**新建** 196 行，键 `goal-period-dialog/-start/-end/-clear/-cancel/-confirm`，返回 `GoalPeriodResult{startMs,endMs}`（清除 ⇒ `(0,null)`，取消 ⇒ `null`）。
+- `apps\desktop\lib\src\data\goal_store.dart`：+12 / −2（`nextStatus` 派生、`archivedAt: nextStatus == done ? (current.archivedAt ?? ts) : null`、`_diff` 加 `archived_at`）。
+- `apps\desktop\lib\src\pages\goals_blueprint_page.dart`：+98 / −29（装配面板、两回调、删留空提示、删平衡轮）。
+- l10n：`parts\goals.dart` +264、`l10n_keys.dart` +89；标签库用 **`List<String>` getter**（`goalPositionValueTags` 10 条 / `goalPositionStrengthTags` 24 条，中英各一套），不摊成 34 个单键。
+- 测试：新 `test\b10_position_panel_test.dart`（5 例）、新 `test\b10_blueprint_matrix_done_test.dart`（7 例）、重写 `test\task78_b9_brand_panel_test.dart`、改 `task66_goals_blueprint_page_test.dart` 3 处；**`task73` 的 null 门控用例 0 改动仍绿**。
+- `packages\**` 零改动。
+
+### 11.3 标签库来源（离线整理，不联网检索）
+
+- 价值观 = **Schwartz 基本价值理论 10 项**（Schwartz, 1992）：自我导向 / 刺激 / 享乐主义 / 成就 / 权力 / 安全 / 遵从 / 传统 / 仁善 / 普世主义。
+- 优势 = **VIA 24 项性格优势**（Peterson & Seligman, 2004）：智慧与知识 6 / 勇气 4 / 人道 3 / 公正 3 / 节制 4 / 超越 4。
+
+### 11.4 门禁（**控制器亲跑**，不采信 worker 自报）
+
+```text
+# 跑前：Move-Item apps\desktop\build\test_cache\build -> build.bak-b10ctl2（Test-Path = False）
+No issues found! (ran in 5.0s)        ANALYZE_EXIT=0
+01:57 +958: All tests passed!         TEST_EXIT=0
+```
+
+- desktop 基线链：946 → 棒 A 951 → 棒 B 957 → 时区修复 **958**（精确命中，非「≥」）。
+- 基线数字对不上即为假绿；本轮 958 = 957 + 1。
+
+### 11.5 出包（**本轮新坑：打包脚本不自带编译**）
+
+- `tools\build\make_installer.ps1` **从不调用 flutter/dart**（脚本 `:9` / `:54` 自述），只把现存 `apps\desktop\build\windows\x64\runner\Release` 压成 NSIS。
+- 首次直接跑 ⇒ 产出 `actlog-Setup-1.0.0_20261126-152802.exe`，22,829,066 B，**sha256 与旧锚点逐字节相同**（`B374C3BBEFD1F9BE73EB8F52B168CC8F84442D3E0B6FB30F5EB4BE27F1F20EE2`）⇒ 是「假新包」（文件名换了时间戳，代码没换）。已 `Move-Item` 到 `reports\task-b10-invalid\`（**不删**），`release\` 计数回 59。
+- 补 `flutter build windows --release` ⇒ `BUILD_EXIT=0`，59.7s；`data\app.so` 由 **9,175,944 B @2026-11-26 12:10:09** 变为 **9,192,328 B @2026-11-26 15:30:07**（代码确实换了）。
+- 再出包 ⇒ **唯一可分发 = `release\actlog-Setup-1.0.0_20261126-153023.exe`**
+  - **22,832,030 B** / sha16 **`083A68D840FD657B`**（旧锚点 `B374C3BBEFD1F9BE`，两者不同 ⇒ 装机件含新代码）
+  - `release\` 下 **60** 个 exe，**其余 59 个严禁分发**
+- 判据口径：坑 124（只认 sha16）+ **本轮新增坑 127**（`make_installer.ps1` 不自带编译）。
+
+### 11.6 期间修的实质 bug：完成日时区错一天
+
+- 现象：`archivedAt` 是 `GoalStore.updateGoal` 里 `DateTime.now()` 的**时刻**，但 `:421` 曾用 `_dateText`（`isUtc: true`）渲染 ⇒ 东八区 00:00–08:00 勾完成会显示**前一天**。
+- 修法：新增 `_momentText`（`DateTime.fromMillisecondsSinceEpoch` **不传 `isUtc`**，本地时区），**只给「完成：」用**；`_periodText` 的起止日期仍走 `_dateText`。两套口径写进各自 doc 注释与文件头 `:25-26`。
+- 判别性测试：`test\b10_blueprint_matrix_done_test.dart:393` 运行时按小时扫 48 个候选，挑出**「本地日 ≠ UTC 日」**的时刻作 `archivedAt`，先断言该点确实跨日界，再断言渲染 = 本地日 —— **旧实现必红**；零偏移时区扫不到则自动跳过判别行（`now` 那条仍成立）。
+- 裁决依据：根因坐实 + 代价可逆 + 有判别测试 ⇒ 按用户既定偏好**直接修，不发问卷**。
+
+### 11.7 启动 smoke（新二进制，非安装器）
+
+- `apps\desktop\build\windows\x64\runner\Release\actlog.exe --data-dir=reports\task72-seeddb` ⇒ 12s 后 `ALIVE=True PID=259504`。
+- 帧已留档：`reports\task80-frames\b10boot.png`（150,408 B @15:31:35）。
+- 收尾只 `Stop-Process -Id 259504`（自起实例）；**用户原有实例 PID 108656 未动**。
+
+### 11.8 未验证 / 残留（如实登记，不得当成已验收）
+
+1. **视觉判据零证据**：本会话模型不支持读图（工具回 `model does not support images`）⇒ ①悬停 3 秒浮窗 ②标签页激活/未激活观感 ③三列排版是否挤压 ④平衡轮是否真的消失，**全部只有 widget 测试与代码回读，没有人工看帧确认**。装机后需用户目视一次。
+2. 勾选框**未按 `kind` 设门槛**，现仅靠 `onToggleGoalDone == null` 门控；蓝图矩阵内只渲染 blueprint 行，暂无暴露面。
+3. `goal_store._diff` 新增 `archived_at` ⇒ oplog 字段集扩大；下游若有字段白名单需复核（**本轮未查**）。
+4. 勾选热区 24×24，低于 Material 建议 48dp；窄视口三列（Flex 2/5/3）挤压**未实测**。
+5. `goalBlueprintBlankRowHint` 的 l10n 键与既有单测保留但不再渲染（键仍在基表 ⇒ 基表计数不变）。
+
+### 11.9 提交
+
+- 只 commit **不 push**；`AGENTS.md` / `docs\relay.json` / `docs\relay\stage-6-report.md` 的未暂存改动属并发接力链会话，**不并入本笔**（`AGENTS.md` 按坑 97 部分暂存）。

@@ -9,7 +9,7 @@
 //  3. **未落位** = 既没有下级目标、也没有任何 `tracks` 执行实体；正例与负例都要断。
 //  4. 拆分图标打开拆分层级对话框（B9-W3 / D-9-e）：确认前库里 0 增量，
 //     确认即落库 —— 终极档拆出的是 3 条远期蓝图目标并挂 `serves`。
-//  5. 平衡轮是**纯派生只读**：界面上看到的数字不回写目标库。
+//  5. B10-D1：平衡轮块与「整行留空」说明已下线（组件与 l10n 键保留），页面不渲染。
 //  6. B9-W2：段头「人生蓝图矩阵」不再渲染；空格子只有右下角「+」、没有「（空）」；
 //     蓝图卡片右侧同时有铅笔与拆分图标；年目标不给铅笔 / 拆分（D-9-c）。
 //
@@ -224,8 +224,8 @@ void main() {
       findsNothing,
       reason: '一次只渲染当前标签页',
     );
-    // 整行留空口径仍要可见。
-    expect(find.text(zh.goalBlueprintBlankRowHint), findsOneWidget);
+    // B10-D1：「整行留空」的说明已下线（键保留，页面不再渲染）。
+    expect(find.text(zh.goalBlueprintBlankRowHint), findsNothing);
   });
 
   testWidgets('蓝图页：短期标签页里的年目标与年页同源，改年数据后同步', (WidgetTester tester) async {
@@ -337,7 +337,7 @@ void main() {
     }
   });
 
-  testWidgets('蓝图页：平衡轮是纯派生，渲染后库里 0 增量', (WidgetTester tester) async {
+  testWidgets('B10-D1：平衡轮块已下线，页面渲染后库里 0 增量', (WidgetTester tester) async {
     await _seed(store);
     final int goalsBefore = (await store.listGoals()).length;
     final int todosBefore = (await repos.todo.listOpen()).length;
@@ -346,11 +346,12 @@ void main() {
 
     expect(
       find.byKey(const ValueKey<String>('goal-balance-wheel')),
-      findsOneWidget,
+      findsNothing,
+      reason: 'B10-D1 下线平衡轮块',
     );
     expect(
       find.byKey(const ValueKey<String>('goal-balance-point-career')),
-      findsOneWidget,
+      findsNothing,
     );
     expect((await store.listGoals()).length, goalsBefore);
     expect((await repos.todo.listOpen()).length, todosBefore);
@@ -366,11 +367,8 @@ void main() {
     );
     expect(find.text('人生蓝图矩阵'), findsNothing);
     expect(find.text('Life blueprint matrix'), findsNothing);
-    // 去标题只针对矩阵块：其它区块段头照旧在。
-    expect(
-      find.text(AppLocalizations.zh.goalBlueprintBalanceSection),
-      findsWidgets,
-    );
+    // 去标题只针对矩阵块：顶部「个人定位」面板的段头在场。
+    expect(find.text(AppLocalizations.zh.goalPositionSection), findsOneWidget);
   });
 
   testWidgets('B9-W2：空格子只有右下角「+」，不再渲染「（空）」', (WidgetTester tester) async {

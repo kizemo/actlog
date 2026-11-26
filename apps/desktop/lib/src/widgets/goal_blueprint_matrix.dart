@@ -1,21 +1,32 @@
 // =============================================================================
-// 目标 · 人生蓝图矩阵（Task 66 UI 半批 B2 → B9-W2 标签页改造）
+// 目标 · 人生蓝图矩阵（Task 66 UI 半批 B2 → B9-W2 标签页改造 → B10-B 增强）
 // =============================================================================
-// 口径（计划 §5.4 + B9 裁决 D-9）：
+// 口径（计划 §5.4 + B9 裁决 D-9 + B10 棒 B）：
 //  1. 主视图 = **4 个标签页（终极 / 远期 / 中期 / 短期），默认终极**；一次只渲染
-//     当前档位那一张表 —— **6 行（domain）× 2 列（领域 | 单元格）**，不渲染表头行。
-//     格子里显示 `title` 一行 + `keywords` 标签 + 做法条数；点标题展开三层
-//     （目标 → 关键词 → 做法）。
-//  2. **短期页 = 原「短期」列 + 原「近期（1 年）」列**：near 蓝图与本年度 yearly 目标
+//     当前档位那一张表 —— **6 行（domain）× 3 列（领域 | 目标 | 日期）**，
+//     不渲染表头行。目标格里显示 `title` 一行 + `keywords` 标签 + 做法条数；
+//     点标题展开三层（目标 → 关键词 → 做法）。
+//  2. **标签页激活态**（B10-B1）：激活 = 圆角 pill + `tokens.inkWash` 浅洗底 +
+//     `tokens.ink` + `FontWeight.w600`；未激活 = 无底色 + `tokens.meta`。
+//     四档都用 `Tooltip` 悬停显示时长（B10-B2，文案来自 `t.` getter）。
+//  3. **短期页 = 原「短期」列 + 原「近期（1 年）」列**：near 蓝图与本年度 yearly 目标
 //     都由页面侧并入 `GoalHorizon.short` 那一格（与年页**同一份数据源**
 //     `GoalYearView.yearlyGoals`，保证单一真源）。
-//  3. **链断裂可视化**：沿 `serves` 链向下探；格内目标既没有下级（年/月/周）
+//  4. **链断裂可视化**：沿 `serves` 链向下探；格内目标既没有下级（年/月/周）
 //     也没有任何 `tracks` 执行实体时，角标显示「未落位」；可一键拆分。
-//  4. **空格合法**：矩阵不校验、不强制、不给红字（计划 §5.4 末句）；空格子的唯一
+//  5. **空格合法**：矩阵不校验、不强制、不给红字（计划 §5.4 末句）；空格子的唯一
 //     入口是右下角「+」（不渲染「（空）」）。
-//  5. **编辑入口（B8-W1 / B9-W2）**：`onAddGoal` / `onEditGoal` / `onDeleteGoal`
-//     三个回调全部**可选**（默认 null）。不传时本矩阵的渲染与 Task 66 时期一致
-//     （AGENTS §5 坑 48：新增参数不得改变既有调用点的行为）。
+//  6. **编辑入口**：`onAddGoal` / `onEditGoal` / `onDeleteGoal` / `onToggleGoalDone` /
+//     `onEditGoalPeriod` 五个回调全部**可选**（默认 null）。不传时本矩阵的渲染与
+//     既有调用点逐字一致（AGENTS §5 坑 48：新增参数不得改变既有调用点的行为）。
+//     * B10-B3：勾选框（`goal-blueprint-done-<id>`）只在传了 `onToggleGoalDone` 时渲染；
+//       归档时刻由 `GoalStore.updateGoal` 按 `status` 派生，本组件不写库。
+//     * B10-B4：日期列（`yyyy-MM-dd ~ yyyy-MM-dd`，缺值 `—`，已完成追加完成日）；
+//       起止日期是**日期型**字段（UTC 午夜毫秒 ⇒ 按 UTC 显示，与方法 `_dateText` 一致），
+//       而「完成：」取 `archivedAt` 这个**时刻**（⇒ 按本地时区显示，`_momentText`），
+//       否则东八区 00:00–08:00 勾完成会显示成前一天；
+//       改期按钮（`goal-blueprint-period-<id>`）只在传了 `onEditGoalPeriod` 时渲染，
+//       且只管**蓝图目标**（年目标在本页改周期会与年页口径打架）。
 //
 // 本模块使用 2 个 Material 图标：`Icons.edit_outlined`（铅笔）与 `Icons.call_split`
 // （拆分）；「+」用文字符号（坑 51：桌面测试不预载 MaterialIcons 字体）。
@@ -41,7 +52,7 @@ class GoalBlueprintRow {
   final Map<GoalHorizon, List<GoalRow>> cells;
 }
 
-/// 人生蓝图矩阵（6 行 × 2 列，4 个档位标签页）。
+/// 人生蓝图矩阵（6 行 × 3 列，4 个档位标签页）。
 class GoalBlueprintMatrix extends StatefulWidget {
   /// 创建矩阵。
   const GoalBlueprintMatrix({
@@ -53,6 +64,8 @@ class GoalBlueprintMatrix extends StatefulWidget {
     this.onAddGoal,
     this.onEditGoal,
     this.onDeleteGoal,
+    this.onToggleGoalDone,
+    this.onEditGoalPeriod,
     super.key,
   });
 
@@ -86,6 +99,17 @@ class GoalBlueprintMatrix extends StatefulWidget {
   ///
   /// null = 不渲染（同上）。
   final void Function(GoalRow goal)? onDeleteGoal;
+
+  /// 勾选 / 取消「完成」（B10-B3）。
+  ///
+  /// 调用方只传 `status`，`archived_at` 由 `GoalStore.updateGoal` 内部派生。
+  /// null = **不渲染**勾选框（坑 48）。
+  final void Function(GoalRow goal, bool done)? onToggleGoalDone;
+
+  /// 改起止日期（B10-B4）：`startMs == 0` ⇒ 清空起始，`endMs == null` ⇒ 无终点。
+  ///
+  /// null = 不渲染日期列的改期按钮（同上）。
+  final void Function(GoalRow goal, int startMs, int? endMs)? onEditGoalPeriod;
 
   /// 档位顺序（终极 → 近期）。
   ///
@@ -131,8 +155,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         ?.copyWith(color: tokens.meta);
     final TextStyle? warnStyle = Theme.of(context).textTheme.labelSmall
         ?.copyWith(color: tokens.accentInk);
-    final TextStyle? tabStyle = Theme.of(context).textTheme.labelLarge
-        ?.copyWith(color: tokens.ink);
+    final TextStyle? tabStyle = Theme.of(context).textTheme.labelLarge;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -141,17 +164,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         Row(
           children: <Widget>[
             for (final GoalHorizon horizon in GoalBlueprintMatrix.tabs)
-              TextButton(
-                key: ValueKey<String>(
-                  'goal-blueprint-tab-${_horizonKey(horizon)}',
-                ),
-                onPressed: () => setState(() => _selected = horizon),
-                child: Text(
-                  _horizonLabel(horizon),
-                  style: horizon == _selected
-                      ? tabStyle?.copyWith(fontWeight: FontWeight.w600)
-                      : tabStyle,
-                ),
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: _tab(horizon, style: tabStyle, tokens: tokens),
               ),
           ],
         ),
@@ -168,6 +183,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
           columnWidths: <int, TableColumnWidth>{
             0: const FlexColumnWidth(2),
             1: const FlexColumnWidth(5),
+            2: const FlexColumnWidth(3),
           },
           border: TableBorder(
             horizontalInside: BorderSide(color: tokens.hairSoft, width: 1),
@@ -198,11 +214,51 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                       warnStyle: warnStyle,
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: _dates(
+                      goals: row.cells[_selected] ?? const <GoalRow>[],
+                      bodyStyle: bodyStyle,
+                      metaStyle: metaStyle,
+                    ),
+                  ),
                 ],
               ),
           ],
         ),
       ],
+    );
+  }
+
+  /// 一个档位标签页（B10-B1 激活态 + B10-B2 时长提示）。
+  Widget _tab(
+    GoalHorizon horizon, {
+    required TextStyle? style,
+    required ThemeTokens tokens,
+  }) {
+    final bool active = horizon == _selected;
+    return Tooltip(
+      message: _horizonSpan(horizon),
+      child: TextButton(
+        key: ValueKey<String>('goal-blueprint-tab-${_horizonKey(horizon)}'),
+        onPressed: () => setState(() => _selected = horizon),
+        style: TextButton.styleFrom(
+          // 激活 = 浅洗底 pill；未激活 = 透明（不是靠字重「猜」哪个选中）。
+          backgroundColor: active ? tokens.inkWash : null,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(999)),
+          ),
+        ),
+        child: Text(
+          _horizonLabel(horizon),
+          style: active
+              ? style?.copyWith(color: tokens.ink, fontWeight: FontWeight.w600)
+              : style?.copyWith(color: tokens.meta),
+        ),
+      ),
     );
   }
 
@@ -213,6 +269,15 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     GoalHorizon.mid => widget.t.goalBlueprintHorizonMid,
     GoalHorizon.short => widget.t.goalBlueprintHorizonShort,
     GoalHorizon.near => widget.t.goalBlueprintHorizonNear,
+  };
+
+  /// 档位时长（标签页悬停提示；near 不进标签页，兜底用短期那条）。
+  String _horizonSpan(GoalHorizon horizon) => switch (horizon) {
+    GoalHorizon.ultimate => widget.t.goalBlueprintHorizonUltimateSpan,
+    GoalHorizon.long => widget.t.goalBlueprintHorizonLongSpan,
+    GoalHorizon.mid => widget.t.goalBlueprintHorizonMidSpan,
+    GoalHorizon.short => widget.t.goalBlueprintHorizonShortSpan,
+    GoalHorizon.near => widget.t.goalBlueprintHorizonShortSpan,
   };
 
   /// 档位 → key 片段（与枚举名一致：`career-ultimate` / `learning-short`）。
@@ -264,6 +329,20 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                // B10-B3：勾选框只管写 `status`，归档时刻由 store 派生。
+                if (widget.onToggleGoalDone != null)
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      key: ValueKey<String>('goal-blueprint-done-${goal.id}'),
+                      value: goal.isDone,
+                      onChanged: (bool? value) =>
+                          widget.onToggleGoalDone!(goal, value ?? false),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,6 +386,63 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                 // 铅笔/拆分/删除只管**蓝图目标**：短期页里混进来的年目标属于年页，
                 // 在 07 页改它的档位会把 `horizon` 写成一个不该有的值。
                 if (goal.kind == GoalKind.blueprint) _actions(goal),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 日期列（B10-B4）：每行目标一条 `起始 ~ 结束`，已完成追加完成日。
+  Widget _dates({
+    required List<GoalRow> goals,
+    required TextStyle? bodyStyle,
+    required TextStyle? metaStyle,
+  }) {
+    if (goals.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        for (final GoalRow goal in goals)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  _periodText(goal),
+                  key: ValueKey<String>('goal-blueprint-period-text-${goal.id}'),
+                  style: bodyStyle,
+                ),
+                if (goal.isDone)
+                  Text(
+                    '${widget.t.goalBlueprintDonePrefix}'
+                    '${_momentText(goal.archivedAt)}',
+                    key: ValueKey<String>(
+                      'goal-blueprint-done-on-${goal.id}',
+                    ),
+                    style: metaStyle,
+                  ),
+                // 年目标的周期归年页管，本页只改蓝图目标（与 _actions 同门槛）。
+                if (widget.onEditGoalPeriod != null &&
+                    goal.kind == GoalKind.blueprint)
+                  _compactButton(
+                    key: ValueKey<String>('goal-blueprint-period-${goal.id}'),
+                    onPressed: () => widget.onEditGoalPeriod!(
+                      goal,
+                      goal.periodStart,
+                      goal.periodEnd,
+                    ),
+                    tooltip: widget.t.goalBlueprintPeriodTitle,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(widget.t.goalBlueprintPeriodTitle),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -368,6 +504,46 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         tooltip: tooltip,
       ),
     );
+  }
+
+  /// 起止日期文案：无起始 ⇒ 整体 `—`；无结束 ⇒ 右端 `—`。
+  String _periodText(GoalRow goal) {
+    if (goal.periodStart <= 0) {
+      return '—';
+    }
+    return '${_dateText(goal.periodStart)} ~ ${_dateText(goal.periodEnd)}';
+  }
+
+  /// **日期型字段**专用：UTC 毫秒 → `yyyy-MM-dd`（null / 非正数 → `—`，与年页同口径）。
+  ///
+  /// 只给 `periodStart` / `periodEnd` 用 —— 这两个是全项目统一约定存
+  /// UTC 午夜毫秒的「日期」，必须按 UTC 取年月日。
+  String _dateText(int? millis) {
+    if (millis == null || millis <= 0) {
+      return '—';
+    }
+    final DateTime moment = DateTime.fromMillisecondsSinceEpoch(
+      millis,
+      isUtc: true,
+    );
+    final String month = moment.month.toString().padLeft(2, '0');
+    final String day = moment.day.toString().padLeft(2, '0');
+    return '${moment.year}-$month-$day';
+  }
+
+  /// **时刻型字段**专用：毫秒 → `yyyy-MM-dd`（null / 非正数 → `—`），按**本地时区**取年月日。
+  ///
+  /// 只给 `archivedAt` 用 —— 它存的是 `GoalStore.updateGoal` 里 `DateTime.now()` 的
+  /// 时刻，不是 UTC 午夜的「日期」。若按 UTC 显示，东八区 00:00–08:00 之间勾完成
+  /// 会少一天，用户看到的完成日期就是错的。
+  String _momentText(int? millis) {
+    if (millis == null || millis <= 0) {
+      return '—';
+    }
+    final DateTime moment = DateTime.fromMillisecondsSinceEpoch(millis);
+    final String month = moment.month.toString().padLeft(2, '0');
+    final String day = moment.day.toString().padLeft(2, '0');
+    return '${moment.year}-$month-$day';
   }
 
   /// 未落位：既没有下级目标，也没有任何 `tracks` 执行实体。

@@ -524,6 +524,9 @@ class GoalStore {
     final int ts = nowMillis();
     final String deviceId = await repos.oplog.resolveDeviceId();
 
+    // B10-B3：归档时刻由 `status` 派生，调用点只传 `status`（不改 API、不加 schema）。
+    final GoalStatus nextStatus = status ?? _statusOf(current);
+
     // 合并 → 用领域工厂统一校验（标题非空 / 自评 0..10 / 周期顺序 / 归档口径）。
     final Goal merged = Goal.create(
       id: current.id,
@@ -555,7 +558,7 @@ class GoalStore {
       priorityAbc: clear.contains(GoalField.priorityAbc)
           ? null
           : (priorityAbc ?? PriorityAbc.fromCode(current.priorityAbc)),
-      status: status ?? _statusOf(current),
+      status: nextStatus,
       selfScore: clear.contains(GoalField.selfScore)
           ? null
           : (selfScore ?? current.selfScore),
@@ -565,7 +568,11 @@ class GoalStore {
       improveNote: clear.contains(GoalField.improveNote)
           ? null
           : (improveNote ?? current.improveNote),
-      archivedAt: current.archivedAt,
+      // done ⇒ 保留已有归档时刻，没有就记此刻；非 done ⇒ 必须清空
+      // （`Goal.create` 校验：非 done 带 archivedAt 会直接抛「只有完成的目标才能进归档」）。
+      archivedAt: nextStatus == GoalStatus.done
+          ? (current.archivedAt ?? ts)
+          : null,
       rev: current.rev + 1,
     );
 
@@ -602,6 +609,8 @@ class GoalStore {
           selfScore: Value<int?>(merged.selfScore),
           reviewNote: Value<String?>(merged.reviewNote),
           improveNote: Value<String?>(merged.improveNote),
+          // 归档时刻必须与 `status` 同一次写入（否则领域校验与库内状态会脱节）。
+          archivedAt: Value<int?>(merged.archivedAt),
           updatedAt: Value<int>(ts),
           originDeviceId: Value<String>(deviceId),
           rev: Value<int>(current.rev + 1),
@@ -1242,6 +1251,7 @@ class GoalStore {
     put('self_score', current.selfScore, merged.selfScore);
     put('review_note', current.reviewNote, merged.reviewNote);
     put('improve_note', current.improveNote, merged.improveNote);
+    put('archived_at', current.archivedAt, merged.archivedAt);
     return changed;
   }
 
