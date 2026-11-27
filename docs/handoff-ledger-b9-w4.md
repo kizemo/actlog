@@ -1592,3 +1592,98 @@ RUN_AT=2026-11-27 13:09:29
 5. **不删文件，一律改名归档**：`reports\b17-ledger-before-11-27.bak.md` 就是 §11.27 插入前的归档（未删原文件）。
 
 **七、本节数字若与后续产物冲突，以产物为准；本节不声称未跑过的检查。**
+
+### 11.29 · B18 收口（四条界面改动：去重复分类名 / 去「进行中」文本 / 行垂直居中 / 去「临时事项」 + 蓝图居中与「删除目标」改垃圾桶图标 · 绿测 1121 / 门禁 PASS / 新包装机） · 2026-11-27 傍晚 · 控制器（会话 `mvs_e0056b60a81449dabd583b0953472df4`）
+
+**一、背景与目标（完整自洽，新会话无需回翻派工书）**
+
+B17 收口并经用户肉眼验收闭合后（台账 §11.27 / §11.28），用户当轮新指令立项 **B18**，四条界面改动原文口径：
+
+1. **目标页面（周 / 月 / 年）新增目标、选了分类后会显示两行重复的分类名称** ⇒ 去除冗余；**「完成」列不要显示「进行中」**，状态只需要单选按钮表达。
+2. **每一行数据要保持垂直居中**，当前上下有错位。
+3. **去除目标模块中的「临时事项」**。
+4. **蓝图页面保持内容垂直居中**（当前上下有错位）；**「删除目标」改为垃圾桶图标按钮**（和目标页面一致）。
+
+用户同时要求：**完成本阶段会话任务后，用非技术语言简要描述任务进度和下一阶段要完成的任务目标。**
+
+本节是 B18 的权威收口记录，覆盖 §11.28 结尾「下一阶段候选」第 ① 条（行内类别列去留 —— 本批已裁决为**删除**）。
+
+**二、六条裁决（本批口径，不再重开）**
+
+| # | 裁决点 | 裁决内容与依据 |
+|---|---|---|
+| 1 | 重复分类名 | **删月 / 年页行内「类别」列，保留分区小标题。** 依据：周 / 月 / 年三页**都真实渲染分区小标题**（周表 L137 / 月页 `GoalSectionList` L635 / 年页 L328）⇒ 删行内列不丢任何信息。`goalCategoryTitle` 口径**不变**，不复用 `projectDomainLabel`。 |
+| 2 | 状态表达 | **删月 / 年页状态文字列 + 对应表头格**；状态唯一由 `GoalRowActions` 的完成单选（key `goal-row-done-<id>`）表达。**周页「完成」列是完成度百分比**（L269–275，语义不同）⇒ **不动**。 |
+| 3 | 「临时事项」 | **整条派生标记行下线**（含「服务于年目标」与两个 ValueKey `goal-month-ad-hoc-*` / `goal-month-serves-yearly-*`），**l10n getter 全保留**。理由：保留一半会让部分行两行、部分行一行，行高参差与本批「垂直居中」相悖。**若用户要回填「服务于年目标」，回填点仅月页 `_monthRow` 一处三元表达式（约 5 行）。** |
+| 4 | 垂直居中口径 | **只改纵向**：`Column(crossAxisAlignment: stretch/start)` 的横向语义**一律不动**（蓝图 `_dates` 的 Column 是横向语义，不动）。 |
+| 5 | 蓝图删除按钮 | **换图标不换 key**（复用既有 `goal-blueprint-delete-<id>`）、**不换确认链**（`goal-blueprint-delete-confirm` / `goal-blueprint-delete-cancel` 在 `goals_blueprint_page.dart`，该文件**不在任何写集内**）、**不删 l10n**；显式加 `Semantics(label: t.goalBlueprintDeleteGoal, button: true, onTap: …)` 且**不加** `excludeSemantics`。 |
+| 6 | 门禁白名单 | 本批新增测试文件由**控制器预先**补进 `reports\task51-gate.ps1` 的 `$patterns`（`apps/desktop/test/b18_*.dart` / `docs/b18-plan.md` / `docs/handoff-b18-*.md`），改后跑 ASCII 扫描（`PS1_SCANNED=538` / `PS1_ASCII_VIOLATIONS=0` / `PS1_NEW_NON_ASCII=0` / `PS1_ASCII_FLIPPED=0` / `PS1_BASELINE_SHA16=5247D49A400CC3F9`）。 |
+
+**三、实现落点与写集（四棒并行，写集零交集）**
+
+- **W1** = `apps\desktop\lib\src\widgets\goal_week_table.dart`：表头行 L113 + 数据行 L234 改 `CrossAxisAlignment.center`；新增两个定位键 `goal-week-header-row` / `goal-week-order-<id>`（**既有 key 未动**）；新建 `apps\desktop\test\b18_week_row_center_test.dart`（2 例：几何 ≤1px + 表头结构断言）。
+- **W2** = `apps\desktop\lib\src\pages\goals_month_page.dart`：删 `goal_category.dart` import（L45）、表头删类别 72 / 完成 64 两格、数据行删类别列与状态文本列、**删整条派生标记 Text**、删 `parents` 形参 / `served` / `hasYearly` 局部变量、`Column>[Row,Text]` 收敛为 `Padding>Row`、两处 Row 改 center；改 `task66_goals_month_page_test.dart`（两个派生 key → `findsNothing`）与 `b17_month_page_test.dart`（`findsNWidgets(2)` → `findsOneWidget`）；新建 `b18_month_page_test.dart`（5 例）。
+- **W3** = `apps\desktop\lib\src\pages\goals_year_page.dart`：表头 L354 / 数据行 L385 改 center，删类别 64 / 状态 56 两格，删 `goal_category.dart` import（L41）；改 `b17_year_page_test.dart`（三处状态文本 → `findsNothing` + 图标断言）与 `task66_goals_year_page_test.dart`（`findsAtLeastNWidgets(1)` → `findsOneWidget`）；新建 `b18_year_page_test.dart`（4 例，**含「表头格数 == 行格数」断言**）。
+- **W4** = `apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart`：L755–757 目标行、L857–859 goalsColumn + 加号行改 center；L1057–1073 删除 `TextButton` → `Semantics(...)` 包裹 `_compactButton`（复用既有 key / `Icons.delete_outline` / iconSize 16 / tooltip 同文案）；文件头图标清单 2→3；**`task73_b8_w1_blueprint_edit_test.dart` 零改动**（其断言全走 key）；新建 `b18_blueprint_test.dart`（4 例）。
+
+**写集外零改动**（四棒均未碰写集外文件、未做 git 写操作、未删文件、未跑全量）；`packages\**` **零改动**，schema 仍 **FROZEN**。
+**新增用例 = +15**（W1 +2 / W2 +5 / W3 +4 / W4 +4；1106 → 1121）。
+
+**红→绿证据（各棒自跑，控制器复核后采信）**：W1 红 = 两格上缘同为 114.0、**中心差 6.0px** ⇒ 绿 = 中心同为 **157.0**；W2 红 `+1 -4` ⇒ 绿 `+5`（三文件合跑 `+15`）；W3 红 `+0 -4` ⇒ 绿 `+4`（三文件合跑 `+14`）；W4 红 `+1 -3` ⇒ 绿 `+14`（b18 4 + task73 10）。
+
+**四、门禁（控制器亲跑 `reports\task51-gate.ps1 -ExpectDesktopTests 1121`，未传 `-ExcludePaths`）**
+
+`RUN_AT=2026-11-27 18:04:04` / `HEAD=d0d7dc1` / `AHEAD=0`：`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / **`DESKTOP_TESTS=1121` = `DESKTOP_EXPECTED=1121`**（脚本内建 `$baseline=596` ⇒ 报表 `DESKTOP_DELTA=525` **不是**本批增量，本批真实 **+15**）/ `CORE_DATA_TESTS=204` / `CORE_DB_TESTS=96` / `CORE_DOMAIN_TESTS=91` / 四包 analyze 全 `VERBATIM`（逐字 `No issues found!`）/ `VIOLATIONS=0` / `OUT_OF_SET=0` / `GATE_EXCLUDED=7`（**7 项全是 relay 装置文档，零测试文件**）/ `PS1_SCANNED=538` / `PS1_NEW_NON_ASCII=0` / `PS1_ASCII_VIOLATIONS=0` / `PS1_BASELINE_SHA16=5247D49A400CC3F9` / `STATUS_LINES=49`（首跑）。**文档落盘后复跑同一门禁**（`RUN_AT=2026-11-27 18:21:38`）：`GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `DESKTOP_TESTS=1121` = `DESKTOP_EXPECTED=1121` / 四包 analyze 全 `VERBATIM` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `GATE_EXCLUDED=7`（**零测试文件**）/ `PS1_SCANNED=538` / `PS1_ASCII_VIOLATIONS=0` / **`STATUS_LINES=51`（最终树状态）** / `HEAD=d0d7dc1` / `AHEAD=0` / `GIT_EXIT=0` / `GATE_RERUN_EXIT=0`；`STATUS_PATHS` 19 项含 `docs\handoff-ledger-b9-w4.md` 与 `docs\handoff-b18-2026-11-27.md` ⇒ **文档落盘未触发 `OUT_OF_SET`**。复跑日志 `reports\b18-gate-final2.txt`。
+整包 `flutter analyze` 单独跑：`No issues found! (ran in 14.0s)` / `ANALYZE_EXIT=0` / `VERBATIM=True`。
+**跑前按 R2 把 `apps\desktop\build\test_cache\build` 同目录 `Rename-Item` 挪走**（不删），否则 OS Error 183 挂死。
+门禁摘要落盘：`reports\b18-gate-final.txt`（2,734 B）。
+
+**五、出包（严格两步，坑 127）**
+
+① `flutter build windows --release`（**必须在 `apps\desktop` 目录内跑**）⇒ `BUILD_EXIT=0` / `Building Windows application... 117.2s` ⇒ 构建树 `apps\desktop\build\windows\x64\runner\Release\data\app.so` = **9,323,400 B / `BB0F64CDE747D77C` / mtime 2026-11-27 18:06:53**（≠ B17 的 `BA7EF7A40E83CF37` ⇒ **确为重编**）；启动器 `actlog.exe` 仍 484,352 B / `89293205FAF8C3DE`（**未变，不得作判据**，坑 110）。
+② `tools\build\make_installer.ps1 -Version '1.0.0'` ⇒ `INSTALLER_EXIT=0` / `SubType = NSIS-3 Unicode` / payload **36 文件 60,600,882 B**（排除 **6** 个 `userdata` 项）/ `pe_mz_magic=MZ` ⇒ 新包 **`release\actlog-Setup-1.0.0_20261127-180831.exe` = 22,872,398 B / sha16 `9E77C1BC0FFA39C2` / mtime 2026-11-27 18:09:28**。
+**`release\` 下现共 67 个 exe，仅此 1 个可分发，其余 66 个严禁分发**；旧真源 `…_20261127-153051.exe`（`D77D47404FAB2763`，B17 包）**即日起失效，严禁分发**。
+
+**六、装机（静默，控制器亲跑 `reports\task103-install-b14.ps1`）**
+
+日志 `reports\b18-install-final.txt`（21 行）：`RUNNING_BEFORE=2` ⇒ `WM_CLOSE_PID=510968` → 20 秒未退 ⇒ `FORCE_KILL_PID=3112` + `FORCE_KILL_PID=510968` ⇒ `RUNNING_AFTER_CLOSE=0`；`DB_BEFORE=425984|EB31F08FACAA8244`；`INSTALLER_PID=514976` / `INSTALLER_EXITCODE=0`；装机 `D:\Program Files\actlog\data\app.so` = **9,323,400 B / `BB0F64CDE747D77C` / mtime 2026-11-27 18:06:52** ⇒ **与构建树逐字一致 ⇒ `PAYLOAD_MATCH=True`**；`DB_AFTER=425984|EB31F08FACAA8244` ⇒ **`DB_UNCHANGED=True`（用户活库零写入）**；装机件已重拉起：`RELAUNCH_PID=528068` / `RELAUNCH_ALIVE=1` / `RELAUNCH_MAINWINDOW=857398`。
+
+**七、已验证 / 推断 / 未验证**
+
+- **已验证（盘上实数 + 实跑产物）**：上列门禁 / 出包 / 装机全部读数。
+- **推断（据实推导，非直接观测）**：①「B18 四条改动确已进装机件」由「装机 `app.so` sha16 = 构建树 sha16 = `BB0F64CDE747D77C`」+「构建发生在四棒改完并通过门禁之后」推出；②「观感符合用户描述」**未**推出。
+- **未验证（不得声称已过）**：模型侧**无**任何像素级 / 取帧证据（不能读图，取帧通道已判死路，见 §11.16）⇒ **B18 四条界面观感全部待用户肉眼验收**，控制器**不代签、不补证**；英文态仅验证 **760 宽**这一个宽度；relay 装置产物的最终处置未定。
+
+**八、证据路径（全路径，可直接打开）**
+
+- 项目真源与规范：`F:\soft\00selfmade\practilog\AGENTS.md`（§2 R1–R8 铁律 / §5 工具坑 / §7 状态快照 / §7.1 设计标准）
+- 本台账：`F:\soft\00selfmade\practilog\docs\handoff-ledger-b9-w4.md`（**§11.29 = 本节**）
+- B18 计划：`F:\soft\00selfmade\practilog\docs\b18-plan.md`（13,915 B / 133 行）
+- B18 handoff 单页：`F:\soft\00selfmade\practilog\docs\handoff-b18-2026-11-27.md`
+- 门禁摘要：`F:\soft\00selfmade\practilog\reports\b18-gate-final.txt`（2,734 B）
+- 构建日志：`F:\soft\00selfmade\practilog\reports\b18-build-final.txt`
+- 出包日志：`F:\soft\00selfmade\practilog\reports\b18-installer-final.txt`
+- 装机日志：`F:\soft\00selfmade\practilog\reports\b18-install-final.txt`（21 行）
+- 门禁脚本：`F:\soft\00selfmade\practilog\reports\task51-gate.ps1`（已补 B18 白名单块）
+- ASCII 扫描装置：`F:\soft\00selfmade\practilog\reports\task57-ps1-ascii-scan.ps1`
+- 装机件：`D:\Program Files\actlog\data\app.so`（9,323,400 B / `BB0F64CDE747D77C`）；安装包 `F:\soft\00selfmade\practilog\release\actlog-Setup-1.0.0_20261127-180831.exe`
+- 本节正文源文件：`F:\soft\00selfmade\practilog\reports\b18-ledger-11-29.md`；插入前备份：`F:\soft\00selfmade\practilog\reports\b18-ledger-before-11-29.bak.md`
+
+**九、本轮新增工具坑（写给下一棒）**
+
+1. **`tester.getRect` 量的是收缩绘制盒**：蓝图删除按钮量到 **20×20**（图标本身），**28×28 命中盒断言必须走 widget 层**（`button.constraints?.maxWidth == 28`，与 `task73_b8_w1_blueprint_edit_test.dart` N3 同口径）。
+2. **`Semantics(excludeSemantics: true)` 不改变语义节点数**：蓝图删除按钮加不加该参数，实测语义节点数**都是 3** ⇒ 不能拿「节点数变化」当证据；判据改用 `b18_blueprint_test.dart` B18-3b 的**上限断言**钉住。
+3. **删列必须同步删表头格**：月 / 年页删列后若表头格数不匹配，行会错位；W3 用「表头格数 == 行格数」断言钉住（`b18_year_page_test.dart`）。
+4. **多棒并发跑全量会争 `sqlite3.dll`**（`apps\desktop\build\native_assets\windows\sqlite3.dll`）⇒ worker **只跑自己写集内的测试文件**，权威全量由**控制器独占跑**。
+5. **多棒并发时整包 analyze 会被别的棒污染**：W1/W2/W3 在 W4 未收尾时观察到 3 条 `unnecessary_underscores` info（落在 W4 的 `b18_blueprint_test.dart`），W4 收尾时自行修掉 ⇒ **控制器复跑 analyze 必须等四棒全部回板后再跑**。
+6. **台账行尾是 CRLF、AGENTS.md 与 docs 计划是 LF**（盘上实测：ledger 1,594 行全 CRLF；`AGENTS.md` 680 行全 LF）⇒ 台账追加用脚本统一转 CRLF，别整篇用 LF 写入造成混合行尾。
+7. **`AGENTS.md` 正文不得复述托管块的 BEGIN 标记字面量** —— 本轮 §7 的「批次 B18 收口」条目里原写了 `<!-- BEGIN RELAY-PORT -->` 这串字面量，使 `AGENTS.md` 内该字面量**出现 2 次**（正文 L608 + 真块 L665）⇒ 提交时「**按 BEGIN 字符偏移截断**」取**首次出现**会**切错位置**，把 §7.1 与 §8 一并截掉。正解：**正文只描述「RELAY-PORT 托管块（BEGIN / END 标记对）」，绝不复制字面量**；本轮已改正（`AGENTS.md` 该字面量现**唯一命中 = 真块 L665**，END = L689）。`docs\*.md` 与本台账里复述该字面量**无害**（剥离只作用于 `AGENTS.md`），B17 起即如此。
+
+**十、下一阶段候选（尚未立项，等用户新指令）**
+
+1. **B18 四条界面观感验收** —— 待用户在装机件（PID 528068 / 主窗口 857398）上肉眼确认；控制器**不代签**。
+2. **relay 装置产物**（`docs\relay\*`、`docs\RELAY-*`、`docs\plan-relay.md`、`docs\b8x-dispatch-*.md`、`docs\incident-20261125-phantom-rollback.md`、`docs\relay.json`）**至今未提交**，属别的批次，需用户单独裁决。
+3. **git 写操作**：本批**未获 push 授权**；commit / push 仍属人工验收点（沿用「只 commit 不 push」）。若提交 `AGENTS.md`，须先按字节偏移剥离 `<!-- BEGIN RELAY-PORT -->` 块、提交后用备份覆盖还原并校验 SHA 相等。
+4. **英文态除 760 外的窗口宽度**未验证（760 只是用户指定的宽度）。
+
+**十一、本节数字若与后续产物冲突，以产物为准；本节不声称未跑过的检查。**

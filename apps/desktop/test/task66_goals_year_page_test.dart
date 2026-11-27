@@ -2,7 +2,9 @@
 // Task 66 · 年目标页（UI 半批 B2；B17 W4 之后本页只剩表一）
 // =============================================================================
 // 本文件钉住年页的两条口径：
-//  1. 表一给出本年的年度目标（类别 / 序号 / 目标 / 方法和措施 / 起止时间 / 完成）。
+//  1. 表一给出本年的年度目标（序号 / 目标 / 方法和措施 / 起止时间 / 操作；
+//     B18 W3 之后**不再有**行内「类别」列与「进行中 / 已完成」文本列 ——
+//     分类名唯一出处是分区小标题，完成态唯一出处是行尾完成单选）。
 //  2. B17 E 条：表二 12 月格 / 年度复盘 / 80-20 视角 / 待确认草稿队列 / 表二空格
 //     新增流程的 **UI 入口全部下线**；**数据层（`GoalYearView` /
 //     `loadGoalYearView`）与 l10n getter 保留**。
@@ -149,7 +151,13 @@ void main() {
       find.byKey(const ValueKey<String>('goal-section-none')),
       findsOneWidget,
     );
-    expect(find.text(zh.goalCategoryUncategorized), findsAtLeastNWidgets(1));
+    // B18 W3：分类名的**唯一**出处是分区小标题 ⇒ 两处（小标题 + 行内类别列）
+    // 之说不再成立，这里从 `findsAtLeastNWidgets(1)` 收紧成 `findsOneWidget`。
+    expect(
+      find.text(zh.goalCategoryUncategorized),
+      findsOneWidget,
+      reason: '行内类别列已删 ⇒ 未分类文本只剩分区小标题一处',
+    );
 
     // B17 E 条：表二（行 = 年目标 × 列 = 1–12 月）整块下线 ⇒ 月格与空格都不渲染。
     expect(

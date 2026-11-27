@@ -9,7 +9,8 @@
 //  A-2 切面 rail：10 项、四问 4 个圆点、当前项 ink 反白；窄视口整条不渲染
 //      （回落到原纵向布局，功能一个不少）。
 //  A-3 轴刻度：年刻度由当前档位真实日期派生（不硬编码年份），一条带日期的
-//      目标都没有时整条不渲染；日期条实心段按跨度比例映射，已完成降调。
+//      目标都没有时整条不渲染。B19 起日期条（起止日期下方那条横线）整条下线，
+//      有日期的目标只渲染起止日期文本。
 //  A-4 四问 1×4：宽视口同一行、窄视口回落纵向；两种宽度下都没有「标签库」
 //      开关与「保存」键（B12 起落库走回车、标签库由点 / 聚焦输入框打开），
 //      浮窗暂停 / 恢复语义不变（浮窗细粒度用例在 `b10_position_panel_test`）。
@@ -53,7 +54,7 @@ const ValueKey<String> _overlayKey = ValueKey<String>(
 /// 四问 code（顺序即 1×4 从左到右）。
 const List<String> _questionCodes = <String>['values', 'strengths', 'value', 'proof'];
 
-/// 本地午夜毫秒（蓝图目标按本地时区存，与 `_span` 的口径一致）。
+/// 本地午夜毫秒（蓝图目标按本地时区存，与日期列口径一致）。
 int _local(int year, int month, int day) =>
     DateTime(year, month, day).millisecondsSinceEpoch;
 
@@ -187,20 +188,7 @@ Future<TestGesture> _hover(WidgetTester tester, Finder target) async {
   return gesture;
 }
 
-/// 日期条里指定颜色的实心段矩形（找不到返回 null）。
-Rect? _barRect(WidgetTester tester, Finder track, Color color) {
-  final Iterable<Element> elements = find
-      .descendant(of: track, matching: find.byType(DecoratedBox))
-      .evaluate();
-  for (final Element element in elements) {
-    final DecoratedBox box = element.widget as DecoratedBox;
-    final Decoration decoration = box.decoration;
-    if (decoration is BoxDecoration && decoration.color == color) {
-      return tester.getRect(find.byWidget(box));
-    }
-  }
-  return null;
-}
+
 
 void main() {
   late ActLogDatabase db;
@@ -380,7 +368,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A-3 无日期：年刻度整条与日期条都不渲染', (WidgetTester tester) async {
+  testWidgets('B19 无日期：年刻度与日期条都不渲染', (WidgetTester tester) async {
     final String id = await store.createGoal(
       kind: GoalKind.blueprint,
       title: '还没定日子',
@@ -405,12 +393,12 @@ void main() {
     expect(
       find.byKey(ValueKey<String>('goal-blueprint-track-$id')),
       findsNothing,
-      reason: '没有日期就不画空轨道',
+      reason: '日期条自 B19 起整条下线，无日期的行同样不得出现轨道',
     );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A-3 日期条：实心段按跨度比例映射（左起 / 右起各一条）',
+  testWidgets('B19 有日期的目标：只渲染起止日期文本，日期条不再渲染',
       (WidgetTester tester) async {
     final String first = await store.createGoal(
       kind: GoalKind.blueprint,
@@ -443,31 +431,30 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final Finder trackA = find.byKey(ValueKey<String>('goal-blueprint-track-$first'));
-    final Finder trackB = find.byKey(ValueKey<String>('goal-blueprint-track-$second'));
-    expect(trackA, findsOneWidget);
-    expect(trackB, findsOneWidget);
-
-    final Rect spanRect = tester.getRect(trackA);
-    final Rect barA = _barRect(tester, trackA, ThemeTokens.light.ink)!;
-    final Rect barB = _barRect(tester, trackB, ThemeTokens.light.ink)!;
-    // 2026-01-01 ~ 2026-06-30 占全年 180/364 ≈ 0.494。
+    // 起止日期文本仍在 —— B19 只下线日期条，不删日期信息。
     expect(
-      barA.width / spanRect.width,
-      closeTo(0.494, 0.06),
-      reason: '实心段宽度必须按跨度比例，不是固定宽',
+      find.byKey(ValueKey<String>('goal-blueprint-period-text-$first')),
+      findsOneWidget,
     );
-    expect(barA.left, closeTo(spanRect.left, 1.0), reason: '起点在年初 ⇒ 左缘贴齐');
     expect(
-      (barB.left - spanRect.left) / spanRect.width,
-      closeTo(0.497, 0.06),
-      reason: '下半年目标从年中段起画',
+      find.byKey(ValueKey<String>('goal-blueprint-period-text-$second')),
+      findsOneWidget,
     );
-    expect(barA.width, greaterThan(0));
+    // B19：起止日期下方那条整列宽的横线（日期条）不再渲染。
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-track-$first')),
+      findsNothing,
+      reason: '日期条已下线，有日期的目标也不得再出现轨道',
+    );
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-track-$second')),
+      findsNothing,
+      reason: '日期条已下线，有日期的目标也不得再出现轨道',
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A-3 已完成：日期条降调成 hairStrong，不着 ink',
+  testWidgets('B19 已完成目标：日期条同样不再渲染',
       (WidgetTester tester) async {
     final String id = await store.createGoal(
       kind: GoalKind.blueprint,
@@ -492,17 +479,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final Finder track = find.byKey(ValueKey<String>('goal-blueprint-track-$id'));
-    expect(track, findsOneWidget);
     expect(
-      _barRect(tester, track, ThemeTokens.light.hairStrong),
-      isNotNull,
-      reason: '已完成必须用 hairStrong 降调',
+      find.byKey(ValueKey<String>('goal-blueprint-period-text-$id')),
+      findsOneWidget,
     );
     expect(
-      _barRect(tester, track, ThemeTokens.light.ink),
-      isNull,
-      reason: '已完成不许再用 ink',
+      find.byKey(ValueKey<String>('goal-blueprint-done-on-$id')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-track-$id')),
+      findsNothing,
+      reason: 'B19 删除日期条后，已完成目标也不再有轨道（hairStrong 降调一并退役）',
     );
     expect(tester.takeException(), isNull);
   });

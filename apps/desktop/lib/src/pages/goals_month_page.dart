@@ -4,13 +4,19 @@
 // 页面是**内容体**：`Scaffold` / `AppBar` 由 `LedgerShell` 承担（与周目标页同口径）。
 //
 // 内容（B17 任务 D 之后只剩一块）：
-//  1. **本月目标**：每条要么有 `serves` 上层、要么被标「临时事项」（**派生标记**，
-//     不写库）。行按**类别分区**渲染（B17 任务 F：分区件与小标题委托
-//     `widgets/goals/goal_section.dart`，类别口径委托
-//     `widgets/goals/goal_category.dart`），行尾带**完成单选**（写库走
+//  1. **本月目标**：行按**类别分区**渲染（B17 任务 F：分区件与小标题委托
+//     `widgets/goals/goal_section.dart`），行尾带**完成单选**（写库走
 //     `updateGoal(status: ...)`）。卡底部是**常驻录入行**（B16 项 7：回车或点「+」
 //     即建一条本月目标）与**待确认草稿队列**（点「确认写入草稿」才落库，落库状态
 //     恒为 `status='draft'`）。
+//
+// 行内冗余三处已在 B18 下线（展示口径收紧，数据层与 l10n getter 全部保留）：
+//  - 行内**类别列**：分类名唯一出处改为分区小标题
+//    `goal-section-title-<displayKey>`；
+//  - 行内**「进行中 / 已完成」状态列**：完成状态只由行尾完成单选
+//    （`goal-row-done-<id>`）表达；
+//  - 行下**派生标记行**（「服务于年目标」/「临时事项」）：两个 ValueKey
+//    `goal-month-serves-yearly-<id>` / `goal-month-ad-hoc-<id>` 一并下线。
 //
 // 已下线的 UI 入口（B17 任务 D：**只撤界面，数据层与 l10n getter 全部保留**）：
 //  - 「年度目标汇总条」（派生读模型 `GoalMonthView.yearSummaries` 仍在）；
@@ -35,7 +41,6 @@ import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/goal_upstream_panel.dart';
-import '../widgets/goals/goal_category.dart';
 import '../widgets/goals/goal_form_dialog.dart';
 import '../widgets/goals/goal_section.dart';
 import '../widgets/shell/tool_rail.dart';
@@ -577,7 +582,7 @@ class _GoalsMonthPageState extends ConsumerState<GoalsMonthPage> {
     return text.isEmpty ? null : text;
   }
 
-  /// 本月目标表：类别 | 序号 | 目标 | 方法和措施 | 完成。
+  /// 本月目标表：序号 | 目标 | 方法和措施 | 操作区（B18：行内无类别列与状态列）。
   ///
   /// 行按**类别分区**渲染（B17 任务 F）：分桶与排序全部委托
   /// `groupSectionsByCategory`（唯一真源在 `goal_category.dart`），本页只提供
@@ -616,13 +621,11 @@ class _GoalsMonthPageState extends ConsumerState<GoalsMonthPage> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            SizedBox(width: 72, child: Text(t.goalMonthColumnCategory, style: headStyle)),
             SizedBox(width: 32, child: Text(t.goalMonthColumnIndex, style: headStyle)),
             Expanded(flex: 3, child: Text(t.goalsColumnGoal, style: headStyle)),
             Expanded(flex: 2, child: Text(t.goalMonthColumnMethods, style: headStyle)),
-            SizedBox(width: 64, child: Text(t.goalMonthColumnDone, style: headStyle)),
             // 操作列表头留空：宽度必须与行尾按钮组同宽。本页行带了完成单选 ⇒
             // 行尾实际宽度是 `GoalRowActions.totalWidth` = `width + doneWidth`
             // （两个常量都是 static const，这里直接加和，避免实例化只为取宽）。
@@ -637,7 +640,6 @@ class _GoalsMonthPageState extends ConsumerState<GoalsMonthPage> {
           rowBuilder: (BuildContext context, GoalRow goal) => _monthRow(
             indexById[goal.id] ?? 0,
             goal,
-            data.servedByMonthGoal[goal.id],
             t,
             bodyStyle,
             metaStyle,
@@ -648,72 +650,40 @@ class _GoalsMonthPageState extends ConsumerState<GoalsMonthPage> {
   }
 
   /// 本月目标的一行。
+  ///
+  /// 单元格与表头**逐位对应**：序号 | 目标 | 方法和措施 | 操作区
+  /// （完成单选 + 编辑 + 删除）。B18 起行内**没有**类别列与状态列 ——
+  /// 分类名只在分区小标题出现，完成状态只由行尾单选表达；行下也不再挂
+  /// 「服务于年目标」/「临时事项」的派生标记行。
   Widget _monthRow(
     int index,
     GoalRow goal,
-    List<GoalRow>? parents,
     AppLocalizations t,
     TextStyle? bodyStyle,
     TextStyle? metaStyle,
   ) {
-    final List<GoalRow> served = parents ?? const <GoalRow>[];
-    bool hasYearly = false;
-    for (final GoalRow parent in served) {
-      if (parent.kind == GoalKind.yearly) {
-        hasYearly = true;
-        break;
-      }
-    }
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              SizedBox(
-                width: 72,
-                // 类别口径走 `goalCategoryTitle`（B17 裁决），**不复用**
-                // `projectDomainLabel` —— 那是项目域的中文映射，键集与本页不同。
-                child: Text(goalCategoryTitle(t, goal.domain), style: metaStyle),
-              ),
-              SizedBox(width: 32, child: Text('${index + 1}', style: metaStyle)),
-              Expanded(flex: 3, child: _titleCell(goal, bodyStyle)),
-              Expanded(
-                flex: 2,
-                child: Text(goal.keywords ?? '—', style: metaStyle),
-              ),
-              SizedBox(
-                width: 64,
-                child: Text(
-                  goal.isDone ? t.goalStatusDone : t.goalStatusActive,
-                  style: metaStyle,
-                ),
-              ),
-              GoalRowActions(
-                editKey: 'goal-month-row-edit-${goal.id}',
-                deleteKey: 'goal-month-row-delete-${goal.id}',
-                onEdit: () => _editGoal(goal),
-                onDelete: () => _deleteGoal(goal),
-                t: t,
-                // B17 任务 F：行尾完成单选。`goalId` 只用来拼
-                // `goal-row-done-<id>` 这个 ValueKey；宽度由 `totalWidth` 决定。
-                goalId: goal.id,
-                isDone: goal.isDone,
-                onToggleDone: () => _toggleDone(goal),
-              ),
-            ],
+          SizedBox(width: 32, child: Text('${index + 1}', style: metaStyle)),
+          Expanded(flex: 3, child: _titleCell(goal, bodyStyle)),
+          Expanded(
+            flex: 2,
+            child: Text(goal.keywords ?? '—', style: metaStyle),
           ),
-          Text(
-            hasYearly ? t.goalMonthServesYearly : t.goalMonthAdHoc,
-            key: ValueKey<String>(
-              hasYearly
-                  ? 'goal-month-serves-yearly-${goal.id}'
-                  : 'goal-month-ad-hoc-${goal.id}',
-            ),
-            style: metaStyle,
+          GoalRowActions(
+            editKey: 'goal-month-row-edit-${goal.id}',
+            deleteKey: 'goal-month-row-delete-${goal.id}',
+            onEdit: () => _editGoal(goal),
+            onDelete: () => _deleteGoal(goal),
+            t: t,
+            // B17 任务 F：行尾完成单选。`goalId` 只用来拼
+            // `goal-row-done-<id>` 这个 ValueKey；宽度由 `totalWidth` 决定。
+            goalId: goal.id,
+            isDone: goal.isDone,
+            onToggleDone: () => _toggleDone(goal),
           ),
         ],
       ),

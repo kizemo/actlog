@@ -200,7 +200,7 @@ void main() {
     expect(find.text('上月遗留事项'), findsNothing);
   });
 
-  testWidgets('B17 月页：行按类别分区渲染，小标题与类别列都走 goalCategoryTitle',
+  testWidgets('B17 月页：行按类别分区渲染，小标题走 goalCategoryTitle',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store);
     await _pumpMonth(tester, repos: repos);
@@ -260,15 +260,15 @@ void main() {
       reason: '旧域值 career 不是 B17 类别键 ⇒ 归未分类',
     );
 
-    // 类别列同样走 `goalCategoryTitle`（不分区前的 `projectDomainLabel` 已换掉）：
-    // 学习成长的类别格里是「学习成长」，不是旧的项目域文案。
+    // B18：行内类别列已删 ⇒ 分类名的唯一出处是小标题，一个分区内只出现一次
+    // （旧口径下是「小标题 + 类别列」各一次 = 2）。
     expect(
       find.descendant(
         of: find.byKey(ValueKey<String>('goal-section-learning')),
         matching: find.text(zh.goalCategoryLearning),
       ),
-      findsNWidgets(2),
-      reason: '一行 = 小标题 + 类别列各出现一次',
+      findsOneWidget,
+      reason: '行内类别列已下线，分类名不再重复出现在行里',
     );
 
     // 行顺序按分区走：学习成长分区里就是那条学习目标。
@@ -283,7 +283,7 @@ void main() {
     );
   });
 
-  testWidgets('B17 月页：行尾完成单选点了就落库，再点回进行中',
+  testWidgets('B17 月页：行尾完成单选点了就落库，再点回未完成',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store);
     await _pumpMonth(tester, repos: repos);

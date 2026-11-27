@@ -8,6 +8,9 @@
 //    反向断言在 `task66_goals_year_page_test.dart` 里。
 //  * **F 条**：类别 / 起止日期 / 完成单选 / 按类别分区小标题。
 //
+// B18 W3 去冗余：行内「类别」列与「进行中 / 已完成」文本列已删 ⇒ 完成态断言
+// 从「状态文本」改成「行尾完成单选的图标」；用例**一个都没删**。
+//
 // 全部用例接**真库**（内存 drift）与**真表单**（`showGoalFormDialog`）：判据是
 // 「库里的真实行」+「页面上真实渲染的键」，不打桩、不 mock。
 // =============================================================================
@@ -235,7 +238,7 @@ void main() {
     );
   });
 
-  testWidgets('F：完成单选写 status，再点回到进行中',
+  testWidgets('F：完成单选写 status，再点回到未完成',
       (WidgetTester tester) async {
     final String id = await _seedYearly(
       store,
@@ -246,19 +249,29 @@ void main() {
 
     final AppLocalizations zh = AppLocalizations.zh;
     final Finder done = find.byKey(ValueKey<String>('goal-row-done-$id'));
+    // 完成单选的图标 = 完成态的唯一可读表达（B18 W3：行内状态文本列已删）。
+    IconData? doneIcon() => tester
+        .widget<Icon>(
+          find.descendant(of: done, matching: find.byType(Icon)),
+        )
+        .icon;
+
     expect(done, findsOneWidget, reason: '年页行尾必须有完成单选');
-    expect(find.text(zh.goalStatusActive), findsOneWidget);
+    // B18 W3：不再有「进行中 / 已完成」文本列 ⇒ 改成 findsNothing + 图标断言。
+    expect(find.text(zh.goalStatusActive), findsNothing);
+    expect(doneIcon(), Icons.radio_button_unchecked);
 
     await tester.tap(done);
     await tester.pumpAndSettle();
     expect((await store.listGoals()).single.status, GoalStatus.done);
-    expect(find.text(zh.goalStatusDone), findsOneWidget);
-    expect(find.text(zh.goalStatusActive), findsNothing);
+    expect(find.text(zh.goalStatusDone), findsNothing);
+    expect(doneIcon(), Icons.check_circle);
 
     await tester.tap(find.byKey(ValueKey<String>('goal-row-done-$id')));
     await tester.pumpAndSettle();
     expect((await store.listGoals()).single.status, GoalStatus.active);
-    expect(find.text(zh.goalStatusActive), findsOneWidget);
+    expect(find.text(zh.goalStatusActive), findsNothing);
+    expect(doneIcon(), Icons.radio_button_unchecked);
   });
 
   testWidgets('F：两个类别 + 未分类 ⇒ 分区按预设顺序且未分类垫底',

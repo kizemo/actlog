@@ -110,7 +110,10 @@ class GoalWeekTable extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // 表头行的定位键（B18 W1）：表头各格都是同一 `headerStyle` 的单行
+          // 文本，几何上分不出 start / center ⇒ 对齐口径只能按结构断言。
+          key: const ValueKey<String>('goal-week-header-row'),
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             SizedBox(width: orderWidth, child: Text(t.goalsColumnOrder, style: headerStyle)),
             Expanded(
@@ -231,11 +234,20 @@ class _WeekRow extends StatelessWidget {
     final GoalExecutionStats stats = item.stats;
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      // B18 R2：行内各格高度不等（顺序号 16.25 / 完成单选 28 / 标题格两行），
+      // 上缘对齐会让矮格整体偏上 ⇒ 改垂直居中（只改纵向；标题格内部的
+      // `Column(crossAxisAlignment: start)` 是**横向**语义，不动）。
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         SizedBox(
           width: GoalWeekTable.orderWidth,
-          child: Text('${item.order}', style: metaStyle),
+          child: Text(
+            '${item.order}',
+            // B18 W1：顺序号是本行最矮的直接子格（labelSmall 单行），与行尾
+            // 28px 高的完成单选构成「垂直中心线是否一致」的判别对。
+            key: ValueKey<String>('goal-week-order-${goal.id}'),
+            style: metaStyle,
+          ),
         ),
         Expanded(
           flex: 3,

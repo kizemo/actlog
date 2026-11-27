@@ -44,8 +44,9 @@
 //       不一致才是「填了日期第三列不显示」的根因；页面侧同步写 `period_end`，
 //       矩阵侧再兜底显示 `due_date` ⇒ 新旧数据都能在第三列看到日期。
 //
-// 本模块使用 2 个 Material 图标，一律 `*_outlined` 系（AGENTS.md 例外清单以外
-// 不自造；坑 105）：`Icons.edit_outlined`（改目标）、`Icons.call_split`（拆待办）。
+// 本模块使用 3 个 Material 图标，一律 `*_outlined` 系（AGENTS.md 例外清单以外
+// 不自造；坑 105）：`Icons.edit_outlined`（改目标）、`Icons.call_split`（拆待办）、
+// `Icons.delete_outline`（删除目标；B18 第 2 条把文字按钮改成图标）。
 // B13 第 3 条曾把「起止日期」文字入口换成 `Icons.date_range_outlined`；B17 第 B 条
 // 判定它与日期文本重复，图标按钮连同其 Tooltip 一并下线（改期仍由日期文本承担）。
 // 「+」仍用文字符号（坑 51：桌面测试不预载 MaterialIcons 字体）。
@@ -458,9 +459,6 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     final TextStyle? metaStyle = Theme.of(context).textTheme.labelSmall
         ?.copyWith(color: tokens.meta);
     final TextStyle? tabStyle = Theme.of(context).textTheme.labelLarge;
-    // 当前档位的日期跨度（日期列 track 与回退显示共用同一份派生值）。
-    // **由真实数据派生**，不硬编码「2026–2035」这类业务口径。
-    final _DateSpan? span = _span();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -524,8 +522,6 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                       goals: row.cells[_selected] ?? const <GoalRow>[],
                       bodyStyle: bodyStyle,
                       metaStyle: metaStyle,
-                      tokens: tokens,
-                      span: span,
                     ),
                   ),
                 ],
@@ -752,7 +748,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              // B18 第 1 条：行内三段（勾选框 / 标题 / 操作区）垂直居中。
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 // B10-B3：勾选框只管写 `status`，归档时刻由 store 派生。
                 if (widget.onToggleGoalDone != null)
@@ -853,7 +850,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     }
     // B16 第 2 条：已填格右侧**常驻**「+」—— 已存下的目标不占用这个入口。
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      // B18 第 1 条：「+」与整列目标块垂直居中（原 start 贴第一行顶上）。
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Expanded(child: goalsColumn),
         _addButton(domainKey, horizon),
@@ -946,8 +944,6 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     required List<GoalRow> goals,
     required TextStyle? bodyStyle,
     required TextStyle? metaStyle,
-    required ThemeTokens tokens,
-    required _DateSpan? span,
   }) {
     if (goals.isEmpty) {
       return const SizedBox.shrink();
@@ -987,13 +983,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                   )
                 else
                   _periodLine(goal, bodyStyle),
-                // 日期条（A 稿 `.track`）：整条宽 = 当前档位的跨度，实心段 = 本条；
-                // 已完成用 hairStrong 降调，赭石留给「未落位」那类缺口信号。
-                if (span != null && goal.periodStart > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: _track(goal, span, tokens),
-                  ),
+                // B19：日期条（起止日期下方那条整列宽的横线）整条下线 ——
+                // 日期列只保留起止日期文本，不再画任何轨道。
                 if (goal.isDone)
                   Text(
                     '${widget.t.goalBlueprintDonePrefix}'
@@ -1029,7 +1020,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     );
   }
 
-  /// 目标卡片右侧的操作区（铅笔 + 拆分 + 既有删除按钮）。
+  /// 目标卡片右侧的操作区（铅笔 + 拆分 + 删除，三个都是图标按钮）。
   Widget _actions(GoalRow goal) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1052,10 +1043,21 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
           iconSize: 16,
         ),
         if (widget.onDeleteGoal != null)
-          TextButton(
-            key: ValueKey<String>('goal-blueprint-delete-${goal.id}'),
-            onPressed: () => widget.onDeleteGoal!(goal),
-            child: Text(widget.t.goalBlueprintDeleteGoal),
+          // B18 第 2 条：文字按钮 ⇒ 垃圾桶图标（与 `GoalRowActions` 同款）。
+          // 语义出口逐字保留：key / Tooltip / 读屏文案 / 回调全不变；外层
+          // `Semantics` 按 AGENTS.md §7 补 `label`（实测 zh 下每个按钮恰好一个
+          // 「删除目标」语义节点，由 `test\b18_blueprint_test.dart` B18-3b 钉住）。
+          Semantics(
+            label: widget.t.goalBlueprintDeleteGoal,
+            button: true,
+            onTap: () => widget.onDeleteGoal!(goal),
+            child: _compactButton(
+              key: ValueKey<String>('goal-blueprint-delete-${goal.id}'),
+              onPressed: () => widget.onDeleteGoal!(goal),
+              tooltip: widget.t.goalBlueprintDeleteGoal,
+              child: const Icon(Icons.delete_outline),
+              iconSize: 16,
+            ),
           ),
       ],
     );
@@ -1151,112 +1153,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     return '${moment.year}-$month-$day';
   }
 
-  /// 当前档位的日期跨度；**一条带日期的目标都没有 ⇒ null**（不画空轨道）。
-  ///
-  /// 毫秒值跨 `kind` 可直接比较（都是 epoch 毫秒），日期条只吃起止两端。
-  _DateSpan? _span() {
-    int? minStart;
-    int? maxEnd;
-    for (final GoalBlueprintRow row in widget.rows) {
-      for (final GoalRow goal in row.cells[_selected] ?? const <GoalRow>[]) {
-        if (goal.periodStart <= 0) {
-          continue;
-        }
-        final int? declaredEnd = goal.periodEnd;
-        final int end = (declaredEnd != null && declaredEnd > 0)
-            ? declaredEnd
-            : goal.periodStart;
-        if (minStart == null || goal.periodStart < minStart) {
-          minStart = goal.periodStart;
-        }
-        if (maxEnd == null || end > maxEnd) {
-          maxEnd = end;
-        }
-      }
-    }
-    if (minStart == null) {
-      return null;
-    }
-    // 只有一天的目标（起 == 止）也给一条满格日条：跨度缩成 24h，
-    // 否则「这天要做什么」会看起来像没排日期。
-    final int start = minStart;
-    final int end = (maxEnd == null || maxEnd <= start)
-        ? start + Duration.millisecondsPerDay
-        : maxEnd;
-    return _DateSpan(startMillis: start, endMillis: end);
-  }
-
-  /// 日期条（A 稿 `.track`）：整条宽 = 当前档位跨度，实心段 = 本条目标。
-  /// 已完成用 `hairStrong` 降调 —— 赭石只留给「未落位」这类缺口信号。
-  Widget _track(GoalRow goal, _DateSpan span, ThemeTokens tokens) {
-    final int total = span.endMillis - span.startMillis;
-    if (total <= 0) {
-      return const SizedBox.shrink();
-    }
-    final int? declaredEnd = goal.periodEnd;
-    final int rawEnd = (declaredEnd != null && declaredEnd > 0)
-        ? declaredEnd
-        : goal.periodStart;
-    final int from = goal.periodStart.clamp(span.startMillis, span.endMillis);
-    final int to = rawEnd.clamp(from, span.endMillis);
-    final double startFraction = (from - span.startMillis) / total;
-    final double endFraction = (to - span.startMillis) / total;
-    final Color bar = goal.isDone ? tokens.hairStrong : tokens.ink;
-    return SizedBox(
-      key: ValueKey<String>('goal-blueprint-track-${goal.id}'),
-      height: 3,
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final double width = constraints.maxWidth;
-          if (!width.isFinite || width <= 2) {
-            return const SizedBox.shrink();
-          }
-          // 至少 2px 宽：跨度极短的目标也要看得见，且不给 `clamp` 反区间。
-          final double left = (startFraction * width).clamp(0.0, width - 2);
-          final double barWidth = ((endFraction - startFraction) * width).clamp(
-            2.0,
-            width - left,
-          );
-          return Stack(
-            children: <Widget>[
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: tokens.hairSoft,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: left,
-                top: 0,
-                bottom: 0,
-                width: barWidth,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: bar,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   /// 该目标下的周目标（做法层的下一层）。
   List<GoalRow> _weeklyChildren(GoalRow goal) => widget.serves
       .childrenOf(goal.id)
       .where((GoalRow child) => child.kind == GoalKind.weekly)
       .toList(growable: false);
-}
-
-/// 当前档位的日期跨度（日期条整条宽 = 这两个毫秒之间）。
-class _DateSpan {
-  const _DateSpan({required this.startMillis, required this.endMillis});
-
-  final int startMillis;
-  final int endMillis;
 }

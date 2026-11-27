@@ -1,17 +1,28 @@
 // =============================================================================
-// 目标 · 年目标页（Task 66 UI 半批 B2；B17 W4 重做表一）
+// 目标 · 年目标页（Task 66 UI 半批 B2；B17 W4 重做表一；B18 W3 去冗余）
 // =============================================================================
 // 页面是**内容体**：`Scaffold` / `AppBar` 由 `LedgerShell` 承担（与周/月页同口径）。
 //
 // B17 之后本页只剩**一块**内容（派工书 E 条：月度展开 / 年度复盘 / 80/20 三块
 // UI 入口下线，数据层与 l10n getter 保留）：
-//   * **表一**：本年度的年度目标。列 = 类别 | 序号 | 目标内容 | 方法和措施 |
-//     起止时间 | 完成 | 操作。行内可编辑 / 删除 / 勾选完成。
+//   * **表一**：本年度的年度目标。列 = 序号 | 目标内容 | 方法和措施 |
+//     起止时间 | 操作。行内可编辑 / 删除 / 勾选完成。
 //   * 行按**类别分区**渲染，分区小标题取 `goalCategoryTitle`（B17 F 条）；
 //     分区与排序全部委托 `widgets/goals/goal_section.dart`（泛型版）
 //     + `widgets/goals/goal_category.dart`（唯一真源），页面不自己分桶。
 //   * 段头下有「新建目标」入口（B17 C 条）：**空态与非空态都在**，写法与
 //     其它目标页一致（同一个表单、同一条落库路径）。
+//
+// B18 W3 去冗余（**别再改回去**）：
+//   * **分类名唯一出处 = 分区小标题**（`goal-section-title-<displayKey>`）⇒
+//     行内「类别」列与表头「类别」格一并删除，`goalCategoryTitle` 在本页不再
+//     直接引用（该函数本身仍在 `goal_category.dart`，分区件继续用它）。
+//   * **完成态唯一出处 = 行尾 `GoalRowActions` 的完成单选**
+//     （`goal-row-done-<id>`）⇒ 行内「进行中 / 已完成」文本列与表头「完成」格
+//     一并删除；`goalStatusActive` / `goalStatusDone` / `goalMonthColumnCategory`
+//     / `goalMonthColumnDone` 这些 l10n getter **保留不删**，只是本页不渲染。
+//   * 两侧各删 2 格 ⇒ 表头与数据行仍逐位对应；两行 Row 的 `crossAxisAlignment`
+//     改为 `center`（列高不一致时纵向居中对齐）。
 //
 // 读模型仍走 `loadGoalYearView`（与蓝图页**同一个函数** ⇒ 单一真源）；
 // `data\goal_store.dart` **零改动**，不新增 provider / 仓储方法。类别复用
@@ -27,7 +38,6 @@ import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/goal_year_matrix.dart';
-import '../widgets/goals/goal_category.dart';
 import '../widgets/goals/goal_form_dialog.dart';
 import '../widgets/goals/goal_section.dart';
 
@@ -271,7 +281,10 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     return text.isEmpty ? null : text;
   }
 
-  /// 表一：类别 | 序号 | 目标内容 | 方法和措施 | 起止时间 | 完成 | 操作。
+  /// 表一：序号 | 目标内容 | 方法和措施 | 起止时间 | 操作。
+  ///
+  /// 分类名由分区小标题表达、完成态由行尾完成单选表达（B18 W3：行内不再重复
+  /// 渲染「类别」列与「进行中 / 已完成」文本列）。
   ///
   /// 新建入口在**空态与非空态都渲染**（B17 C 条：空态不能吞掉入口）。
   Widget _buildTableOne(List<GoalRow> goals, AppLocalizations t) {
@@ -338,12 +351,8 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
   Widget _headerRow(AppLocalizations t) {
     final TextStyle? headStyle = _headStyle(context);
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        SizedBox(
-          width: 64,
-          child: Text(t.goalMonthColumnCategory, style: headStyle),
-        ),
         SizedBox(
           width: 28,
           child: Text(t.goalMonthColumnIndex, style: headStyle),
@@ -356,10 +365,6 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
         SizedBox(
           width: 96,
           child: Text(t.goalYearColumnPeriod, style: headStyle),
-        ),
-        SizedBox(
-          width: 56,
-          child: Text(t.goalMonthColumnDone, style: headStyle),
         ),
         // 操作列表头留空：宽度必须与行尾按钮组同宽。本页每行都渲染完成单选
         // ⇒ 用 `GoalRowActions.totalWidth`（56 + 24），不能用 `width`。
@@ -377,13 +382,8 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          SizedBox(
-            width: 64,
-            // B17 F 条：类别标题走 `goalCategoryTitle`，不复用 `projectDomainLabel`。
-            child: Text(goalCategoryTitle(t, goal.domain), style: metaStyle),
-          ),
           SizedBox(width: 28, child: Text('$index', style: metaStyle)),
           Expanded(
             flex: 3,
@@ -406,13 +406,6 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
                 Text(_dateText(goal.periodStart), style: metaStyle),
                 Text(_dateText(goal.periodEnd), style: metaStyle),
               ],
-            ),
-          ),
-          SizedBox(
-            width: 56,
-            child: Text(
-              goal.isDone ? t.goalStatusDone : t.goalStatusActive,
-              style: metaStyle,
             ),
           ),
           GoalRowActions(

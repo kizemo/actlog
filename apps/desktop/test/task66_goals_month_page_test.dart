@@ -4,7 +4,8 @@
 // 本文件钉住月页的口径（B17 任务 D 之后按「UI 已下线」反向重写）：
 //  1. 上月复盘卡**已下线**：标题、内容、缺原因提示都不再渲染（数据层保留）。
 //  2. 「改进措施 → 转为本月目标草稿」入口随之下线 ⇒ 待确认队列恒为空、确认禁用。
-//  3. 本月目标要么「服务于年目标」，要么标「临时事项」（**派生标记，不写库**）。
+//  3. 本月目标行**不再挂派生标记行**（B18 下线：「服务于年目标」/「临时事项」
+//     两个 ValueKey 都不再出现；行本身的渲染不受影响）。
 //  4. 滚动候选**只算不写**：未确认前库里 0 增量。
 //  5. 年度汇总条**已下线**：`goal-month-year-summary-*` / `goal-month-year-bar-empty`
 //     都不再出现（`GoalMonthView.yearSummaries` 读模型保留）。
@@ -188,19 +189,25 @@ void main() {
     );
   });
 
-  testWidgets('月页：本月目标区分「服务于年目标」与「临时事项」（派生标记）',
+  // B18：行下的派生标记行整条下线 ⇒ 用例保留、判据反向（findsOneWidget → findsNothing）。
+  testWidgets('月页：不再渲染派生标记行（服务于年目标 / 临时事项 已下线）',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store);
     await _pumpMonth(tester, repos: repos);
 
+    // 前置：库里确实同时存在「有 serves 年目标」与「没有上层目标」两种本月目标。
+    expect((await store.listGoals()).length, greaterThan(0));
     expect(
       find.byKey(ValueKey<String>('goal-month-serves-yearly-${seed.servedId}')),
-      findsOneWidget,
+      findsNothing,
+      reason: '派生标记行已下线（即使该行真有 serves 年目标的关系）',
     );
     expect(
       find.byKey(ValueKey<String>('goal-month-ad-hoc-${seed.adHocId}')),
-      findsOneWidget,
+      findsNothing,
+      reason: '派生标记行已下线（没有上层目标的行走同一条出口）',
     );
+    // 行本体照旧渲染 ⇒ 删的是标记行，不是整个行。
     expect(
       find.byKey(ValueKey<String>('goal-month-row-${seed.servedId}')),
       findsOneWidget,
