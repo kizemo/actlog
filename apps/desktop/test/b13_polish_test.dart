@@ -8,7 +8,7 @@
 //  A5-4 窄视口（600 < `_inlineBreakpoint` 720）四框宽度 / 高度两两相等；
 //  A5-5 四问 `TextField.minLines == maxLines == 3`。
 //  B4-1 档位标签字号 15 + 衬线族取 `AppFonts`（不自写字体名）；
-//  B4-2 档位标签水平内边距 18；
+//  B4-2 档位标签水平内边距 10；
 //  B4-3 窄视口 760：标签条不溢出（无异常）、四个档位仍都在；
 //  B4-4 标签高度：激活 38 / 未激活 31。
 //  C3-1 起止日期入口只剩图标：键名在、tooltip 在、旧文字不在；
@@ -362,15 +362,24 @@ void main() {
     }
   });
 
-  testWidgets('B4-2 标签水平内边距 18', (WidgetTester tester) async {
+  testWidgets('B4-2 标签水平内边距 10', (WidgetTester tester) async {
     await _pumpMatrix(tester);
 
     for (final String horizonKey in _horizonKeys) {
       final TextButton tab = tester.widget<TextButton>(_tab(horizonKey));
+      // B14（stage 4 · A1）：水平内边距 18 → 10。18 时英文态 760 宽真页面的
+      // 自然宽 976.5px 缩到可用宽 742 ⇒ 显示字号 11.3978px，相对 11px 红线的
+      // 余量只有 0.3978px（< 1.00px 判据）；四个标签的左右内边距合计 144px 是
+      // 自然宽里**唯一可压**的部分（字形宽 830.5px 由字号 15 与固定文案决定）
+      // ⇒ 收到 10。**10 是硬下限**：再降到 9，中文 320 宽那组不再触发
+      // scaleDown ⇒ `b14_tab_scale_test.dart` 的 T4 量具自检失效。
+      // 11px 红线不变（余量判据见 `b14_tab_scale_test.dart` 的 `_requiredMarginPx`）。
       expect(
         tab.style!.padding!.resolve(const <WidgetState>{}),
-        const EdgeInsets.symmetric(horizontal: 18),
-        reason: 'B2：$horizonKey 的水平内边距必须是 18（原 10 太挤）',
+        const EdgeInsets.symmetric(horizontal: 10),
+        reason: 'B2：$horizonKey 的水平内边距必须是 10'
+            '（B14 stage 4 · A1：18 时 760 宽英文真页面余量仅 0.3978px，'
+            '降到 10 后余量 1.1973px ≥ 1.00px；11px 红线不变）',
       );
     }
   });

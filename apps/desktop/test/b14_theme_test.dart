@@ -11,6 +11,11 @@
 //  T4-3 浅色档 `ink`/`paper` ≥ 7:1、`meta`/`paper` ≥ 4.5:1（WCAG 现算）；
 //  T4-6 标签文字 × 活动标签底色（`inkWash`）与标签条底（`paper`）≥ 4.5:1
 //       —— 浅色态 / 深色态各一组（D7）；
+//  A2   活动页签底色**不得**与模块底色融于一体（替代被撤销的 3:1 判据）：
+//       令牌层 `inkWash` ≠ `card` + 控件层活动页签确实刷 `inkWash`
+//       且不刷 `card` / `paper`，覆盖 3 档 accent × 明暗两态共 6 组；
+//       `inkWash`-vs-`card` 对比度用 `debugPrint` 留档，**不设任何阈值**
+//       （上游 3:1 判据已撤销：6 组实测对比度全部 < 1.2）。
 //  T4-4 `DensityProfile × AppAccent × light/dark` 全组合可构建，
 //       且 `scaffoldBackgroundColor` 逐字节等于该档 `paper`；
 //  T4-5 偏好 encode/parse 往返、未知值回落 `ink`、默认档 = `ink`。
@@ -144,8 +149,13 @@ GoalBlueprintRow _careerRow() => GoalBlueprintRow(
 );
 
 /// 挂矩阵本体（不经过页面，形状抄 `b10_blueprint_matrix_done_test.dart:52-74`）。
-Widget _host() => MaterialApp(
-  theme: AppTheme.light(DensityProfile.comfortable),
+///
+/// [theme] 缺省仍是浅色 `ink` 档（既有 12 条用例的行为一字未变）；
+/// [hostKey] 给「换主题逐轮重建」用 —— key 不同 ⇒ 整棵 `MaterialApp` 重建，
+/// 上一轮的状态不会残留到下一轮。
+Widget _host({ThemeData? theme, Key? hostKey}) => MaterialApp(
+  key: hostKey,
+  theme: theme ?? AppTheme.light(DensityProfile.comfortable),
   home: Scaffold(
     body: SingleChildScrollView(
       child: GoalBlueprintMatrix(
@@ -354,6 +364,91 @@ void main() {
       }
       expect(AppPreferences.parseAccent('nope'), AppAccent.ink);
       expect(AppPreferences.parseAccent(''), AppAccent.ink);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // A2 守卫：活动页签底色**不得**与模块底色融于一体。
+  //
+  // 上游原判据是「活动底色 `inkWash` vs 模块底色 `card` 对比度 ≥ 3:1」，
+  // 但 6 组（3 档 accent × 明暗两态）实测对比度全部 < 1.2 ⇒ 该阈值已被
+  // 用户明确撤销（要达 3:1 必须改 6 个历史调色板常量，会破坏
+  // 「默认主题逐字节不变」这条既有硬约束）。
+  //
+  // 替代判据（**不等值断言**，有鉴别力）：
+  //   · 令牌层：`inkWash` 的颜色值 ≠ `card`（6 组各判一次）；
+  //   · 控件层：活动页签确实刷了 `inkWash`，且没有刷 `card` / `paper`。
+  // 对比度用 `debugPrint` 留档，**不做任何阈值断言**（不得写
+  // `greaterThanOrEqualTo(3.0)`，也不得把阈值降到 1.05 之类去凑）。
+  // ---------------------------------------------------------------------
+  group('B14-A2 活动底色与模块底色分离守卫', () {
+    test('A2-1 令牌层：6 组 inkWash ≠ card / paper（对比度用 debugPrint 留档，不设阈值）', () {
+      for (final bool dark in <bool>[false, true]) {
+        for (final AppAccent accent in AppAccent.values) {
+          final ThemeTokens tokens = dark
+              ? ThemeTokens.darkFor(accent)
+              : ThemeTokens.lightFor(accent);
+          final String where = '${accent.name} dark=$dark';
+          // 对比度用 `debugPrint` 留档：此处**不得**加任何阈值断言。
+          debugPrint(
+            'A2 inkWash-vs-card accent=${accent.name} dark=$dark '
+            'contrast=${_contrast(tokens.inkWash, tokens.card).toStringAsFixed(4)}',
+          );
+          expect(
+            tokens.inkWash.toARGB32(),
+            isNot(tokens.card.toARGB32()),
+            reason: '$where: 活动底色 inkWash 必须与模块底色 card 不等',
+          );
+          expect(
+            tokens.inkWash.toARGB32(),
+            isNot(tokens.paper.toARGB32()),
+            reason: '$where: 活动底色 inkWash 必须与页面底色 paper 不等',
+          );
+        }
+      }
+    });
+
+    testWidgets('A2-2 控件层：6 组活动页签刷 inkWash，且不刷 card / paper', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      for (final bool dark in <bool>[false, true]) {
+        for (final AppAccent accent in AppAccent.values) {
+          final ThemeData theme = dark
+              ? AppTheme.dark(DensityProfile.comfortable, accent: accent)
+              : AppTheme.light(DensityProfile.comfortable, accent: accent);
+          final ThemeTokens tokens = theme.extension<ThemeTokens>()!;
+          final String where = '${accent.name} dark=$dark';
+
+          await tester.pumpWidget(
+            _host(
+              theme: theme,
+              hostKey: ValueKey<String>('a2-${accent.name}-$dark'),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // 活动页签确实刷了本档 `inkWash`（换 accent / 明暗后底色要跟着变）。
+          expect(
+            _paints(tester, _tab('ultimate'), tokens.inkWash),
+            isTrue,
+            reason: '$where: 活动页签必须刷 inkWash',
+          );
+          // 退化判据：活动底色一旦回到 `card` / `paper`，就与模块底色融于一体。
+          expect(
+            _paints(tester, _tab('ultimate'), tokens.card),
+            isFalse,
+            reason: '$where: 活动页签不得刷模块底色 card（否则融于一体）',
+          );
+          expect(
+            _paints(tester, _tab('ultimate'), tokens.paper),
+            isFalse,
+            reason: '$where: 活动页签不得刷页面底色 paper（否则融于一体）',
+          );
+        }
+      }
     });
   });
 }

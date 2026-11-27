@@ -183,8 +183,19 @@ class GoalBlueprintMatrix extends StatefulWidget {
   /// 档位标签水平内边距（px）。
   ///
   /// B13 第 2 条：10 → 18（字变大后需要更松的内边距，否则字贴着标签轮廓）。
+  ///
+  /// B14（stage 4 · A1）：18 → 10。**为什么这是唯一可动的杠杆**：英文态 760
+  /// 宽真页面的四个标签字形宽合计 830.5px 是不可压的（字号 15 与文案固定），
+  /// 而四个标签的左右内边距合计 4 × 2 × 18 = 144px 是自然宽里唯一可压缩的
+  /// 部分。18 → 10 ⇒ 自然宽 976.5 → 912.5，760 宽真页面的缩放比例
+  /// 0.747568 → 0.813151，显示字号 11.21px → 12.20px ⇒ 相对 11px 红线的
+  /// 余量 0.21px → 1.20px（判据：余量 ≥ 1.00px，**红线 11px 不得放宽**）。
+  ///
+  /// **10 是硬下限**：再降到 9，中文 320 宽那组就不再触发 scaleDown
+  /// ⇒ `b14_tab_scale_test.dart` 的 T4 量具自检会失效。
+  ///
   /// 写成命名常量以满足 §2 E4「不新增魔法数」。
-  static const double _tabPadding = 18;
+  static const double _tabPadding = 10;
 
   /// 单元格内边距：垂直 11px、水平 8px。
   ///
@@ -458,7 +469,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     return Container(
       key: const ValueKey<String>('goal-blueprint-tab-strip'),
       color: tokens.paper,
-      padding: const EdgeInsets.only(left: 4),
+      // B14（stage 4 · A1）：left 4 → 0，把这 4px 让给 `FittedBox`
+      // ⇒ 760 宽真页面的可用宽 +4（标签条自身不再内缩）。
+      padding: const EdgeInsets.only(left: 0),
       child: FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.centerLeft,
@@ -519,7 +532,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                 // 非活动 = 下沉色（偏灰）。
                 backgroundColor: active ? tokens.inkWash : tokens.sunken,
             foregroundColor: active ? tokens.ink : tokens.meta,
-            // B13 第 2 条：水平内边距 10 → 18（`_tabPadding`）。
+            // B13 第 2 条曾把水平内边距加到 18；B14（stage 4 · A1）收到 10
+            // （`_tabPadding`）—— 760 宽英文真页面的 11px 红线余量 ≥ 1.00px 靠这条。
             padding: const EdgeInsets.symmetric(
               horizontal: GoalBlueprintMatrix._tabPadding,
             ),

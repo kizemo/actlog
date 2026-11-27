@@ -180,3 +180,167 @@
 8. 任何与 §6 红线冲突而**未解决**的点，明确标注为「遗留」，不许含糊带过。
 
 回报正文写进 `reports\task100-b14-report.md`，并在最终消息里给出该文件路径与关键数字。
+
+---
+
+## 勘误（2026-11-27 stage 3 回读）
+
+> 本节由接力链 **stage 3 / `b14-dispatch-erratum`** 会话 `mvs_8da97fb4cf0b4e9d8ed398b176c4de3e` 追加；上方 §0–§7 原文**一字未改**（追加前后前缀 sha16 见本节末尾追加块）。
+> 裁决依据：`docs\b15-plan.md` §1「唯一真源与优先级」+ `AGENTS.md` §2 R1（控制器不改实现代码）/ R5（证据纪律）。
+> **三条勘误全部是「文档瑕疵」**：契约正文与盘上实现不符，**判定以盘上实现为准，产品代码一个字都不许改**。
+> 证据一律当场回读盘上文件并标出 `路径:行号`；本节不引用任何摘要转述。
+
+### 勘误 1 · §6「标签衬线字族 + 12px」（§2 另有同源一处）—— 盘上是 **15px**
+
+**(a) 契约原文**
+
+`docs\b14-dispatch.md` §6「全局约束（条目之间共用）」第 165–166 行逐字：
+
+```text
+- **不许回滚 B13 已收口的改动**：四框等高（66.925/63.425/66.925）、标签衬线字族 + 12px、
+  分栏线 `hairSoft` 0.5px（§11.16 第 1/3 条裁决）。
+```
+
+同一处过期数字在 §2「条目 1 — 档位标签补「目标」二字」第 52 行也出现一次（逐字）：
+
+```text
+  若衬线 12px 标签缩放后 < 11px，则把 `_tabPadding` 从 18 回调到 14，或字号维持 12 但允许标签两字一行。
+```
+
+**(b) 盘上实际**
+
+`apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart:181`：
+
+```dart
+  static const double _tabFontSize = 15;
+```
+
+- 使用点：同文件 `:549` → `fontSize: GoalBlueprintMatrix._tabFontSize,`
+- 「衬线字族」那半句**是对的**：同文件 `:550`–`:551` → `fontFamily: AppFonts.display,` / `fontFamilyFallback: AppFonts.displayFallback,`
+- **HEAD 同值，不是回滚**：`git show HEAD:apps/desktop/lib/src/widgets/goal_blueprint_matrix.dart` 第 181 行逐字为 `  static const double _tabFontSize = 15;` ⇒ 已提交版本本身就是 15，本仓不存在「12px 被回滚成 15px」这回事。
+- 旁证：`docs\handoff-ledger-b9-w4.md:773` 记的 `_tabFontSize=15`（:173）是 **B13 当时的行号**，B14 插行后已漂到 `:181`，旧行号不可再引用。
+
+**(c) 判定**
+
+**文档瑕疵**（契约把 B13 已收口的字号写成 12px）。**产品代码不改**：把 15 改回 12 才是回滚 B14 之前的 B13 收口成果，与该条自己写的「不许回滚 B13 已收口的改动」正面相冲突，且会撞 760 宽红线（stage 4 的余量判据）。契约的**意图成立、只有那个数字写错**。勘误后应表述为：标签衬线字族 `AppFonts.display` + **15px**；`_tabPadding` 维持 `18`（同文件 `:187`）。
+
+### 勘误 2 · §4.3「内容 : 领域 : 起止 : 达成」—— 盘上是 **三列**
+
+**(a) 契约原文**
+
+`docs\b14-dispatch.md` §4.3「列宽与日期单行」第 114–116 行逐字：
+
+```text
+- 矩阵列宽改成**显式比例**（例：内容 : 领域 : 起止 : 达成 ≈ 自适应权重），
+  要求「按内容自适应」而不是均分：列宽由 `Flex` 权重 + 内容测量共同决定，
+  窄视口下允许优先压缩「领域」列。
+```
+
+口径说明（为免歧义）：**「四列」三个字在契约正文里并未出现**，它以「四段比例示例」的形式出现——上例四项 `内容 : 领域 : 起止 : 达成` 就是四列口径。台账 `docs\handoff-ledger-b9-w4.md:1027` 记的「§4.3『四列』实为 3 列」即指此。本勘误按「四列口径」定性。
+
+**(b) 盘上实际**
+
+`apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart:204`：
+
+```dart
+  /// 三列宽度比例（领域 : 目标 : 起止），B14 第 2 条显式钉死。
+```
+
+同文件 `:209` / `:212` / `:215`：
+
+```dart
+  static const double columnFlexDomain = 2;
+  static const double columnFlexGoal = 5;
+  static const double columnFlexPeriod = 4;
+```
+
+同文件 `:218`–`:223`（**列数的硬证据**）：
+
+```dart
+  static const Map<int, TableColumnWidth> columnWidths =
+      <int, TableColumnWidth>{
+        0: FlexColumnWidth(columnFlexDomain),
+        1: FlexColumnWidth(columnFlexGoal),
+        2: FlexColumnWidth(columnFlexPeriod),
+      };
+```
+
+- `columnWidths` **只有 0 / 1 / 2 三项** ⇒ 矩阵是**三列**：领域 / 目标 / 起止；契约示例里的第 4 项「达成」**没有对应列**。
+- 表头行（`:369`–`:385`）与数据行（`:386` 起）共用同一套 `columnWidths`（`:370`、`:387`）⇒ 不存在「第四列换另一种承载方式」的空间。
+
+**(c) 判定**
+
+**文档瑕疵**（契约的列比例示例是 B14 落地前的设想稿，与已收口的实现不符）。**产品代码不改**：三列比例 2 : 5 : 4 是 B14 第 2 条「显式钉死」的既成实现，且 `columnWidths` 是年刻度条与主表共用的单一真源；为凑文档加第四列会改动已收口的布局并牵动 760 宽红线。勘误后应表述为：矩阵为**三列 领域 : 目标 : 起止**，比例 **2 : 5 : 4**。
+
+### 勘误 3 · §2 英文示例只给末档加 `Goal` —— 实现**四档全带** `Goal`
+
+**(a) 契约原文**
+
+`docs\b14-dispatch.md` §2「条目 1 — 档位标签补「目标」二字」第 43–44 行逐字：
+
+```text
+**判据**：四个档位标签在中文态逐字显示 `终极目标 / 远期目标 / 中期目标 / 短期目标`；
+英文态显示 `Ultimate / Long-term / Mid-term / Short-term Goal`（单数 Goal，与中文对齐）。
+```
+
+英文示例里 `Goal` **只出现在末档 `Short-term` 之后**，前三档没有。
+
+**(b) 盘上实际**
+
+`apps\desktop\lib\src\l10n\parts\goals.dart` 英文实现（第 1449 / 1452 / 1455 / 1458 行逐字）：
+
+```dart
+  String get goalBlueprintHorizonUltimate => 'Ultimate Goal';
+  String get goalBlueprintHorizonLong => 'Long-term Goal';
+  String get goalBlueprintHorizonMid => 'Mid-term Goal';
+  String get goalBlueprintHorizonShort => 'Short-term Goal';
+```
+
+接线点 `apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart:586`–`:591`：
+
+```dart
+  String _horizonLabel(GoalHorizon horizon) => switch (horizon) {
+    GoalHorizon.ultimate => widget.t.goalBlueprintHorizonUltimate,
+    GoalHorizon.long => widget.t.goalBlueprintHorizonLong,
+    GoalHorizon.mid => widget.t.goalBlueprintHorizonMid,
+    GoalHorizon.short => widget.t.goalBlueprintHorizonShort,
+    GoalHorizon.near => widget.t.goalBlueprintHorizonNear,
+  };
+```
+
+标签页档位（同文件 `:149`–`:154`）**四个**：终极 → 远期 → 中期 → 短期；`near` 不进标签页（`:594` 注释自述「near 不进标签页，兜底用短期那条」）。
+
+中文侧 `apps\desktop\lib\src\l10n\parts\goals.dart:830` / `:833` / `:836` / `:839` 逐字为 `终极目标` / `远期目标` / `中期目标` / `短期目标`，**与契约中文侧逐字一致** ⇒ 差异只出在英文侧的 `Goal` 出现位置。
+
+**(c) 判定**
+
+**文档瑕疵**（契约英文示例是示意写法，把 `Goal` 只挂在末档）。**产品代码不改**：改实现去凑契约示例，等于把四档英文标签削成「只有末档带 Goal」，与用户原话「都添加文字『目标』」及契约自身「英文态同步」的要求相悖；中文侧逐字正确，产品无缺陷。勘误后应表述为：英文态四档分别为 `Ultimate Goal / Long-term Goal / Mid-term Goal / Short-term Goal`。
+
+### 本节写集与证据
+
+| 项 | 值（盘上回读） |
+|---|---|
+| 本环允许写集 | `docs\b14-dispatch.md`（**追加**本节）；`apps\**` / `packages\**` / `AGENTS.md` / `reports\**` / `docs\relay\stage-2-blocked.md` **零改动** |
+| 本文件追加前 | **15,645 B** / **182 行** / sha16 `07CF80640BC05B25` / mtime 2026-11-27 00:07:14 / 纯 LF（CRLF 计数 = 0） |
+| `apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart` | 50,052 B / sha16 `0F99C0C569AA3981` / mtime 2026-11-27 01:14:44（追加前后逐字相同 ⇒ 本环零改动） |
+| `apps\desktop\test\b14_theme_test.dart` | 19,173 B / sha16 `88C2CD3A6B5FABD8`（stage 2 产物，本环零改动） |
+| `apps\desktop\test\b14_tab_scale_test.dart` | 21,045 B / sha16 `28E2160B3B9F6D4C`（本环零改动） |
+| git 写操作 | **一次都没做**（commit / push / tag / stash / checkout 全属人工验收点） |
+| 测试 | **没跑**：本环零代码改动，跑 `flutter test` 证明不了文档勘误成立，只会引入无关噪声 |
+
+本节追加后的完整落盘回读（最终字节数 / 行数 / sha16 / 前 15,645 B 前缀 sha16）由控制器在本节末尾以**追加块**给出，不改本块已写内容。
+
+### 落盘回读（stage 3 控制器，追加于本节末）
+
+> 本块**只追加**、不改上文任何字节。上文表格记的是「追加前」指纹，本块给的是**实测值**。
+
+| 项 | 实测值（2026-11-27 盘上回读） |
+|---|---|
+| 追加前文件 | 15,645 B / 182 行 / sha16 `07CF80640BC05B25` / mtime 2026-11-27 00:07:14 |
+| 追加勘误节后（本块写入前） | **24,131 B / 331 行 / sha16 `865B43C2A762017B`** |
+| 前 15,645 B **前缀** sha16 | **`07CF80640BC05B25`** —— 与追加前整文件 sha16 **逐字相同** ⇒ 原有字节**零改动**，追加只发生在文件尾 |
+| 行尾格式 | CRLF 计数 = 0 / 纯 LF / 无 BOM（与追加前一致） |
+| git 越界比对 | 本环新增改动**仅** ` M docs/b14-dispatch.md`；`apps\**` / `packages\**` 仍只有 stage 2 留下的 ` M apps/desktop/test/b14_theme_test.dart`（19,173 B / sha16 `88C2CD3A6B5FABD8`，本环未动） |
+| 产品文件 | `apps\desktop\lib\src\widgets\goal_blueprint_matrix.dart` 50,052 B / sha16 `0F99C0C569AA3981` / mtime 2026-11-27 01:14:44 —— **追加前后逐字相同**，本环零改动 |
+
+本块写入后的**最终**字节数 / 行数 / sha16 见 `docs\relay.json` 的 `stages[2]` 条目与 stage 3 收口回报（文件本体不再自我引用，避免自指）。

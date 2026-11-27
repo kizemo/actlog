@@ -685,7 +685,9 @@ class _GoalCard extends StatelessWidget {
     final String? head = title;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      // B14（stage 4 · A1）：12 → 8，把 8px 让给卡片内容 ⇒ 矩阵标签条的
+      // 可用宽 +8（英文态 760 宽真页面的缩放余量达标靠这条）。
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: tokens.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),

@@ -26,6 +26,16 @@
 // 阈值判据**写进断言**（不只打印）：派工书红线 = 缩放后 < 11px，故
 //   `displayFontSize >= 11.0` 必须成立；等价形式 `ratio >= 11 ÷ fontSize`。
 //
+// **余量判据（B14 stage 4 · A1，本文件新增）**：红线是**绝对下限**（不得放宽），
+//   但**光有红线对「余量」没有鉴别力**：改动前英文真页面 760 宽实测显示字号
+//   11.21px ⇒ 相对 11px 红线的余量只有 **0.21px**，而既有的
+//   `displayFontSize >= 11.0` 断言**照样 PASS** ⇒ 那条断言对「余量 ≥ 1.00px」
+//   **毫无鉴别力**。所以本文件新增一条独立判据 `marginPx >= 1.0`
+//   （余量 = 显示字号 − 11px 红线），落在 T3（英文矩阵态）与 T6（英文真页面态）
+//   两组；判据逐字来源见 `docs\relay\stage-1-inventory.md` 第 3 节
+//   「A1（#2）· 英文态 760 窗余量硬化」。**阳性对照**：把标签水平内边距临时加
+//   回去 ⇒ 余量断言必须转红；恢复后必须转绿。
+//
 // 为什么从 widget 取字号而不抄派工书：派工书 L52 / L165 的「衬线 12px」是 B13
 // 之前的旧值，盘上 `_tabFontSize = 15`（`goal_blueprint_matrix.dart:181`，B13
 // 收口时已加大）。**以盘上实现为准**，本文件不写死 12 / 15。
@@ -33,9 +43,11 @@
 // 用例与派工书的对应关系：
 //  T1  760 宽中文态：实测缩放比例 + 实际显示字号 vs 11px 红线（主判据）；
 //  T2  1440 宽中文态：对照值（不缩放 ⇒ 比例 1.0，自然宽与 760 组一致）；
-//  T3  760 宽英文态：最长标签（`Short-term Goal`）的显示字号 vs 11px 红线；
+//  T3  760 宽英文态：最长标签（`Short-term Goal`）的显示字号 vs 11px 红线
+//      **＋余量 ≥ 1.00px**；
 //  T4  320 宽：量具自检 —— 确实触发 scaleDown，两条路径读数一致；
 //  T5  真页面 760 窗口：卡片内边距吃掉宽度后，实测可用宽 / 缩放比例仍不触红线。
+//  T6  真页面 760 窗口英文态：**余量 ≥ 1.00px 的验收判据**（A1 的落点）。
 // =============================================================================
 
 import 'package:actlog/src/data/goal_store.dart';
@@ -67,6 +79,17 @@ const List<String> _horizonKeys = <String>['ultimate', 'long', 'mid', 'short'];
 ///
 /// **这个数不是本文件发明的**：它逐字来自派工书「缩放后 < 11px」的判据。
 const double _redLineFontPx = 11;
+
+/// B14（stage 4 · A1）的**余量判据**：显示字号相对 11px 红线必须多出的余量（px）。
+///
+/// **这个数不是本文件发明的**：它逐字来自 `docs\relay\stage-1-inventory.md`
+/// 第 3 节「A1（#2）· 英文态 760 窗余量硬化」——「真实页面 760 宽英文态
+/// **余量 ≥ 1.00px**（即显示字号 ≥ 12.00px），**红线仍为 11px，不得放宽**」。
+///
+/// 与 [_redLineFontPx] 的分工：红线是**绝对下限**（不放宽），余量是**相对
+/// 红线的硬裕度**（必须多出 1px）。既有的 `displayFontSize >= 11.0` 断言对
+/// 余量**没有鉴别力**（0.21px 也能过）⇒ 余量必须单列一条断言。
+const double _requiredMarginPx = 1.0;
 
 /// 某个档位标签（`TextButton`）。
 Finder _tab(String horizonKey) =>
@@ -132,6 +155,14 @@ class _TabScale {
   /// 标签的**实际显示字号** = 未缩放字号 × 实测比例。
   double get displayFontSize => fontSize * scale;
 
+  /// **余量** = 实际显示字号 − 11px 红线（px）。
+  ///
+  /// 为什么必须单列一条余量判据：[clearsRedLine]（显示字号 ≥ 11px）对「余量」
+  /// **没有鉴别力** —— 改动前的实测余量只有 0.21px，而 0.21 ≥ 0 ⇒ 照样 PASS。
+  /// 所以余量只能由本 getter 单独断言（判据：余量 ≥ 1.00px，见
+  /// [_requiredMarginPx]）。
+  double get marginPx => displayFontSize - _redLineFontPx;
+
   /// 红线判据：显示字号是否 ≥ 11px。
   bool get clearsRedLine => displayFontSize >= _redLineFontPx - 1e-9;
 
@@ -159,6 +190,7 @@ class _TabScale {
       ..write(' requiredScale=${requiredScale.toStringAsFixed(6)}')
       ..write(' criticalAvailable=${criticalAvailableWidth.toStringAsFixed(1)}')
       ..write(' redLine=${_redLineFontPx.toStringAsFixed(2)}')
+      ..write(' margin=${marginPx.toStringAsFixed(4)}')
       ..write(' verdict=${clearsRedLine ? 'PASS' : 'FAIL'}');
     labelWidths.forEach((String key, double width) {
       out.write(' [${key}_natural=${width.toStringAsFixed(1)}]');
@@ -424,6 +456,14 @@ void main() {
       reason: 'T3：英文态实测比例 ${s.scale} ⇒ 显示字号 ${s.displayFontSize}'
           ' 必须 ≥ $_redLineFontPx px',
     );
+    // 余量判据（A1）：红线之上还要多出 1.00px —— 只判 ≥ 11px 无鉴别力。
+    expect(
+      s.marginPx,
+      greaterThanOrEqualTo(_requiredMarginPx),
+      reason: 'T3：英文态实测比例 ${s.scale} ⇒ 显示字号 ${s.displayFontSize}'
+          ' ⇒ 余量 ${s.marginPx.toStringAsFixed(4)}px 必须 ≥ $_requiredMarginPx px'
+          '（红线 $_redLineFontPx px 不得放宽）',
+    );
   });
 
   testWidgets('T4 320 宽：量具自检（确实触发 scaleDown 且两路径一致）',
@@ -521,6 +561,15 @@ void main() {
       isTrue,
       reason: 'T6：英文真页面实测比例 ${s.scale} ⇒ 显示字号 ${s.displayFontSize}'
           ' 必须 ≥ $_redLineFontPx px（下限比例 ${s.requiredScale}）',
+    );
+    // **验收判据（A1）**：余量 ≥ 1.00px —— 红线之上必须多出 1px，
+    // 只判 ≥ 11px 对「余量」没有鉴别力（改动前的 0.21px 也能过）。
+    expect(
+      s.marginPx,
+      greaterThanOrEqualTo(_requiredMarginPx),
+      reason: 'T6：英文真页面实测比例 ${s.scale} ⇒ 显示字号 ${s.displayFontSize}'
+          ' ⇒ 余量 ${s.marginPx.toStringAsFixed(4)}px 必须 ≥ $_requiredMarginPx px'
+          '（红线 $_redLineFontPx px 不得放宽）',
     );
   });
 }
