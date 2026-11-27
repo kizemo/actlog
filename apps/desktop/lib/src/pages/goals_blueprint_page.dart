@@ -303,7 +303,8 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
       serves: data.serves,
       tracksCount: data.tracksCount,
       onSplitTodos: _openSplit,
-      onAddGoal: _openCreateGoal,
+      // B16 第 1/2 条：格内「+」→ 就地出输入框，保存即可继续加下一条。
+      onCreateGoalInline: _createGoalInline,
       onEditGoal: _openEditGoal,
       onRenameGoal: _renameGoal,
       onDeleteGoal: _confirmDeleteGoal,
@@ -388,29 +389,47 @@ class _GoalsBlueprintPageState extends ConsumerState<GoalsBlueprintPage> {
     }
   }
 
-  /// 格内「+ 新建目标」（D-8-e：领域 + 档位由所在格带入）。
+  /// 格内「+ 就地新建」（B16 第 1/2 条）：只落**标题 + 领域 + 档位**。
   ///
-  /// B14 补做 D2：新建**不弹五字段全量表**。裁决依据见
-  /// `docs/b14-fixup-dispatch.md:29` —— 本路径复用紧凑表单，形态由 D3 决定：
-  /// `compact == true` 时备注 / 关键词折进「更多」，首屏只剩标题（已 autofocus）、
-  /// 领域、档位、期限；领域与档位仍由所在格带入并照旧落库。
-  Future<void> _openCreateGoal(String domainKey, GoalHorizon horizon) async {
-    // `showDialog` 的 builder 在 Navigator 的 overlay 里构建，那里**在
-    // `L10nScope` 之上**（L10nScope 包的是 `home`，不是 `MaterialApp`），
-    // 所以必须在页面自己的 context 上先取好 `t` 再传进去。
-    final AppLocalizations t = AppLocalizations.of(context);
-    final GoalFormResult? result = await showGoalFormDialog(
-      context,
-      t: t,
-      domainKey: domainKey,
-      horizon: horizon,
-      // 蓝图页的填写框整体要紧凑（目标月 / 周 / 年页保持原样）。
-      compact: true,
-    );
-    if (result == null || !mounted) {
+  /// 取代 B14 的「+ → 紧凑表单弹窗」：用户要求「点 + 就在单元格里编辑，编辑完
+  /// 直接保存」且「保存后 + 仍在，可继续加下一条」。备注 / 关键词 / 期限留空，
+  /// 需要时走展开层的全量编辑（`goal-blueprint-edit-full-<id>`）。
+  Future<void> _createGoalInline(
+    String domainKey,
+    GoalHorizon horizon,
+    String title,
+  ) async {
+    final String next = title.trim();
+    if (next.isEmpty) {
+      // 空标题 = 放弃（空格子合法，不弹错、不写库）。
       return;
     }
-    await _writeGoal(null, result);
+    setState(() {
+      _goalSaved = false;
+      _goalDeleted = false;
+      _goalFailed = null;
+    });
+    try {
+      final GoalStore store = ref.read(goalStoreProvider);
+      await store.createGoal(
+        kind: GoalKind.blueprint,
+        title: next,
+        domain: domainKey,
+        horizon: horizon,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _goalSaved = true);
+      _future = _load();
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(
+        () => _goalFailed = AppLocalizations.of(context).operationFailed,
+      );
+    }
   }
 
   /// 卡片「编辑」：预填既有值（`existing` 非空 ⇒ 走 `updateGoal`）。

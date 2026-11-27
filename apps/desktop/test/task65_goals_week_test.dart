@@ -5,8 +5,8 @@
 //  1. 四个页签（周｜月｜年｜蓝图），默认「周」；
 //  2. **切页签不 push 路由**（同一页里换内容区，返回键不会在页签间打转）；
 //  3. 上次停留的页签被记住（写偏好）；
-//  4. 周页数据只来自 `weekView` 的读模型；滚动候选**只算不写**，用户点确认
-//     才落库（落库状态 `draft`）。
+//  4. 周页数据只来自 `weekView` 的读模型；滚动候选段头卡已于 B16 项 5 撤掉，
+//     界面不再渲染候选、也不会自动落库。
 //
 // 测试不接真数据库：读侧 provider 与两个写入口（页签记忆 / 草稿写入）都被
 // override 成记录器，于是「点了会发生什么」可以被逐字断言。
@@ -259,7 +259,9 @@ void main() {
     expect(find.text(zh.quadrantQ1ShortLabel), findsOneWidget);
   });
 
-  testWidgets('滚动候选：只算不写；用户点确认才落库',
+  // B16 项 5：周页左列底部「滚动候选」段头卡已整块撤掉（l10n getter 与
+  // 数据层保留）。这里锁住「卡不再出现、候选不再渲染、库零增量」。
+  testWidgets('滚动候选段头卡已撤：候选不渲染，库零增量',
       (WidgetTester tester) async {
     final List<List<GoalDraft>> saved = <List<GoalDraft>>[];
     await _pumpGoals(
@@ -268,28 +270,31 @@ void main() {
     );
 
     final AppLocalizations zh = AppLocalizations.zh;
-    expect(find.text(zh.goalsDraftSection), findsOneWidget);
+    expect(find.text(zh.goalsDraftSection), findsNothing);
     expect(
       find.text('${_draft().title} · ${zh.goalsDraftCarryOver}'),
-      findsOneWidget,
+      findsNothing,
     );
-    // 还没点确认 ⇒ 库里 0 增量。
+    expect(
+      find.byKey(const ValueKey<String>('goals-draft-confirm')),
+      findsNothing,
+    );
+    expect(find.text(zh.goalsDraftEmpty), findsNothing);
+    // 卡片撤掉后没有任何自动落库路径。
     expect(saved, isEmpty);
-
-    await tester.tap(find.byKey(const ValueKey<String>('goals-draft-confirm')));
-    await tester.pump();
-
-    expect(saved.length, 1, reason: '点确认才允许写草稿');
-    expect(saved.single.single.title, _draft().title);
-    expect(find.text(zh.goalsDraftSaved), findsOneWidget);
   });
 
-  testWidgets('没有候选时显示空态，不给确认按钮', (WidgetTester tester) async {
+  testWidgets('滚动候选段头卡已撤：无候选时也不再有空态文案',
+      (WidgetTester tester) async {
     await _pumpGoals(tester, overrides: _overrides());
 
     final AppLocalizations zh = AppLocalizations.zh;
-    expect(find.text(zh.goalsDraftEmpty), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('goals-draft-confirm')), findsNothing);
+    expect(find.text(zh.goalsDraftSection), findsNothing);
+    expect(find.text(zh.goalsDraftEmpty), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('goals-draft-confirm')),
+      findsNothing,
+    );
   });
 
   testWidgets('英文态：页签与周区块走英文，界面不残留中文',

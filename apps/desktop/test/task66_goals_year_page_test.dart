@@ -200,51 +200,34 @@ void main() {
     );
   });
 
-  testWidgets('年页：滚动候选只算不写，确认后落库 status=draft',
+  // B16 项 5：左列底部「滚动候选」段头卡已撤掉 —— 候选列表与它的加号都
+  // 不再渲染；「待确认草稿」队列仍挂在「十二月矩阵」卡下，空态照旧可见。
+  testWidgets('年页：滚动候选段头卡已撤，候选不渲染且库零增量',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store, repos);
     await _pumpYear(tester, repos: repos);
 
     final int before = (await store.listGoals()).length;
+    final AppLocalizations zh = AppLocalizations.zh;
+    expect(find.text(zh.goalsDraftSection), findsNothing);
     expect(
       find.byKey(ValueKey<String>('goal-year-candidate-${seed.yearlyId}')),
-      findsOneWidget,
+      findsNothing,
+      reason: '候选列表已随段头卡一起撤掉',
     );
-
-    final Finder add = find.byKey(
-      ValueKey<String>('goal-year-candidate-add-${seed.yearlyId}'),
-    );
-    await tester.ensureVisible(add);
-    await tester.tap(add);
-    await tester.pump();
-
     expect(
-      find.byKey(const ValueKey<String>('goal-year-pending-年度主攻')),
+      find.byKey(ValueKey<String>('goal-year-candidate-add-${seed.yearlyId}')),
+      findsNothing,
+      reason: '候选的加号入口也一并撤掉',
+    );
+    // 待确认草稿队列本体保留在矩阵卡底部（此处为空态）。
+    expect(find.text(zh.goalDraftPending), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('goal-year-pending-empty')),
       findsOneWidget,
     );
-    // 还没点确认 ⇒ 库里 0 增量。
+    // 没有任何自动落库路径。
     expect((await store.listGoals()).length, before);
-
-    final Finder confirm = find.byKey(
-      const ValueKey<String>('goal-year-draft-confirm'),
-    );
-    await tester.ensureVisible(confirm);
-    await tester.tap(confirm);
-    await tester.pumpAndSettle();
-
-    final List<GoalRow> rows = await store.listGoals();
-    final List<GoalRow> drafts = rows
-        .where((GoalRow goal) => goal.status == GoalStatus.draft)
-        .toList();
-    expect(drafts.length, 1);
-    expect(drafts.single.kind, GoalKind.yearly);
-    expect(drafts.single.title, '年度主攻');
-    expect(
-      drafts.single.periodStart,
-      GoalPeriod.year(2027).startMillis,
-      reason: '本年未完成的年目标滚到下一年',
-    );
-    expect(rows.length, before + 1);
   });
 
   testWidgets('年页：表二空格新增月目标，确认后落库并挂上 serves 链',

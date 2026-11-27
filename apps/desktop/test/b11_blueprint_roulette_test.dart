@@ -323,7 +323,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A-3 年刻度：跨年档位派生真实年份刻度，不硬编码', (WidgetTester tester) async {
+  testWidgets('A-3 年刻度已下线：跨年目标也不再渲染年份行（B16 第 4 条）', (
+    WidgetTester tester,
+  ) async {
     final String first = await store.createGoal(
       kind: GoalKind.blueprint,
       title: '写一本书',
@@ -355,12 +357,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey<String>('goal-blueprint-year-scale')), findsOneWidget);
+    // B16 第 4 条：日期列顶部那行「年份刻度条」整体下线
+    // （用户反馈「填入起止日期后顶部多一行年份」）。年份信息由
+    // `yyyy-MM-dd ~ yyyy-MM-dd` 全量日期自身承担 —— 跨年目标也一样。
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-year-scale')),
+      findsNothing,
+      reason: 'B16 第 4 条：年份刻度条已下线，跨年档位也不再渲染',
+    );
     for (final int year in <int>[2026, 2027, 2028]) {
       expect(
         find.byKey(ValueKey<String>('goal-blueprint-year-tick-$year')),
-        findsOneWidget,
-        reason: '跨度 $year 年必须有一根刻度',
+        findsNothing,
+        reason: 'B16 第 4 条：刻度 tick $year 一并下线',
       );
     }
     expect(

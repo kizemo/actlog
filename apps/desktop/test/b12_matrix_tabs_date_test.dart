@@ -203,6 +203,38 @@ Future<void> _switchTab(WidgetTester tester, String horizonKey) async {
   await _tapKey(tester, ValueKey<String>('goal-blueprint-tab-$horizonKey'));
 }
 
+/// B16 第 1 条：格内「+」→ 就地输入标题 → 提交 ⇒ 返回新目标的 id。
+///
+/// 「+」不再弹全量表单，所以需要期限 / 备注的用例一律走
+/// 「就地建一条 → 展开层 `goal-blueprint-edit-full-<id>`」这两步。
+Future<String> _createInline(
+  WidgetTester tester,
+  ActLogDatabase db,
+  String domainKey,
+  String horizonKey,
+  String title,
+) async {
+  await _tapKey(
+    tester,
+    ValueKey<String>('goal-blueprint-add-$domainKey-$horizonKey'),
+  );
+  final Finder editor = find.byKey(
+    ValueKey<String>('goal-blueprint-inline-create-$domainKey-$horizonKey'),
+  );
+  expect(editor, findsOneWidget, reason: 'B16 第 1 条：点「+」就地出输入框');
+  expect(
+    find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
+    findsNothing,
+    reason: 'B16 第 1 条：就地新建不弹全量表单',
+  );
+  await tester.enterText(editor, title);
+  await tester.testTextInput.receiveAction(TextInputAction.done);
+  await tester.pumpAndSettle();
+  final List<_RawGoal> created = await _goalsByTitle(db, title);
+  expect(created.length, 1, reason: '就地新建的一条必须落库');
+  return created.single.id;
+}
+
 /// 点期限字段 ⇒ 断言弹出日期选择器 ⇒ 在本月选 [day] 日 ⇒ 确定。
 ///
 /// 返回用户实际选中的那一天（**本地**午夜 `DateTime`）。
@@ -307,16 +339,20 @@ void main() {
     );
     await _pumpBlueprint(tester, repos: repos);
 
-    // family × 中期 这一格是空的 ⇒ 从格子里的「+」进表单。
+    // family × 中期 这一格是空的 ⇒ 先用「+」就地建一条（B16 只收标题），
+    // 再从展开层进全量编辑挑期限（期限字段的断言一条不动）。
     await _switchTab(tester, 'mid');
-    await _tapKey(
+    final String id = await _createInline(
       tester,
-      const ValueKey<String>('goal-blueprint-add-family-mid'),
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
+      db,
+      'family',
+      'mid',
       '带期限的新目标',
     );
+    // 新建后页面重载 ⇒ 标签页回到默认档，先切回中期再展开那一格。
+    await _switchTab(tester, 'mid');
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-cell-$id'));
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-edit-full-$id'));
 
     final DateTime picked = await _pickDueDay(tester, 15);
 
@@ -337,9 +373,8 @@ void main() {
       reason: '写库成功要给用户可见反馈',
     );
 
-    final List<_RawGoal> created = await _goalsByTitle(db, '带期限的新目标');
-    expect(created.length, 1, reason: '保存后 SQLite 里应恰好新增一条目标');
-    final _RawGoal g = created.single;
+    final _RawGoal g = (await _goalById(db, id))!;
+    expect(g.title, '带期限的新目标', reason: '这一步只挑期限，标题不许被改');
     expect(g.domain, 'family', reason: '领域 = 所在格（回读 SQLite）');
     expect(g.horizon, GoalHorizon.mid.value, reason: '档位 = 所在格（回读 SQLite）');
     expect(
@@ -383,7 +418,17 @@ void main() {
   ) async {
     await _pumpBlueprint(tester, repos: repos);
     await _switchTab(tester, 'mid');
-    await _tapKey(tester, const ValueKey<String>('goal-blueprint-add-social-mid'));
+    // B16：先用「+」就地建一条（只收标题），再从展开层进全量编辑验期限字段。
+    final String id = await _createInline(
+      tester,
+      db,
+      'social',
+      'mid',
+      '点选期限的目标',
+    );
+    await _switchTab(tester, 'mid');
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-cell-$id'));
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-edit-full-$id'));
 
     final TextField emptyField = tester.widget<TextField>(
       find.byKey(const ValueKey<String>('goal-blueprint-form-due')),
@@ -400,10 +445,6 @@ void main() {
       reason: '还没选日期 ⇒ 不该有「清除」入口',
     );
 
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
-      '点选期限的目标',
-    );
     final DateTime picked = await _pickDueDay(tester, 15);
 
     // 选完之后：字段回显 + 出现「清除」入口（证明内部真的记住了所选日期）。
@@ -419,9 +460,7 @@ void main() {
 
     await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-save'));
 
-    final List<_RawGoal> created = await _goalsByTitle(db, '点选期限的目标');
-    expect(created.length, 1, reason: '保存后 SQLite 里应恰好新增一条目标');
-    final _RawGoal g = created.single;
+    final _RawGoal g = (await _goalById(db, id))!;
     expect(
       g.dueDate,
       DateTime(picked.year, picked.month, picked.day).millisecondsSinceEpoch,

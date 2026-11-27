@@ -255,47 +255,37 @@ void main() {
     expect(drafts.single.kind, GoalKind.monthly);
   });
 
-  testWidgets('月页：滚动候选只算不写，确认后落库 status=draft',
+  // B16 项 5：左列底部「滚动候选」段头卡已撤掉 —— 候选列表与它的加号都
+  // 不再渲染；「待确认草稿」队列仍挂在「本月目标」卡下，空态照旧可见。
+  testWidgets('月页：滚动候选段头卡已撤，候选不渲染且库零增量',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store);
     await _pumpMonth(tester, repos: repos);
 
     final int before = (await store.listGoals()).length;
+    final AppLocalizations zh = AppLocalizations.zh;
+    expect(find.text(zh.goalsDraftSection), findsNothing);
+    expect(find.text(zh.goalsDraftEmpty), findsNothing);
     expect(
       find.byKey(ValueKey<String>('goal-month-candidate-${seed.servedId}')),
-      findsOneWidget,
-      reason: '本月未完成的月目标应进滚动候选',
+      findsNothing,
+      reason: '候选列表已随段头卡一起撤掉',
     );
-
-    final Finder add = find.byKey(
-      ValueKey<String>('goal-month-candidate-add-${seed.servedId}'),
-    );
-    await tester.ensureVisible(add);
-    await tester.tap(add);
-    await tester.pump();
-
     expect(
-      find.byKey(const ValueKey<String>('goal-month-pending-本月服务年目标')),
+      find.byKey(
+        ValueKey<String>('goal-month-candidate-add-${seed.servedId}'),
+      ),
+      findsNothing,
+      reason: '候选的加号入口也一并撤掉',
+    );
+    // 待确认草稿队列本体保留在「本月目标」卡底部（此处为空态）。
+    expect(find.text(zh.goalDraftPending), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('goal-month-pending-empty')),
       findsOneWidget,
     );
-    // 还没点确认 ⇒ 库里 0 增量。
+    // 没有任何自动落库路径。
     expect((await store.listGoals()).length, before);
-
-    final Finder confirm = find.byKey(
-      const ValueKey<String>('goal-month-draft-confirm'),
-    );
-    await tester.ensureVisible(confirm);
-    await tester.tap(confirm);
-    await tester.pumpAndSettle();
-
-    final List<GoalRow> rows = await store.listGoals();
-    final List<GoalRow> drafts = rows
-        .where((GoalRow goal) => goal.status == GoalStatus.draft)
-        .toList();
-    expect(drafts.length, 1);
-    expect(drafts.single.title, '本月服务年目标');
-    expect(drafts.single.kind, GoalKind.monthly);
-    expect(rows.length, before + 1, reason: '确认后库里多 1 行');
   });
 
   testWidgets('月页英文态：区块标题走英文，界面不残留中文文案',

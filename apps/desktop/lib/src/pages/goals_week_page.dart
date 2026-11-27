@@ -6,12 +6,13 @@
 // 数据来源只有一个：`GoalStore.weekView(period)`（读模型）—— 完成度、关联
 // 计划项数、「服务于」全部是**派生量**，界面上不写回任何一列。
 //
-// 草稿滚动区（计划 §6.4）的次序是硬约束：
-//   ① `rollWeeklyDrafts` **只算不写**（库里 0 增量）；
-//   ② 用户点「确认写入草稿」；
-//   ③ 才调 `saveWeeklyDrafts` 落库，落库状态是 `status='draft'`（激活由用户
-//      后续决定）。
-// 也就是说：界面上永远不会「看一眼就把库改了」。
+// 本页只有两条写入口（B16 项 7）：
+//   ① 「本周目标」卡底部的常驻录入行：回车或点「+」即建一条本周目标；
+//   ② 右栏月目标拖进左列：落点高亮后松手即派生一条本周目标（挂 `serves`）。
+// 两条都由用户的显式动作触发 —— 界面上永远不会「看一眼就把库改了」。
+//
+// 「滚动候选」段（原计划 §6.4）已按 B16 项 5 撤掉界面入口；`rollWeeklyDrafts`
+// 数据层与 l10n getter 保留，本页不再渲染。
 // =============================================================================
 
 import 'package:core_domain/core_domain.dart';
@@ -27,7 +28,7 @@ import '../widgets/goal_week_table.dart';
 import '../widgets/goals/goal_form_dialog.dart';
 import '../widgets/shell/tool_rail.dart';
 
-/// 周目标页：本周目标表 + 滚动候选区。
+/// 周目标页：本周目标表 + 上游月目标面板。
 class GoalsWeekPage extends ConsumerStatefulWidget {
   /// 创建周目标页。
   const GoalsWeekPage({super.key});
@@ -37,65 +38,48 @@ class GoalsWeekPage extends ConsumerStatefulWidget {
 }
 
 class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
-  /// 是否正在写草稿。
-  bool _saving = false;
+  /// 录入行输入控制器（常驻，提交后清空）。
+  final TextEditingController _input = TextEditingController();
 
-  /// 是否已写入成功（写入后按钮停用，避免同批候选被写两遍）。
-  bool _saved = false;
+  /// 录入行焦点（提交后保焦点，便于连续录入）。
+  final FocusNode _inputFocus = FocusNode();
+
+  /// 是否正在建录入行目标（挡连点）。
+  bool _submitting = false;
+
+  /// 就地编辑中的目标 id（null = 无编辑）。
+  String? _editingId;
+
+  /// 就地编辑的标题控制器。
+  final TextEditingController _titleEditing = TextEditingController();
+
+  /// 就地编辑的焦点。
+  final FocusNode _titleFocus = FocusNode();
 
   /// 写失败提示（null = 无错误）。
   String? _error;
 
   @override
+  void dispose() {
+    _input.dispose();
+    _inputFocus.dispose();
+    _titleEditing.dispose();
+    _titleFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final AppLocalizations t = AppLocalizations.of(context);
     final AsyncValue<GoalWeekView> view = ref.watch(goalWeekViewProvider);
-    final AsyncValue<List<GoalDraft>> drafts = ref.watch(goalWeeklyDraftsProvider);
     final AsyncValue<List<GoalRow>> openMonthly = ref.watch(
       monthOpenGoalsProvider,
     );
     final List<GoalRow> monthlyGoals =
         openMonthly.asData?.value ?? const <GoalRow>[];
 
-    final Widget left = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        _GoalCard(
-          title: t.goalsWeekSection,
-          child: view.when(
-            loading: () => const _LoadingBlock(),
-            error: (Object error, StackTrace stack) => _ErrorBlock(
-              text: t.operationFailed,
-            ),
-            data: (GoalWeekView data) => data.items.isEmpty
-                ? _EmptyBlock(
-                    key: const ValueKey<String>('goals-week-empty'),
-                    text: t.goalsWeekEmpty,
-                  )
-                : GoalWeekTable(
-                    view: data,
-                    t: t,
-                    onEdit: _editGoal,
-                    onDelete: _deleteGoal,
-                  ),
-          ),
-        ),
-        const SizedBox(height: AppTokens.gapCard),
-        _GoalCard(
-          title: t.goalsDraftSection,
-          child: drafts.when(
-            loading: () => const _LoadingBlock(),
-            error: (Object error, StackTrace stack) => _ErrorBlock(
-              text: t.operationFailed,
-            ),
-            data: (List<GoalDraft> data) => _buildDrafts(data, t),
-          ),
-        ),
-      ],
-    );
-
     // 拖拽接收：只认 `goal://` 通道，其它 payload 原样放行（不吞时间轴的裸待办 id）。
+    // `candidateData` 非空 = 有可接的 payload 悬停，用它在左列画出落点。
     final Widget dropArea = DragTarget<String>(
       key: const ValueKey<String>('goal-week-drop-target'),
       onWillAcceptWithDetails: (DragTargetDetails<String> details) =>
@@ -116,7 +100,11 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
         BuildContext context,
         List<String?> candidateData,
         List<dynamic> rejectedData,
-      ) => left,
+      ) => _buildLeft(
+        t,
+        view,
+        highlight: candidateData.any((String? data) => data != null),
+      ),
     );
 
     final Widget panel = GoalUpstreamPanel(
@@ -163,6 +151,158 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
   static const double _sideBySideMinWidth =
       ToolRail.minColumnWidth + ToolRail.panelGap + _upstreamWidth;
 
+  /// 左列：本周目标卡（表格 + 常驻录入行）。
+  Widget _buildLeft(
+    AppLocalizations t,
+    AsyncValue<GoalWeekView> view, {
+    required bool highlight,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _GoalCard(
+          title: t.goalsWeekSection,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              view.when(
+                loading: () => const _LoadingBlock(),
+                error: (Object error, StackTrace stack) => _ErrorBlock(
+                  text: t.operationFailed,
+                ),
+                data: (GoalWeekView data) => data.items.isEmpty
+                    ? _EmptyBlock(
+                        key: const ValueKey<String>('goals-week-empty'),
+                        text: t.goalsWeekEmpty,
+                      )
+                    : GoalWeekTable(
+                        view: data,
+                        t: t,
+                        onEdit: _editGoal,
+                        onDelete: _deleteGoal,
+                        editingId: _editingId,
+                        titleController: _titleEditing,
+                        titleFocus: _titleFocus,
+                        onTitleTap: _startTitleEdit,
+                        onTitleSubmit: _submitTitleEdit,
+                        onTitleCancel: _cancelTitleEdit,
+                      ),
+              ),
+              _inputRow(t, highlight: highlight),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 常驻录入行：输入标题 + 「+」，回车或点击即落库。
+  Widget _inputRow(AppLocalizations t, {required bool highlight}) {
+    final ThemeTokens tokens = context.tokens;
+    return Container(
+      key: const ValueKey<String>('goal-week-input-row'),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: highlight ? tokens.inkWash : null,
+        borderRadius: BorderRadius.circular(AppTokens.radius),
+        border: Border.all(
+          color: highlight ? tokens.ink : tokens.hairSoft,
+          width: highlight ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  key: const ValueKey<String>('goal-week-input'),
+                  controller: _input,
+                  focusNode: _inputFocus,
+                  maxLines: 1,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (String value) => _submitInput(value),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: tokens.ink),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              TextButton(
+                key: const ValueKey<String>('goal-week-input-add'),
+                onPressed: _submitting
+                    ? null
+                    : () => _submitInput(_input.text),
+                child: const Text('+'),
+              ),
+            ],
+          ),
+          if (highlight)
+            Text(
+              t.goalsUpstreamAddHint,
+              key: const ValueKey<String>('goal-week-drop-hint'),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: tokens.ink),
+            )
+          else if (_error != null)
+            Text(
+              _error!,
+              key: const ValueKey<String>('goal-week-input-error'),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: tokens.accentInk),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 录入行提交：建一条本周目标，然后清空输入并保住焦点（便于连续录入）。
+  Future<void> _submitInput(String raw) async {
+    final String title = raw.trim();
+    if (title.isEmpty || _submitting) {
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final GoalPeriod period = ref.read(goalCurrentWeekProvider);
+      await ref.read(goalStoreProvider).createGoal(
+        kind: GoalKind.weekly,
+        title: title,
+        periodStart: period.startMillis,
+        periodEnd: period.endMillis,
+      );
+      if (!mounted) {
+        return;
+      }
+      _input.clear();
+      ref.invalidate(goalWeekViewProvider);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+        _inputFocus.requestFocus();
+      }
+    }
+  }
+
   /// 本周已派生过的上游目标 id（同步幂等闸门，挡住连点）。
   final Set<String> _derivedFromMonthly = <String>{};
 
@@ -189,11 +329,53 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
           origin: GoalDraftOrigin.fromUpperLayer,
         ),
       ]);
-      // 表里要多出这条派生行；候选列表不重取（与 `_confirm` 同口径）。
+      // 表里要多出这条派生行。
       ref.invalidate(goalWeekViewProvider);
     } on Object {
       // 写失败 ⇒ 撤掉闸门，允许用户重试。
       _derivedFromMonthly.remove(monthly.id);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
+  }
+
+  /// 点标题开始就地编辑（单行，光标置末）。
+  void _startTitleEdit(GoalRow goal) {
+    _titleEditing.text = goal.title;
+    _titleEditing.selection = TextSelection.collapsed(
+      offset: goal.title.length,
+    );
+    setState(() => _editingId = goal.id);
+  }
+
+  /// 取消就地编辑（Esc）：不改库。
+  void _cancelTitleEdit() {
+    if (_editingId == null) {
+      return;
+    }
+    setState(() => _editingId = null);
+  }
+
+  /// 提交就地编辑：空标题或未改动不写库。
+  Future<void> _submitTitleEdit(GoalRow goal, String raw) async {
+    if (_editingId != goal.id) {
+      return;
+    }
+    final String title = raw.trim();
+    setState(() => _editingId = null);
+    if (title.isEmpty || title == goal.title) {
+      return;
+    }
+    setState(() => _error = null);
+    try {
+      await ref.read(goalStoreProvider).updateGoal(goal.id, title: title);
+      if (!mounted) {
+        return;
+      }
+      ref.invalidate(goalWeekViewProvider);
+    } on Object {
       if (!mounted) {
         return;
       }
@@ -237,7 +419,7 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
     }
   }
 
-  /// 表单结果写回库（本页不新建目标：新建入口不在本棒范围）。
+  /// 表单结果写回库（表单式新建入口不在本页：常驻录入行承担新建）。
   Future<void> _updateGoal(GoalRow goal, GoalFormResult form) async {
     final String title = form.title.trim();
     final String? note = _emptyToNull(form.note);
@@ -301,93 +483,6 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
       }
     }
     return false;
-  }
-
-  /// 滚动候选区：候选清单 + 确认按钮。
-  Widget _buildDrafts(List<GoalDraft> drafts, AppLocalizations t) {
-    if (drafts.isEmpty) {
-      return _EmptyBlock(
-        key: const ValueKey<String>('goals-draft-empty'),
-        text: t.goalsDraftEmpty,
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        for (final GoalDraft draft in drafts)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(
-              '${draft.title} · ${_originLabel(draft, t)}',
-              key: ValueKey<String>('goals-draft-${draft.title}'),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: context.tokens.ink),
-            ),
-          ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            key: const ValueKey<String>('goals-draft-confirm'),
-            onPressed: _saving || _saved ? null : () => _confirm(drafts, t),
-            child: Text(t.goalsDraftConfirm),
-          ),
-        ),
-        if (_saved)
-          Text(
-            t.goalsDraftSaved,
-            key: const ValueKey<String>('goals-draft-saved'),
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: context.tokens.meta),
-          ),
-        if (_error != null)
-          Text(
-            _error!,
-            key: const ValueKey<String>('goals-draft-error'),
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: context.tokens.accentInk),
-          ),
-      ],
-    );
-  }
-
-  /// 候选来源标签。
-  String _originLabel(GoalDraft draft, AppLocalizations t) =>
-      switch (draft.origin) {
-        GoalDraftOrigin.carryOver => t.goalsDraftCarryOver,
-        GoalDraftOrigin.fromUpperLayer => t.goalsDraftFromMonthly,
-      };
-
-  /// 用户确认 ⇒ 落库（`status='draft'`）。
-  Future<void> _confirm(List<GoalDraft> drafts, AppLocalizations t) async {
-    setState(() {
-      _saving = true;
-      _saved = false;
-      _error = null;
-    });
-    try {
-      await ref.read(goalDraftSaverProvider)(drafts);
-      // 落库后周视图要重取（表里多出这批草稿行）；候选列表**不**重取 ——
-      // 重取会把这批候选原样再算一遍，用户可能误以为还能再写一遍。
-      ref.invalidate(goalWeekViewProvider);
-      if (!mounted) {
-        return;
-      }
-      setState(() => _saved = true);
-    } on Object {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _error = t.operationFailed);
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
   }
 }
 

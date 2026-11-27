@@ -201,7 +201,7 @@ class _AboutRoute extends StatelessWidget {
 /// 自绘顶栏 [AppTopBar] 挂在本组件里、`LedgerShell` **之上**（不是塞进壳内部），
 /// 窗口动作全部转给 `desktop_shell.dart` 的模块级函数，壳本身完全不感知窗口。
 ///
-/// 各页面（今日 / 待办池 / 习惯 / 项目 / 日历 / 目标 / 蓝图 / 设置）都是**内容体**，不带
+/// 各页面（今日 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历 / 设置）都是**内容体**，不带
 /// `Scaffold`；导航点击只切本组件的 `_nav` 状态，不做路由 push —— 否则每点
 /// 一次就叠一层壳。
 /// `/todo`、`/calendar`、`/goals`、`/blueprint`、`/settings`、`/about` 保留为**深链入口**：前五个各自
@@ -224,7 +224,7 @@ class ShellHost extends StatefulWidget {
 class _ShellHostState extends State<ShellHost> {
   late String _nav = widget.initialNavId;
 
-  /// 壳级焦点节点：壳自己持焦点 ⇒ `Ctrl+1…7` 在任何页都收得到键。
+  /// 壳级焦点节点：壳自己持焦点 ⇒ `Ctrl+1…8` 在任何页都收得到键。
   ///
   /// `Shortcuts` 靠焦点节点收键：焦点掉回根 scope 时事件不会冒泡下来，
   /// 快捷键就成了死键。切页时把焦点收回这里，键条上的承诺才始终成立。
@@ -239,7 +239,7 @@ class _ShellHostState extends State<ShellHost> {
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
-      // 键条最后两条「切页」的真身：只认有落点的导航项。
+      // 键条「切页」的真身：与导航序位逐位绑定，只认有落点的导航项。
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.digit1, control: true): _NavIntent(
           ShellHost.kTodayNavId,
@@ -251,16 +251,19 @@ class _ShellHostState extends State<ShellHost> {
           'habits',
         ),
         SingleActivator(LogicalKeyboardKey.digit4, control: true): _NavIntent(
-          'calendar',
+          'blueprint',
         ),
         SingleActivator(LogicalKeyboardKey.digit5, control: true): _NavIntent(
-          'projects',
-        ),
-        SingleActivator(LogicalKeyboardKey.digit6, control: true): _NavIntent(
           'goals',
         ),
+        SingleActivator(LogicalKeyboardKey.digit6, control: true): _NavIntent(
+          'projects',
+        ),
         SingleActivator(LogicalKeyboardKey.digit7, control: true): _NavIntent(
-          'blueprint',
+          'learning',
+        ),
+        SingleActivator(LogicalKeyboardKey.digit8, control: true): _NavIntent(
+          'calendar',
         ),
       },
       child: Actions(
@@ -360,6 +363,9 @@ class _ShellHostState extends State<ShellHost> {
       'projects' => ProjectsPage(
         onOpenDayLog: () => setState(() => _nav = ShellHost.kTodayNavId),
       ),
+      // B16：学习是占位项 —— 有真实落点（可点、可被 Ctrl+7 切到），
+      // 但内容体只是居中占位，不接数据、不写库。
+      'learning' => const _LearningPlaceholder(),
       _ => const TodayPage(),
     };
   }
@@ -368,21 +374,48 @@ class _ShellHostState extends State<ShellHost> {
     if (id == _nav) {
       return;
     }
-    // 今日 / 待办池 / 习惯 / 项目 / 日历 / 目标 / 蓝图 / 设置八项都有真实落点。
+    // 今日 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历 / 设置九项都有真实落点。
     setState(() => _nav = id);
   }
 }
 
-/// 「切页」意图（`Ctrl+1…7`，键条最后三条）。
+/// 「切页」意图（`Ctrl+1…8`，与导航序位逐位绑定）。
 ///
-/// 只认有落点的导航项：今日 / 待办池 / 习惯 / 日历 / 项目 / 目标 / 蓝图。设置页虽有
-/// 落点，但它沉底成齿轮、不占编号 ⇒ 键条与快捷键不承诺它。
+/// 只认有落点的导航项：今日 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历。
+/// 设置页虽有落点，但它沉底成齿轮、不占编号 ⇒ 键条与快捷键不承诺它。
 class _NavIntent extends Intent {
   const _NavIntent(this.navId);
 
-  /// 目标导航项 id（`today` / `inbox` / `habits` / `calendar` / `projects` / `goals` /
-  /// `blueprint`）。
+  /// 目标导航项 id（`today` / `inbox` / `habits` / `blueprint` / `goals` /
+  /// `projects` / `learning` / `calendar`）。
   final String navId;
+}
+
+/// 「学习」占位内容体（B16）。
+///
+/// 本批只给导航一个真实落点：**不建数据层、不建路由、不建存储**，也不新增
+/// `lib/` 下的文件 —— 占位内容内联在 [ShellHost] 所在的这份文件里。
+/// 下一批换真页面时，替换 [_ShellHostState._content] 的 `'learning'` 分支即可。
+///
+/// 文案取 [shellLocalizationsOf]（不在 `L10nScope` 之下时回落中文态），
+/// 理由与键条同一形状：既有 widget 测试会孤立构造壳内部件、不套 scope。
+class _LearningPlaceholder extends StatelessWidget {
+  const _LearningPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations t = shellLocalizationsOf(context);
+    return Center(
+      key: const ValueKey<String>('learning-placeholder'),
+      child: Text(
+        t.shellNavLearning,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: context.tokens.meta,
+          letterSpacing: 2,
+        ),
+      ),
+    );
+  }
 }
 
 /// 今日页右轨的五块面板（**顺序即展示顺序**）。

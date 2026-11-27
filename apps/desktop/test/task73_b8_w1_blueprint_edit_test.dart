@@ -33,6 +33,8 @@ import 'package:core_domain/core_domain.dart'
 // `QueryRow` 是 `customSelect` 的行类型，drift 从 2.x 起只在 drift.dart 导出。
 import 'package:drift/drift.dart' show QueryRow;
 import 'package:flutter/material.dart';
+// B16 新增 T1b 的 Esc 断言需要 `LogicalKeyboardKey`（只在 services.dart）。
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` 只在 misc.dart 导出（3.5.0 起 flutter_riverpod.dart 不再带它）。
 import 'package:flutter_riverpod/misc.dart';
@@ -113,16 +115,7 @@ _RawGoal _fromRow(Map<String, Object?> d) => _RawGoal(
   deletedAt: d['deleted_at'] as int?,
 );
 
-/// 毫秒 → `YYYY-MM-DD`（本地日）；null 透传。
-String? _dayOf(int? millis) {
-  if (millis == null) {
-    return null;
-  }
-  final DateTime d = DateTime.fromMillisecondsSinceEpoch(millis);
-  final String m = d.month.toString().padLeft(2, '0');
-  final String day = d.day.toString().padLeft(2, '0');
-  return '${d.year}-$m-$day';
-}
+
 
 /// 造数据：1 条年目标（近期列数据源）+ 1 条 career/ultimate 蓝图（编辑删除靶子）。
 class _Seed {
@@ -237,86 +230,36 @@ void main() {
       const ValueKey<String>('goal-blueprint-add-learning-short'),
     );
 
-    // 表单必须已经带着所在格的领域 + 档位打开（不靠用户重选）。
-    final DropdownButtonFormField<String> domain = tester
-        .widget<DropdownButtonFormField<String>>(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-domain')),
-        );
-    expect(domain.initialValue, 'learning', reason: '领域没预填所在格 ⇒ D-8-e 破');
-    final DropdownButtonFormField<GoalHorizon?> horizon = tester
-        .widget<DropdownButtonFormField<GoalHorizon?>>(
-          find.byKey(const ValueKey<String>('goal-blueprint-form-horizon')),
-        );
-    expect(horizon.initialValue, GoalHorizon.short);
-
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
-      '学会游泳',
-    );
-    // D2/D3（docs\b14-fixup-dispatch.md:23-42）：新建首屏不再摊开备注 / 关键词，
-    // 「更多」区默认收起 ⇒ 展开之前这两个字段根本不在树上。
-    expect(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
-      findsNothing,
-      reason: '新建首屏不许摊开备注字段（D2：不弹五字段全量表）',
+    // B16 第 1 条：点「+」= **这一格就地出输入框**（编辑完直接保存），
+    // 不再弹 `goal_form_dialog`（用户原话：不要弹窗）。
+    final Finder inlineCreate = find.byKey(
+      const ValueKey<String>('goal-blueprint-inline-create-learning-short'),
     );
     expect(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-keywords')),
-      findsNothing,
-      reason: '新建首屏不许摊开关键词字段',
-    );
-    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-more'));
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
-      '先练憋气',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-keywords')),
-      '游泳,呼吸',
-    );
-    // 期限（B12 第 3 条）：字段改只读 ⇒ 点它弹日期选择器，点一天再确定。
-    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-due'));
-    expect(
-      find.byType(DatePickerDialog),
+      inlineCreate,
       findsOneWidget,
-      reason: '点期限字段必须弹日期选择器（不再是手打文本框）',
+      reason: 'B16 第 1 条：点「+」必须在格内就地进入编辑态',
     );
-    final DateTime now = DateTime.now();
-    final DateTime picked = DateTime(now.year, now.month, 15);
-    await tester.tap(
-      find
-          .descendant(
-            // `DatePicker` 是 Flutter 私有的 `_DatePicker`，测试里只能用公开的
-            // 日历体 `CalendarDatePicker`（`DatePickerDialog` 的 body）。
-            of: find.byType(CalendarDatePicker),
-            matching: find.text('15'),
-          )
-          .first,
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
+      findsNothing,
+      reason: 'B16 第 1 条：就地新建不许再弹全量表单',
     );
+
+    await tester.enterText(inlineCreate, '学会游泳');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'OK'));
-    await tester.pumpAndSettle();
-    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-save'));
 
     final List<_RawGoal> created = await _goalsByTitle(db, '学会游泳');
-    expect(created.length, 1, reason: '保存后 SQLite 里应恰好新增一条目标');
+    expect(created.length, 1, reason: '提交后 SQLite 里应恰好新增一条目标');
     final _RawGoal g = created.single;
     expect(g.kind, 'blueprint', reason: '07 页建的必须是蓝图目标');
     expect(g.domain, 'learning', reason: '领域 = 所在格（回读 SQLite）');
-    expect(g.horizon, GoalHorizon.ultimate.value + 3, reason: '短期存 4');
-    expect(g.note, '先练憋气');
-    expect(g.keywords, '游泳,呼吸');
-    expect(
-      g.dueDate,
-      picked.millisecondsSinceEpoch,
-      reason: '期限要落库成**本地午夜毫秒**（B11 口径：蓝图目标的期限按本地午夜）',
-    );
-    expect(
-      _dayOf(g.dueDate),
-      '${picked.year}-${picked.month.toString().padLeft(2, '0')}-'
-      '${picked.day.toString().padLeft(2, '0')}',
-      reason: '期限要落库成用户选的那一天',
-    );
+    expect(g.horizon, GoalHorizon.short.value, reason: '短期存 4');
+    // 就地新建只收标题：其余字段留空（要填走展开层的全量编辑）。
+    expect(g.note, isNull, reason: 'B16 第 1 条：就地编辑只编辑标题');
+    expect(g.keywords, isNull, reason: 'B16 第 1 条：就地编辑只编辑标题');
+    expect(g.dueDate, isNull, reason: 'B16 第 1 条：就地编辑不碰期限');
     expect(g.deletedAt, isNull, reason: '新建不是删除');
     expect(
       find.byKey(const ValueKey<String>('goal-blueprint-goal-saved')),
@@ -331,7 +274,7 @@ void main() {
     );
   });
 
-  testWidgets('T1b 新建表单点取消 ⇒ 库里 0 增量', (WidgetTester tester) async {
+  testWidgets('T1b 就地新建按 Esc ⇒ 库里 0 增量', (WidgetTester tester) async {
     await _seed(store);
     final int before = (await store.listGoals()).length;
     await _pumpBlueprint(tester, repos: repos);
@@ -342,17 +285,16 @@ void main() {
       tester,
       const ValueKey<String>('goal-blueprint-add-family-long'),
     );
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
-      '不该存在的一条',
+    final Finder inlineCreate = find.byKey(
+      const ValueKey<String>('goal-blueprint-inline-create-family-long'),
     );
-    await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-cancel'));
+    expect(inlineCreate, findsOneWidget, reason: 'B16 第 1 条：点「+」就地出输入框');
+    await tester.enterText(inlineCreate, '不该存在的一条');
+    // Esc = 放弃（与就地改名同语义：不丢数据也不写库）。
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const ValueKey<String>('goal-blueprint-form-title')),
-      findsNothing,
-      reason: '取消后表单要关掉',
-    );
+    expect(inlineCreate, findsNothing, reason: 'Esc 后格内编辑框要收掉');
     expect((await store.listGoals()).length, before, reason: '取消 = 一次写都不许发生');
     expect(await _goalsByTitle(db, '不该存在的一条'), isEmpty);
   });
@@ -373,6 +315,19 @@ void main() {
     await _tapKey(
       tester,
       ValueKey<String>('goal-blueprint-edit-full-${seed.bpId}'),
+    );
+    // D2/D3（docs\b14-fixup-dispatch.md:23-42）：全量编辑首屏也不摊开备注 /
+    // 关键词，「更多」区默认收起 ⇒ 展开之前这两个字段根本不在树上。
+    // （B16 起「+」不再弹表单 ⇒ 这段覆盖从 T1 挪到这里，语义一行没删。）
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-note')),
+      findsNothing,
+      reason: 'D2：全量编辑首屏不许摊开备注字段',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('goal-blueprint-form-keywords')),
+      findsNothing,
+      reason: 'D3：全量编辑首屏不许摊开关键词字段',
     );
     // D3：紧凑表单里备注 / 关键词默认折叠 ⇒ 先展开再断言预填值（不改断言）。
     await _tapKey(tester, const ValueKey<String>('goal-blueprint-form-more'));
@@ -535,7 +490,7 @@ void main() {
     expect(
       find.byKey(const ValueKey<String>('goal-blueprint-add-career-ultimate')),
       findsNothing,
-      reason: '有目标的格子不该出现「新建」入口，且没传回调时更不该有',
+      reason: '不传任何新建回调 ⇒ 有目标的格子也不出现「+」（坑 48）',
     );
     expect(
       find.text('+'),
@@ -549,11 +504,19 @@ void main() {
     await _pumpBlueprint(tester, repos: repos, language: AppLanguage.en);
 
     final RegExp cjk = RegExp(r'[\u3400-\u9fff\uf900-\ufaff]');
-    // B9-W2：social × 中期那格先要切到「中期」标签页才存在。
-    await _tapKey(tester, const ValueKey<String>('goal-blueprint-tab-mid'));
+    // B16：格内「+」不再弹表单 ⇒ 英文态残留改由**全量编辑表单**承接
+    // （career × 终极这格已有目标 ⇒ 展开层进全量编辑）。断言口径一行未变。
     await _tapKey(
       tester,
-      const ValueKey<String>('goal-blueprint-add-social-mid'),
+      const ValueKey<String>('goal-blueprint-tab-ultimate'),
+    );
+    await _tapKey(
+      tester,
+      ValueKey<String>('goal-blueprint-cell-${seed.bpId}'),
+    );
+    await _tapKey(
+      tester,
+      ValueKey<String>('goal-blueprint-edit-full-${seed.bpId}'),
     );
     for (final Text w in tester.widgetList<Text>(
       find.descendant(

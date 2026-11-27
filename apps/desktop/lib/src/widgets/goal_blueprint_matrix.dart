@@ -84,6 +84,7 @@ class GoalBlueprintMatrix extends StatefulWidget {
     this.onToggleGoalDone,
     this.onEditGoalPeriod,
     this.onRenameGoal,
+    this.onCreateGoalInline,
     super.key,
   });
 
@@ -109,6 +110,14 @@ class GoalBlueprintMatrix extends StatefulWidget {
   ///
   /// null = **不渲染**这个入口（坑 48：默认行为与 Task 66 逐字一致）。
   final void Function(String domainKey, GoalHorizon horizon)? onAddGoal;
+
+  /// 格内「+」的就地新建回调（B16 第 1/2 条）：`domainKey` + `horizon` 定位格子，
+  /// `title` 是用户刚敲下的标题。**不弹表单**，其余字段留默认。
+  ///
+  /// 传了它 ⇒ 空格与**已填格**的「+」都常驻渲染（保存后仍可继续加下一条）；
+  /// null ⇒ 已填格不渲染「+」、空格照旧走 [onAddGoal] 的旧入口（坑 48）。
+  final void Function(String domainKey, GoalHorizon horizon, String title)?
+      onCreateGoalInline;
 
   /// 目标卡片上的「编辑」回调。
   ///
@@ -161,14 +170,24 @@ class GoalBlueprintMatrix extends StatefulWidget {
 
   /// 活动标签高度（px）。
   ///
-  /// B13 第 2 条：34 → 38（字号 15 + 衬线体后垂直方向更舒展；靠 `minimumSize`
-  /// 撑高，`padding` 不加 `vertical`，避免与 `minimumSize` 打架）。
-  static const double tabActiveHeight = 38;
+  /// B13 第 2 条：34 → 38（字号 15 + 衬线体后垂直方向更舒展）。
+  /// B16 第 3 条：38 → 46（用户要求「页签加大垂直内边距、文字不拥挤」：
+  /// 上下各 4px 内边距 + `minimumSize` 兜底，见 [tabVerticalPadding]）。
+  static const double tabActiveHeight = 46;
 
   /// 非活动标签高度（px）。
   ///
-  /// B13 第 2 条：28 → 31（与活动态同幅加 3px，保持两者 7px 落差）。
-  static const double tabInactiveHeight = 31;
+  /// B13 第 2 条：28 → 31；B16 第 3 条：31 → 39（与活动态同幅加 8px，
+  /// 保持两者 7px 落差 ⇒ 页签轮廓的「凸起感」不变）。
+  static const double tabInactiveHeight = 39;
+
+  /// 标签页**垂直**内边距（px，B16 第 3 条）。
+  ///
+  /// B13 只靠 `minimumSize` 撑高、`padding` 不加 `vertical`；B16 用户要求
+  /// 「页签加大垂直内边距（文字不拥挤）」⇒ 上下各 4px 由 `padding` 显式给，
+  /// 字号 / 水平内边距 / 指示条宽度一律不动（`b14_tab_scale_test` 的
+  /// 760 宽 11px 红线余量只与水平方向有关，不受这 8px 影响）。
+  static const double tabVerticalPadding = 4;
 
   /// 非活动标签底边相对内容区抬高的高度（px）⇒ 不与内容区相接。
   static const double tabInactiveLift = 6;
@@ -264,17 +283,33 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
   /// 就地编辑的焦点节点：失焦即提交（点空白/切页签/点别的格子都能收口）。
   final FocusNode _inlineFocus = FocusNode();
 
+  /// 就地新建中的格子（B16 第 1/2 条；null = 没有在新建）。
+  ///
+  /// `domain` + `horizon` 唯一确定一个格子（同一时刻只允许一格在新建）。
+  String? _creatingDomainKey;
+  GoalHorizon? _creatingHorizon;
+
+  /// 就地新建输入框的控制器（与改名控制器分开：两条链路的落库语义不同）。
+  final TextEditingController _create = TextEditingController();
+
+  /// 就地新建的焦点节点：失焦即提交（点空白/点其它「+」都能收口）。
+  final FocusNode _createFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
     _inlineFocus.addListener(_onInlineFocusChanged);
+    _createFocus.addListener(_onCreateFocusChanged);
   }
 
   @override
   void dispose() {
     _inlineFocus.removeListener(_onInlineFocusChanged);
     _inlineFocus.dispose();
+    _createFocus.removeListener(_onCreateFocusChanged);
+    _createFocus.dispose();
     _inline.dispose();
+    _create.dispose();
     super.dispose();
   }
 
@@ -348,6 +383,75 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     return null;
   }
 
+  /// 进入就地新建（B16 第 1/2 条）：格内直接出输入框，**不弹表单**。
+  ///
+  /// `onCreateGoalInline` 为 null ⇒ 保持旧行为：把点击交给 `onAddGoal`
+  /// 打开弹窗（坑 48：既有调用点逐字不变）。
+  void _startCreate(String domainKey, GoalHorizon horizon) {
+    if (widget.onCreateGoalInline == null) {
+      widget.onAddGoal?.call(domainKey, horizon);
+      return;
+    }
+    _create.clear();
+    setState(() {
+      // 同屏只留一个输入框：改名链路先收口（提交由失焦监听负责）。
+      _editingGoalId = null;
+      _creatingDomainKey = domainKey;
+      _creatingHorizon = horizon;
+    });
+  }
+
+  /// 提交就地新建：只交「领域 + 档位 + 标题」，其余字段由页面/store 取默认。
+  ///
+  /// 空标题 = 用户放弃 ⇒ 不落库（空格子合法，矩阵不校验、不给红字）。
+  void _commitCreate() {
+    if (!mounted) {
+      return;
+    }
+    final String? domainKey = _creatingDomainKey;
+    final GoalHorizon? horizon = _creatingHorizon;
+    if (domainKey == null || horizon == null) {
+      return;
+    }
+    final String title = _create.text.trim();
+    setState(() {
+      _creatingDomainKey = null;
+      _creatingHorizon = null;
+    });
+    if (title.isEmpty) {
+      return;
+    }
+    widget.onCreateGoalInline?.call(domainKey, horizon, title);
+  }
+
+  /// 放弃就地新建（Esc）：不写库、不改数据。
+  void _cancelCreate() {
+    if (_creatingDomainKey == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _creatingDomainKey = null;
+      _creatingHorizon = null;
+    });
+  }
+
+  /// 失焦 ⇒ 提交（与改名链路同语义：不丢用户刚敲的字）。
+  void _onCreateFocusChanged() {
+    if (_createFocus.hasFocus) {
+      return;
+    }
+    _commitCreate();
+  }
+
+  /// 回车提交；**IME 组合态（拼音还在候选窗里）回车是上屏，不是提交**。
+  void _onCreateSubmitted(String _) {
+    final TextEditingValue value = _create.value;
+    if (value.composing.isValid && !value.composing.isCollapsed) {
+      return;
+    }
+    _commitCreate();
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeTokens tokens = context.tokens;
@@ -356,7 +460,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     final TextStyle? metaStyle = Theme.of(context).textTheme.labelSmall
         ?.copyWith(color: tokens.meta);
     final TextStyle? tabStyle = Theme.of(context).textTheme.labelLarge;
-    // 当前档位的日期跨度（年刻度条 + 日期列 track 共用同一份派生值）。
+    // 当前档位的日期跨度（日期列 track 与回退显示共用同一份派生值）。
     // **由真实数据派生**，不硬编码「2026–2035」这类业务口径。
     final _DateSpan? span = _span();
 
@@ -374,26 +478,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               style: metaStyle,
             ),
           ),
-        // 年刻度条（A 稿 `.scale`）：与下方表格**同一套列宽**，只占日期列；
-        // 当前档位没有任何日期时整条不渲染（空格子合法，不摆空刻度）。
-        if (span != null)
-          Table(
-            columnWidths: GoalBlueprintMatrix.columnWidths,
-            children: <TableRow>[
-              TableRow(
-                children: <Widget>[
-                  const SizedBox.shrink(),
-                  const SizedBox.shrink(),
-                  Padding(
-                    key: const ValueKey<String>('goal-blueprint-year-scale'),
-                    // 水平 8px：与下方日期列单元格的内边距对齐（垂直不占位）。
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 3),
-                    child: _yearScale(span, tokens, metaStyle),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        // B16 第 4 条：日期列顶部那行**年份刻度条已下线**（用户反馈「填入起止
+        // 日期后顶部多一行年份」）。日期改为「点一下即出选择界面」，年份信息
+        // 由 `yyyy-MM-dd` 全量日期自带的年份承担，不再单摆一行刻度。
         Table(
           columnWidths: GoalBlueprintMatrix.columnWidths,
           border: TableBorder(
@@ -534,8 +621,10 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
             foregroundColor: active ? tokens.ink : tokens.meta,
             // B13 第 2 条曾把水平内边距加到 18；B14（stage 4 · A1）收到 10
             // （`_tabPadding`）—— 760 宽英文真页面的 11px 红线余量 ≥ 1.00px 靠这条。
+            // B16 第 3 条：加垂直 4px（文字上下不再贴轮廓），水平 10 不动。
             padding: const EdgeInsets.symmetric(
               horizontal: GoalBlueprintMatrix._tabPadding,
+              vertical: GoalBlueprintMatrix.tabVerticalPadding,
             ),
             minimumSize: Size(
               0,
@@ -634,28 +723,35 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     required TextStyle? bodyStyle,
     required TextStyle? metaStyle,
   }) {
+    final bool canAdd = widget.onCreateGoalInline != null ||
+        widget.onAddGoal != null;
+    final bool creating =
+        _creatingDomainKey == domainKey && _creatingHorizon == horizon;
     if (goals.isEmpty) {
-      if (widget.onAddGoal == null) {
+      if (!canAdd) {
         // 没传回调 ⇒ 与 Task 66 时期一致：空态什么都不渲染（坑 48）。
         return const SizedBox.shrink();
       }
-      return Align(
-        alignment: Alignment.bottomRight,
-        child: _compactButton(
-          key: ValueKey<String>(
-            'goal-blueprint-add-$domainKey-${_horizonKey(horizon)}',
+      if (!creating) {
+        return Align(
+          alignment: Alignment.bottomRight,
+          child: _addButton(domainKey, horizon),
+        );
+      }
+      // B16 第 1 条：点「+」就在格内出输入框（不弹 `goal_form_dialog`）。
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _createEditor(domainKey, horizon, bodyStyle),
+          Align(
+            alignment: Alignment.centerRight,
+            child: _addButton(domainKey, horizon),
           ),
-          onPressed: () => widget.onAddGoal!(domainKey, horizon),
-          tooltip: widget.t.goalBlueprintAddGoal,
-          // 英文态「Add」比 28×28 按钮宽，`FittedBox` 兜底缩放（不换行、不溢出）。
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(widget.t.goalBlueprintAddSymbol),
-          ),
-        ),
+        ],
       );
     }
-    return Column(
+    final Widget goalsColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -754,6 +850,20 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               ],
             ),
           ),
+        // B16 第 1 条：新建输入框挂在目标列表末尾；保存后「+」仍在 ⇒ 可继续加。
+        if (creating) _createEditor(domainKey, horizon, bodyStyle),
+      ],
+    );
+    if (widget.onCreateGoalInline == null) {
+      // 坑 48：没传就地新建回调的既有调用点，已填格结构逐字不变（仍无「+」）。
+      return goalsColumn;
+    }
+    // B16 第 2 条：已填格右侧**常驻**「+」—— 已存下的目标不占用这个入口。
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(child: goalsColumn),
+        _addButton(domainKey, horizon),
       ],
     );
   }
@@ -777,6 +887,57 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
         style: bodyStyle,
         textInputAction: TextInputAction.done,
         onSubmitted: _onInlineSubmitted,
+        decoration: const InputDecoration(
+          isDense: true,
+          // 与相邻单元格的文字左缘对齐（不额外撑高行）。
+          contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
+  /// 格内「+」（B16 第 1/2 条）：空格右下角与已填格右侧共用**同一个**入口/key。
+  Widget _addButton(String domainKey, GoalHorizon horizon) {
+    return _compactButton(
+      key: ValueKey<String>(
+        'goal-blueprint-add-$domainKey-${_horizonKey(horizon)}',
+      ),
+      onPressed: () => _startCreate(domainKey, horizon),
+      tooltip: widget.t.goalBlueprintAddGoal,
+      // 英文态「Add」比 28×28 按钮宽，`FittedBox` 兜底缩放（不换行、不溢出）。
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(widget.t.goalBlueprintAddSymbol),
+      ),
+    );
+  }
+
+  /// 就地新建框（B16 第 1 条）：单行、自动聚焦、Esc 取消、失焦 / 回车提交。
+  ///
+  /// 与 [_inlineEditor] 同语义但**控制器 / 焦点独立**：改名提交走
+  /// `onRenameGoal`（只写标题），新建提交走 `onCreateGoalInline`（新建一条记录），
+  /// 混用一份控制器会让两条断言链互相踩。
+  Widget _createEditor(
+    String domainKey,
+    GoalHorizon horizon,
+    TextStyle? bodyStyle,
+  ) {
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.escape): _cancelCreate,
+      },
+      child: TextField(
+        key: ValueKey<String>(
+          'goal-blueprint-inline-create-$domainKey-${_horizonKey(horizon)}',
+        ),
+        controller: _create,
+        focusNode: _createFocus,
+        autofocus: true,
+        maxLines: 1,
+        style: bodyStyle,
+        textInputAction: TextInputAction.done,
+        onSubmitted: _onCreateSubmitted,
         decoration: const InputDecoration(
           isDense: true,
           // 与相邻单元格的文字左缘对齐（不额外撑高行）。
@@ -813,24 +974,25 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                 // 23 个字符在 760px 视口的起止列里仍可能超宽 ⇒ `FittedBox`
                 // 等比缩字（保留 `yyyy-MM-dd ~ yyyy-MM-dd` 全量信息，不截年份、
                 // 不省略号），常态宽度下 scaleDown 不生效、字号原样。
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _periodText(goal),
+                //
+                // B16 第 4 条：**点日期一点即出**选择界面 —— 日期文本自身就是
+                // 入口（不必先找右侧图标）；没有改期回调 / 非蓝图目标时保持
+                // 纯文本（与下方图标同一门槛：年目标的周期归年页管）。
+                if (widget.onEditGoalPeriod != null &&
+                    goal.kind == GoalKind.blueprint)
+                  InkWell(
                     key: ValueKey<String>(
-                      'goal-blueprint-period-text-${goal.id}',
+                      'goal-blueprint-period-tap-${goal.id}',
                     ),
-                    maxLines: 1,
-                    softWrap: false,
-                    // 等宽数字（`tabularFigures`）：日期列纵向对齐，不抖动。
-                  style: bodyStyle?.copyWith(
-                    fontFeatures: const <FontFeature>[
-                      FontFeature.tabularFigures(),
-                    ],
+                    onTap: () => widget.onEditGoalPeriod!(
+                      goal,
+                      goal.periodStart,
+                      goal.periodEnd,
                     ),
-                  ),
-                ),
+                    child: _periodLine(goal, bodyStyle),
+                  )
+                else
+                  _periodLine(goal, bodyStyle),
                 // 日期条（A 稿 `.track`）：整条宽 = 当前档位的跨度，实心段 = 本条；
                 // 已完成用 hairStrong 降调，赭石留给「未落位」那类缺口信号。
                 if (span != null && goal.periodStart > 0)
@@ -867,6 +1029,27 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
             ),
           ),
       ],
+    );
+  }
+
+  /// 起止日期这一行（B14 第 2 条 + B16 第 4 条）：**单行、不换行、不溢出**。
+  ///
+  /// 23 个字符（`yyyy-MM-dd ~ yyyy-MM-dd`）在窄视口等比缩字，不截年份、
+  /// 不省略号；`maxLines: 1` + `softWrap: false` 保证永不折行。
+  Widget _periodLine(GoalRow goal, TextStyle? bodyStyle) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        _periodText(goal),
+        key: ValueKey<String>('goal-blueprint-period-text-${goal.id}'),
+        maxLines: 1,
+        softWrap: false,
+        // 等宽数字（`tabularFigures`）：日期列纵向对齐，不抖动。
+        style: bodyStyle?.copyWith(
+          fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+        ),
+      ),
     );
   }
 
@@ -992,33 +1175,26 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     return '${moment.year}-$month-$day';
   }
 
-  /// 当前档位的日期跨度；**一条带日期的目标都没有 ⇒ null**（不摆空刻度、不画空轨道）。
+  /// 当前档位的日期跨度；**一条带日期的目标都没有 ⇒ null**（不画空轨道）。
   ///
-  /// 毫秒值跨 `kind` 可直接比较（都是 epoch 毫秒）；只有「取年」这一步要按
-  /// [_periodText] 的口径分流 —— 蓝图目标是本地午夜毫秒、年/月/周目标是 UTC 午夜，
-  /// 所以起止两端各自记住给自己那个边界的目标属于哪种口径，避免东八区跨年错位。
+  /// 毫秒值跨 `kind` 可直接比较（都是 epoch 毫秒），日期条只吃起止两端。
   _DateSpan? _span() {
     int? minStart;
-    bool minLocal = true;
     int? maxEnd;
-    bool maxLocal = true;
     for (final GoalBlueprintRow row in widget.rows) {
       for (final GoalRow goal in row.cells[_selected] ?? const <GoalRow>[]) {
         if (goal.periodStart <= 0) {
           continue;
         }
-        final bool local = goal.kind == GoalKind.blueprint;
         final int? declaredEnd = goal.periodEnd;
         final int end = (declaredEnd != null && declaredEnd > 0)
             ? declaredEnd
             : goal.periodStart;
         if (minStart == null || goal.periodStart < minStart) {
           minStart = goal.periodStart;
-          minLocal = local;
         }
         if (maxEnd == null || end > maxEnd) {
           maxEnd = end;
-          maxLocal = local;
         }
       }
     }
@@ -1031,58 +1207,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     final int end = (maxEnd == null || maxEnd <= start)
         ? start + Duration.millisecondsPerDay
         : maxEnd;
-    return _DateSpan(
-      startMillis: start,
-      endMillis: end,
-      startYear: _yearOf(start, localMidnight: minLocal),
-      endYear: _yearOf(end, localMidnight: maxLocal),
-    );
-  }
-
-  /// 毫秒 → 年份（口径分流同 [_dateText]）。
-  int _yearOf(int millis, {required bool localMidnight}) {
-    final DateTime moment = localMidnight
-        ? DateTime.fromMillisecondsSinceEpoch(millis)
-        : DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
-    return moment.year;
-  }
-
-  /// 年刻度条（A 稿 `.scale`）：跨年内按年份等分，每年一根 1px 刻度 + 年份标签。
-  /// 窄列靠 `FittedBox` 缩字，不换行、不溢出、不截断业务值。
-  Widget _yearScale(_DateSpan span, ThemeTokens tokens, TextStyle? metaStyle) {
-    final int years = span.endYear >= span.startYear
-        ? span.endYear - span.startYear + 1
-        : 1;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: <Widget>[
-        for (int i = 0; i < years; i++)
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: <Widget>[
-                Container(width: 1, height: 4, color: tokens.hairStrong),
-                const SizedBox(width: 3),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '${span.startYear + i}',
-                      key: ValueKey<String>(
-                        'goal-blueprint-year-tick-${span.startYear + i}',
-                      ),
-                      style: metaStyle,
-                      maxLines: 1,
-                      softWrap: false,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
+    return _DateSpan(startMillis: start, endMillis: end);
   }
 
   /// 日期条（A 稿 `.track`）：整条宽 = 当前档位跨度，实心段 = 本条目标。
@@ -1152,20 +1277,10 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
       .toList(growable: false);
 }
 
-/// 当前档位的日期跨度：毫秒起止 + 起止两年（年刻度条按年份等分用）。
-///
-/// 两年分开存而不是从毫秒现算，是因为起止两端可能属于不同 `kind`
-/// （本地午夜 / UTC 午夜两种存储口径），见 `_span`。
+/// 当前档位的日期跨度（日期条整条宽 = 这两个毫秒之间）。
 class _DateSpan {
-  const _DateSpan({
-    required this.startMillis,
-    required this.endMillis,
-    required this.startYear,
-    required this.endYear,
-  });
+  const _DateSpan({required this.startMillis, required this.endMillis});
 
   final int startMillis;
   final int endMillis;
-  final int startYear;
-  final int endYear;
 }

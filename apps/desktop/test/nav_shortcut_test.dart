@@ -1,10 +1,10 @@
 // apps/desktop/test/nav_shortcut_test.dart
 //
 // Task 20（裁定 K7 / K8）+ B2（2026-11-12 T10）+ Task 56 守切页快捷键：
-//  - `Ctrl+1` 今日 / `Ctrl+2` 待办池 / `Ctrl+3` 习惯 / `Ctrl+4` 日历（A8）；
-//  - `Ctrl+5` 项目页（Task 56 起「项目」不再是 `enabled: false`，有真实落点）；
-//  - `Ctrl+6` 目标页（Task 65 UI 半批起「目标」有真实落点）；
-//  - `Ctrl+7` 蓝图页（Task 72 / D-72-b：蓝图从目标页第 4 页签升级为第 7 个导航项）；
+//  - B16 起 `Ctrl` 序号与左导航序位 **1:1 绑定**（导航序位重排，落点跟着改）：
+//    `Ctrl+1` 今日 / `Ctrl+2` 待办池 / `Ctrl+3` 习惯 / `Ctrl+4` 蓝图 /
+//    `Ctrl+5` 目标 / `Ctrl+6` 项目 / `Ctrl+7` 学习（可点击占位）/ `Ctrl+8` 日历；
+//  - `Ctrl+1…3` 的语义自 Task 20 起从未变过（A10 仍依赖 `Ctrl+1` 回今日）；
 //  - 在待办池页按 `Ctrl+1` 回到今日页（A10）。
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
@@ -118,7 +118,7 @@ Future<void> _sendCtrl(WidgetTester tester, LogicalKeyboardKey key) async {
 }
 
 void main() {
-  testWidgets('A8：Ctrl+1 / Ctrl+2 / Ctrl+3 / Ctrl+4 分别切今日 / 待办池 / 习惯 / 日历', (
+  testWidgets('A8：Ctrl+1 / Ctrl+2 / Ctrl+3 / Ctrl+4 分别切今日 / 待办池 / 习惯 / 蓝图', (
     tester,
   ) async {
     _useTallSurface(tester);
@@ -139,18 +139,20 @@ void main() {
     expect(find.byType(HabitsPage), findsOneWidget);
     expect(find.byType(TodoPoolPage), findsNothing);
 
+    // B16 起 `Ctrl+4` 跟着导航序位落到「蓝图」。
     await _sendCtrl(tester, LogicalKeyboardKey.digit4);
-    expect(find.byType(CalendarPage), findsOneWidget);
+    expect(find.byType(GoalsBlueprintPage), findsOneWidget);
     expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(CalendarPage), findsNothing);
 
     await _sendCtrl(tester, LogicalKeyboardKey.digit1);
     expect(find.byType(TodayPage), findsOneWidget);
-    expect(find.byType(CalendarPage), findsNothing);
+    expect(find.byType(GoalsBlueprintPage), findsNothing);
 
     await _flushTimers(tester);
   });
 
-  testWidgets('A9：Ctrl+5 切项目页；Ctrl+6 切目标页；Ctrl+7 切蓝图页', (
+  testWidgets('A9：Ctrl+5 切目标页；Ctrl+6 切项目页；Ctrl+7 切学习占位；Ctrl+8 切日历页', (
     tester,
   ) async {
     _useTallSurface(tester);
@@ -161,33 +163,53 @@ void main() {
     _shellFocusNode(tester).requestFocus();
     await tester.pump();
 
-    // Task 56 起「项目」有真实落点 ⇒ `Ctrl+5` 切到项目页。
+    // B16 导航序位 05 = 目标 ⇒ `Ctrl+5` 切到目标页。
     await _sendCtrl(tester, LogicalKeyboardKey.digit5);
-    expect(find.byType(ProjectsPage), findsOneWidget);
+    expect(find.byType(GoalsPage), findsOneWidget);
     expect(find.byType(TodayPage), findsNothing);
     expect(find.byType(TodoPoolPage), findsNothing);
     expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(ProjectsPage), findsNothing);
     expect(find.byType(CalendarPage), findsNothing);
     expect(tester.takeException(), isNull, reason: 'Ctrl+5 不许抛异常');
 
-    // `Ctrl+6` 起有真实落点（Task 65 UI 半批）：切到目标页。
+    // 导航序位 06 = 项目 ⇒ `Ctrl+6` 切到项目页。
     await _sendCtrl(tester, LogicalKeyboardKey.digit6);
-    expect(find.byType(GoalsPage), findsOneWidget);
-    expect(find.byType(ProjectsPage), findsNothing);
+    expect(find.byType(ProjectsPage), findsOneWidget);
+    expect(find.byType(GoalsPage), findsNothing);
     expect(find.byType(TodoPoolPage), findsNothing);
     expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(GoalsBlueprintPage), findsNothing);
     expect(find.byType(CalendarPage), findsNothing);
     expect(tester.takeException(), isNull, reason: 'Ctrl+6 不许抛异常');
 
-    // B7 / D-72-b：蓝图独立成页，`Ctrl+7` 有真实落点。
+    // 导航序位 07 = 学习（B16 新增可点击占位）⇒ `Ctrl+7` 落到占位标记上。
+    // 注意：不能断 `find.text('学习')`，左导航同名项会撞成两个。
     await _sendCtrl(tester, LogicalKeyboardKey.digit7);
-    expect(find.byType(GoalsBlueprintPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('learning-placeholder')),
+      findsOneWidget,
+    );
     expect(find.byType(GoalsPage), findsNothing);
     expect(find.byType(ProjectsPage), findsNothing);
     expect(find.byType(TodoPoolPage), findsNothing);
     expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(GoalsBlueprintPage), findsNothing);
     expect(find.byType(CalendarPage), findsNothing);
     expect(tester.takeException(), isNull, reason: 'Ctrl+7 不许抛异常');
+
+    // 导航序位 08 = 日历 ⇒ `Ctrl+8` 切到日历页。
+    await _sendCtrl(tester, LogicalKeyboardKey.digit8);
+    expect(find.byType(CalendarPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('learning-placeholder')),
+      findsNothing,
+    );
+    expect(find.byType(ProjectsPage), findsNothing);
+    expect(find.byType(GoalsPage), findsNothing);
+    expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(GoalsBlueprintPage), findsNothing);
+    expect(tester.takeException(), isNull, reason: 'Ctrl+8 不许抛异常');
 
     await _flushTimers(tester);
   });

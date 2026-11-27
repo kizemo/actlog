@@ -57,20 +57,37 @@ Future<void> _pumpNav(
 }
 
 void main() {
-  testWidgets('左栏 7 项：第 6 项「目标」、第 7 项「蓝图」，「设置」不再是导航项',
+  testWidgets('左栏 8 项：序号 07「学习」、序号 08「日历」，「设置」不再是导航项',
       (WidgetTester tester) async {
     await _pumpNav(tester);
 
-    expect(kShellNavItems.length, 7, reason: '左栏总项数 7（Task 72 起加「蓝图」）');
-    expect(kShellNavItems.last.id, 'blueprint');
+    expect(kShellNavItems.length, 8, reason: '左栏总项数 8（B16 插入「学习」占位）');
+    expect(kShellNavItems.last.id, 'calendar');
     // 常量清单是「中文快照」，必须与 l10n 的中文取值逐字一致。
-    expect(kShellNavItems.last.label, AppLocalizations.zh.shellNavBlueprint);
+    expect(kShellNavItems.last.label, AppLocalizations.zh.shellNavCalendar);
 
     final AppLocalizations zh = AppLocalizations.zh;
     final List<ShellNavItem> items = shellNavItemsFor(zh);
-    expect(items.length, 7);
-    expect(items.last.id, 'blueprint');
-    expect(items.last.label, zh.shellNavBlueprint);
+    expect(items.length, 8);
+    expect(items.last.id, 'calendar');
+    expect(items.last.label, zh.shellNavCalendar);
+    // B16：序位 07 是「学习」占位项，整序与常量清单一致。
+    expect(items[6].id, 'learning');
+    expect(items[6].label, zh.shellNavLearning);
+    expect(
+      items.map((ShellNavItem item) => item.id).toList(growable: false),
+      <String>[
+        'today',
+        'inbox',
+        'habits',
+        'blueprint',
+        'goals',
+        'projects',
+        'learning',
+        'calendar',
+      ],
+      reason: 'B16 序位：01 日志 / 02 待办 / 03 习惯 / 04 蓝图 / 05 目标 / 06 项目 / 07 学习 / 08 日历',
+    );
 
     // 界面上有「目标」这一行，没有「设置」这一行（设置沉底成齿轮了）。
     expect(find.text(zh.shellNavGoals), findsOneWidget);
@@ -111,12 +128,12 @@ void main() {
     );
   });
 
-  testWidgets('左栏可点元素 = 7 个导航项 + 1 枚齿轮',
+  testWidgets('左栏可点元素 = 8 个导航项 + 1 枚齿轮',
       (WidgetTester tester) async {
     await _pumpNav(tester);
 
-    // 导航项 7 个 InkWell + 齿轮 1 个 InkWell。
-    expect(find.byType(InkWell), findsNWidgets(8));
+    // 导航项 8 个 InkWell + 齿轮 1 个 InkWell。
+    expect(find.byType(InkWell), findsNWidgets(9));
   });
 
   testWidgets('横排模式：齿轮挂在行末（导航项右侧），点击同样回调 settings',
@@ -127,7 +144,7 @@ void main() {
     expect(find.byType(GoalGearButton), findsOneWidget);
     final double gearRight = tester.getTopRight(find.byType(GoalGearButton)).dx;
     final double lastItemRight = tester.getTopRight(
-      find.text(AppLocalizations.zh.shellNavBlueprint),
+      find.text(AppLocalizations.zh.shellNavCalendar),
     ).dx;
     expect(gearRight, greaterThan(lastItemRight));
 
@@ -154,15 +171,15 @@ void main() {
     );
   });
 
-  testWidgets('快捷键清单含 Ctrl+6 ⇒ 切到目标', (WidgetTester tester) async {
+  testWidgets('快捷键清单含 Ctrl+5 ⇒ 切到目标', (WidgetTester tester) async {
     expect(kShellKeyHints.length, 10);
-    expect(kShellKeyHints[8].keys, <String>['Ctrl+6']);
+    expect(kShellKeyHints[8].keys, <String>['Ctrl+5']);
     expect(kShellKeyHints[8].label, AppLocalizations.zh.shellKeyGoGoals);
 
     final AppLocalizations en = AppLocalizations.en;
     final List<ShellKeyHint> hints = shellKeyHintsFor(en);
     expect(hints.length, 10);
-    expect(hints[8].keys, <String>['Ctrl+6']);
+    expect(hints[8].keys, <String>['Ctrl+5']);
     expect(hints[8].label, en.shellKeyGoGoals);
     expect(hints[8].label, isNot(AppLocalizations.zh.shellKeyGoGoals));
   });

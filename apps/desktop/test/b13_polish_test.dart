@@ -362,7 +362,7 @@ void main() {
     }
   });
 
-  testWidgets('B4-2 标签水平内边距 10', (WidgetTester tester) async {
+  testWidgets('B4-2 标签内边距：水平 10（硬下限）/ 上下 4', (WidgetTester tester) async {
     await _pumpMatrix(tester);
 
     for (final String horizonKey in _horizonKeys) {
@@ -376,10 +376,9 @@ void main() {
       // 11px 红线不变（余量判据见 `b14_tab_scale_test.dart` 的 `_requiredMarginPx`）。
       expect(
         tab.style!.padding!.resolve(const <WidgetState>{}),
-        const EdgeInsets.symmetric(horizontal: 10),
-        reason: 'B2：$horizonKey 的水平内边距必须是 10'
-            '（B14 stage 4 · A1：18 时 760 宽英文真页面余量仅 0.3978px，'
-            '降到 10 后余量 1.1973px ≥ 1.00px；11px 红线不变）',
+        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        reason: 'B16 第 3 条：$horizonKey 水平内边距仍是 10（硬下限不动）'
+            '+ 上下各 4px（标签文字不拥挤）',
       );
     }
   });
@@ -410,7 +409,9 @@ void main() {
     );
   });
 
-  testWidgets('B4-4 标签高度：激活 38 / 未激活 31', (WidgetTester tester) async {
+  testWidgets('B4-4 标签高度：激活 46 / 未激活 39（仍差 7px）', (
+    WidgetTester tester,
+  ) async {
     await _pumpMatrix(tester);
 
     double heightOf(String horizonKey) => tester
@@ -420,9 +421,16 @@ void main() {
         .resolve(const <WidgetState>{})!
         .height;
 
-    expect(heightOf('ultimate'), 38, reason: 'B2：激活标签高度必须抬到 38（原 34）');
+    // B16 第 3 条：页签加大**垂直**内边距（文字不拥挤）。
+    // 激活 38 → 46、未激活 31 → 39：两条都 +8（上下各 4），落差 7px 不变。
+    // 水平宽度与字号完全不动 ⇒ `b14_tab_scale_test.dart` 的缩放余量判据不受影响。
+    expect(heightOf('ultimate'), 46, reason: 'B16 第 3 条：激活标签高度 46（原 38）');
     for (final String horizonKey in <String>['long', 'mid', 'short']) {
-      expect(heightOf(horizonKey), 31, reason: 'B2：未激活标签高度必须是 31（原 28）');
+      expect(
+        heightOf(horizonKey),
+        39,
+        reason: 'B16 第 3 条：未激活标签高度 39（原 31）',
+      );
     }
   });
 

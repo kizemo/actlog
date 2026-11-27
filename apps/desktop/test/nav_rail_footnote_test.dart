@@ -4,14 +4,14 @@
 //
 // 历史：Task 20 · W2 用 N-1…N-6 守过这条常驻文案（「页面切换 Ctrl + 1 … 6」）。
 // Task 72 把它整段删掉（快捷键说明只留在窄屏 `KeyBar` 与宽屏右轨 `KeyHintList`，
-// `Ctrl+1…7` 功能不变），所以本文件的口径从「守它在」反转为「守它不在」。
+// `Ctrl+1…8` 功能不变），所以本文件的口径从「守它在」反转为「守它不在」。
 //
 // 判据表：
 // | 编号 | 断言 |
 // |---|---|
 // | F-1 | 100% 下左栏里没有任何 `KeyCap`、没有「页面切换」文本、零异常 |
 // | F-2 | 200% 下同样零底注、零异常（放大不会把删掉的东西「放出来」） |
-// | F-3 | 竖排导航渲染 7 项，序号 `01`–`07` 齐、无 `08` |
+// | F-3 | 竖排导航渲染 8 项，序号 `01`–`08` 齐（B16 起末项「日历」的序号是 `08`） |
 // | F-4 | 200% 下左栏内所有文本右边缘不越过导航栏宽度（`NavRail.width == 214`） |
 // | F-5 | 底注三段残留文案（「Ctrl」「…」等键帽文字）在整棵左栏树里都找不到 |
 import 'package:flutter/material.dart';
@@ -102,7 +102,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('F-3 竖排导航渲染 7 项，序号 01–07 齐且无 08', (
+  testWidgets('F-3 竖排导航渲染 8 项，序号 01–08 齐', (
     WidgetTester tester,
   ) async {
     await _pumpNavScaled(tester, scale: 1);
@@ -111,21 +111,26 @@ void main() {
       '日志',
       '待办池',
       '习惯',
-      '项目',
-      '日历',
-      '目标',
       '蓝图',
+      '目标',
+      '项目',
+      '学习',
+      '日历',
     ]) {
       expect(find.text(label), findsOneWidget, reason: '缺少导航项 $label');
     }
-    for (int i = 1; i <= 7; i++) {
+    for (int i = 1; i <= 8; i++) {
       expect(
         find.text(i.toString().padLeft(2, '0')),
         findsOneWidget,
         reason: '缺少序号 ${i.toString().padLeft(2, '0')}',
       );
     }
-    expect(find.text('08'), findsNothing);
+    expect(
+      find.text('08'),
+      findsOneWidget,
+      reason: 'B16 起左导航为 8 项，末项「日历」的序号就是 08（原断言是「无 08」）',
+    );
   });
 
   testWidgets('F-4 200% 下左栏文本不横向溢出导航栏宽度', (

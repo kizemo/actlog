@@ -3,18 +3,17 @@
 // =============================================================================
 // 页面是**内容体**：`Scaffold` / `AppBar` 由 `LedgerShell` 承担（与周/月页同口径）。
 //
-// 五块内容（计划 §5.3）：
+// 四块内容（计划 §5.3；B16 项 5 撤掉了原「滚动候选」段头卡）：
 //  1. **表一**（类别 | 序号 | 目标内容 | 方法和措施 | 起止时间 | 完成）：本年度的年度
 //     目标。类别取 `domain`，方法与措施取 `keywords`，起止时间取 `period_start` /
 //     `period_end`，完成取 `status`。**全部是库里的原值**，界面不写回任何一列。
 //  2. **表二**（`GoalYearMatrix`）：行 = 年目标 × 列 = 1–12 月。空格 = 该月未展开，
 //     **合法**（不校验、不报错、不给红字）；点开可就地输入标题，再「加入待确认草稿」。
+//     待确认草稿队列（**未确认前库里 0 增量**）挂在同一张卡的下方，确认后才落库。
 //  3. **年度复盘**：完成 N 项 / 自评总分 / 自评均值 + 「自评＝用户自评，不是达成率」
 //     的口径说明。
 //  4. **80/20 视角**：沿 `serves` 链聚合 `tracks` 执行记录条数，降序**只呈现条数**，
 //     **不评分、不排名、不给百分比**（区块内不出现 `%`）。
-//  5. **滚动候选**：本年未完成的年目标 → 下年草稿候选（**只算不写**）；用户点
-//     「确认写入草稿」才落库，落库状态恒为 `status='draft'`。
 //
 // 读模型在页面层派生（计划 §3.3 选方案 b）：`data\goal_store.dart` **零改动**，
 // 不新增 provider、不新增仓储方法。
@@ -31,7 +30,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/goal_year_matrix.dart';
 import '../widgets/goals/goal_form_dialog.dart';
 
-/// 年目标页：年度目标表 + 月度展开矩阵 + 年度复盘 + 80/20 视角 + 滚动候选。
+/// 年目标页：年度目标表 + 月度展开矩阵（含待确认草稿队列）+ 年度复盘 + 80/20 视角。
 class GoalsYearPage extends ConsumerStatefulWidget {
   /// 创建年目标页。
   const GoalsYearPage({this.period, super.key});
@@ -123,10 +122,18 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
         _block(
           t,
           t.goalYearMonthsSection,
-          (_YearData data) => GoalYearMatrix(
-            view: data.view,
-            t: t,
-            onAddCellDraft: _addCellDraft,
+          (_YearData data) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              GoalYearMatrix(
+                view: data.view,
+                t: t,
+                onAddCellDraft: _addCellDraft,
+              ),
+              const SizedBox(height: 8),
+              _buildPending(t),
+            ],
           ),
         ),
         const SizedBox(height: AppTokens.gapCard),
@@ -140,12 +147,6 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
           t,
           t.goalYear8020Section,
           (_YearData data) => _build8020(data, t),
-        ),
-        const SizedBox(height: AppTokens.gapCard),
-        _block(
-          t,
-          t.goalsDraftSection,
-          (_YearData data) => _buildDrafts(data, t),
         ),
       ],
     );
@@ -456,46 +457,12 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     );
   }
 
-  /// 滚动候选 + 待确认草稿区（**只算不写**）。
-  Widget _buildDrafts(_YearData data, AppLocalizations t) {
-    final List<GoalDraft> candidates = _candidates(data);
+  /// 待确认草稿区（**未确认前库里 0 增量**；B16 项 5 已撤掉候选列表，只留队列本体）。
+  Widget _buildPending(AppLocalizations t) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (candidates.isEmpty)
-          Text(
-            t.goalYearDraftEmpty,
-            key: const ValueKey<String>('goal-year-draft-empty'),
-            style: _metaStyle(context),
-          )
-        else
-          for (final GoalDraft candidate in candidates)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      candidate.title,
-                      key: ValueKey<String>(
-                        'goal-year-candidate-${candidate.sourceGoalId}',
-                      ),
-                      style: _bodyStyle(context),
-                    ),
-                  ),
-                  TextButton(
-                    key: ValueKey<String>(
-                      'goal-year-candidate-add-${candidate.sourceGoalId}',
-                    ),
-                    onPressed: () => _addPending(candidate),
-                    child: Text(t.goalYearCellAddDraft),
-                  ),
-                ],
-              ),
-            ),
-        const SizedBox(height: 8),
         Text(
           t.goalDraftPending,
           key: const ValueKey<String>('goal-year-draft-pending'),
@@ -543,30 +510,6 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     );
   }
 
-  /// 滚动候选：本年未完成的年目标 → 下年草稿（**只算不写**）。
-  List<GoalDraft> _candidates(_YearData data) {
-    final GoalPeriod next = _period.next();
-    final List<GoalDraft> drafts = <GoalDraft>[];
-    for (final GoalRow goal in data.view.yearlyGoals) {
-      if (goal.isDone) {
-        continue;
-      }
-      drafts.add(
-        GoalDraft(
-          kind: GoalKind.yearly,
-          title: goal.title,
-          periodStart: next.startMillis,
-          periodEnd: next.endMillis,
-          domain: goal.domain,
-          note: goal.improveNote ?? goal.reviewNote,
-          sourceGoalId: goal.id,
-          origin: GoalDraftOrigin.carryOver,
-        ),
-      );
-    }
-    return drafts;
-  }
-
   /// 表二空格新增月目标 → 进页内待确认草稿队列（**不落库**）。
   void _addCellDraft(String yearlyId, int month, String title) {
     final GoalPeriod monthPeriod = GoalPeriod.month(_period.year, month);
@@ -582,11 +525,6 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
         ),
       );
     });
-  }
-
-  /// 把滚动候选加入待确认队列。
-  void _addPending(GoalDraft draft) {
-    setState(() => _pending.add(draft));
   }
 
   /// 用户确认 ⇒ 落库（`status='draft'`）。

@@ -82,14 +82,16 @@ double _labelSizeOf(WidgetTester tester, Finder anchor) =>
     DensityProfile.comfortable.labelSize;
 
 void main() {
-  testWidgets('竖排导航渲染 7 项与 01–07 序号', (WidgetTester tester) async {
+  testWidgets('竖排导航渲染 8 项与 01–08 序号', (WidgetTester tester) async {
     await _pumpNav(tester);
 
     expect(NavRail.width, 214);
-    for (final String label in <String>['日志', '待办池', '习惯', '项目', '日历', '目标', '蓝图']) {
+    for (final String label
+        in <String>['日志', '待办池', '习惯', '蓝图', '目标', '项目', '学习', '日历']) {
       expect(find.text(label), findsOneWidget, reason: '缺少导航项 $label');
     }
-    for (final String index in <String>['01', '02', '03', '04', '05', '06', '07']) {
+    for (final String index
+        in <String>['01', '02', '03', '04', '05', '06', '07', '08']) {
       expect(find.text(index), findsOneWidget, reason: '缺少序号 $index');
     }
     expect(find.text('知行日志'), findsOneWidget);
@@ -98,15 +100,14 @@ void main() {
     expect(find.text('页面切换'), findsNothing);
   });
 
-  testWidgets('七项都可点：「项目」不再是禁用态（Task 56 起有真实落点）',
+  testWidgets('八项都可点：「学习」是 B16 新增占位项，也有真实落点',
       (WidgetTester tester) async {
     final List<String> tapped = <String>[];
     await _pumpNav(tester, onSelected: tapped.add);
 
-    // Task 56 起「项目」也启用 ⇒ 6 个可点项各一个 InkWell；
-    // Task 64 起「设置」沉底成齿轮 ⇒ 再加 1 个 InkWell；
-    // Task 72 起第 7 项「蓝图」落地 ⇒ 共 8 个可点元素。
-    expect(find.byType(InkWell), findsNWidgets(8));
+    // 八项全部启用 ⇒ 8 个可点项各一个 InkWell；
+    // 「设置」沉底成齿轮 ⇒ 再加 1 个 InkWell，共 9 个可点元素。
+    expect(find.byType(InkWell), findsNWidgets(9));
 
     await tester.tap(find.text('待办池'));
     await tester.pump();
@@ -133,6 +134,15 @@ void main() {
       tapped,
       <String>['inbox', 'habits', 'calendar', 'settings', 'projects'],
       reason: '「项目」已启用，必须触发选中',
+    );
+
+    // B16：「学习」是占位项（内容体是壳内联占位），但导航项本身可点、回调真实。
+    await tester.tap(find.text('学习'));
+    await tester.pump();
+    expect(
+      tapped,
+      <String>['inbox', 'habits', 'calendar', 'settings', 'projects', 'learning'],
+      reason: '「学习」是占位项，但必须有真实落点',
     );
 
     // 可点项（非当前页）走 meta 色，不再是禁用态的 faint。
@@ -216,7 +226,8 @@ void main() {
     // 100% 下缩放在数学上是恒等的 ⇒ 新写法的结果与修复前逐位相同。
     expect(scaler.scale(labelSize), labelSize);
 
-    for (final String index in <String>['01', '02', '03', '04', '05', '06', '07']) {
+    for (final String index
+        in <String>['01', '02', '03', '04', '05', '06', '07', '08']) {
       expect(
         tester.getSize(find.text(index)).width,
         moreOrLessEquals(labelSize * 1.5, epsilon: 0.0001),

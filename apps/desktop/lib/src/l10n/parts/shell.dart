@@ -48,6 +48,11 @@ abstract class ShellL10n {
   /// Task 72（裁决 D-72-b）：蓝图从目标页第 4 个页签升级为第 7 个导航项。
   String get shellNavBlueprint;
 
+  /// 左导航：学习。
+  ///
+  /// B16：新增占位项，排在「项目」之后、「日历」之前（序位 07）。
+  String get shellNavLearning;
+
   /// 左导航：蓝图（快捷键说明口径，`Ctrl+7`）。
   String get shellNavBlueprintDesc;
 
@@ -142,6 +147,9 @@ mixin ShellZhL10n implements ShellL10n {
   String get shellNavBlueprint => '蓝图';
 
   @override
+  String get shellNavLearning => '学习';
+
+  @override
   String get shellNavBlueprintDesc => '切到蓝图';
 
   @override
@@ -227,6 +235,9 @@ mixin ShellEnL10n implements ShellL10n {
 
   @override
   String get shellNavBlueprint => 'Blueprint';
+
+  @override
+  String get shellNavLearning => 'Learning';
 
   @override
   String get shellNavBlueprintDesc => 'Go to blueprint';

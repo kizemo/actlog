@@ -285,6 +285,9 @@ abstract final class L10nKeys {
   /// 左导航：蓝图（Task 72 / D-72-b：第 7 个导航项）。
   static const String shellNavBlueprint = 'shell-nav-blueprint';
 
+  /// 左导航：学习（B16：第 7 个导航项，占位）。
+  static const String shellNavLearning = 'shell-nav-learning';
+
   /// 左导航：蓝图（快捷键说明口径）。
   static const String shellNavBlueprintDesc = 'shell-nav-blueprint-desc';
 
@@ -2524,7 +2527,7 @@ abstract final class L10nKeys {
     'goalPositionTagsTitle': goalPositionTagsTitle,
     'goalPositionTagsToggle': goalPositionTagsToggle,
     // 应用外壳（Task 61 起；Task 64 补导航「目标」/ 快捷键「切到目标」，
-    // Task 72 补快捷键「切到蓝图」⇒ Ctrl+7）
+    // Task 72 补快捷键「切到蓝图」，B16 补导航「学习」⇒ 序位 07）
     'shellNavToday': shellNavToday,
     'shellNavInbox': shellNavInbox,
     'shellNavHabits': shellNavHabits,
@@ -2533,6 +2536,7 @@ abstract final class L10nKeys {
     'shellNavSettings': shellNavSettings,
     'shellNavGoals': shellNavGoals,
     'shellNavBlueprint': shellNavBlueprint,
+    'shellNavLearning': shellNavLearning,
     'shellNavBlueprintDesc': shellNavBlueprintDesc,
     'shellShortcutsTitle': shellShortcutsTitle,
     'shellPageSwitch': shellPageSwitch,

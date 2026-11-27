@@ -417,7 +417,8 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
       t.goalPositionTagsTitle,
   L10nKeys.goalPositionTagsToggle: (AppLocalizations t) =>
       t.goalPositionTagsToggle,
-  // 应用外壳 25 条（Task 61 的 23 条 + Task 64 的 2 条）
+  // 应用外壳 29 条（Task 61 的 23 条 + Task 64 的 2 条 + Task 72 的 3 条
+  // + B16 的 1 条「学习」）
   L10nKeys.shellNavToday: (AppLocalizations t) => t.shellNavToday,
   L10nKeys.shellNavInbox: (AppLocalizations t) => t.shellNavInbox,
   L10nKeys.shellNavHabits: (AppLocalizations t) => t.shellNavHabits,
@@ -427,6 +428,7 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
   L10nKeys.shellNavGoals: (AppLocalizations t) => t.shellNavGoals,
   // 左栏第 7 项「蓝图」2 条（Batch 7 · D-72-a / D-72-b）
   L10nKeys.shellNavBlueprint: (AppLocalizations t) => t.shellNavBlueprint,
+  L10nKeys.shellNavLearning: (AppLocalizations t) => t.shellNavLearning,
   L10nKeys.shellNavBlueprintDesc: (AppLocalizations t) =>
       t.shellNavBlueprintDesc,
   L10nKeys.shellShortcutsTitle: (AppLocalizations t) => t.shellShortcutsTitle,

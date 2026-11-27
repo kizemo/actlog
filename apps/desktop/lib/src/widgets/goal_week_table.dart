@@ -11,10 +11,15 @@
 //     （与 `packages\core_data\lib\src\priority.dart` 的口径一致）。
 //  3. 文案全走 l10n：象限 / ABC 标签复用 `parts\domain.dart` 里既有的
 //     `quadrantQxShortLabel` / `abcXLabel`，**不建第二套**。
+//
+// 标题格可**就地编辑**（B16 项 7）：点标题变单行输入框、Esc 取消、回车/失焦
+// 提交；模式与 `goal_blueprint_matrix.dart` 的 `_inlineEditor` 一致。编辑状态
+// 由页面持有（`editingId` + controller + focusNode），本组件只负责渲染与回调。
 // =============================================================================
 
 import 'package:core_domain/core_domain.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/goal_store.dart';
 import '../l10n/app_localizations.dart';
@@ -29,6 +34,12 @@ class GoalWeekTable extends StatelessWidget {
     required this.t,
     this.onEdit,
     this.onDelete,
+    this.editingId,
+    this.titleController,
+    this.titleFocus,
+    this.onTitleTap,
+    this.onTitleSubmit,
+    this.onTitleCancel,
     super.key,
   });
 
@@ -43,6 +54,24 @@ class GoalWeekTable extends StatelessWidget {
 
   /// 点某一行的「删除」。
   final void Function(GoalRow goal)? onDelete;
+
+  /// 正在就地编辑的目标 id（null = 无编辑）。
+  final String? editingId;
+
+  /// 就地编辑的标题控制器。
+  final TextEditingController? titleController;
+
+  /// 就地编辑的焦点。
+  final FocusNode? titleFocus;
+
+  /// 点标题开始就地编辑（null = 标题只读）。
+  final void Function(GoalRow goal)? onTitleTap;
+
+  /// 提交就地编辑（目标 + 新标题）。
+  final void Function(GoalRow goal, String value)? onTitleSubmit;
+
+  /// 取消就地编辑（Esc）。
+  final VoidCallback? onTitleCancel;
 
   /// 「优先顺序」列宽。
   static const double orderWidth = 44;
@@ -90,7 +119,18 @@ class GoalWeekTable extends StatelessWidget {
         const SizedBox(height: 6),
         for (final GoalWeekItem item in view.items) ...<Widget>[
           Divider(height: 1, thickness: 1, color: tokens.hair),
-          _WeekRow(item: item, t: t, onEdit: onEdit, onDelete: onDelete),
+          _WeekRow(
+            item: item,
+            t: t,
+            onEdit: onEdit,
+            onDelete: onDelete,
+            editingId: editingId,
+            titleController: titleController,
+            titleFocus: titleFocus,
+            onTitleTap: onTitleTap,
+            onTitleSubmit: onTitleSubmit,
+            onTitleCancel: onTitleCancel,
+          ),
           const SizedBox(height: 6),
         ],
       ],
@@ -106,6 +146,12 @@ class _WeekRow extends StatelessWidget {
     required this.t,
     this.onEdit,
     this.onDelete,
+    this.editingId,
+    this.titleController,
+    this.titleFocus,
+    this.onTitleTap,
+    this.onTitleSubmit,
+    this.onTitleCancel,
   });
 
   /// 行数据。
@@ -119,6 +165,24 @@ class _WeekRow extends StatelessWidget {
 
   /// 点本行的「删除」。
   final void Function(GoalRow goal)? onDelete;
+
+  /// 正在就地编辑的目标 id（null = 无编辑）。
+  final String? editingId;
+
+  /// 就地编辑的标题控制器。
+  final TextEditingController? titleController;
+
+  /// 就地编辑的焦点。
+  final FocusNode? titleFocus;
+
+  /// 点标题开始就地编辑。
+  final void Function(GoalRow goal)? onTitleTap;
+
+  /// 提交就地编辑。
+  final void Function(GoalRow goal, String value)? onTitleSubmit;
+
+  /// 取消就地编辑。
+  final VoidCallback? onTitleCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +209,7 @@ class _WeekRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(goal.title, style: bodyStyle),
+              _titleCell(goal, bodyStyle),
               const SizedBox(height: 2),
               Text(_subLine(stats), style: metaStyle),
               if (stats.isUnplaced) ...<Widget>[
@@ -188,6 +252,48 @@ class _WeekRow extends StatelessWidget {
             t: t,
           ),
       ],
+    );
+  }
+
+  /// 标题格：编辑中 → 单行输入框；否则 → 可点的标题文本。
+  ///
+  /// 用 `GestureDetector` 而不是 `InkWell`：本组件没有 Material 祖先
+  /// （与 `goal_blueprint_matrix.dart` 的标题入口同口径）。
+  Widget _titleCell(GoalRow goal, TextStyle? bodyStyle) {
+    final TextEditingController? controller = titleController;
+    final FocusNode? focus = titleFocus;
+    if (editingId == goal.id && controller != null && focus != null) {
+      return CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.escape): () =>
+              onTitleCancel?.call(),
+        },
+        child: TextField(
+          key: ValueKey<String>('goal-week-title-edit-${goal.id}'),
+          controller: controller,
+          focusNode: focus,
+          autofocus: true,
+          maxLines: 1,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (String value) => onTitleSubmit?.call(goal, value),
+          style: bodyStyle,
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+            border: InputBorder.none,
+          ),
+        ),
+      );
+    }
+    final Widget text = Text(goal.title, style: bodyStyle);
+    final void Function(GoalRow goal)? onTap = onTitleTap;
+    if (onTap == null) {
+      return text;
+    }
+    return GestureDetector(
+      key: ValueKey<String>('goal-week-title-${goal.id}'),
+      onTap: () => onTap(goal),
+      child: text,
     );
   }
 
