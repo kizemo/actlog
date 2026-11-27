@@ -1420,3 +1420,106 @@ RUN_AT=2026-11-27 13:09:29
 - 上述七条的**代码与 widget 测试证据齐备**（含 `ValueKey` 断言），但「观感是否达标」属人眼判断；合成取帧 / UIA 通道在本项目已判死路，不用假证据替代。
 - **R3 分发界**：`release\` 现 65 个 exe，**唯一可分发 = `actlog-Setup-1.0.0_20261127-131242.exe`（22,871,841 B / `6B64C34FF3DE3C68`）**；B14 包 `…_20261127-012235.exe`（22,873,139 B / `C838CE3E1811C666`）自本批起失效，其余 64 个严禁分发。
 - 本节数字若与后续产物冲突，以产物为准；本节不声称未跑过的检查。
+
+### 11.27 · B17 收口（第二轮七项反馈 + 类别·起止日期·完成单选·同类别分区 + 导航七项 · 绿测 1106 / 门禁 PASS / 新包装机 / 两次 commit） · 2026-11-27 傍晚 · 控制器（会话 `mvs_90fe171f56d74a8c950ad6cab4261ef3`）
+
+**背景与本节目的**：§11.26 收口 B16 后，用户当晚给出第二轮七条反馈（其中 ① 蓝图格「+」就地建目标、④ 三处「滚动候选」段头卡明确判「已通过、本轮不改」），并要求「760 宽 + 英文态页签不换行、不压线」——这一条只有新包才看得到。本节记录 **七条的落点**、**十一棒写集的逐文件增删**、**十处选型裁决与三条红线的字节级未动**、**门禁终轮逐行判据**、**出包两步与静默装机的成对数字**、**两次 commit 与托管块的临时剥离-还原**，最后写清**仍挂账的三件事**。本节全部数字均为书写前的盘上回读值（`reports\b17-gate-final.txt` / `reports\b17-install-final.txt` / `reports\b17-test-final.txt` / `git show --numstat e3dac8e`），不从压缩摘要转抄。
+
+**一、结论一览**
+
+- 七条反馈全部落盘并进历史（①④ 判通过不改）：`apps/desktop` **40 项**（12 改 + 2 新建源码；19 改 + 7 新建测试）+ `docs\b17-plan.md` + `AGENTS.md`(9/0) ⇒ commit ① = **`e3dac8e` / 42 files / +4455 −993**。
+- 全量绿测末行逐字 `+1106: All tests passed!`（`reports\b17-test-final.txt` **325,472 B** / mtime 2026-11-27 15:25:29），`TEST_EXIT=0` / `E_COUNT=0`；B16 基线 1061 ⇒ 本批 **+45** 条新用例。
+- 权威门禁 **PASS**（`reports\b17-gate-final.txt` **4,071 B** / `RUN_AT=2026-11-27 15:29:31` / `HEAD=05040ec` / `AHEAD=20`），传 `-ExpectDesktopTests 1106`、**未传 `-ExcludePaths`**。
+- 新包 `release\actlog-Setup-1.0.0_20261127-153051.exe` = **22,873,660 B / sha16 `D77D47404FAB2763`**，`release\` exe 计数 65 → **66**（仅此 1 个可分发）。
+- 静默装机：`PAYLOAD_MATCH=True` / `DB_UNCHANGED=True` / 装后 `app.so` 与构建树同 hash，已把旧库实例重新拉起供肉眼验收。
+- commit ② = 本节追加（只 commit 不 push，沿用 B13/B14/B15/B16 惯例）。
+- **未闭合**：用户肉眼验收（七项观感 + 760 宽英文态页签不压线）未做，不得代签；push 未获授权；B16 那七项观感同样仍待肉眼确认。
+
+**二、用户七条与实现落点**
+
+| # | 用户要求 | 落点（`git show --numstat e3dac8e`） | 判据 |
+|---|---|---|---|
+| ① | 蓝图格右侧「+」就地建目标，保存后常驻续加 | **已通过，本轮零改动** | `b16_blueprint_inline_create_test.dart` 19/18 仅因行控件签名变化同步 |
+| ② | 页签再增左右 padding、页签间增边距、激活与非激活等高 | `lib\src\widgets\goal_blueprint_matrix.dart` 55/79 | `b17_tab_layout_test.dart` 4 条 + `b14_tab_scale_test.dart` 27/14 |
+| ③ | 去除多余的「日期」按钮 | `goal_blueprint_matrix.dart`（同上，随 ② 一处落盘） | `b13_polish_test.dart` 39/34、`b10_blueprint_matrix_done_test.dart` 13/6 |
+| ④ | 三处「滚动候选」段头卡消失 | **已通过，本轮零改动** | 无新断言（不回退即判据） |
+| ⑤ | 年目标行可加可编 + 月页去「上月复盘」「年度目标汇总」+ 年页去「月度展开」「年度复盘」「80/20 视角」+ 三页类别 + 起止日期点击录入 + 行右侧完成单选 + 同类别自动分区 | 见下方 ⑤ 拆解表 | 见下方 ⑤ 拆解表 |
+| ⑥ | 去「习惯」、「学习」改「学习管理」 | `app.dart` 16/15、`widgets\shell\nav_rail.dart` 11/10、`widgets\shell\key_bar.dart` 14/13、`l10n\parts\shell.dart` 2/2 | `b17_nav_seven_test.dart` 7 条 + 5 个既有导航测试同步 |
+| ⑦ | 760 宽 + 英文态页签文字不换行、不压线（只有新包才看得到） | 同 ②（`tabHeight` / `tabGap` / `_tabPadding` 三处定量） | `b14_tab_scale_test.dart` 六组实测，en-760 `verdict=PASS` |
+
+⑤ 拆解（写集逐文件）：
+
+| 子项 | 文件（numstat） | 新增/同步测试 |
+|---|---|---|
+| 年目标行可添加可编辑 | `pages\goals_year_page.dart` 229/357 | `b17_year_page_test.dart` 308/0（5 条）、`task66_goals_year_page_test.dart` 96/87 |
+| 月页去「上月复盘」「年度目标汇总」 | `pages\goals_month_page.dart` 99/117 | `b17_month_page_test.dart` 384/0（5 条）、`task66_goals_month_page_test.dart` 49/43 |
+| 年页去「月度展开」「年度复盘」「80/20 视角」 | `pages\goals_year_page.dart`（同上） | 同上 |
+| 三页可选类别（5 预设 + 自定义） | 新建 `widgets\goals\goal_category.dart` 172/0、`widgets\goals\goal_form_dialog.dart` 309/3、`l10n\parts\goals.dart` 126/4、`l10n\l10n_keys.dart` 55/0 | `b17_goal_category_test.dart` 205/0（13 条）、`b17_goal_form_test.dart` 554/0（7 条）、`l10n_base_test.dart` 5/5、`l10n_harness.dart` 17/0 |
+| 起止日期点击录入 | `goal_form_dialog.dart`（同上） | `b17_goal_form_test.dart`（同上） |
+| 行右侧完成单选 | `goal_form_dialog.dart` 的行操作控件（同上）；周页 `goal_week_table.dart` 57/17 | `b17_week_page_test.dart` 289/0（4 条）、`b17_month_page_test.dart`、`b17_year_page_test.dart` |
+| 同类别自动分区（类别作小标题） | 新建 `widgets\goals\goal_section.dart` 225/0；周 / 月 / 年三页接入 | 三份页面 b17 测试内置分区断言 |
+| 序号改分区内 1…n | 月 / 年页（W7 棒，含在 99/117 与 229/357 内） | `b17_month_page_test.dart` / `b17_year_page_test.dart` |
+
+- 本批 `lib` 合计 **+1008 −618**（12 改 + 2 新建），`test` 合计 **+486 −375**（19 改 + 7 新建）；9 个新建文件字节：`goal_category.dart` 6,215 / `goal_section.dart` 7,880 / `b17_goal_category_test.dart` 7,565 / `b17_goal_form_test.dart` 19,224 / `b17_month_page_test.dart` 13,639 / `b17_nav_seven_test.dart` 15,055 / `b17_tab_layout_test.dart` 9,358 / `b17_week_page_test.dart` 11,122 / `b17_year_page_test.dart` 10,734。
+- 45 条新用例分布：`b17_goal_category_test` 13 / `b17_nav_seven_test` 7（4 个 `testWidgets` + 3 个 `test`）/ `b17_goal_form_test` 7 / `b17_year_page_test` 5 / `b17_month_page_test` 5 / `b17_tab_layout_test` 4 / `b17_week_page_test` 4。
+
+**三、十一棒落盘（控制器直派 worker，不经接力链装置）**
+
+| 棒次 | 会话 ID | 状态 | 负责项 | 写集要点 |
+|---|---|---|---|---|
+| W0 | `bg_8de7ccd5-0d2c-487d-bb85-7ac4807e7348`（`mvs_9963e68171fc488faf3d5d0f0e657ef8`） | succeeded | 类别模块 + l10n 四档 | 新建 `goal_category.dart`、`l10n_keys.dart` 55/0、`l10n\parts\goals.dart` 126/4 |
+| W1 | `bg_9c5d637c-98a6-491b-9682-a3ae6725da78`（`mvs_fd08b74bf3f34113be31f0cfee25617e`） | succeeded | 导航七项 + 学习管理 | `app.dart`、`nav_rail.dart`、`key_bar.dart`、`l10n\parts\shell.dart` |
+| W1b | `bg_2b65ebe6-5b8a-42ee-9be3-e40b85d08994`（`mvs_6ed48b29405f400fa061fe78adfd9ea2`） | succeeded | 三个导航测试对齐 7 项口径 | `shell_nav_rail_test.dart` 24/20、`nav_shortcut_test.dart` 34/28、`task64_nav_gear_test.dart` 14/15 |
+| W2 | `bg_b3b2a805-9c05-4577-9bf7-b7d93b20c39a`（`mvs_cf5e64ffa8f246ae8e0299a8c4afeffa`） | succeeded | 表单类别 / 起止日期 / 完成单选 / 分区件 | `goal_form_dialog.dart` 309/3、新建 `goal_section.dart` |
+| W3 | `bg_52a1e605-1f22-4780-9e43-edae7fa6aab7`（`mvs_a2c65266976a48cba38d13fb50dad8b7`） | succeeded | 页签加宽 + 删「日期」按钮 | `goal_blueprint_matrix.dart`、`b13_polish_test.dart` |
+| W3b | `bg_f5857090-7e69-422f-84d0-5b9db48863f4`（`mvs_dff2511c9144402da2205de0393b13c1`） | succeeded | 页签等高收口（含 b16 追补） | `goal_blueprint_matrix.dart` 定稿、`b17_tab_layout_test.dart` 240/0、`b14_tab_scale_test.dart` 27/14 |
+| W4 | `bg_525ae0cd-8093-4a3d-832c-fb07154efeb7`（`mvs_9c5c4af530184862b30dc2e55db3f7b5`） | succeeded | 年页可加可编 + 删三块 + 分区 | `goals_year_page.dart` 229/357、`b17_year_page_test.dart` 308/0 |
+| W5 | `bg_ea635ce0-17b6-4625-8d07-f4b711d15723`（`mvs_364daf905f3a42ec90fa6c9a4298b89d`） | succeeded | 月页删两块 + 分区 | `goals_month_page.dart` 99/117、`b17_month_page_test.dart` 384/0 |
+| W6 | `bg_1e2cc889-4632-4742-8b11-89bd1c31d87f`（`mvs_03fc61c201434a29a0b92ca5cc090d11`） | succeeded | 周页分区 + 完成单选 | `goals_week_page.dart` 35/1、`goal_week_table.dart` 57/17、`b17_week_page_test.dart` 289/0 |
+| W7 | `bg_02adc115-60f2-4802-9cf5-cb76b7d81d75`（`mvs_f01b86f8eb624a7d83eacdda2fd02f67`） | succeeded | 月 / 年页序号改分区内 1…n | 并入月 / 年页 |
+| W8 | `bg_3a3db001-07f4-4cee-bf32-731d1ca17422` + 追补 `bg_663c528b-e0b7-42b3-be7e-46e77b43a16e`（`mvs_6783f47d4fc54a1fb814f3fbf2337229`） | succeeded | 三条工作集外测试红灯同步 | `b14_theme_test.dart` 5/5、`ledger_dock_test.dart` 13/8、`task61_l10n_shell_test.dart` 7/7 |
+
+- **写集追补两份**（R1 要求写集外文件先由控制器追补并留档）：`reports\b17-writeset-amendment-w1b.md`（3,720 B，W1b 棒次与三个导航测试）、`reports\b17-writeset-amendment-w3b.md`（6,620 B，W3b 棒次含 `b14_tab_scale_test.dart` 与 `b16_*` 追补）；`reports\b17-w7-dispatch.md` 3,985 B、`reports\b17-w8-dispatch.md` 12,331 B、`reports\b17-wave-c-dispatch.md` 16,939 B 为波次派工书。
+- 控制器全程零改 `apps\` / `packages\`：`VIOLATIONS=0` 即此项的机器判据；门禁白名单由控制器先行补入（`lib\src\l10n\parts\goal*` 通配、`goal_category.dart`、`goal_section.dart`、`test\b17_*.dart`），否则 `OUT_OF_SET` 会判红。
+
+**四、裁决记录（选型与边界，含否决理由）**
+
+1. **类别复用 `goal.domain`，不新增列**：`wealth` / `family` / `learning` / `social` / `health` 五预设；自定义存 `custom:<文本>`（trim 后空 ⇒ 视同未分类）；空值或未知值 → 「未分类」。写库时 `category` 优先于 `domain`，未分类 → `domain = null` ⇒ 落「未分类」垫底分区。页面层类目标题一律走 `goalCategoryTitle`，**不得**复用 `projectDomainLabel`（两者语义不同，混用会把项目域文案漏进目标页）。否决「新增 category 列」：要跨 3 个 core 包改 schema + 迁移，与本批「只改桌面端 UI」的范围不成比例。
+2. **完成单选做成可选回调**：`GoalRowActions` 增 `isDone`（默认 `false`）、`onToggleDone`（默认 `null`）、`goalId`；`onToggleDone == null` 时整列不渲染且 `width` 仍 56，非 null 时 `56 + doneWidth(24)`。否决「强制渲染」：蓝图矩阵等旧调用点没有完成态语义，强塞会造出假开关。**蓝图矩阵不在本批 F 项范围**。
+3. **分区用泛型版 API**：`goal_section.dart` 提供 `groupSectionsByCategory<T>` / `GoalSectionList<T>`，三页共用一份分区逻辑，避免三处各写一遍同类别归并（三份实现必然漂移）。
+4. **页签口径**：单一 `tabHeight = 46`、`_tabPadding` 10 → 16、新增 `tabGap = 8`；**删** `tabActiveHeight` / `tabInactiveHeight` / `tabInactiveLift` 且**不留兼容别名**（留别名 = 两套高度真源，下批必再漂）；保留 `tabVerticalPadding = 4`（B16 已判通过的上下留白不回退）与 `tabIndicatorHeight = 3`；hairline 居中。
+5. **删区块只下线 UI 入口**：月页「上月复盘」「年度目标汇总」、年页「月度展开」「年度复盘」「80/20 视角」均只删界面入口，**保留 l10n getter 与数据层聚合**；既有断言改 `findsNothing`，**不删用例**（删用例等于销毁「曾经存在且已被移除」的证据）。
+6. **导航只改清单与快捷键表**：`HabitsPage` / `'habits'` 路由与 `ShellHost.initialNavId` 落点保留（`app.dart:354`）、`shellNavHabits` getter 保留（避免牵连 l10n 测试与壳层直达入口）；`shellNavLearning` 只改**值**（zh「学习管理」/ en「Learning Management」）。七项 = 01 日志 / 02 待办池 / 03 蓝图 / 04 目标 / 05 项目 / 06 学习管理 / 07 日历，`Ctrl+1…7` 重排，`Ctrl+8` 无绑定。
+7. **序号口径**：分区视图内序号 = **分区内 1…n，跨分区重置**；计数源取 `groups` 的渲染顺序，不取 `data.view.*` 的入参顺序（两者在分区后不再一致）。
+8. **六条红全部判为「测试同步缺陷」，改测试不改 lib**：`b14_theme_test.dart` 英文枚举改精确值断言（`['Ultimate', 'Long-term', 'Mid-term', 'Short-term']` + `toSet().length == 4`）；`ledger_dock_test.dart` 不削弱断言，改从壳的 `initialNavId: 'habits'` 直达；`task61_l10n_shell_test.dart` 两张导航清单按新 7 项重写。判据：这六条断言的**被测语义**随需求变更而变，lib 行为与需求一致。
+9. **b14 T6 判据重定（红线未动）**：自然宽阈值 `>700` → `>600`、缩放判据改条件守卫；`_redLineFontPx = 11.0`（`goal_blueprint_matrix.dart:86`）与 `_requiredMarginPx = 1.00`（`:97`，即显示字号 ≥ 12.00px）**一字未动**。六组实测全 `verdict=PASS`：zh-760 natural 393.6 / **en-760 natural 680.5 ≤ 可用 742.0（余 61.5px）** / scale 1.000000 / display 15.00 / margin 4.00；仅 zh-320 触发缩放 0.813008 / display 12.20 / margin 1.1951。否决「为过测试下调红线」：那等于把 760 宽英文态的压线风险放过关。
+10. **行内类别列保留**：类目标题已上移为分区小标题，行内类别列**仍在**，留作下一轮候选（本轮不动，避免同批既加分区又删列导致观感判据混淆）。
+
+**五、门禁终轮逐行判据（`reports\b17-gate-final.txt`，控制器亲跑）**
+
+- `ITEM=core_data.test EXIT=0 TESTS=204` / `core_db.test 96` / `core_domain.test 91`，三条 `analyze` 条目 `RESULT=UNKNOWN` + `TESTS=-1` 是**正常形态**（analyze 不出用例数），其 `ANALYZE=VERBATIM` 才是判据。
+- `GATE_VERDICT=PASS` / `GATE_FAILURES=0` / `DESKTOP_TESTS=1106` = `DESKTOP_EXPECTED=1106` / `DESKTOP_BASELINE=596` / **`DESKTOP_DELTA=510` 不是本批增量**（脚本内建基线 596，本批真实增量 **+45**，即 1061 → 1106）。
+- 四包 `*_ANALYZE=VERBATIM`（逐字 `No issues found!`）/ `VIOLATIONS=0` / `OUT_OF_SET=0` / `GATE_EXCLUDED=7`（**7 项全是 relay 装置文档，不含任何测试文件**）/ `STATUS_LINES=77`。
+- `PS1_SCAN_EXIT=0` / `PS1_MODE=Check` / `PS1_SCANNED=536` / `PS1_NEW_NON_ASCII=0` / `PS1_ASCII_FLIPPED=0` / `PS1_ASCII_VIOLATIONS=0` / `PS1_BASELINE_SHA16=5247D49A400CC3F9`；`PS1_CHANGED_SAME_FLAG=1` 是同一文件 flag 未变的计数，不是违规。
+
+**六、出包两步与静默装机（成对数字）**
+
+1. `flutter build windows --release`（**必须在 `apps\desktop` 内跑**）⇒ `BUILD_EXIT=0` / `Building Windows application... 58.5s`；构建树 `apps\desktop\build\windows\x64\runner\Release\data\app.so` = **9,323,400 B / `BA7EF7A40E83CF37` / mtime 2026-11-27 15:30:36**（≠ B16 的 `F100F1E80E53D9AF` ⇒ 确为重编）。启动器 `actlog.exe` 仍 484,352 B / `89293205FAF8C3DE`（**恒不变，不是重编判据**，见 §5 坑 110）。
+2. `tools\build\make_installer.ps1 -Version '1.0.0'` ⇒ `INSTALLER_EXIT=0` / `SubType = NSIS-3 Unicode` / payload **36 文件 60,600,882 B**（排除 **6** 个 `userdata` 项）/ `pe_mz_magic=MZ` ⇒ **`release\actlog-Setup-1.0.0_20261127-153051.exe` 22,873,660 B / `D77D47404FAB2763` / 全串 `D77D47404FAB2763776D85AE0714221736CE97D7ABBE0AADEBC4AB874CCCE09A` / mtime 15:31:23**。
+3. 静默装机（`reports\task103-install-b14.ps1`，日志 `reports\b17-install-final.txt` **582 B**）：`RUNNING_BEFORE=1` ⇒ 先 `WM_CLOSE` PID 568528，20 秒未退再 `FORCE_KILL_PID=568528` ⇒ `RUNNING_AFTER_CLOSE=0`；`Start-Process <安装包> -ArgumentList '/S'`（**不** `-Wait`）⇒ `INSTALLER_PID=205524` / `INSTALLER_EXITCODE=0`。
+4. 装后核验：装机 `D:\Program Files\actlog\data\app.so` 实测 **`BA7EF7A40E83CF37` / 9,323,400 B / mtime 2026-11-27 15:30:36**，与构建树逐字一致 ⇒ **`PAYLOAD_MATCH=True`**（B17 已生效）；用户活库 `userdata\actlog.db` 装配前后全等 **425,984 B / `EB31F08FACAA8244`** ⇒ **`DB_UNCHANGED=True`**（只认安装脚本成对日志：活库被运行实例独占，外部取 hash 会报占用）；装后已重拉：`RELAUNCH_PID=29060` / `RELAUNCH_ALIVE=1` / 主窗口 529716 ⇒ `INSTALL_SCRIPT_EXIT=0`。
+
+**七、两次 commit 与托管块处理**
+
+- **commit ① = `e3dac8e`**（`feat(desktop): B17 七项反馈…`）：**42 files / +4455 −993**，面 = `AGENTS.md`(9/0) + `apps\desktop` 40 项 + `docs\b17-plan.md`(185/0)。**未纳入**任何 relay 装置产物（`docs\relay\*`、`docs\RELAY-SOP.md`、`docs\plan-relay.md`、`docs\b8x-*`、`docs\incident-*`、`docs\relay.json`、`docs\RELAY-ADAPTATION.md` 等，属别的批次，维持未提交状态）。
+- **托管块的字节级处理**：`AGENTS.md` 的 `<!-- BEGIN RELAY-PORT -->` … `<!-- END RELAY-PORT -->` 托管块 **不随批提交** ⇒ 提交前按 `BEGIN` 字符偏移截断（前缀 **389,239 B**）写入 → `git add` → commit → 用提交前的完整备份覆盖还原。回读核验：还原后 **392,947 B**、SHA256 与备份**逐字相等** ⇒ 托管块 **3,708 B** 一字未损。`HEAD` 本不含该块（剥离后 `git diff` 只剩 9 行批次内容，无块删除行）。
+- **commit ② = 本节追加**（`docs(ledger): 追加 §11.27（…）`），只 commit 不 push。
+- 仍挂账记录：`AGENTS.md` 托管块因此在本轮之后**保持未提交**（`git status` 长期显示 ` M AGENTS.md` 26 行为块本身），这是既有惯例，不是遗漏。
+
+**八、仍挂账与诚实边界**
+
+- **用户肉眼验收未做**（不得代签）：② 页签左右 padding 与页签间距加宽、激活与非激活等高；③ 「日期」按钮已去除；⑤ 年目标行可加可编 / 月页两块已去 / 年页三块已去 / 三页可选类别（含自定义）/ 起止日期点击录入 / 行右侧完成单选 / 同类别分区小标题；⑥ 导航 7 项序位与「学习管理」；以及**挂在上一条的关键项**：**760 宽 + 英文态 ⇒ 页签文字不换行、不压线**（只有新装包才看得到；本会话模型不能读图，见 §11.16）。
+- 上述各条的**代码与 widget 测试证据齐备**（含 `ValueKey` 与六组缩放实测），但「观感是否达标」属人眼判断；合成取帧 / UIA 通道在本项目已判死路，不用假证据替代。
+- **R3 分发界**：`release\` 现 **66** 个 exe，**唯一可分发 = `actlog-Setup-1.0.0_20261127-153051.exe`（22,873,660 B / `D77D47404FAB2763`）**；B16 包 `…_20261127-131242.exe`（22,871,841 B / `6B64C34FF3DE3C68`）自本批起失效（**不含 B17 改动**），其余 65 个严禁分发。
+- **B16 那七项观感**同样仍待肉眼确认（B17 只判 ①④ 通过，其余为「实现达标待看」）。
+- 本节数字若与后续产物冲突，以产物为准；本节不声称未跑过的检查。
