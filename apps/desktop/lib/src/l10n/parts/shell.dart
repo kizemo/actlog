@@ -147,7 +147,7 @@ mixin ShellZhL10n implements ShellL10n {
   String get shellNavBlueprint => '蓝图';
 
   @override
-  String get shellNavLearning => '学习';
+  String get shellNavLearning => '学习管理';
 
   @override
   String get shellNavBlueprintDesc => '切到蓝图';
@@ -237,7 +237,7 @@ mixin ShellEnL10n implements ShellL10n {
   String get shellNavBlueprint => 'Blueprint';
 
   @override
-  String get shellNavLearning => 'Learning';
+  String get shellNavLearning => 'Learning Management';
 
   @override
   String get shellNavBlueprintDesc => 'Go to blueprint';

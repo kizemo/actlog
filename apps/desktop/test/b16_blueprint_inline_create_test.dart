@@ -9,8 +9,9 @@
 //      `due_date` 全 NULL、`period_start=0`、`period_end`/`deleted_at` 为 NULL。
 //  C3（第 2 条）已经存下目标的格子右侧「+」**常驻**（保存后仍在，不是一次性入口）。
 //  C4（第 2 条）再点「+」⇒ 输入第二条 ⇒ 同一格**两条记录**（各成一条，不覆盖）。
-//  C5（第 3 条）页签垂直内边距 4px、激活 46 / 未激活 39（落差 7px 不变），
-//      且 `TextButton` 的 `padding` 与实测高度都落到这两个数上。
+//  C5（第 3 条）页签垂直内边距 4px、四页签**两态等高** 46px、水平内边距 16px、
+//      相邻间距 8px（B17 任务 A 重定口径），且 `TextButton` 的 `padding` 与
+//      实测高度都落到这些数上。
 //  C6（第 4 条）年份行已下线 + 日期文案 `maxLines == 1` / `softWrap == false`
 //      且无溢出异常；点日期文本**一点即出** `goal-period-dialog`（无二次确认）。
 //
@@ -22,8 +23,8 @@
 //  C1 改前点「+」弹的是 `goal_form_dialog`（`goal-blueprint-form-title` 出现、
 //     没有 `goal-blueprint-inline-create-*`）⇒ C1 必红。
 //  C3/C4 改前已填格**没有**「+」（`goal-blueprint-add-*` findsNothing）⇒ 必红。
-//  C5 改前 `tabActiveHeight == 38`、`tabInactiveHeight == 31`、`padding` 无
-//     `vertical` ⇒ 必红。
+//  C5 改前 `tabActiveHeight == 46`、`tabInactiveHeight == 39`（两态有 7px
+//     落差）、无 `tabGap`、`padding` 为 `horizontal: 10` ⇒ 必红。
 //  C6 改前跨年目标渲染 `goal-blueprint-year-scale`、日期文本可折行 ⇒ 必红。
 // =============================================================================
 
@@ -380,7 +381,7 @@ void main() {
     expect(find.text('B16 C4 第二条'), findsOneWidget);
   });
 
-  testWidgets('C5 页签垂直内边距 4px：激活 46 / 未激活 39（落差 7px 不变）', (
+  testWidgets('C5 页签两态等高 46px、水平内边距 16、间距 8px（B17-A）', (
     WidgetTester tester,
   ) async {
     await _pumpMatrix(
@@ -393,14 +394,9 @@ void main() {
       ],
     );
 
-    // 常量口径（B16 第 3 条）。
-    expect(GoalBlueprintMatrix.tabActiveHeight, 46);
-    expect(GoalBlueprintMatrix.tabInactiveHeight, 39);
-    expect(
-      GoalBlueprintMatrix.tabActiveHeight - GoalBlueprintMatrix.tabInactiveHeight,
-      7,
-      reason: 'B16 第 3 条：两态同幅 +8px，落差 7px 不变（凸起感不丢）',
-    );
+    // 常量口径（B17 任务 A：两态等高 + 加宽 + 8px 间距）。
+    expect(GoalBlueprintMatrix.tabHeight, 46);
+    expect(GoalBlueprintMatrix.tabGap, 8);
     expect(GoalBlueprintMatrix.tabVerticalPadding, 4);
 
     const List<String> keys = <String>['ultimate', 'long', 'mid', 'short'];
@@ -410,17 +406,22 @@ void main() {
       );
       expect(
         tab.style!.padding!.resolve(const <WidgetState>{}),
-        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        reason: 'B16 第 3 条：$key 上下各 4px（水平 10 是 B14 硬下限，不动）',
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        reason: 'B17-A：$key 水平 16（加宽）、上下各 4',
+      );
+      expect(
+        tab.style!.minimumSize!.resolve(const <WidgetState>{})!.height,
+        46,
+        reason: 'B17-A：$key 两态同高 46（不再按 active 分支取值）',
       );
     }
 
     double heightOf(String key) => tester
         .getSize(find.byKey(ValueKey<String>('goal-blueprint-tab-$key')))
         .height;
-    expect(heightOf('ultimate'), 46, reason: 'B16 第 3 条：激活态实测高度 46');
-    for (final String key in const <String>['long', 'mid', 'short']) {
-      expect(heightOf(key), 39, reason: 'B16 第 3 条：$key 未激活实测高度 39');
+    // B17-A：四个页签（含当前激活的 ultimate）实测高均 46。
+    for (final String key in keys) {
+      expect(heightOf(key), 46, reason: 'B17-A：$key 实测高度 46（两态等高）');
     }
     expect(
       tester.takeException(),

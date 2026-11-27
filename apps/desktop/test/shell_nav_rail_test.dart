@@ -82,74 +82,78 @@ double _labelSizeOf(WidgetTester tester, Finder anchor) =>
     DensityProfile.comfortable.labelSize;
 
 void main() {
-  testWidgets('竖排导航渲染 8 项与 01–08 序号', (WidgetTester tester) async {
+  testWidgets('竖排导航渲染 7 项与 01–07 序号', (WidgetTester tester) async {
     await _pumpNav(tester);
 
     expect(NavRail.width, 214);
     for (final String label
-        in <String>['日志', '待办池', '习惯', '蓝图', '目标', '项目', '学习', '日历']) {
+        in <String>['日志', '待办池', '蓝图', '目标', '项目', '学习管理', '日历']) {
       expect(find.text(label), findsOneWidget, reason: '缺少导航项 $label');
     }
     for (final String index
-        in <String>['01', '02', '03', '04', '05', '06', '07', '08']) {
+        in <String>['01', '02', '03', '04', '05', '06', '07']) {
       expect(find.text(index), findsOneWidget, reason: '缺少序号 $index');
     }
+    // B17：「习惯」退出导航清单 ⇒ 既不占编号，也不再出现在导航栏。
+    expect(find.text('习惯'), findsNothing);
+    expect(find.text('08'), findsNothing);
     expect(find.text('知行日志'), findsOneWidget);
     expect(find.text('actlog'), findsOneWidget);
     // Task 72 / D-72-a：左栏底部常驻的快捷键底注已删除，竖排也不再出现。
     expect(find.text('页面切换'), findsNothing);
   });
 
-  testWidgets('八项都可点：「学习」是 B16 新增占位项，也有真实落点',
+  testWidgets('七项都可点：「学习管理」是 B16 起的占位项，也有真实落点',
       (WidgetTester tester) async {
     final List<String> tapped = <String>[];
     await _pumpNav(tester, onSelected: tapped.add);
 
-    // 八项全部启用 ⇒ 8 个可点项各一个 InkWell；
-    // 「设置」沉底成齿轮 ⇒ 再加 1 个 InkWell，共 9 个可点元素。
-    expect(find.byType(InkWell), findsNWidgets(9));
+    // 七项全部启用 ⇒ 7 个可点项各一个 InkWell；
+    // 「设置」沉底成齿轮 ⇒ 再加 1 个 InkWell，共 8 个可点元素。
+    expect(find.byType(InkWell), findsNWidgets(8));
 
     await tester.tap(find.text('待办池'));
     await tester.pump();
     expect(tapped, <String>['inbox']);
 
-    await tester.tap(find.text('习惯'));
-    await tester.pump();
-    expect(tapped, <String>['inbox', 'habits']);
+    // B17：「习惯」已不是导航项 ⇒ 点不到，也不会再回调 `habits`
+    // （`HabitsPage` 与 `habits` 页面映射本身保留，只是不从这里进入）。
+    expect(find.text('习惯'), findsNothing);
+    expect(tapped, <String>['inbox']);
 
     await tester.tap(find.text('日历'));
     await tester.pump();
-    expect(tapped, <String>['inbox', 'habits', 'calendar']);
+    expect(tapped, <String>['inbox', 'calendar']);
 
     // 设置页现在有真实落点（Task 39 指令 7）；Task 64 起「设置」不再是导航项，
     // 沉底成自绘齿轮，点击仍回调 `settings`。
     await tester.tap(find.byType(GoalGearButton));
     await tester.pump();
-    expect(tapped, <String>['inbox', 'habits', 'calendar', 'settings']);
+    expect(tapped, <String>['inbox', 'calendar', 'settings']);
 
     // 项目页现在也有真实落点（Task 56）。
     await tester.tap(find.text('项目'));
     await tester.pump();
     expect(
       tapped,
-      <String>['inbox', 'habits', 'calendar', 'settings', 'projects'],
+      <String>['inbox', 'calendar', 'settings', 'projects'],
       reason: '「项目」已启用，必须触发选中',
     );
 
-    // B16：「学习」是占位项（内容体是壳内联占位），但导航项本身可点、回调真实。
-    await tester.tap(find.text('学习'));
+    // 「学习管理」是占位项（内容体是壳内联占位），但导航项本身可点、回调真实。
+    await tester.tap(find.text('学习管理'));
     await tester.pump();
     expect(
       tapped,
-      <String>['inbox', 'habits', 'calendar', 'settings', 'projects', 'learning'],
-      reason: '「学习」是占位项，但必须有真实落点',
+      <String>['inbox', 'calendar', 'settings', 'projects', 'learning'],
+      reason: '「学习管理」是占位项，但必须有真实落点',
     );
 
     // 可点项（非当前页）走 meta 色，不再是禁用态的 faint。
     final Text projectsLabel = tester.widget<Text>(find.text('项目'));
     expect(projectsLabel.style?.color, ThemeTokens.light.meta);
-    final Text habitsLabel = tester.widget<Text>(find.text('习惯'));
-    expect(habitsLabel.style?.color, ThemeTokens.light.meta);
+    final Text learningLabel = tester.widget<Text>(find.text('学习管理'));
+    expect(learningLabel.style?.color, ThemeTokens.light.meta);
   });
 
   testWidgets('当前页 = ink 洗底 + ink 字 + 500 字重（不是反白）', (WidgetTester tester) async {
@@ -227,7 +231,7 @@ void main() {
     expect(scaler.scale(labelSize), labelSize);
 
     for (final String index
-        in <String>['01', '02', '03', '04', '05', '06', '07', '08']) {
+        in <String>['01', '02', '03', '04', '05', '06', '07']) {
       expect(
         tester.getSize(find.text(index)).width,
         moreOrLessEquals(labelSize * 1.5, epsilon: 0.0001),

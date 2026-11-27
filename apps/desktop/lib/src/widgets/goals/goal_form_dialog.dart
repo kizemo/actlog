@@ -25,6 +25,29 @@
 //  * 字段不再手打 ⇒ 不再需要「格式非法」提示与手打解析。
 //  * 保留一个「清除」入口（复用 `t.commonClear`，无新 l10n 键）⇒ 不丢原来
 //    「把期限清空」的能力。
+//
+// ---------------------------------------------------------------------------
+// B17-W2（F 条）新增，**全部向后兼容**（新字段 / 新参数一律可选）：
+//  1. 「目标类别」一行（`goal-form-category-field`）：五个预设类别 + 自定义
+//     类别 + 不设类别。存储口径复用 `Goal.domain` 列（B17 裁决 1/2）：
+//     预设 key 原样、自定义写 `custom:<trim 文本>`、不设 / 空自定义 ⇒ null。
+//     * 选「自定义类别」时出现输入框（`goal-form-category-custom-input`），
+//       文案 hint 用 `t.goalFormCustomCategoryHint`（B17-W0 已落盘）。
+//     * 选项本身用 `PopupMenuButton` 而不是 `DropdownButtonFormField`：
+//       下拉的选中项会在按钮与菜单里各渲染一份，同 ValueKey 会命中两个
+//       widget，波 C 的 `tap(find.byKey(...))` 会直接失败。
+//  2. 「起止日期」一行（`goal-form-date-range`）：**点整行**就调
+//     `showGoalPeriodDialog`（B10-B4 的共享弹窗），回填后显示
+//     `YYYY-MM-DD → YYYY-MM-DD`，两端都没设时显示 `t.goalPeriodUnset`。
+//     不要求用户先点小图标 —— 图标只是装饰。
+//  3. `showCategory` / `showPeriod` 可关：页面只想保留旧字段时传 false，
+//     两行不渲染，其余行为不变（既有 4 个调用点一行不改也编译）。
+//
+// 注意（写给波 C）：类别与「领域」复用**同一列** `Goal.domain`（B17 裁决 1），
+// 而 `projectDomainKeys` 里恰好也有 wealth/family/learning/social/health 五个
+// key。表单因此**不替调用方做取舍**：`GoalFormResult` 同时回传 `domain` 与
+// `category`，写库时由页面决定写哪一个（建议 category 优先，且两者不要互相
+// 覆盖成不同值，否则同一列会被后写的那次覆盖）。
 // =============================================================================
 
 import 'package:core_domain/core_domain.dart';
@@ -34,6 +57,8 @@ import '../../data/goal_store.dart';
 import '../../data/project_domain_catalog.dart';
 import '../../l10n/app_localizations.dart';
 import '../goal_blueprint_matrix.dart';
+import 'goal_category.dart';
+import 'goal_period_dialog.dart';
 
 /// 目标表单的返回值（未做任何字符串解析：期限已经是毫秒）。
 class GoalFormResult {
@@ -45,6 +70,9 @@ class GoalFormResult {
     required this.domain,
     required this.horizon,
     required this.dueDate,
+    this.category,
+    this.periodStart,
+    this.periodEnd,
   });
 
   /// 标题。
@@ -64,6 +92,20 @@ class GoalFormResult {
 
   /// 期限毫秒（null = 未设置）。
   final int? dueDate;
+
+  /// 类别（`Goal.domain` 口径：五个预设 key / `custom:<文本>` / null = 未设置）。
+  ///
+  /// 可选：B17 之前构造本结果的调用方（含测试）不用改。
+  final String? category;
+
+  /// 起止日期的起始（本地午夜那一刻的 `DateTime`；null = 未设置）。
+  ///
+  /// 与 [periodEnd] 一起对应 `Goal.periodStart` / `Goal.periodEnd` 的毫秒口径；
+  /// 这里回传 `DateTime` 只是为了让调用方不必自己 `fromMillisecondsSinceEpoch`。
+  final DateTime? periodStart;
+
+  /// 起止日期的结束（本地午夜那一刻的 `DateTime`；null = 无固定终点）。
+  final DateTime? periodEnd;
 }
 
 /// 打开「新建 / 编辑目标」表单。
@@ -79,6 +121,11 @@ Future<GoalFormResult?> showGoalFormDialog(
   GoalHorizon horizon = GoalHorizon.ultimate,
   GoalRow? existing,
   bool compact = false,
+  String? initialCategory,
+  DateTime? initialPeriodStart,
+  DateTime? initialPeriodEnd,
+  bool showCategory = true,
+  bool showPeriod = true,
 }) => showDialog<GoalFormResult>(
   context: context,
   builder: (BuildContext context) => GoalFormDialog(
@@ -87,6 +134,11 @@ Future<GoalFormResult?> showGoalFormDialog(
     horizon: horizon,
     existing: existing,
     compact: compact,
+    initialCategory: initialCategory,
+    initialPeriodStart: initialPeriodStart,
+    initialPeriodEnd: initialPeriodEnd,
+    showCategory: showCategory,
+    showPeriod: showPeriod,
   ),
 );
 
@@ -124,6 +176,11 @@ class GoalFormDialog extends StatefulWidget {
     required this.horizon,
     this.existing,
     this.compact = false,
+    this.initialCategory,
+    this.initialPeriodStart,
+    this.initialPeriodEnd,
+    this.showCategory = true,
+    this.showPeriod = true,
     super.key,
   });
 
@@ -142,6 +199,23 @@ class GoalFormDialog extends StatefulWidget {
   /// 是否用紧凑版式（蓝图页要更紧凑；目标月 / 周 / 年页默认保持原版式）。
   final bool compact;
 
+  /// 新建时的类别预填（`Goal.domain` 口径；null = 未设置）。
+  ///
+  /// 编辑态以 [existing] 的 `domain` 为准，本值被忽略。
+  final String? initialCategory;
+
+  /// 新建时的起始预填；编辑态以 [existing] 的 `periodStart` 为准。
+  final DateTime? initialPeriodStart;
+
+  /// 新建时的结束预填；编辑态以 [existing] 的 `periodEnd` 为准。
+  final DateTime? initialPeriodEnd;
+
+  /// 是否渲染「目标类别」一行（默认渲染；B17 之前的行为等价于 false）。
+  final bool showCategory;
+
+  /// 是否渲染「起止日期」一行（默认渲染；B17 之前的行为等价于 false）。
+  final bool showPeriod;
+
   @override
   State<GoalFormDialog> createState() => _GoalFormDialogState();
 }
@@ -152,11 +226,23 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
   late final TextEditingController _keywords;
   late final TextEditingController _due;
 
+  /// 自定义类别文本（仅 `_categoryChoice == goalCategoryCustomKey` 时可见）。
+  late final TextEditingController _customCategory;
+
   /// 领域 key（空串 = 未设置）。
   late String _domain;
 
   /// 档位。
   late GoalHorizon _horizon;
+
+  /// 类别选择：空串 = 不设类别；预设 key；或 [goalCategoryCustomKey]（自定义）。
+  late String _categoryChoice;
+
+  /// 起始（**本地午夜毫秒**；`0` = 未设置）。
+  late int _periodStartMs;
+
+  /// 结束（**本地午夜毫秒**；null = 无固定终点）。
+  int? _periodEndMs;
 
   /// 期限（**本地午夜毫秒**；null = 未设置）。
   ///
@@ -187,6 +273,32 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
       _domain = '';
     }
     _horizon = existing?.horizon ?? widget.horizon;
+
+    // 类别预填：编辑态看 `existing.domain`；新建态看 `initialCategory`。
+    final String? rawCategory = existing != null
+        ? existing.domain
+        : widget.initialCategory;
+    final String? categoryKey = goalCategoryKey(rawCategory);
+    if (categoryKey != null &&
+        categoryKey.startsWith(goalCategoryCustomPrefix)) {
+      _categoryChoice = goalCategoryCustomKey;
+      _customCategory = TextEditingController(
+        text: categoryKey.substring(goalCategoryCustomPrefix.length),
+      );
+    } else {
+      _categoryChoice = categoryKey ?? '';
+      _customCategory = TextEditingController();
+    }
+
+    // 起止预填：编辑态看库里的毫秒；新建态看 initialPeriodStart/End。
+    if (existing != null) {
+      _periodStartMs = existing.periodStart;
+      _periodEndMs = existing.periodEnd;
+    } else {
+      _periodStartMs = widget.initialPeriodStart?.millisecondsSinceEpoch ?? 0;
+      _periodEndMs = widget.initialPeriodEnd?.millisecondsSinceEpoch;
+    }
+
     _title.addListener(_onTitleChanged);
   }
 
@@ -196,6 +308,7 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
     _title.dispose();
     _note.dispose();
     _keywords.dispose();
+    _customCategory.dispose();
     _due.dispose();
     super.dispose();
   }
@@ -242,6 +355,21 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
               autofocus: widget.compact && widget.existing == null,
               decoration: _decoration(t.commonTitle),
             ),
+            if (widget.showCategory) ...<Widget>[
+              _categoryField(t),
+              if (_categoryChoice == goalCategoryCustomKey)
+                TextField(
+                  key: const ValueKey<String>(
+                    'goal-form-category-custom-input',
+                  ),
+                  controller: _customCategory,
+                  style: fieldStyle,
+                  decoration: _decoration(
+                    null,
+                    hintText: t.goalFormCustomCategoryHint,
+                  ),
+                ),
+            ],
             if (widget.compact)
               ExpansionTile(
                 key: const ValueKey<String>('goal-blueprint-form-more'),
@@ -290,6 +418,8 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
               onChanged: (GoalHorizon? value) =>
                   setState(() => _horizon = value ?? _horizon),
             ),
+            // 起止日期（B17 F 条）：点整行弹共享的起止日期对话框。
+            if (widget.showPeriod) _periodField(t),
             // 期限（B12 第 3 条）：只读字段，点一下弹日期选择器。
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,6 +466,103 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
     );
   }
 
+  /// 「目标类别」一行（B17 F 条）。
+  ///
+  /// 用 `PopupMenuButton` 承载选项（见文件头注释：下拉会把同 key 渲染两份）。
+  Widget _categoryField(AppLocalizations t) {
+    return InputDecorator(
+      key: const ValueKey<String>('goal-form-category-field'),
+      decoration: _decoration(t.goalFormCategoryLabel),
+      child: PopupMenuButton<String>(
+        tooltip: '',
+        initialValue: _categoryChoice.isEmpty
+            ? goalCategoryNoneKey
+            : _categoryChoice,
+        onSelected: (String value) => setState(() {
+          _categoryChoice = value == goalCategoryNoneKey ? '' : value;
+        }),
+        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+          for (final String key in goalCategoryKeys)
+            PopupMenuItem<String>(
+              key: ValueKey<String>('goal-form-category-$key'),
+              value: key,
+              child: Text(goalCategoryLabel(t, key)),
+            ),
+          PopupMenuItem<String>(
+            key: const ValueKey<String>(
+              'goal-form-category-$goalCategoryCustomKey',
+            ),
+            value: goalCategoryCustomKey,
+            child: Text(goalCategoryLabel(t, goalCategoryCustomKey)),
+          ),
+          PopupMenuItem<String>(
+            key: const ValueKey<String>(
+              'goal-form-category-$goalCategoryNoneKey',
+            ),
+            value: goalCategoryNoneKey,
+            child: Text(t.goalBlueprintFieldUnset),
+          ),
+        ],
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                _categoryText(t),
+                key: const ValueKey<String>('goal-form-category-text'),
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 类别字段的显示文本（未设置时与「不设类别」同一措辞）。
+  String _categoryText(AppLocalizations t) {
+    if (_categoryChoice.isEmpty) {
+      return t.goalBlueprintFieldUnset;
+    }
+    if (_categoryChoice == goalCategoryCustomKey) {
+      final String text = _customCategory.text.trim();
+      return text.isEmpty ? goalCategoryLabel(t, goalCategoryCustomKey) : text;
+    }
+    return goalCategoryLabel(t, _categoryChoice);
+  }
+
+  /// 「起止日期」一行（B17 F 条）：整行可点，点开共享的起止日期对话框。
+  Widget _periodField(AppLocalizations t) {
+    return InkWell(
+      key: const ValueKey<String>('goal-form-date-range'),
+      onTap: _pickPeriod,
+      borderRadius: BorderRadius.circular(4),
+      child: InputDecorator(
+        decoration: _decoration(t.goalFormDateRange),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                _periodText(t),
+                key: const ValueKey<String>('goal-form-date-range-text'),
+              ),
+            ),
+            const Icon(Icons.date_range_outlined, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 起止字段的显示文本：两端都空 ⇒ `goalPeriodUnset`，否则 `start → end`。
+  String _periodText(AppLocalizations t) {
+    if (_periodStartMs <= 0 && _periodEndMs == null) {
+      return t.goalPeriodUnset;
+    }
+    final String start = _periodStartMs > 0 ? _formatDay(_periodStartMs) : '—';
+    final String end = _periodEndMs == null ? '—' : _formatDay(_periodEndMs);
+    return '$start → $end';
+  }
+
   /// 字段外框。
   ///
   /// 紧凑版（[compact] = true）：`isDense` + 收紧内边距 —— 蓝图页的填写框要
@@ -374,6 +601,23 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
     });
   }
 
+  /// 弹共享的起止日期对话框，并把结果写回表单状态（本函数不写库）。
+  Future<void> _pickPeriod() async {
+    final GoalPeriodResult? result = await showGoalPeriodDialog(
+      context,
+      t: widget.t,
+      startMs: _periodStartMs,
+      endMs: _periodEndMs,
+    );
+    if (result == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _periodStartMs = result.startMs;
+      _periodEndMs = result.endMs;
+    });
+  }
+
   /// 既有期限可能落在选择器区间之外（别的来源写的）⇒ 先夹进区间再打开。
   DateTime _clampToPickerRange(DateTime value) {
     if (value.isBefore(_pickerFirst)) {
@@ -393,6 +637,17 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
     });
   }
 
+  /// 类别选择 ⇒ 存储值（`Goal.domain` 口径）。
+  ///
+  /// 自定义类别 trim 后为空 ⇒ 视同不设类别（null），避免出现空标题的分区。
+  String? _categoryResult() {
+    if (_categoryChoice == goalCategoryCustomKey) {
+      final String text = _customCategory.text.trim();
+      return text.isEmpty ? null : '$goalCategoryCustomPrefix$text';
+    }
+    return _categoryChoice.isEmpty ? null : _categoryChoice;
+  }
+
   /// 把结果交回页面（本函数**不写库**）。
   void _submit() {
     Navigator.of(context).pop(
@@ -403,6 +658,13 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
         domain: _domain,
         horizon: _horizon,
         dueDate: _dueMs,
+        category: _categoryResult(),
+        periodStart: _periodStartMs > 0
+            ? DateTime.fromMillisecondsSinceEpoch(_periodStartMs)
+            : null,
+        periodEnd: _periodEndMs == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(_periodEndMs!),
       ),
     );
   }
@@ -433,6 +695,11 @@ class _GoalFormDialogState extends State<GoalFormDialog> {
 ///
 /// 宽度固定 [width]（= 两个 28 的点击区），与表头预留的空列同宽 —— 行与表头
 /// 必须用同一个常量，否则列会错位。
+///
+/// B17 F 条：新增**可选**的完成单选 —— [onToggleDone] 为 null 时该按钮**不
+/// 渲染**，宽度仍为 [width]（蓝图矩阵 `shrinkWrap` 布局与既有断言依赖 56）。
+/// 传了回调时总宽 = [width] + [doneWidth]（见 [totalWidth]），波 C 的表头预留
+/// 列必须跟着用 [totalWidth]，否则列错位。
 class GoalRowActions extends StatelessWidget {
   /// 构造。
   const GoalRowActions({
@@ -441,11 +708,17 @@ class GoalRowActions extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.t,
+    this.goalId,
+    this.isDone = false,
+    this.onToggleDone,
     super.key,
   });
 
-  /// 操作列宽度（两个 28 宽的点击区）。
+  /// 编辑 / 删除两个按钮的宽度（各 28）。
   static const double width = 56;
+
+  /// 完成单选的宽度（仅 [onToggleDone] 非 null 时占用）。
+  static const double doneWidth = 24;
 
   /// 编辑按钮的 ValueKey（如 `goal-month-row-edit-<id>`）。
   final String editKey;
@@ -462,17 +735,34 @@ class GoalRowActions extends StatelessWidget {
   /// 文案表（tooltip 用；页面 context 上取的实例）。
   final AppLocalizations t;
 
+  /// 目标 id（只用于拼完成单选的 ValueKey；null / 空 ⇒ 退化为 `goal-row-done`）。
+  final String? goalId;
+
+  /// 是否已完成（选中 = 已完成）。
+  final bool isDone;
+
+  /// 点完成单选；null ⇒ 不渲染该按钮（蓝图矩阵走这条路径）。
+  final VoidCallback? onToggleDone;
+
+  /// 这一行操作列的实际宽度：没有完成单选时仍是 [width]。
+  double get totalWidth => onToggleDone == null ? width : width + doneWidth;
+
   @override
   Widget build(BuildContext context) {
+    final String? id = goalId;
+    final String doneKey = id == null || id.isEmpty
+        ? 'goal-row-done'
+        : 'goal-row-done-$id';
+    final VoidCallback? toggle = onToggleDone;
     // `IconButton` 默认按 `MaterialTapTargetSize.padded` 把点击区撑到 48×48，
     // 两个按钮就要 96 宽，会把这条 56 宽的操作列挤爆（实测溢出 40px）。
-    // 这里显式 shrinkWrap，让点击区回到 `constraints` 给的 28×28。
+    // 这里显式 shrinkWrap，让点击区回到 `constraints` 给的尺寸。
     return Theme(
       data: Theme.of(context).copyWith(
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       child: SizedBox(
-        width: width,
+        width: totalWidth,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -494,6 +784,22 @@ class GoalRowActions extends StatelessWidget {
               constraints: const BoxConstraints.tightFor(width: 28, height: 28),
               tooltip: t.commonDelete,
             ),
+            if (toggle != null)
+              IconButton(
+                key: ValueKey<String>(doneKey),
+                onPressed: toggle,
+                icon: Icon(
+                  isDone ? Icons.check_circle : Icons.radio_button_unchecked,
+                ),
+                iconSize: 16,
+                color: isDone ? Theme.of(context).colorScheme.primary : null,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: doneWidth,
+                  height: 28,
+                ),
+                tooltip: t.goalRowDoneTooltip,
+              ),
           ],
         ),
       ),

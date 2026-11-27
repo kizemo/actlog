@@ -9,8 +9,10 @@
 //  2. **标签页 = Chrome/Edge 浏览器标签**（B12 第 2 条，用户给的参照物）：
 //     标签条底 = 纸（`tokens.paper`）；**活动标签 = 浅洗底（`tokens.inkWash`）**
 //     + 顶部 3px 实色指示条 ⇒ 靠「底色差 + 指示条」标出当前档；非活动标签 =
-//     下沉色（`tokens.sunken`，偏灰）+ 底边抬高 6px + 标签之间
-//     1px hairline 分隔。顶部圆角 8px（[GoalBlueprintMatrix.chromeTabTopRadius]）
+//     下沉色（`tokens.sunken`，偏灰）。B17-A：四档**两态等高**
+//     （[GoalBlueprintMatrix.tabHeight]），标签之间留 8px 间距
+//     （[GoalBlueprintMatrix.tabGap]）、间距正中 1px hairline 分隔。
+//     顶部圆角 8px（[GoalBlueprintMatrix.chromeTabTopRadius]）
 //     是本轮**唯一**超出 `AppTokens.radius`（4px）的例外，其余圆角/配色一律走
 //     `theme_tokens.dart` 的 `LightPalette`。四档都用 `Tooltip` 悬停显示时长
 //     （B10-B2，文案来自 `t.` getter）。
@@ -33,17 +35,19 @@
 //       分流理由见 `_periodText`），
 //       而「完成：」取 `archivedAt` 这个**时刻**（⇒ 按本地时区显示，`_momentText`），
 //       否则东八区 00:00–08:00 勾完成会显示成前一天；
-//       改期按钮（`goal-blueprint-period-<id>`）只在传了 `onEditGoalPeriod` 时渲染，
-//       且只管**蓝图目标**（年目标在本页改周期会与年页口径打架）。
+//       B17 第 B 条：改期的**唯一**入口是日期文本自身（`goal-blueprint-period-tap-<id>`），
+//       只在传了 `onEditGoalPeriod` 时渲染，且只管**蓝图目标**（年目标在本页改周期
+//       会与年页口径打架）；原先并排的「日期」图标按钮（`goal-blueprint-period-<id>`）
+//       已删除 —— 它和日期文本指向同一个对话框，属于重复入口。
 //     * B12 第 3 条：**起止缺省时回退显示期限**（`dueDate`，本地午夜毫秒 ⇒ 按本地
 //       时区取日）。表单写的是 `due_date`、第三列读的是 `period_*` —— 两侧来源
 //       不一致才是「填了日期第三列不显示」的根因；页面侧同步写 `period_end`，
 //       矩阵侧再兜底显示 `due_date` ⇒ 新旧数据都能在第三列看到日期。
 //
-// 本模块使用 3 个 Material 图标，一律 `*_outlined` 系（AGENTS.md 例外清单以外
-// 不自造；坑 105）：`Icons.edit_outlined`（改目标）、`Icons.call_split`（拆待办）、
-// `Icons.date_range_outlined`（B13 第 3 条：起止日期入口 —— 原先用文字「起止日期」
-// 占满单元格，与相邻图标语言不统一；换图标后 tooltip、键名与对话框语义一字未改）。
+// 本模块使用 2 个 Material 图标，一律 `*_outlined` 系（AGENTS.md 例外清单以外
+// 不自造；坑 105）：`Icons.edit_outlined`（改目标）、`Icons.call_split`（拆待办）。
+// B13 第 3 条曾把「起止日期」文字入口换成 `Icons.date_range_outlined`；B17 第 B 条
+// 判定它与日期文本重复，图标按钮连同其 Tooltip 一并下线（改期仍由日期文本承担）。
 // 「+」仍用文字符号（坑 51：桌面测试不预载 MaterialIcons 字体）。
 // =============================================================================
 
@@ -168,18 +172,18 @@ class GoalBlueprintMatrix extends StatefulWidget {
   /// 一律走 `theme_tokens.dart` 的 `LightPalette`（`ThemeTokens`）。
   static const double chromeTabTopRadius = 8;
 
-  /// 活动标签高度（px）。
+  /// 标签页高度（px）—— **活动态与非活动态同高**（B17 任务 A）。
   ///
-  /// B13 第 2 条：34 → 38（字号 15 + 衬线体后垂直方向更舒展）。
-  /// B16 第 3 条：38 → 46（用户要求「页签加大垂直内边距、文字不拥挤」：
-  /// 上下各 4px 内边距 + `minimumSize` 兜底，见 [tabVerticalPadding]）。
-  static const double tabActiveHeight = 46;
+  /// 沿革：B13 第 2 条 34 / 28；B16 第 3 条 46 / 39（刻意保留 7px 落差）；
+  /// B17 任务 A 用户要求「页签加宽 + 两态等高」⇒ 收敛成**单一**常量 46px，
+  /// 两态不再有落差，页签条上下沿齐平（原先「非活动标签下沉」的台阶消失）。
+  static const double tabHeight = 46;
 
-  /// 非活动标签高度（px）。
+  /// 标签之间的水平间距（px，B17 任务 A）。
   ///
-  /// B13 第 2 条：28 → 31；B16 第 3 条：31 → 39（与活动态同幅加 8px，
-  /// 保持两者 7px 落差 ⇒ 页签轮廓的「凸起感」不变）。
-  static const double tabInactiveHeight = 39;
+  /// 页签条按 [tabGap] 排布；1px hairline 分隔线**居中**于这个间距
+  /// （槽宽 [tabGap]，线宽 1px，两侧各留 3.5px）。
+  static const double tabGap = 8;
 
   /// 标签页**垂直**内边距（px，B16 第 3 条）。
   ///
@@ -188,9 +192,6 @@ class GoalBlueprintMatrix extends StatefulWidget {
   /// 字号 / 水平内边距 / 指示条宽度一律不动（`b14_tab_scale_test` 的
   /// 760 宽 11px 红线余量只与水平方向有关，不受这 8px 影响）。
   static const double tabVerticalPadding = 4;
-
-  /// 非活动标签底边相对内容区抬高的高度（px）⇒ 不与内容区相接。
-  static const double tabInactiveLift = 6;
 
   /// 档位标签字号（px）。
   ///
@@ -201,20 +202,17 @@ class GoalBlueprintMatrix extends StatefulWidget {
 
   /// 档位标签水平内边距（px）。
   ///
-  /// B13 第 2 条：10 → 18（字变大后需要更松的内边距，否则字贴着标签轮廓）。
+  /// 沿革：B13 第 2 条 10 → 18（字变大后需要更松的内边距）；B14（stage 4 ·
+  /// A1）18 → 10（760 宽英文态 11px 红线余量 ≥ 1.00px 的硬约束）；
+  /// **B17 任务 A：10 → 16**（用户要求「页签加宽」）。
   ///
-  /// B14（stage 4 · A1）：18 → 10。**为什么这是唯一可动的杠杆**：英文态 760
-  /// 宽真页面的四个标签字形宽合计 830.5px 是不可压的（字号 15 与文案固定），
-  /// 而四个标签的左右内边距合计 4 × 2 × 18 = 144px 是自然宽里唯一可压缩的
-  /// 部分。18 → 10 ⇒ 自然宽 976.5 → 912.5，760 宽真页面的缩放比例
-  /// 0.747568 → 0.813151，显示字号 11.21px → 12.20px ⇒ 相对 11px 红线的
-  /// 余量 0.21px → 1.20px（判据：余量 ≥ 1.00px，**红线 11px 不得放宽**）。
-  ///
-  /// **10 是硬下限**：再降到 9，中文 320 宽那组就不再触发 scaleDown
-  /// ⇒ `b14_tab_scale_test.dart` 的 T4 量具自检会失效。
+  /// 红线口径不变：`b14_tab_scale_test.dart` 仍按「显示字号 ≥ 12.00px、
+  /// 余量 ≥ 1.00px」判 760 宽英文态；英文文案已由 W0 缩为
+  /// `Short-term` / `Mid-term` / `Long-term` / `Ultimate`，本常量只调松紧、
+  /// **不得**为过判据而回调红线数字。
   ///
   /// 写成命名常量以满足 §2 E4「不新增魔法数」。
-  static const double _tabPadding = 10;
+  static const double _tabPadding = 16;
 
   /// 单元格内边距：垂直 11px、水平 8px。
   ///
@@ -544,8 +542,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
   ///  * 标签条底 = 纸（`tokens.paper`）—— 相当于浏览器的工具条；
   ///  * **活动标签底 = 浅洗底（`tokens.inkWash`）** + 顶部 3px 实色指示条
   ///    ⇒ 靠「底色差 + 指示条」标出当前档（不再与内容区同色融合）；
-  ///  * 非活动标签 = 下沉色（`tokens.sunken`，偏灰）+ 底边抬高 6px；
-  ///  * 标签之间的 1px hairline 只画在**两个非活动标签之间**（活动标签两侧留空）。
+  ///  * 非活动标签 = 下沉色（`tokens.sunken`，偏灰）；B17-A 起两态**等高**；
+  ///  * 标签之间留 [GoalBlueprintMatrix.tabGap] 间距，1px hairline **居中**于
+  ///    该间距；线只画在**两个非活动标签之间**（活动标签两侧留空）。
   ///
   /// 整条标签条用 `FittedBox(scaleDown)` 兜底 ⇒ 窄视口（1920 / 2520）不溢出。
   Widget _tabStrip({
@@ -567,16 +566,18 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
             for (int i = 0; i < tabs.length; i++) ...<Widget>[
-              if (i > 0 && tabs[i] != _selected && tabs[i - 1] != _selected)
-                Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: GoalBlueprintMatrix.tabInactiveLift,
-                  ),
-                  child: Container(
-                    width: 1,
-                    height: 14,
-                    color: tokens.hairSoft,
-                  ),
+              if (i > 0)
+                Container(
+                  width: GoalBlueprintMatrix.tabGap,
+                  height: 14,
+                  alignment: Alignment.center,
+                  child: tabs[i] != _selected && tabs[i - 1] != _selected
+                      ? Container(
+                          width: 1,
+                          height: 14,
+                          color: tokens.hairSoft,
+                        )
+                      : const SizedBox.shrink(),
                 ),
               _tab(tabs[i], style: tabStyle, tokens: tokens),
             ],
@@ -589,7 +590,8 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
   /// 一个档位标签页（Chrome/Edge 浏览器标签风格）。
   ///
   /// 活动标签 = 浅洗底（`tokens.inkWash`）+ 顶部圆角 8px + 顶部 3px 指示条；
-  /// 非活动标签 = 下沉色（`tokens.sunken`）+ 顶部圆角 8px + 底边抬高 6px。
+  /// 非活动标签 = 下沉色（`tokens.sunken`）+ 顶部圆角 8px；B17-A 起两态**同高**
+  /// （[GoalBlueprintMatrix.tabHeight]），不再有「底边抬高」的落差。
   /// 仍用 `TextButton`（保留按钮语义与键盘可达性），键名与文案一字未改。
   Widget _tab(
     GoalHorizon horizon, {
@@ -599,12 +601,7 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
     final bool active = horizon == _selected;
     return Tooltip(
       message: _horizonSpan(horizon),
-      child: Padding(
-        // 非活动标签整体抬高 ⇒ 底边不与内容区相接（浏览器观感）。
-        padding: EdgeInsets.only(
-          bottom: active ? 0 : GoalBlueprintMatrix.tabInactiveLift,
-        ),
-        // 选中态 = 淡染底 + **顶部 3px 实色条**（B14 第 3 条）。
+      // 选中态 = 淡染底 + **顶部 3px 实色条**（B14 第 3 条）。
         // 指示条单独铺在标签顶边：底色与内容区同色时它提供唯一的方向线索；
         // 用 `IgnorePointer` 包住，免得抢走标签顶部 3px 的点击。
         child: Stack(
@@ -620,18 +617,15 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                 backgroundColor: active ? tokens.inkWash : tokens.sunken,
             foregroundColor: active ? tokens.ink : tokens.meta,
             // B13 第 2 条曾把水平内边距加到 18；B14（stage 4 · A1）收到 10
-            // （`_tabPadding`）—— 760 宽英文真页面的 11px 红线余量 ≥ 1.00px 靠这条。
-            // B16 第 3 条：加垂直 4px（文字上下不再贴轮廓），水平 10 不动。
+            // （`_tabPadding`）—— 760 宽英文真页面的 11px 红线余量靠这条。
+            // B16 第 3 条：加垂直 4px（文字上下不再贴轮廓）。
+            // B17-A：水平 10 → 16（「页签加宽」），垂直 4 不动。
             padding: const EdgeInsets.symmetric(
               horizontal: GoalBlueprintMatrix._tabPadding,
               vertical: GoalBlueprintMatrix.tabVerticalPadding,
             ),
-            minimumSize: Size(
-              0,
-              active
-                  ? GoalBlueprintMatrix.tabActiveHeight
-                  : GoalBlueprintMatrix.tabInactiveHeight,
-            ),
+            // B17-A：两态等高 ⇒ 单一 tabHeight，不再按 active 分支取值。
+            minimumSize: const Size(0, GoalBlueprintMatrix.tabHeight),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             elevation: 0,
             shape: const RoundedRectangleBorder(
@@ -681,7 +675,6 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
               ),
           ],
         ),
-      ),
     );
   }
 
@@ -976,8 +969,9 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                 // 不省略号），常态宽度下 scaleDown 不生效、字号原样。
                 //
                 // B16 第 4 条：**点日期一点即出**选择界面 —— 日期文本自身就是
-                // 入口（不必先找右侧图标）；没有改期回调 / 非蓝图目标时保持
-                // 纯文本（与下方图标同一门槛：年目标的周期归年页管）。
+                // 入口；没有改期回调 / 非蓝图目标时保持纯文本。B17 第 B 条：
+                // 原先并排的图标按钮已下线 ⇒ 这里是改期**唯一**的入口
+                // （年目标的周期归年页管，与本门槛无关）。
                 if (widget.onEditGoalPeriod != null &&
                     goal.kind == GoalKind.blueprint)
                   InkWell(
@@ -1006,24 +1000,6 @@ class _GoalBlueprintMatrixState extends State<GoalBlueprintMatrix> {
                     '${_momentText(goal.archivedAt)}',
                     key: ValueKey<String>('goal-blueprint-done-on-${goal.id}'),
                     style: metaStyle,
-                  ),
-                // 年目标的周期归年页管，本页只改蓝图目标（与 _actions 同门槛）。
-                if (widget.onEditGoalPeriod != null &&
-                    goal.kind == GoalKind.blueprint)
-                  _compactButton(
-                    key: ValueKey<String>('goal-blueprint-period-${goal.id}'),
-                    onPressed: () => widget.onEditGoalPeriod!(
-                      goal,
-                      goal.periodStart,
-                      goal.periodEnd,
-                    ),
-                    tooltip: widget.t.goalBlueprintPeriodTitle,
-                    // B13 第 3 条：文字「起止日期」→ 日历图标。入口语义不变：
-                    // 键名、tooltip（仍为「起止日期」，语义树不丢）与点击打开的
-                    // 对话框一律照旧。尺寸/颜色走 `_compactButton` 既有机制
-                    // （`iconSize` + `IconButton` 前景色），不在图标上重复覆写。
-                    child: const Icon(Icons.date_range_outlined),
-                    iconSize: 16,
                   ),
               ],
             ),

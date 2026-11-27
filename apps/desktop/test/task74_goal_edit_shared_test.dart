@@ -105,7 +105,9 @@ class _HostState extends State<_Host> {
       return 'result:null';
     }
     return 'result:${form.title}|${form.note}|${form.keywords}|'
-        '${form.domain}|${form.horizon.name}|${form.dueDate}';
+        '${form.domain}|${form.horizon.name}|${form.dueDate}|'
+        '${form.category}|${form.periodStart?.millisecondsSinceEpoch}|'
+        '${form.periodEnd?.millisecondsSinceEpoch}';
   }
 }
 
@@ -149,6 +151,18 @@ void main() {
         reason: 'W1 契约键 $key 必须仍然存在（共享化不得撕毁既有用例）',
       );
     }
+
+    // B17 波 B：两个新行默认渲染 —— 旧调用点一行不改也能用（向后兼容）。
+    expect(
+      find.byKey(const ValueKey<String>('goal-form-category-field')),
+      findsOneWidget,
+      reason: '类别行默认渲染，且不改动旧 8 键',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('goal-form-date-range')),
+      findsOneWidget,
+      reason: '起止日期行默认渲染，且不改动旧 8 键',
+    );
 
     // 空标题 ⇒ 保存不可点。
     final TextButton save = tester.widget<TextButton>(
@@ -231,6 +245,20 @@ void main() {
     expect(parts[3], 'career');
     expect(parts[4], 'mid');
     expect(parts[5], '${DateTime(2026, 12, 31).millisecondsSinceEpoch}');
+    // B17 波 B：三个新字段一并回传。
+    // `_existing.domain == 'career'` 不是五个预设类别之一 ⇒ 类别回 null，
+    // 不得把旧 domain 值硬塞进类别列。
+    expect(
+      parts[6],
+      'null',
+      reason: '非预设类别的旧 domain 不得被当成类别写回',
+    );
+    expect(
+      parts[7],
+      '${_existing.periodStart}',
+      reason: '编辑态起止必须由库里既有毫秒预填并原样回传',
+    );
+    expect(parts[8], 'null', reason: '库里无终点 ⇒ 回 null，不得编造');
   });
 
   testWidgets('删除确认框：取消返回 false，确认返回 true', (WidgetTester tester) async {
@@ -306,6 +334,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(GoalRowActions.width, 56, reason: '表头预留列与行尾按钮组必须同宽');
+    expect(
+      GoalRowActions.doneWidth,
+      24,
+      reason: 'B17 完成按钮位宽单独给常量，不改既有 56 的语义',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('goal-row-done')),
+      findsNothing,
+      reason: 'onToggleDone == null 时不渲染完成按钮（旧调用点视觉零变化）',
+    );
 
     await tester.tap(find.byKey(const ValueKey<String>('row-edit-1')));
     await tester.pumpAndSettle();

@@ -1,13 +1,14 @@
 // =============================================================================
-// Task 66 · 年目标页（UI 半批 B2）
+// Task 66 · 年目标页（UI 半批 B2；B17 W4 之后本页只剩表一）
 // =============================================================================
-// 本文件钉住年页的五条口径：
+// 本文件钉住年页的两条口径：
 //  1. 表一给出本年的年度目标（类别 / 序号 / 目标 / 方法和措施 / 起止时间 / 完成）。
-//  2. 表二（行 = 年目标 × 列 = 1–12 月）的**有月格来自 serves 真实数据**；
-//     空格合法（不报错），点开可就地输入标题进「待确认草稿」。
-//  3. 年度复盘给「完成 N 项 / 自评总分 / 自评均值」。
-//  4. 80/20 视角**只呈现执行记录条数**：区块内**没有 `%`**、不评分、不排名。
-//  5. 滚动候选**只算不写**：未确认前库里 0 增量；确认后落库 `status='draft'`。
+//  2. B17 E 条：表二 12 月格 / 年度复盘 / 80-20 视角 / 待确认草稿队列 / 表二空格
+//     新增流程的 **UI 入口全部下线**；**数据层（`GoalYearView` /
+//     `loadGoalYearView`）与 l10n getter 保留**。
+//
+// 因此第 2 条在用例里一律是 `findsNothing` 反向断言 —— 用例**没有删**，只是把
+// 「必须显示」翻成「必须不显示」；同时补一条库层断言，证明下线的是 UI 而不是数据。
 //
 // 测试接**真库**（内存 drift）：判据是「库里的真实行数与状态」，不是 UI 像素。
 // =============================================================================
@@ -21,12 +22,7 @@ import 'package:actlog/src/theme/density_profile.dart';
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart' hide Goal, GoalLink;
 import 'package:core_domain/core_domain.dart'
-    show
-        GoalKind,
-        GoalPeriod,
-        GoalRelation,
-        GoalStatus,
-        GoalTargetType;
+    show GoalKind, GoalPeriod, GoalRelation, GoalTargetType;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` 只在 misc.dart 导出（3.5.0 起 flutter_riverpod.dart 不再带它）。
@@ -136,73 +132,102 @@ void main() {
     await db.close();
   });
 
-  testWidgets('年页：表二 12 月格来自 serves 真实数据，空格合法',
+  testWidgets('年页：表一给出本年年度目标，表二 12 月格已下线',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store, repos);
     await _pumpYear(tester, repos: repos);
 
-    // 表一：本年的年度目标。
+    final AppLocalizations zh = AppLocalizations.zh;
+
+    // 表一：本年的年度目标仍在（行键 = 契约）。
     expect(
       find.byKey(ValueKey<String>('goal-year-row-${seed.yearlyId}')),
       findsOneWidget,
     );
-    // 表二：三月格有真实数据（走 `serves` 链）。
+    // 行按类别分区：`career` 不是目标类别 ⇒ 归「未分类」（B17 裁决 2）。
+    expect(
+      find.byKey(const ValueKey<String>('goal-section-none')),
+      findsOneWidget,
+    );
+    expect(find.text(zh.goalCategoryUncategorized), findsAtLeastNWidgets(1));
+
+    // B17 E 条：表二（行 = 年目标 × 列 = 1–12 月）整块下线 ⇒ 月格与空格都不渲染。
     expect(
       find.byKey(ValueKey<String>('goal-year-cell-${seed.yearlyId}-3')),
-      findsOneWidget,
+      findsNothing,
+      reason: '表二的月格已随区块下线',
     );
-    expect(find.text('三月子目标'), findsOneWidget);
-    // 空格合法：别的月份就是「该月未展开」，不报错。
     expect(
       find.byKey(ValueKey<String>('goal-year-cell-empty-${seed.yearlyId}-1')),
-      findsOneWidget,
+      findsNothing,
+      reason: '表二的空格也一并下线',
     );
+    expect(
+      find.text('三月子目标'),
+      findsNothing,
+      reason: '月目标只出现在表二的月格里，表二下线后不应渲染',
+    );
+
+    // 下线的是 UI，不是数据：serves 链上的月目标仍真实存在。
+    final GoalRow march = (await store.listGoals()).firstWhere(
+      (GoalRow goal) => goal.id == seed.marchId,
+    );
+    expect(march.kind, GoalKind.monthly);
+    expect(await store.servedGoals(march.id), isNotEmpty);
   });
 
-  testWidgets('年页：年度复盘给完成数 / 自评总分 / 自评均值',
-      (WidgetTester tester) async {
-    await _seed(store, repos);
-    await _pumpYear(tester, repos: repos);
-
-    final AppLocalizations zh = AppLocalizations.zh;
-    expect(find.text('${zh.goalYearReviewDone} 0'), findsOneWidget);
-    expect(find.text('${zh.goalYearReviewScoreTotal} 8'), findsOneWidget);
-    expect(find.text('${zh.goalYearReviewScoreAverage} 8.0'), findsOneWidget);
-    expect(find.text(zh.goalYearReviewSelfNote), findsOneWidget);
-  });
-
-  testWidgets('年页：80/20 只呈现执行记录条数，区块内没有百分比',
+  testWidgets('年页：年度复盘块已下线（自评仍在库里）',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store, repos);
     await _pumpYear(tester, repos: repos);
 
     final AppLocalizations zh = AppLocalizations.zh;
-    final Finder block = find.byKey(
-      const ValueKey<String>('goal-year-8020-block'),
+    // 旧断言逐条翻成 `findsNothing`：完成数 / 自评总分 / 自评均值 / 脚注 / 段头。
+    expect(find.text('${zh.goalYearReviewDone} 0'), findsNothing);
+    expect(find.text('${zh.goalYearReviewScoreTotal} 8'), findsNothing);
+    expect(find.text('${zh.goalYearReviewScoreAverage} 8.0'), findsNothing);
+    expect(find.text(zh.goalYearReviewSelfNote), findsNothing);
+    expect(find.text(zh.goalYearReviewSection), findsNothing);
+
+    // 数据层保留：自评 8 分仍在目标行上，只是不再有复盘 UI 去汇总它。
+    final GoalRow yearly = (await store.listGoals()).firstWhere(
+      (GoalRow goal) => goal.id == seed.yearlyId,
     );
-    expect(block, findsOneWidget);
+    expect(yearly.selfScore, 8);
+  });
+
+  testWidgets('年页：80/20 视角块已下线（不呈现条数、没有百分比）',
+      (WidgetTester tester) async {
+    final _Seed seed = await _seed(store, repos);
+    await _pumpYear(tester, repos: repos);
+
+    final AppLocalizations zh = AppLocalizations.zh;
+    expect(
+      find.byKey(const ValueKey<String>('goal-year-8020-block')),
+      findsNothing,
+      reason: '80/20 区块已随 E 条下线',
+    );
     expect(
       find.byKey(ValueKey<String>('goal-year-8020-${seed.yearlyId}')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.text('年度主攻 · 1 ${zh.goalYear8020Tracks}'),
-      findsOneWidget,
+      findsNothing,
+      reason: '执行记录条数不再呈现',
     );
-    // 区块内不出现 `%`（不评分、不排名）。
-    final Iterable<Text> texts = tester.widgetList<Text>(
-      find.descendant(of: block, matching: find.byType(Text)),
-    );
+    // 全页不出现 `%`（不评分、不排名）。
+    final Iterable<Text> texts = tester.widgetList<Text>(find.byType(Text));
     expect(
       texts.any((Text widget) => (widget.data ?? '').contains('%')),
       isFalse,
-      reason: '80/20 区块只呈现条数，不给百分比',
+      reason: '年页不呈现百分比',
     );
   });
 
-  // B16 项 5：左列底部「滚动候选」段头卡已撤掉 —— 候选列表与它的加号都
-  // 不再渲染；「待确认草稿」队列仍挂在「十二月矩阵」卡下，空态照旧可见。
-  testWidgets('年页：滚动候选段头卡已撤，候选不渲染且库零增量',
+  // B16 项 5 撤掉了「滚动候选」段头卡；B17 E 条又把挂在表二卡下的
+  // 「待确认草稿」队列一起下线 ⇒ 整条候选 / 草稿链路在本页都不再渲染。
+  testWidgets('年页：滚动候选与待确认草稿队列均已下线，库零增量',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store, repos);
     await _pumpYear(tester, repos: repos);
@@ -220,68 +245,52 @@ void main() {
       findsNothing,
       reason: '候选的加号入口也一并撤掉',
     );
-    // 待确认草稿队列本体保留在矩阵卡底部（此处为空态）。
-    expect(find.text(zh.goalDraftPending), findsOneWidget);
+    // 待确认草稿队列本体随表二卡下线（旧断言是 findsOneWidget，此处反向）。
+    expect(find.text(zh.goalDraftPending), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('goal-year-pending-empty')),
-      findsOneWidget,
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('goal-year-draft-confirm')),
+      findsNothing,
     );
     // 没有任何自动落库路径。
     expect((await store.listGoals()).length, before);
   });
 
-  testWidgets('年页：表二空格新增月目标，确认后落库并挂上 serves 链',
+  testWidgets('年页：表二空格新增流程已下线（cell 键一律不渲染，库零增量）',
       (WidgetTester tester) async {
     final _Seed seed = await _seed(store, repos);
     await _pumpYear(tester, repos: repos);
 
     final int before = (await store.listGoals()).length;
-
-    final Finder cell = find.byKey(
-      ValueKey<String>('goal-year-cell-empty-${seed.yearlyId}-5'),
-    );
-    await tester.ensureVisible(cell);
-    await tester.tap(cell);
-    await tester.pump();
-
-    final Finder input = find.byKey(
-      ValueKey<String>('goal-year-cell-input-${seed.yearlyId}-5'),
-    );
-    await tester.enterText(input, '五月子目标');
-    final Finder add = find.byKey(
-      ValueKey<String>('goal-year-cell-add-${seed.yearlyId}-5'),
-    );
-    await tester.ensureVisible(add);
-    await tester.tap(add);
-    await tester.pump();
-
+    // 旧的「点空格 → 输入 → 加入待确认草稿 → 确认落库」四步入口全部不渲染。
+    for (final String key in <String>[
+      'goal-year-cell-empty-${seed.yearlyId}-5',
+      'goal-year-cell-input-${seed.yearlyId}-5',
+      'goal-year-cell-add-${seed.yearlyId}-5',
+      'goal-year-draft-confirm',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>(key)),
+        findsNothing,
+        reason: '表二空格新增入口 $key 已下线',
+      );
+    }
+    // 表一非空 ⇒ 空态文案不渲染。
     expect(
-      find.byKey(const ValueKey<String>('goal-year-pending-五月子目标')),
-      findsOneWidget,
+      find.byKey(const ValueKey<String>('goal-year-goals-empty')),
+      findsNothing,
     );
-    // 还没点确认 ⇒ 库里 0 增量。
+    // 本页不再有任何写库路径 ⇒ 行数不变，五月也不会凭空多出月目标。
     expect((await store.listGoals()).length, before);
-
-    final Finder confirm = find.byKey(
-      const ValueKey<String>('goal-year-draft-confirm'),
-    );
-    await tester.ensureVisible(confirm);
-    await tester.tap(confirm);
-    await tester.pumpAndSettle();
-
-    final List<GoalRow> rows = await store.listGoals();
-    final GoalRow created = rows.firstWhere(
-      (GoalRow goal) => goal.title == '五月子目标',
-    );
-    expect(created.kind, GoalKind.monthly);
-    expect(created.status, GoalStatus.draft);
-    expect(created.parentId, seed.yearlyId);
-    expect(created.periodStart, GoalPeriod.month(2026, 5).startMillis);
-    final List<GoalRow> parents = await store.servedGoals(created.id);
     expect(
-      parents.map((GoalRow goal) => goal.id),
-      contains(seed.yearlyId),
-      reason: '空格新增的月目标要自动挂到年目标下',
+      (await store.listGoals()).where(
+        (GoalRow goal) =>
+            goal.periodStart == GoalPeriod.month(2026, 5).startMillis,
+      ),
+      isEmpty,
     );
   });
 }

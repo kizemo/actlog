@@ -1,10 +1,11 @@
 // apps/desktop/test/nav_shortcut_test.dart
 //
 // Task 20（裁定 K7 / K8）+ B2（2026-11-12 T10）+ Task 56 守切页快捷键：
-//  - B16 起 `Ctrl` 序号与左导航序位 **1:1 绑定**（导航序位重排，落点跟着改）：
-//    `Ctrl+1` 今日 / `Ctrl+2` 待办池 / `Ctrl+3` 习惯 / `Ctrl+4` 蓝图 /
-//    `Ctrl+5` 目标 / `Ctrl+6` 项目 / `Ctrl+7` 学习（可点击占位）/ `Ctrl+8` 日历；
-//  - `Ctrl+1…3` 的语义自 Task 20 起从未变过（A10 仍依赖 `Ctrl+1` 回今日）；
+//  - B17 起 `Ctrl` 序号与左导航序位 **1:1 绑定**（导航回到 7 项）：
+//    `Ctrl+1` 日志 / `Ctrl+2` 待办池 / `Ctrl+3` 蓝图 / `Ctrl+4` 目标 /
+//    `Ctrl+5` 项目 / `Ctrl+6` 学习管理（可点击占位）/ `Ctrl+7` 日历；
+//    `Ctrl+8` 无绑定（按下不切页、不抛异常）；
+//  - `Ctrl+1` / `Ctrl+2` 的语义自 Task 20 起从未变过（A10 仍依赖 `Ctrl+1` 回今日）；
 //  - 在待办池页按 `Ctrl+1` 回到今日页（A10）。
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
@@ -118,7 +119,7 @@ Future<void> _sendCtrl(WidgetTester tester, LogicalKeyboardKey key) async {
 }
 
 void main() {
-  testWidgets('A8：Ctrl+1 / Ctrl+2 / Ctrl+3 / Ctrl+4 分别切今日 / 待办池 / 习惯 / 蓝图', (
+  testWidgets('A8：Ctrl+1 / Ctrl+2 / Ctrl+3 / Ctrl+4 分别切日志 / 待办池 / 蓝图 / 目标', (
     tester,
   ) async {
     _useTallSurface(tester);
@@ -136,23 +137,24 @@ void main() {
     expect(find.byType(TodayPage), findsNothing);
 
     await _sendCtrl(tester, LogicalKeyboardKey.digit3);
-    expect(find.byType(HabitsPage), findsOneWidget);
-    expect(find.byType(TodoPoolPage), findsNothing);
-
-    // B16 起 `Ctrl+4` 跟着导航序位落到「蓝图」。
-    await _sendCtrl(tester, LogicalKeyboardKey.digit4);
     expect(find.byType(GoalsBlueprintPage), findsOneWidget);
     expect(find.byType(HabitsPage), findsNothing);
+    expect(find.byType(TodoPoolPage), findsNothing);
+
+    // B17 起 `Ctrl+4` 跟着导航序位落到「目标」。
+    await _sendCtrl(tester, LogicalKeyboardKey.digit4);
+    expect(find.byType(GoalsPage), findsOneWidget);
+    expect(find.byType(GoalsBlueprintPage), findsNothing);
     expect(find.byType(CalendarPage), findsNothing);
 
     await _sendCtrl(tester, LogicalKeyboardKey.digit1);
     expect(find.byType(TodayPage), findsOneWidget);
-    expect(find.byType(GoalsBlueprintPage), findsNothing);
+    expect(find.byType(GoalsPage), findsNothing);
 
     await _flushTimers(tester);
   });
 
-  testWidgets('A9：Ctrl+5 切目标页；Ctrl+6 切项目页；Ctrl+7 切学习占位；Ctrl+8 切日历页', (
+  testWidgets('A9：Ctrl+5 切项目页；Ctrl+6 切学习管理占位；Ctrl+7 切日历；Ctrl+8 无绑定', (
     tester,
   ) async {
     _useTallSurface(tester);
@@ -163,19 +165,24 @@ void main() {
     _shellFocusNode(tester).requestFocus();
     await tester.pump();
 
-    // B16 导航序位 05 = 目标 ⇒ `Ctrl+5` 切到目标页。
+    // B17 导航序位 05 = 项目 ⇒ `Ctrl+5` 切到项目页。
     await _sendCtrl(tester, LogicalKeyboardKey.digit5);
-    expect(find.byType(GoalsPage), findsOneWidget);
+    expect(find.byType(ProjectsPage), findsOneWidget);
     expect(find.byType(TodayPage), findsNothing);
     expect(find.byType(TodoPoolPage), findsNothing);
     expect(find.byType(HabitsPage), findsNothing);
-    expect(find.byType(ProjectsPage), findsNothing);
+    expect(find.byType(GoalsPage), findsNothing);
     expect(find.byType(CalendarPage), findsNothing);
     expect(tester.takeException(), isNull, reason: 'Ctrl+5 不许抛异常');
 
-    // 导航序位 06 = 项目 ⇒ `Ctrl+6` 切到项目页。
+    // 导航序位 06 = 学习管理（可点击占位）⇒ `Ctrl+6` 落到占位标记上。
+    // 注意：不能断 `find.text('学习管理')`，左导航同名项会撞成两个。
     await _sendCtrl(tester, LogicalKeyboardKey.digit6);
-    expect(find.byType(ProjectsPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('learning-placeholder')),
+      findsOneWidget,
+    );
+    expect(find.byType(ProjectsPage), findsNothing);
     expect(find.byType(GoalsPage), findsNothing);
     expect(find.byType(TodoPoolPage), findsNothing);
     expect(find.byType(HabitsPage), findsNothing);
@@ -183,23 +190,8 @@ void main() {
     expect(find.byType(CalendarPage), findsNothing);
     expect(tester.takeException(), isNull, reason: 'Ctrl+6 不许抛异常');
 
-    // 导航序位 07 = 学习（B16 新增可点击占位）⇒ `Ctrl+7` 落到占位标记上。
-    // 注意：不能断 `find.text('学习')`，左导航同名项会撞成两个。
+    // 导航序位 07 = 日历 ⇒ `Ctrl+7` 切到日历页。
     await _sendCtrl(tester, LogicalKeyboardKey.digit7);
-    expect(
-      find.byKey(const ValueKey<String>('learning-placeholder')),
-      findsOneWidget,
-    );
-    expect(find.byType(GoalsPage), findsNothing);
-    expect(find.byType(ProjectsPage), findsNothing);
-    expect(find.byType(TodoPoolPage), findsNothing);
-    expect(find.byType(HabitsPage), findsNothing);
-    expect(find.byType(GoalsBlueprintPage), findsNothing);
-    expect(find.byType(CalendarPage), findsNothing);
-    expect(tester.takeException(), isNull, reason: 'Ctrl+7 不许抛异常');
-
-    // 导航序位 08 = 日历 ⇒ `Ctrl+8` 切到日历页。
-    await _sendCtrl(tester, LogicalKeyboardKey.digit8);
     expect(find.byType(CalendarPage), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('learning-placeholder')),
@@ -209,7 +201,21 @@ void main() {
     expect(find.byType(GoalsPage), findsNothing);
     expect(find.byType(HabitsPage), findsNothing);
     expect(find.byType(GoalsBlueprintPage), findsNothing);
-    expect(tester.takeException(), isNull, reason: 'Ctrl+8 不许抛异常');
+    expect(tester.takeException(), isNull, reason: 'Ctrl+7 不许抛异常');
+
+    // B17：`Ctrl+8` 没有绑定 ⇒ 停在日历页、不抛异常。
+    await _sendCtrl(tester, LogicalKeyboardKey.digit8);
+    expect(find.byType(CalendarPage), findsOneWidget);
+    expect(find.byType(TodayPage), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('learning-placeholder')),
+      findsNothing,
+    );
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'Ctrl+8 无绑定：不许切页、不许抛异常',
+    );
 
     await _flushTimers(tester);
   });

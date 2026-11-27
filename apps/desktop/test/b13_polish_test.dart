@@ -362,23 +362,19 @@ void main() {
     }
   });
 
-  testWidgets('B4-2 标签内边距：水平 10（硬下限）/ 上下 4', (WidgetTester tester) async {
+  testWidgets('B4-2 标签内边距：水平 16（B17 加宽）/ 上下 4', (WidgetTester tester) async {
     await _pumpMatrix(tester);
 
     for (final String horizonKey in _horizonKeys) {
       final TextButton tab = tester.widget<TextButton>(_tab(horizonKey));
-      // B14（stage 4 · A1）：水平内边距 18 → 10。18 时英文态 760 宽真页面的
-      // 自然宽 976.5px 缩到可用宽 742 ⇒ 显示字号 11.3978px，相对 11px 红线的
-      // 余量只有 0.3978px（< 1.00px 判据）；四个标签的左右内边距合计 144px 是
-      // 自然宽里**唯一可压**的部分（字形宽 830.5px 由字号 15 与固定文案决定）
-      // ⇒ 收到 10。**10 是硬下限**：再降到 9，中文 320 宽那组不再触发
-      // scaleDown ⇒ `b14_tab_scale_test.dart` 的 T4 量具自检失效。
-      // 11px 红线不变（余量判据见 `b14_tab_scale_test.dart` 的 `_requiredMarginPx`）。
+      // B14（stage 4 · A1）曾把水平内边距 18 → 10（英文态 760 宽 11px 红线余量
+      // 的「唯一可压部分」）；B17 任务 A 用户要求「页签加宽」⇒ 10 → 16。
+      // 红线口径**不变**：760 宽英文态的显示字号与余量判据仍在
+      // `b14_tab_scale_test.dart`（`_redLineFontPx` / `_requiredMarginPx` 不动）。
       expect(
         tab.style!.padding!.resolve(const <WidgetState>{}),
-        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        reason: 'B16 第 3 条：$horizonKey 水平内边距仍是 10（硬下限不动）'
-            '+ 上下各 4px（标签文字不拥挤）',
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        reason: 'B17-A：$horizonKey 水平内边距 16（加宽）+ 上下各 4px（不拥挤）',
       );
     }
   });
@@ -409,7 +405,7 @@ void main() {
     );
   });
 
-  testWidgets('B4-4 标签高度：激活 46 / 未激活 39（仍差 7px）', (
+  testWidgets('B4-4 标签高度：四页签两态等高 46（B17-A）', (
     WidgetTester tester,
   ) async {
     await _pumpMatrix(tester);
@@ -421,24 +417,25 @@ void main() {
         .resolve(const <WidgetState>{})!
         .height;
 
-    // B16 第 3 条：页签加大**垂直**内边距（文字不拥挤）。
-    // 激活 38 → 46、未激活 31 → 39：两条都 +8（上下各 4），落差 7px 不变。
-    // 水平宽度与字号完全不动 ⇒ `b14_tab_scale_test.dart` 的缩放余量判据不受影响。
-    expect(heightOf('ultimate'), 46, reason: 'B16 第 3 条：激活标签高度 46（原 38）');
-    for (final String horizonKey in <String>['long', 'mid', 'short']) {
+    // B16 第 3 条曾是 46 / 39（刻意保留 7px 落差）；B17 任务 A 要求「两态等高」
+    // ⇒ 收敛为单一 `tabHeight = 46`，四个页签不再分两档。
+    for (final String horizonKey in _horizonKeys) {
       expect(
         heightOf(horizonKey),
-        39,
-        reason: 'B16 第 3 条：未激活标签高度 39（原 31）',
+        46,
+        reason: 'B17-A：$horizonKey 两态等高 46（B16 的 39 已下线）',
       );
     }
   });
 
   // ===========================================================================
-  // C3 · 起止日期入口：文字 → 图标（语义与行为不变）
+  // C3 · 起止日期入口：B13 曾把文字换成图标，B17 又把图标下线
+  //     （B17 第 B 条：图标与日期文本指向同一个对话框 ⇒ 重复入口）
   // ===========================================================================
 
-  testWidgets('C3-1 入口只剩图标：键名在、tooltip 在、旧文字不在', (WidgetTester tester) async {
+  testWidgets('C3-1 入口只剩日期文本：图标 key 不在、tooltip 不在、改期入口仍在', (
+    WidgetTester tester,
+  ) async {
     final AppLocalizations zh = AppLocalizations.zh;
     final String id = await store.createGoal(
       kind: GoalKind.blueprint,
@@ -453,28 +450,35 @@ void main() {
 
     expect(
       find.byKey(ValueKey<String>('goal-blueprint-period-$id')),
+      findsNothing,
+      reason: 'B17 第 B 条：多余的「日期」图标按钮必须不存在（连 key 一起下线）',
+    );
+    expect(
+      find.byIcon(Icons.date_range_outlined),
+      findsNothing,
+      reason: 'B17 第 B 条：日历图标随按钮一起下线',
+    );
+    expect(
+      find.byTooltip(zh.goalBlueprintPeriodTitle),
+      findsNothing,
+      reason: 'B17 第 B 条：该 tooltip 属于已删的图标按钮（日期格本身没有外层 Tooltip）',
+    );
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-period-tap-$id')),
       findsOneWidget,
-      reason: 'C3：改期按钮的键名一字未改（调用点/测试都没换 key）',
+      reason: 'C3：改期入口仍在 —— 只是换成日期文本自身的 InkWell',
     );
     expect(
       find.text(zh.goalBlueprintPeriodTitle),
       findsNothing,
-      reason: 'C3：入口不再用「起止日期」四个字占满单元格',
+      reason: 'C3：入口不用「起止日期」四个字占满单元格',
     );
-    expect(
-      find.byTooltip(zh.goalBlueprintPeriodTitle),
-      findsOneWidget,
-      reason: 'C3：tooltip 仍是「起止日期」⇒ 语义没有丢，只是视觉换成图标',
-    );
-    expect(
-      find.byIcon(Icons.date_range_outlined),
-      findsOneWidget,
-      reason: 'C3：图标必须是 Icons.date_range_outlined（与相邻 *_outlined 系一致）',
-    );
-    expect(tester.takeException(), isNull, reason: 'C3：换图标不许引入布局异常');
+    expect(tester.takeException(), isNull, reason: 'C3：删入口不许引入布局异常');
   });
 
-  testWidgets('C3-2 点图标仍弹起止日期对话框，两行日期按库里值回显', (WidgetTester tester) async {
+  testWidgets('C3-2 点日期文本仍弹起止日期对话框，两行日期按库里值回显', (
+    WidgetTester tester,
+  ) async {
     final String id = await store.createGoal(
       kind: GoalKind.blueprint,
       title: '起止对话框目标',
@@ -485,12 +489,13 @@ void main() {
     );
 
     await _pumpPage(tester, repos: repos);
-    await _tapKey(tester, ValueKey<String>('goal-blueprint-period-$id'));
+    // B17 第 B 条：图标按钮已删 ⇒ 改期只能点日期文本（`-tap-` 入口）。
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-period-tap-$id'));
 
     expect(
       find.byKey(const ValueKey<String>('goal-period-dialog')),
       findsOneWidget,
-      reason: 'C3：图标入口打开的仍是同一个起止日期对话框',
+      reason: 'C3：日期文本入口打开的仍是同一个起止日期对话框',
     );
     expect(
       find.descendant(
@@ -522,7 +527,7 @@ void main() {
     );
 
     await _pumpPage(tester, repos: repos);
-    await _tapKey(tester, ValueKey<String>('goal-blueprint-period-$id'));
+    await _tapKey(tester, ValueKey<String>('goal-blueprint-period-tap-$id'));
     expect(
       find.byKey(const ValueKey<String>('goal-period-dialog')),
       findsOneWidget,

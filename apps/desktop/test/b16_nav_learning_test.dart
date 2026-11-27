@@ -3,13 +3,18 @@
 // B16 判别性测试：左导航新增「学习」占位项，并按序位重排为
 //   01 日志 / 02 待办 / 03 习惯 / 04 蓝图 / 05 目标 / 06 项目 / 07 学习 / 08 日历
 //
+// B17 起序位被再次重排（「习惯」出列、「学习」改称「学习管理」），所以本文件
+// 只保留 B16 的原始契约 —— **「学习」有真实落点、可点击、既有页面映射没变**，
+// 「八项」相关断言的数字改按现口径（7 项 / 学习管理在 06）。整序的判别锁在
+// `b17_nav_seven_test.dart`，两文件分工不重复。
+//
 // 与既有用例的分工（避免重复锁同一件事）：
 //  - `shell_nav_rail_test.dart` 锁渲染细节（序号几何、选中态、可点性）；
 //  - `nav_shortcut_test.dart` 锁 Ctrl 落点；
-//  - 本文件锁「八项顺序 + 学习有真实落点 + 既有七项页面映射没变」。
+//  - 本文件锁「学习项有真实落点 + 既有页面映射没变」。
 //
-// 判别性：改回 7 项旧序 / 删掉「学习」/ 把占位换成禁用项，本文件必红 ——
-// 三条断言都直接读实现（常量、运行期清单、占位 ValueKey），不是「跑通即过」。
+// 判别性：删掉「学习」/ 把占位换成禁用项 / 换掉占位落点，本文件必红 ——
+// 断言都直接读实现（常量、运行期清单、占位 ValueKey），不是「跑通即过」。
 import 'package:core_data/core_data.dart';
 import 'package:core_db/core_db.dart';
 import 'package:flutter/material.dart';
@@ -32,11 +37,10 @@ import 'l10n_harness.dart';
 
 const String _today = '2026-11-09';
 
-/// B16 的八项：id 与中文标签，逐字序（**顺序即编号**）。
+/// 当前七项：id 与中文标签，逐字序（**顺序即编号**）。
 const List<String> _ids = <String>[
   'today',
   'inbox',
-  'habits',
   'blueprint',
   'goals',
   'projects',
@@ -46,11 +50,10 @@ const List<String> _ids = <String>[
 const List<String> _zhLabels = <String>[
   '日志',
   '待办池',
-  '习惯',
   '蓝图',
   '目标',
   '项目',
-  '学习',
+  '学习管理',
   '日历',
 ];
 
@@ -153,8 +156,8 @@ Future<void> _pumpRail(
 
 void main() {
   group('B16 左导航「学习」占位项', () {
-    test('常量八项逐字序：日志 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历', () {
-      expect(kShellNavItems.length, _ids.length, reason: 'B16 起是 8 项，不是旧 7 项');
+    test('常量七项逐字序：日志 / 待办池 / 蓝图 / 目标 / 项目 / 学习管理 / 日历', () {
+      expect(kShellNavItems.length, _ids.length, reason: 'B17 起是 7 项（B16 的 8 项已收回）');
       expect(
         kShellNavItems.map((ShellNavItem i) => i.id).toList(growable: false),
         _ids,
@@ -164,15 +167,15 @@ void main() {
         _zhLabels,
       );
       // 「学习」是可点击占位（计划 §4 的另一种实现），不是禁用项：
-      // 只有可点击，`Ctrl+7` 才有真实落点，键条的 `Ctrl+1…8` 才成立。
+      // 只有可点击，`Ctrl+6` 才有真实落点，键条的 `Ctrl+1…7` 才成立。
       expect(
         kShellNavItems.where((ShellNavItem i) => !i.enabled).toList(),
         isEmpty,
-        reason: '八项都必须启用；「学习」也不许退化成禁用占位',
+        reason: '七项都必须启用；「学习管理」也不许退化成禁用占位',
       );
     });
 
-    test('运行期清单与常量同 id 同序；英文态「学习」= Learning', () {
+    test('运行期清单与常量同 id 同序；英文态「学习管理」= Learning Management', () {
       final List<ShellNavItem> zh = shellNavItemsFor(AppLocalizations.zh);
       expect(zh.length, _ids.length);
       expect(zh.map((ShellNavItem i) => i.id).toList(growable: false), _ids);
@@ -189,55 +192,51 @@ void main() {
         _ids,
         reason: '语言不影响 id 与顺序',
       );
-      expect(en[6].id, 'learning');
-      expect(en[6].label, 'Learning');
-      expect(en[7].label, AppLocalizations.en.shellNavCalendar);
+      expect(en[5].id, 'learning');
+      expect(en[5].label, 'Learning Management');
+      expect(en[6].label, AppLocalizations.en.shellNavCalendar);
       // 中文那条占位文案换到英文时真的变了（不是漏翻）。
-      expect(en[6].label, isNot(zh[6].label));
+      expect(en[5].label, isNot(zh[5].label));
     });
 
-    testWidgets('竖排渲染 01–08，「学习」在 06 与 08 之间', (WidgetTester tester) async {
+    testWidgets('竖排渲染 01–07，「学习管理」在 06（05 与 07 之间）', (
+      WidgetTester tester,
+    ) async {
       await _pumpRail(tester);
 
-      for (final String index in <String>[
-        '01',
-        '02',
-        '03',
-        '04',
-        '05',
-        '06',
-        '07',
-        '08',
-      ]) {
+      for (var i = 1; i <= 7; i++) {
+        final String index = i.toString().padLeft(2, '0');
         expect(find.text(index), findsOneWidget, reason: '缺少序号 $index');
       }
-      expect(find.text('学习'), findsOneWidget);
+      expect(find.text('学习管理'), findsOneWidget);
 
-      // 只判「存在」不够：用 y 坐标证明 07 真的排在 06 与 08 之间。
+      // 只判「存在」不够：用 y 坐标证明 06 真的排在 05 与 07 之间。
+      final double y05 = tester.getCenter(find.text('05')).dy;
       final double y06 = tester.getCenter(find.text('06')).dy;
       final double y07 = tester.getCenter(find.text('07')).dy;
-      final double y08 = tester.getCenter(find.text('08')).dy;
-      expect(y06, lessThan(y07), reason: '07「学习」必须排在 06「项目」之后');
-      expect(y07, lessThan(y08), reason: '07「学习」必须排在 08「日历」之前');
+      expect(y05, lessThan(y06), reason: '06「学习管理」必须排在 05「项目」之后');
+      expect(y06, lessThan(y07), reason: '06「学习管理」必须排在 07「日历」之前');
 
-      // 旧 7 项没有 09 这种溢出序号。
-      expect(find.text('09'), findsNothing);
+      // 7 项没有 08 这种溢出序号。
+      expect(find.text('08'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('英文态竖排渲染 Learning（不是中文「学习」）', (WidgetTester tester) async {
+    testWidgets('英文态竖排渲染 Learning Management（不是中文「学习管理」）', (
+      WidgetTester tester,
+    ) async {
       await _pumpRail(tester, language: AppLanguage.en);
 
-      expect(find.text('Learning'), findsOneWidget);
-      expect(find.text('学习'), findsNothing);
-      expect(find.text('07'), findsOneWidget);
+      expect(find.text('Learning Management'), findsOneWidget);
+      expect(find.text('学习管理'), findsNothing);
+      expect(find.text('06'), findsOneWidget);
     });
 
-    testWidgets('点「学习」回调 id = learning（可点击占位）', (WidgetTester tester) async {
+    testWidgets('点「学习管理」回调 id = learning（可点击占位）', (WidgetTester tester) async {
       final List<String> tapped = <String>[];
       await _pumpRail(tester, onSelected: tapped.add);
 
-      await tester.tap(find.text('学习'));
+      await tester.tap(find.text('学习管理'));
       await tester.pump();
 
       expect(tapped, <String>['learning']);
@@ -245,7 +244,7 @@ void main() {
   });
 
   group('B16 壳宿主落点', () {
-    testWidgets('点「学习」→ 占位内容体；点「日志」→ 回今日页', (WidgetTester tester) async {
+    testWidgets('点「学习管理」→ 占位内容体；点「日志」→ 回今日页', (WidgetTester tester) async {
       _useTallSurface(tester);
       final _Harness harness = _Harness.create();
       await harness.mountHost(tester);
@@ -257,7 +256,7 @@ void main() {
         findsNothing,
       );
 
-      await tester.tap(_navItem('学习'));
+      await tester.tap(_navItem('学习管理'));
       await _settle(tester);
 
       // 占位落点：有稳定 ValueKey，且正文文案取的是同一份 l10n。
@@ -266,9 +265,9 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(TodayPage), findsNothing);
-      // 「学习」出现两次 = 导航项 + 占位正文，正好证明占位真的渲染了文案。
-      expect(find.text('学习'), findsNWidgets(2));
-      expect(tester.takeException(), isNull, reason: '点「学习」不许抛异常');
+      // 「学习管理」出现两次 = 导航项 + 占位正文，正好证明占位真的渲染了文案。
+      expect(find.text('学习管理'), findsNWidgets(2));
+      expect(tester.takeException(), isNull, reason: '点「学习管理」不许抛异常');
 
       await tester.tap(_navItem('日志'));
       await _settle(tester);

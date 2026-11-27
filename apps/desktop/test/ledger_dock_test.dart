@@ -2,7 +2,8 @@
 //
 // B2（2026-11-12）：打卡条（`HabitCheckinStrip`）不再是壳层的 `.dock` 独立行。
 // 用户指令 8 要求 `app.dart` 去掉 `_dock()`（连同 `LedgerShell` 的 `dock:` 实参），
-// 打卡入口整体搬到「习惯」页（`lib/src/pages/habits_page.dart`）。
+// 打卡入口整体搬到「习惯」页（`lib/src/pages/habits_page.dart`）；B17 起
+// 「习惯」退出导航清单，入口改由壳的 `initialNavId: 'habits'` 直达。
 //
 // 本文件因此从「守住那一行的几何」改为守住三件事：
 // ① 壳层底部**不再有**快捷键条那一行（Task 56 诉求③：底部那份删掉、右轨那份保留）：
@@ -55,11 +56,16 @@ final class _Harness {
   }
 
   /// 挂完整壳宿主（与真机一致；壳层现在没有 `dock` 槽位可填）。
-  Future<void> mount(WidgetTester tester) {
+  Future<void> mount(
+    WidgetTester tester, {
+    String initialNavId = ShellHost.kTodayNavId,
+  }) {
     return tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: l10nScope(const MaterialApp(home: ShellHost())),
+        child: l10nScope(
+          MaterialApp(home: ShellHost(initialNavId: initialNavId)),
+        ),
       ),
     );
   }
@@ -109,7 +115,7 @@ Future<void> _flushTimers(WidgetTester tester) async {
 /// 视口底边（逻辑像素）：键条是壳层列最后一行时，它的下沿必须落在这里。
 double _viewportBottom(WidgetTester tester) => 3000;
 
-/// 导航栏里的那一项（今日页正文也出现「习惯」字样，不能全树搜）。
+/// 导航栏里的那一项（今日页正文也出现同名文字，不能全树搜）。
 Finder _navItem(String label) => find.descendant(
   of: find.byType(NavRail),
   matching: find.text(label),
@@ -200,10 +206,9 @@ void main() {
     _useWideSurface(tester);
     final harness = _Harness.create();
     final habitId = await harness.addDailyHabit('晨间写作');
-    await harness.mount(tester);
-    await _settle(tester);
-
-    await tester.tap(_navItem('习惯'));
+    // B17：导航已去掉「习惯」项，打卡入口改由壳的 `initialNavId: 'habits'`
+    // 直达（`app.dart` `_content()` 仍保留 `'habits'` 落点）。
+    await harness.mount(tester, initialNavId: 'habits');
     await _settle(tester);
 
     // 习惯页承接了原来打卡条的功能，但壳层不再有那一行。

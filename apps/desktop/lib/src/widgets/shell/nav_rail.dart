@@ -27,11 +27,11 @@ class ShellNavItem {
   final bool enabled;
 }
 
-/// 原型主导航（Task 72 / D-72-b 起 7 项；B16 起 8 项）。
+/// 原型主导航（Task 72 / D-72-b 起 7 项；B16 曾扩到 8 项；B17 起回到 7 项）。
 ///
-/// 八项都有真实落点（Task 56 起「项目」页落地；Task 72 起「蓝图」独立成页；
-/// B16 起「学习」占位落地）。顺序即编号：`01 日志 / 02 待办 / 03 习惯 /
-/// 04 蓝图 / 05 目标 / 06 项目 / 07 学习 / 08 日历`。
+/// 七项都有真实落点（Task 56 起「项目」页落地；Task 72 起「蓝图」独立成页；
+/// B16 起「学习」占位落地）。顺序即编号：`01 日志 / 02 待办 / 03 蓝图 /
+/// 04 目标 / 05 项目 / 06 学习管理 / 07 日历`。
 ///
 /// 口径（Task 61）：这一份**中文常量**保留不动（既有测试直接断言它），
 /// 但运行期不再用它渲染 —— 渲染走 [shellNavItemsFor]，按当前语言现搭。
@@ -42,18 +42,20 @@ class ShellNavItem {
 /// 口径（B16）：序位重排为日志 / 待办 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历。
 /// 「学习」是可点击的占位项（壳内联占位，不建数据层 / 路由 / 新页面）；
 /// 既有七个页面的 id → 页面映射一个都没动。
+/// 口径（B17）：「习惯」退出导航清单（`HabitsPage` 与 `habits` 页面映射
+/// **保留**，只是不再占编号、也不再吃 `Ctrl+N`）；「学习」改称「学习管理」，
+/// 序位回到日志 / 待办 / 蓝图 / 目标 / 项目 / 学习管理 / 日历。
 const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
   ShellNavItem(id: 'today', label: '日志'),
   ShellNavItem(id: 'inbox', label: '待办池'),
-  ShellNavItem(id: 'habits', label: '习惯'),
   ShellNavItem(id: 'blueprint', label: '蓝图'),
   ShellNavItem(id: 'goals', label: '目标'),
   ShellNavItem(id: 'projects', label: '项目'),
-  ShellNavItem(id: 'learning', label: '学习'),
+  ShellNavItem(id: 'learning', label: '学习管理'),
   ShellNavItem(id: 'calendar', label: '日历'),
 ];
 
-/// 运行时构建 8 项主导航（文案走 l10n）。
+/// 运行时构建 7 项主导航（文案走 l10n）。
 ///
 /// `const` 顶层列表不能在编译期常量里调 `t.xxx`，所以运行期的清单在这里现搭；
 /// zh 态的取值与 [kShellNavItems] 逐字相同（那一份常量保留下来，供既有测试
@@ -62,7 +64,6 @@ const List<ShellNavItem> kShellNavItems = <ShellNavItem>[
 List<ShellNavItem> shellNavItemsFor(AppLocalizations t) => <ShellNavItem>[
   ShellNavItem(id: 'today', label: t.shellNavToday),
   ShellNavItem(id: 'inbox', label: t.shellNavInbox),
-  ShellNavItem(id: 'habits', label: t.shellNavHabits),
   ShellNavItem(id: 'blueprint', label: t.shellNavBlueprint),
   ShellNavItem(id: 'goals', label: t.shellNavGoals),
   ShellNavItem(id: 'projects', label: t.shellNavProjects),
@@ -73,11 +74,11 @@ List<ShellNavItem> shellNavItemsFor(AppLocalizations t) => <ShellNavItem>[
 /// 左主导航（等价原型 `nav.nav`）。
 ///
 /// 竖排：[width] 固定宽、右侧 1px `hair` 边、`18/14/12` 内边距，
-/// 品牌块 + 8 项（mono 序号 `01`–`08`）+ 沉底的设置齿轮。
+/// 品牌块 + 7 项（mono 序号 `01`–`07`）+ 沉底的设置齿轮。
 /// 横排（`< 1280`）：撑满宽度、顶栏横排、下边 1px `hair` 边。
 ///
 /// 口径（Task 72 / D-72-a）：左栏底部**不再有**快捷键常驻文本；快捷键说明只在
-/// 窄屏 `KeyBar` 与宽屏右轨 `KeyHintList` 两处，`Ctrl+1…8` 与导航序位逐位绑定。
+/// 窄屏 `KeyBar` 与宽屏右轨 `KeyHintList` 两处，`Ctrl+1…7` 与导航序位逐位绑定。
 class NavRail extends StatelessWidget {
   /// 创建主导航。
   const NavRail({

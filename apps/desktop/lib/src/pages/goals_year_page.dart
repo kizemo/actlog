@@ -1,22 +1,21 @@
 // =============================================================================
-// 目标 · 年目标页（Task 66 UI 半批 B2）
+// 目标 · 年目标页（Task 66 UI 半批 B2；B17 W4 重做表一）
 // =============================================================================
 // 页面是**内容体**：`Scaffold` / `AppBar` 由 `LedgerShell` 承担（与周/月页同口径）。
 //
-// 四块内容（计划 §5.3；B16 项 5 撤掉了原「滚动候选」段头卡）：
-//  1. **表一**（类别 | 序号 | 目标内容 | 方法和措施 | 起止时间 | 完成）：本年度的年度
-//     目标。类别取 `domain`，方法与措施取 `keywords`，起止时间取 `period_start` /
-//     `period_end`，完成取 `status`。**全部是库里的原值**，界面不写回任何一列。
-//  2. **表二**（`GoalYearMatrix`）：行 = 年目标 × 列 = 1–12 月。空格 = 该月未展开，
-//     **合法**（不校验、不报错、不给红字）；点开可就地输入标题，再「加入待确认草稿」。
-//     待确认草稿队列（**未确认前库里 0 增量**）挂在同一张卡的下方，确认后才落库。
-//  3. **年度复盘**：完成 N 项 / 自评总分 / 自评均值 + 「自评＝用户自评，不是达成率」
-//     的口径说明。
-//  4. **80/20 视角**：沿 `serves` 链聚合 `tracks` 执行记录条数，降序**只呈现条数**，
-//     **不评分、不排名、不给百分比**（区块内不出现 `%`）。
+// B17 之后本页只剩**一块**内容（派工书 E 条：月度展开 / 年度复盘 / 80/20 三块
+// UI 入口下线，数据层与 l10n getter 保留）：
+//   * **表一**：本年度的年度目标。列 = 类别 | 序号 | 目标内容 | 方法和措施 |
+//     起止时间 | 完成 | 操作。行内可编辑 / 删除 / 勾选完成。
+//   * 行按**类别分区**渲染，分区小标题取 `goalCategoryTitle`（B17 F 条）；
+//     分区与排序全部委托 `widgets/goals/goal_section.dart`（泛型版）
+//     + `widgets/goals/goal_category.dart`（唯一真源），页面不自己分桶。
+//   * 段头下有「新建目标」入口（B17 C 条）：**空态与非空态都在**，写法与
+//     其它目标页一致（同一个表单、同一条落库路径）。
 //
-// 读模型在页面层派生（计划 §3.3 选方案 b）：`data\goal_store.dart` **零改动**，
-// 不新增 provider、不新增仓储方法。
+// 读模型仍走 `loadGoalYearView`（与蓝图页**同一个函数** ⇒ 单一真源）；
+// `data\goal_store.dart` **零改动**，不新增 provider / 仓储方法。类别复用
+// `Goal.domain` 一列，**没有新列、没有 DB 迁移**（B17 裁决 1）。
 // =============================================================================
 
 import 'package:core_domain/core_domain.dart';
@@ -28,9 +27,11 @@ import '../l10n/app_localizations.dart';
 import '../providers.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/goal_year_matrix.dart';
+import '../widgets/goals/goal_category.dart';
 import '../widgets/goals/goal_form_dialog.dart';
+import '../widgets/goals/goal_section.dart';
 
-/// 年目标页：年度目标表 + 月度展开矩阵（含待确认草稿队列）+ 年度复盘 + 80/20 视角。
+/// 年目标页：本年度的年度目标表（按类别分区，可新建 / 编辑 / 删除 / 勾完成）。
 class GoalsYearPage extends ConsumerStatefulWidget {
   /// 创建年目标页。
   const GoalsYearPage({this.period, super.key});
@@ -42,30 +43,9 @@ class GoalsYearPage extends ConsumerStatefulWidget {
   ConsumerState<GoalsYearPage> createState() => _GoalsYearPageState();
 }
 
-/// 年页读模型（本页私有）。
-class _YearData {
-  /// 构造。
-  const _YearData({required this.view, required this.tracks});
-
-  /// 年度读模型。
-  final GoalYearView view;
-
-  /// 年目标 id → 沿 `serves` 链聚合的执行记录条数。
-  final Map<String, int> tracks;
-}
-
 class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
-  /// 读模型（缓存一次，避免 FutureBuilder 重建循环）。
-  Future<_YearData>? _future;
-
-  /// 待确认草稿队列（**未确认前库里 0 增量**）。
-  final List<GoalDraft> _pending = <GoalDraft>[];
-
-  /// 是否正在写草稿。
-  bool _saving = false;
-
-  /// 是否已写入成功。
-  bool _saved = false;
+  /// 本年度的年度目标（缓存一次，避免 FutureBuilder 重建循环）。
+  Future<List<GoalRow>>? _future;
 
   /// 写失败提示（null = 无错误）。
   String? _error;
@@ -85,94 +65,95 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     _future = _load();
   }
 
-  Future<_YearData> _load() async {
+  Future<List<GoalRow>> _load() async {
     final GoalStore store = ref.read(goalStoreProvider);
     final GoalYearView view = await loadGoalYearView(store, _period);
-    final Map<String, int> tracks = <String, int>{};
-    for (final GoalRow yearly in view.yearlyGoals) {
-      int total = (await store.listLinks(
-        yearly.id,
-        relation: GoalRelation.tracks,
-      )).length;
-      for (final GoalRow child in view.serves.childrenOf(yearly.id)) {
-        total += (await store.listLinks(
-          child.id,
-          relation: GoalRelation.tracks,
-        )).length;
-      }
-      tracks[yearly.id] = total;
-    }
-    return _YearData(view: view, tracks: tracks);
+    return view.yearlyGoals;
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations t = AppLocalizations.of(context);
+    final String? error = _error;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _block(
-          t,
-          t.goalYearGoalsSection,
-          (_YearData data) => _buildTableOne(data, t),
-        ),
-        const SizedBox(height: AppTokens.gapCard),
-        _block(
-          t,
-          t.goalYearMonthsSection,
-          (_YearData data) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              GoalYearMatrix(
-                view: data.view,
-                t: t,
-                onAddCellDraft: _addCellDraft,
-              ),
-              const SizedBox(height: 8),
-              _buildPending(t),
-            ],
+        if (error != null) ...<Widget>[
+          Text(
+            error,
+            key: const ValueKey<String>('goal-year-error'),
+            style: _metaStyle(context),
           ),
-        ),
-        const SizedBox(height: AppTokens.gapCard),
-        _block(
-          t,
-          t.goalYearReviewSection,
-          (_YearData data) => _buildReview(data, t),
-        ),
-        const SizedBox(height: AppTokens.gapCard),
-        _block(
-          t,
-          t.goalYear8020Section,
-          (_YearData data) => _build8020(data, t),
+          const SizedBox(height: 6),
+        ],
+        _GoalCard(
+          title: t.goalYearGoalsSection,
+          child: FutureBuilder<List<GoalRow>>(
+            future: _future,
+            builder:
+                (BuildContext context, AsyncSnapshot<List<GoalRow>> snapshot) {
+                  final List<GoalRow>? goals = snapshot.data;
+                  if (goals == null) {
+                    return Text(
+                      t.operationFailed,
+                      style: _metaStyle(context),
+                    );
+                  }
+                  return _buildTableOne(goals, t);
+                },
+          ),
         ),
       ],
     );
   }
 
-  /// 一个卡片区块（读模型未到就显示失败提示）。
-  Widget _block(
-    AppLocalizations t,
-    String title,
-    Widget Function(_YearData data) build,
-  ) {
-    return _GoalCard(
-      title: title,
-      child: FutureBuilder<_YearData>(
-        future: _future,
-        builder: (BuildContext context, AsyncSnapshot<_YearData> snapshot) {
-          if (!snapshot.hasData) {
-            return Text(t.operationFailed, style: _metaStyle(context));
-          }
-          return build(snapshot.data!);
-        },
+  /// 新建年度目标：表单 → 落库 → 重读本页（空态与非空态同一入口）。
+  Future<void> _createGoal() async {
+    final AppLocalizations t = AppLocalizations.of(context);
+    final GoalFormResult? form = await showGoalFormDialog(
+      context,
+      t: t,
+      // 起止默认落在本页周期内，保证新建的行**一定出现在本页**。
+      initialPeriodStart: DateTime.fromMillisecondsSinceEpoch(
+        _period.startMillis,
       ),
+      initialPeriodEnd: DateTime.fromMillisecondsSinceEpoch(_period.endMillis),
     );
+    if (form == null || !mounted) {
+      return;
+    }
+    final String title = form.title.trim();
+    if (title.isEmpty) {
+      return;
+    }
+    setState(() => _error = null);
+    try {
+      await ref.read(goalStoreProvider).createGoal(
+        kind: GoalKind.yearly,
+        title: title,
+        note: _emptyToNull(form.note),
+        keywords: _emptyToNull(form.keywords),
+        domain: _categoryOf(form),
+        periodStart:
+            form.periodStart?.millisecondsSinceEpoch ?? _period.startMillis,
+        periodEnd: form.periodEnd?.millisecondsSinceEpoch ?? _period.endMillis,
+        dueDate: form.dueDate,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _future = _load());
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
   }
 
-  /// 年度目标行「编辑」：预填既有值，保存后写库并重读本页。
+  /// 行内「编辑」：预填既有值，保存后写库并重读本页。
   Future<void> _editGoal(GoalRow goal) async {
     final AppLocalizations t = AppLocalizations.of(context);
     final GoalFormResult? form = await showGoalFormDialog(
@@ -183,10 +164,53 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     if (form == null || !mounted) {
       return;
     }
-    await _updateGoal(goal, form);
+    final String title = form.title.trim();
+    if (title.isEmpty) {
+      return;
+    }
+
+    final String? domain = _categoryOf(form);
+    final String? note = _emptyToNull(form.note);
+    final String? keywords = _emptyToNull(form.keywords);
+    final int? periodStart = form.periodStart?.millisecondsSinceEpoch;
+    final int? periodEnd = form.periodEnd?.millisecondsSinceEpoch;
+    final int? dueDate = form.dueDate;
+
+    setState(() => _error = null);
+    try {
+      await ref.read(goalStoreProvider).updateGoal(
+        goal.id,
+        title: title,
+        note: note,
+        keywords: keywords,
+        domain: domain,
+        horizon: _keptHorizon(goal, form.horizon),
+        // B17 C 条：起止日期必须一起写回，否则「改了日期但列表不变」。
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        dueDate: dueDate,
+        // 表单里清空的字段必须显式进 `clear`：传 null 的语义是「不动」。
+        clear: <GoalField>{
+          if (domain == null) GoalField.domain,
+          if (note == null) GoalField.note,
+          if (keywords == null) GoalField.keywords,
+          if (periodEnd == null) GoalField.periodEnd,
+          if (dueDate == null) GoalField.dueDate,
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _future = _load());
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
   }
 
-  /// 年度目标行「删除」：先二次确认（确认框本体三页共用），确认后才软删。
+  /// 行内「删除」：先二次确认（确认框本体三页共用），确认后才软删。
   Future<void> _deleteGoal(GoalRow goal) async {
     final AppLocalizations t = AppLocalizations.of(context);
     final bool confirmed = await confirmDeleteGoal(context, t);
@@ -208,30 +232,13 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     }
   }
 
-  /// 表单结果写回库（本页不新建目标：新建入口不在本棒范围）。
-  Future<void> _updateGoal(GoalRow goal, GoalFormResult form) async {
-    final String title = form.title.trim();
-    final String? note = _emptyToNull(form.note);
-    final String? keywords = _emptyToNull(form.keywords);
-    final String? domain = _emptyToNull(form.domain);
-    final int? dueDate = form.dueDate;
+  /// 行内「完成」单选：写 `status`（B17 C 条）；写完重读，列表立刻反映。
+  Future<void> _toggleDone(GoalRow goal) async {
     setState(() => _error = null);
     try {
       await ref.read(goalStoreProvider).updateGoal(
         goal.id,
-        title: title,
-        note: note,
-        keywords: keywords,
-        domain: domain,
-        horizon: _keptHorizon(goal, form.horizon),
-        dueDate: dueDate,
-        // 表单里清空的字段必须显式进 `clear`：传 null 的语义是「不动」。
-        clear: <GoalField>{
-          if (domain == null) GoalField.domain,
-          if (note == null) GoalField.note,
-          if (keywords == null) GoalField.keywords,
-          if (dueDate == null) GoalField.dueDate,
-        },
+        status: goal.isDone ? GoalStatus.active : GoalStatus.done,
       );
       if (!mounted) {
         return;
@@ -244,6 +251,10 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
       setState(() => _error = AppLocalizations.of(context).operationFailed);
     }
   }
+
+  /// 表单的类别 → 落库值（**`category` 优先于 `domain`**：两者同列，只能取一个）。
+  static String? _categoryOf(GoalFormResult form) =>
+      _emptyToNull(form.category ?? '') ?? _emptyToNull(form.domain);
 
   /// 档位保留口径：原目标本来没有档位、用户也没动档位（表单仍是默认
   /// `ultimate`）⇒ 传 null（`updateGoal` 里 null = 不动），不给年目标隐式赋档。
@@ -260,67 +271,109 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
     return text.isEmpty ? null : text;
   }
 
-  /// 表一：类别 | 序号 | 目标内容 | 方法和措施 | 起止时间 | 完成。
-  Widget _buildTableOne(_YearData data, AppLocalizations t) {
-    final List<GoalRow> goals = data.view.yearlyGoals;
+  /// 表一：类别 | 序号 | 目标内容 | 方法和措施 | 起止时间 | 完成 | 操作。
+  ///
+  /// 新建入口在**空态与非空态都渲染**（B17 C 条：空态不能吞掉入口）。
+  Widget _buildTableOne(List<GoalRow> goals, AppLocalizations t) {
+    final Widget addButton = Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        key: const ValueKey<String>('goal-year-add'),
+        onPressed: _createGoal,
+        child: Text(t.goalBlueprintAddGoal),
+      ),
+    );
+
     if (goals.isEmpty) {
-      return Text(
-        t.goalYearGoalsEmpty,
-        key: const ValueKey<String>('goal-year-goals-empty'),
-        style: _metaStyle(context),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          addButton,
+          Text(
+            t.goalYearGoalsEmpty,
+            key: const ValueKey<String>('goal-year-goals-empty'),
+            style: _metaStyle(context),
+          ),
+        ],
       );
     }
-    final TextStyle? headStyle = _headStyle(context);
-    final TextStyle? bodyStyle = _bodyStyle(context);
-    final TextStyle? metaStyle = _metaStyle(context);
+
+    // 序号 = **分区内**从 1 起（B17 W7）：按 `groups` 的实际渲染顺序
+    // （分区顺序 → 分区内条目顺序）编号，换分区即从 1 重新开始。计数源与
+    // `GoalSectionList` 的遍历顺序逐条一致（groups → group.items），因此表里
+    // 读到的是 1…n 连续序号，不再是跨分区累计的 1、3、2、7。
+    // 表头文案不动（`goalMonthColumnIndex`，l10n 不在本棒写集）。
+    final List<GoalSectionGroup<GoalRow>> groups =
+        groupSectionsByCategory<GoalRow>(
+          t,
+          goals,
+          domainOf: (GoalRow goal) => goal.domain,
+        );
+    final Map<String, int> order = <String, int>{};
+    for (final GoalSectionGroup<GoalRow> group in groups) {
+      for (int i = 0; i < group.items.length; i++) {
+        order[group.items[i].id] = i + 1;
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            SizedBox(
-              width: 64,
-              child: Text(t.goalMonthColumnCategory, style: headStyle),
-            ),
-            SizedBox(
-              width: 28,
-              child: Text(t.goalMonthColumnIndex, style: headStyle),
-            ),
-            Expanded(flex: 3, child: Text(t.goalsColumnGoal, style: headStyle)),
-            Expanded(
-              flex: 2,
-              child: Text(t.goalMonthColumnMethods, style: headStyle),
-            ),
-            SizedBox(
-              width: 96,
-              child: Text(t.goalYearColumnPeriod, style: headStyle),
-            ),
-            SizedBox(
-              width: 56,
-              child: Text(t.goalMonthColumnDone, style: headStyle),
-            ),
-            // 操作列表头留空：宽度必须与行尾按钮组同宽（`GoalRowActions.width`）。
-            const SizedBox(width: GoalRowActions.width),
-          ],
-        ),
+        addButton,
+        const SizedBox(height: 4),
+        _headerRow(t),
         const SizedBox(height: 6),
-        for (int i = 0; i < goals.length; i++)
-          _goalRow(i, goals[i], t, bodyStyle, metaStyle),
+        GoalSectionList<GoalRow>(
+          groups: groups,
+          rowBuilder: (BuildContext context, GoalRow goal) =>
+              _goalRow(order[goal.id] ?? 0, goal, t),
+        ),
+      ],
+    );
+  }
+
+  /// 表头一行（列宽必须与 [_goalRow] 逐列一致，否则列错位）。
+  Widget _headerRow(AppLocalizations t) {
+    final TextStyle? headStyle = _headStyle(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: 64,
+          child: Text(t.goalMonthColumnCategory, style: headStyle),
+        ),
+        SizedBox(
+          width: 28,
+          child: Text(t.goalMonthColumnIndex, style: headStyle),
+        ),
+        Expanded(flex: 3, child: Text(t.goalsColumnGoal, style: headStyle)),
+        Expanded(
+          flex: 2,
+          child: Text(t.goalMonthColumnMethods, style: headStyle),
+        ),
+        SizedBox(
+          width: 96,
+          child: Text(t.goalYearColumnPeriod, style: headStyle),
+        ),
+        SizedBox(
+          width: 56,
+          child: Text(t.goalMonthColumnDone, style: headStyle),
+        ),
+        // 操作列表头留空：宽度必须与行尾按钮组同宽。本页每行都渲染完成单选
+        // ⇒ 用 `GoalRowActions.totalWidth`（56 + 24），不能用 `width`。
+        const SizedBox(
+          width: GoalRowActions.width + GoalRowActions.doneWidth,
+        ),
       ],
     );
   }
 
   /// 表一的一行。
-  Widget _goalRow(
-    int index,
-    GoalRow goal,
-    AppLocalizations t,
-    TextStyle? bodyStyle,
-    TextStyle? metaStyle,
-  ) {
+  Widget _goalRow(int index, GoalRow goal, AppLocalizations t) {
+    final TextStyle? bodyStyle = _bodyStyle(context);
+    final TextStyle? metaStyle = _metaStyle(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
@@ -328,12 +381,10 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
         children: <Widget>[
           SizedBox(
             width: 64,
-            child: Text(
-              t.projectDomainLabel(goal.domain ?? ''),
-              style: metaStyle,
-            ),
+            // B17 F 条：类别标题走 `goalCategoryTitle`，不复用 `projectDomainLabel`。
+            child: Text(goalCategoryTitle(t, goal.domain), style: metaStyle),
           ),
-          SizedBox(width: 28, child: Text('${index + 1}', style: metaStyle)),
+          SizedBox(width: 28, child: Text('$index', style: metaStyle)),
           Expanded(
             flex: 3,
             child: Text(
@@ -370,192 +421,13 @@ class _GoalsYearPageState extends ConsumerState<GoalsYearPage> {
             onEdit: () => _editGoal(goal),
             onDelete: () => _deleteGoal(goal),
             t: t,
+            goalId: goal.id,
+            isDone: goal.isDone,
+            onToggleDone: () => _toggleDone(goal),
           ),
         ],
       ),
     );
-  }
-
-  /// 年度复盘：完成 N 项 / 自评总分 / 自评均值 + 口径说明。
-  Widget _buildReview(_YearData data, AppLocalizations t) {
-    final List<GoalRow> goals = data.view.yearlyGoals;
-    final int done = goals.where((GoalRow goal) => goal.isDone).length;
-    final List<int> scores = <int>[
-      for (final GoalRow goal in goals)
-        if (goal.selfScore != null) goal.selfScore!,
-    ];
-    final int total = scores.fold(0, (int sum, int value) => sum + value);
-    final String average = scores.isEmpty
-        ? '—'
-        : (total / scores.length).toStringAsFixed(1);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          '${t.goalYearReviewDone} $done',
-          key: const ValueKey<String>('goal-year-review-done'),
-          style: _bodyStyle(context),
-        ),
-        Text(
-          '${t.goalYearReviewScoreTotal} $total',
-          key: const ValueKey<String>('goal-year-review-total'),
-          style: _bodyStyle(context),
-        ),
-        Text(
-          '${t.goalYearReviewScoreAverage} $average',
-          key: const ValueKey<String>('goal-year-review-average'),
-          style: _bodyStyle(context),
-        ),
-        Text(t.goalYearReviewSelfNote, style: _metaStyle(context)),
-      ],
-    );
-  }
-
-  /// 80/20 视角：只呈现执行记录条数（**不评分、不排名、无百分比**）。
-  Widget _build8020(_YearData data, AppLocalizations t) {
-    final List<GoalRow> ordered = <GoalRow>[...data.view.yearlyGoals]
-      ..sort(
-        (GoalRow a, GoalRow b) => (data.tracks[b.id] ?? 0).compareTo(
-          data.tracks[a.id] ?? 0,
-        ),
-      );
-    final List<GoalRow> shown = <GoalRow>[
-      for (final GoalRow goal in ordered)
-        if ((data.tracks[goal.id] ?? 0) > 0) goal,
-    ];
-    if (shown.isEmpty) {
-      return Column(
-        key: const ValueKey<String>('goal-year-8020-block'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            t.goalYear8020Empty,
-            key: const ValueKey<String>('goal-year-8020-empty'),
-            style: _metaStyle(context),
-          ),
-        ],
-      );
-    }
-    return Column(
-      key: const ValueKey<String>('goal-year-8020-block'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        for (final GoalRow goal in shown)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              '${goal.title} · ${data.tracks[goal.id]} ${t.goalYear8020Tracks}',
-              key: ValueKey<String>('goal-year-8020-${goal.id}'),
-              style: _bodyStyle(context),
-            ),
-          ),
-      ],
-    );
-  }
-
-  /// 待确认草稿区（**未确认前库里 0 增量**；B16 项 5 已撤掉候选列表，只留队列本体）。
-  Widget _buildPending(AppLocalizations t) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          t.goalDraftPending,
-          key: const ValueKey<String>('goal-year-draft-pending'),
-          style: _headStyle(context),
-        ),
-        if (_pending.isEmpty)
-          Text(
-            t.goalYearDraftEmpty,
-            key: const ValueKey<String>('goal-year-pending-empty'),
-            style: _metaStyle(context),
-          )
-        else
-          for (final GoalDraft draft in _pending)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Text(
-                draft.title,
-                key: ValueKey<String>('goal-year-pending-${draft.title}'),
-                style: _bodyStyle(context),
-              ),
-            ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            key: const ValueKey<String>('goal-year-draft-confirm'),
-            onPressed: _saving || _pending.isEmpty
-                ? null
-                : () => _confirmPending(),
-            child: Text(t.goalsDraftConfirm),
-          ),
-        ),
-        if (_saved)
-          Text(
-            t.goalsDraftSaved,
-            key: const ValueKey<String>('goal-year-draft-saved'),
-            style: _metaStyle(context),
-          ),
-        if (_error != null)
-          Text(
-            _error!,
-            key: const ValueKey<String>('goal-year-draft-error'),
-            style: _metaStyle(context),
-          ),
-      ],
-    );
-  }
-
-  /// 表二空格新增月目标 → 进页内待确认草稿队列（**不落库**）。
-  void _addCellDraft(String yearlyId, int month, String title) {
-    final GoalPeriod monthPeriod = GoalPeriod.month(_period.year, month);
-    setState(() {
-      _pending.add(
-        GoalDraft(
-          kind: GoalKind.monthly,
-          title: title,
-          periodStart: monthPeriod.startMillis,
-          periodEnd: monthPeriod.endMillis,
-          parentId: yearlyId,
-          origin: GoalDraftOrigin.fromUpperLayer,
-        ),
-      );
-    });
-  }
-
-  /// 用户确认 ⇒ 落库（`status='draft'`）。
-  Future<void> _confirmPending() async {
-    setState(() {
-      _saving = true;
-      _saved = false;
-      _error = null;
-    });
-    try {
-      await ref.read(goalStoreProvider).saveWeeklyDrafts(
-        List<GoalDraft>.from(_pending),
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _pending.clear();
-        _saved = true;
-      });
-      _future = _load();
-    } on Object {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _error = AppLocalizations.of(context).operationFailed);
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
   }
 
   /// UTC 毫秒 → `yyyy-MM-dd`（null = 无固定终点 → 占位符 `—`，与同页其它缺值口径一致）。

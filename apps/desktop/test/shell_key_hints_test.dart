@@ -5,15 +5,17 @@
 //    `Ctrl+5` 有真实落点 ⇒ 从 7 条变 8 条，`Ctrl+1…3` 同时更正为 `Ctrl+1…4`；
 //    Task 65 UI 半批起「目标」页落地，`Ctrl+6` 有真实落点 ⇒ 再变 9 条；
 //    Task 72 补齐漏登的「人生蓝图」页，`Ctrl+7` 有真实落点 ⇒ 再变 10 条；
-//    B16 左导航重排为 8 项 ⇒「切页」扩为 `Ctrl+1…8`，单条落点改为
-//    `Ctrl+4` 蓝图 / `Ctrl+5` 目标 / `Ctrl+6` 项目，条数仍 10）；
+//    B16 左导航扩为 8 项 ⇒「切页」扩为 `Ctrl+1…8`；
+//    B17 左导航回到 7 项（「习惯」出列、「学习」改称「学习管理」）⇒
+//    「切页」收回 `Ctrl+1…7`，单条落点改为 `Ctrl+3` 蓝图 / `Ctrl+4` 目标 /
+//    `Ctrl+5` 项目，条数仍 10）；
 // ② `Esc` 的来源写成事实，不再指向本仓里指不到的地方（A2）——
 //    上一版注释写的是「某宿主文件的 `DefaultShortcuts` + `ModalRoute` 的
 //    `_DismissModalAction`」，本仓既没有 `DefaultShortcuts`，也没有那个私有类，
 //    是一条**假引用**；
 // ③ 10 条文案里不许出现原型那种「把这一行加进 / 拿出今日计划」的说法，
-//    也不许出现 `Ctrl+1…4` / `Ctrl+1…5` / `Ctrl+1…6` / `Ctrl+1…7`（「切页」覆盖
-//    Ctrl+1…8；Ctrl+4 / Ctrl+5 / Ctrl+6 各有单条落点，任何合并写法都是假提示）（A11）。
+//    也不许出现 `Ctrl+1…3` / `Ctrl+1…4` / `Ctrl+1…5` / `Ctrl+1…6`（「切页」
+//    覆盖 Ctrl+1…7；Ctrl+3 / Ctrl+4 / Ctrl+5 各有单条落点，任何合并写法都是假提示）（A11）。
 //
 // 判定口径：键条文案 = `kShellKeyHints` 这一份常量（键帽 + 说明），
 // 底栏与右轨「快捷键」面板共用它，所以断言这一份就等于断言渲染出来的那 10 条。
@@ -33,10 +35,10 @@ const List<List<String>> _expectedKeys = <List<String>>[
   <String>['Space'],
   <String>['Enter'],
   <String>['Esc'],
-  <String>['Ctrl+1…8'],
+  <String>['Ctrl+1…7'],
+  <String>['Ctrl+3'],
   <String>['Ctrl+4'],
   <String>['Ctrl+5'],
-  <String>['Ctrl+6'],
 ];
 
 /// 10 条的动作说明（顺序同上）。
@@ -53,13 +55,13 @@ const List<String> _expectedLabels = <String>[
   '切到项目',
 ];
 
-/// 「切页」只能覆盖 `Ctrl+1…8`：蓝图 / 目标 / 项目各有单条落点（`Ctrl+4` /
-/// `Ctrl+5` / `Ctrl+6`），把其中任何一段并回区间都是假提示（A11 反向断言用）。
+/// 「切页」只能覆盖 `Ctrl+1…7`：蓝图 / 目标 / 项目各有单条落点（`Ctrl+3` /
+/// `Ctrl+4` / `Ctrl+5`），把其中任何一段并回区间都是假提示（A11 反向断言用）。
 const List<String> _forbiddenRangeMerges = <String>[
+  'Ctrl+1…3',
   'Ctrl+1…4',
   'Ctrl+1…5',
   'Ctrl+1…6',
-  'Ctrl+1…7',
 ];
 
 void main() {
@@ -69,7 +71,7 @@ void main() {
       kShellKeyHints.map((ShellKeyHint hint) => hint.keys).toList(),
       _expectedKeys,
       reason: '键帽顺序必须是 Ctrl+N / Ctrl+D / ←→ / Space / Enter / Esc / '
-          'Ctrl+1…8 / Ctrl+4 / Ctrl+5 / Ctrl+6',
+          'Ctrl+1…7 / Ctrl+3 / Ctrl+4 / Ctrl+5',
     );
     expect(
       kShellKeyHints.map((ShellKeyHint hint) => hint.label).toList(),
@@ -88,15 +90,15 @@ void main() {
     expect(kShellKeyHints.first.keys, <String>['Ctrl+N']);
   });
 
-  test('A1：切页那条覆盖 Ctrl+1…8（日志 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历），蓝图是 Ctrl+4、目标是 Ctrl+5、项目是 Ctrl+6',
+  test('A1：切页那条覆盖 Ctrl+1…7（日志 / 待办池 / 蓝图 / 目标 / 项目 / 学习管理 / 日历），蓝图是 Ctrl+3、目标是 Ctrl+4、项目是 Ctrl+5',
       () {
-    expect(kShellKeyHints[6].keys, <String>['Ctrl+1…8']);
+    expect(kShellKeyHints[6].keys, <String>['Ctrl+1…7']);
     expect(kShellKeyHints[6].label, '切页');
-    expect(kShellKeyHints[7].keys, <String>['Ctrl+4']);
+    expect(kShellKeyHints[7].keys, <String>['Ctrl+3']);
     expect(kShellKeyHints[7].label, '切到蓝图');
-    expect(kShellKeyHints[8].keys, <String>['Ctrl+5']);
+    expect(kShellKeyHints[8].keys, <String>['Ctrl+4']);
     expect(kShellKeyHints[8].label, '切到目标');
-    expect(kShellKeyHints.last.keys, <String>['Ctrl+6']);
+    expect(kShellKeyHints.last.keys, <String>['Ctrl+5']);
     expect(kShellKeyHints.last.label, '切到项目');
   });
 
@@ -124,7 +126,7 @@ void main() {
     expect(src.contains('ModalRoute'), isTrue);
   });
 
-  test('A11：10 条文案里没有「加进 / 拿出今日计划」式说法，也没有 Ctrl+1…4 / Ctrl+1…5 / Ctrl+1…6 / Ctrl+1…7',
+  test('A11：10 条文案里没有「加进 / 拿出今日计划」式说法，也没有 Ctrl+1…3 / Ctrl+1…4 / Ctrl+1…5 / Ctrl+1…6',
       () {
     for (final ShellKeyHint hint in kShellKeyHints) {
       for (final String key in hint.keys) {
@@ -134,8 +136,8 @@ void main() {
           expect(
             key.contains(merged),
             isFalse,
-            reason: '「切页」那条覆盖 Ctrl+1…8；蓝图 / 目标 / 项目各有单条落点'
-                '（Ctrl+4 / Ctrl+5 / Ctrl+6），键帽 $key 不能合并成「$merged」',
+            reason: '「切页」那条覆盖 Ctrl+1…7；蓝图 / 目标 / 项目各有单条落点'
+                '（Ctrl+3 / Ctrl+4 / Ctrl+5），键帽 $key 不能合并成「$merged」',
           );
         }
       }

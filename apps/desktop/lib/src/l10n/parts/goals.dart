@@ -609,6 +609,48 @@ abstract class GoalsL10n {
 
   /// 优势标签库（VIA 24 项性格优势）。
   List<String> get goalPositionStrengthTags;
+
+  // ---------------------------------------------------------------------------
+  // B17 目标类别 / 表单字段 / 行控件
+  // ---------------------------------------------------------------------------
+  // 类别口径的**唯一真源**是 `widgets/goals/goal_category.dart`：那里是
+  // 「类别 key ⇒ getter」的映射表，这里只放文案，不放 key 清单。
+
+  /// 类别：财务目标。
+  String get goalCategoryWealth;
+
+  /// 类别：家庭生活。
+  String get goalCategoryFamily;
+
+  /// 类别：学习成长。
+  String get goalCategoryLearning;
+
+  /// 类别：人际关系。
+  String get goalCategorySocial;
+
+  /// 类别：健康休闲。
+  String get goalCategoryHealth;
+
+  /// 类别下拉里的「自定义」（后面跟用户自己填的名称）。
+  String get goalCategoryCustom;
+
+  /// 没有类别 / 类别无法识别时的兜底标题。
+  String get goalCategoryUncategorized;
+
+  /// 表单字段：目标类别。
+  String get goalFormCategoryLabel;
+
+  /// 表单字段：自定义类别名称的输入提示。
+  String get goalFormCustomCategoryHint;
+
+  /// 表单字段：起止日期。
+  String get goalFormDateRange;
+
+  /// 数据行完成单选按钮的 tooltip / 语义标签。
+  String get goalRowDoneTooltip;
+
+  /// 起止日期行：还没有设置日期时的占位文案。
+  String get goalPeriodUnset;
 }
 
 /// 目标页文案：简体中文。
@@ -1224,6 +1266,46 @@ mixin GoalsZhL10n implements GoalsL10n {
     '幽默',
     '灵性',
   ];
+
+  // ---------------------------------------------------------------------------
+  // B17 目标类别 / 表单字段 / 行控件
+  // ---------------------------------------------------------------------------
+
+  @override
+  String get goalCategoryWealth => '财务目标';
+
+  @override
+  String get goalCategoryFamily => '家庭生活';
+
+  @override
+  String get goalCategoryLearning => '学习成长';
+
+  @override
+  String get goalCategorySocial => '人际关系';
+
+  @override
+  String get goalCategoryHealth => '健康休闲';
+
+  @override
+  String get goalCategoryCustom => '自定义类别';
+
+  @override
+  String get goalCategoryUncategorized => '未分类';
+
+  @override
+  String get goalFormCategoryLabel => '目标类别';
+
+  @override
+  String get goalFormCustomCategoryHint => '填写自定义类别名称';
+
+  @override
+  String get goalFormDateRange => '起止日期';
+
+  @override
+  String get goalRowDoneTooltip => '标记完成';
+
+  @override
+  String get goalPeriodUnset => '未设置日期';
 }
 
 /// 目标页文案：English。
@@ -1446,16 +1528,16 @@ mixin GoalsEnL10n implements GoalsL10n {
   String get goalBlueprintColumnGoal => 'Goal';
 
   @override
-  String get goalBlueprintHorizonUltimate => 'Ultimate Goal';
+  String get goalBlueprintHorizonUltimate => 'Ultimate';
 
   @override
-  String get goalBlueprintHorizonLong => 'Long-term Goal';
+  String get goalBlueprintHorizonLong => 'Long-term';
 
   @override
-  String get goalBlueprintHorizonMid => 'Mid-term Goal';
+  String get goalBlueprintHorizonMid => 'Mid-term';
 
   @override
-  String get goalBlueprintHorizonShort => 'Short-term Goal';
+  String get goalBlueprintHorizonShort => 'Short-term';
 
   @override
   String get goalBlueprintHorizonNear => 'Near-term (1 year)';
@@ -1877,4 +1959,44 @@ mixin GoalsEnL10n implements GoalsL10n {
     'Humor',
     'Spirituality',
   ];
+
+  // ---------------------------------------------------------------------------
+  // B17 目标类别 / 表单字段 / 行控件
+  // ---------------------------------------------------------------------------
+
+  @override
+  String get goalCategoryWealth => 'Financial';
+
+  @override
+  String get goalCategoryFamily => 'Family & Life';
+
+  @override
+  String get goalCategoryLearning => 'Learning & Growth';
+
+  @override
+  String get goalCategorySocial => 'Relationships';
+
+  @override
+  String get goalCategoryHealth => 'Health & Leisure';
+
+  @override
+  String get goalCategoryCustom => 'Custom category';
+
+  @override
+  String get goalCategoryUncategorized => 'Uncategorized';
+
+  @override
+  String get goalFormCategoryLabel => 'Category';
+
+  @override
+  String get goalFormCustomCategoryHint => 'Custom category name';
+
+  @override
+  String get goalFormDateRange => 'Date range';
+
+  @override
+  String get goalRowDoneTooltip => 'Mark as done';
+
+  @override
+  String get goalPeriodUnset => 'No dates set';
 }

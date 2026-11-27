@@ -173,8 +173,8 @@ Widget _host({ThemeData? theme, Key? hostKey}) => MaterialApp(
 );
 
 void main() {
-  group('B14-1 四个档位标签都带「目标」', () {
-    test('中文四档以「目标」结尾，英文四档以 "Goal" 结尾', () {
+  group('B14-1 四个档位标签中英都齐且互不相同', () {
+    test('中文四档以「目标」结尾，英文四档为固定英文档位词', () {
       final AppLocalizations zh = AppLocalizations.zh;
       final AppLocalizations en = AppLocalizations.en;
       final List<String> zhLabels = <String>[
@@ -192,9 +192,9 @@ void main() {
         en.goalBlueprintHorizonMid,
         en.goalBlueprintHorizonShort,
       ];
-      for (final String label in enLabels) {
-        expect(label.endsWith('Goal'), isTrue, reason: '英文档位缺 Goal：$label');
-      }
+      // B17（W0）：英文四档改为与国际惯例一致的档位词，不再带 "Goal" 后缀。
+      expect(enLabels, <String>['Ultimate', 'Long-term', 'Mid-term', 'Short-term']);
+      expect(enLabels.toSet().length, 4, reason: '英文四档必须互不相同');
       expect(zhLabels.toSet().length, 4, reason: '四个档位文案必须互不相同');
     });
 

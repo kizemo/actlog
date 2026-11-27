@@ -25,6 +25,7 @@ import '../data/goal_store.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/theme_tokens.dart';
 import 'goals/goal_form_dialog.dart';
+import 'goals/goal_section.dart';
 
 /// 周目标表（表头 + 若干行）。
 class GoalWeekTable extends StatelessWidget {
@@ -34,6 +35,7 @@ class GoalWeekTable extends StatelessWidget {
     required this.t,
     this.onEdit,
     this.onDelete,
+    this.onToggleDone,
     this.editingId,
     this.titleController,
     this.titleFocus,
@@ -54,6 +56,9 @@ class GoalWeekTable extends StatelessWidget {
 
   /// 点某一行的「删除」。
   final void Function(GoalRow goal)? onDelete;
+
+  /// 点某一行的完成单选（B17 F 条）；null ⇒ 不渲染该按钮（宽度仍 56）。
+  final void Function(GoalRow goal)? onToggleDone;
 
   /// 正在就地编辑的目标 id（null = 无编辑）。
   final String? editingId;
@@ -85,6 +90,14 @@ class GoalWeekTable extends StatelessWidget {
   /// 「完成」列宽。
   static const double doneWidth = 64;
 
+  /// 操作列总宽（表头预留列必须与行尾按钮组同宽）。
+  ///
+  /// 不带完成单选时是 `GoalRowActions.width`（56）；带时是 `56 + 24`
+  /// —— 与行内 `GoalRowActions.totalWidth` 同一算法。
+  double get _actionsWidth => onToggleDone == null
+      ? GoalRowActions.width
+      : GoalRowActions.width + GoalRowActions.doneWidth;
+
   @override
   Widget build(BuildContext context) {
     final ThemeTokens tokens = context.tokens;
@@ -111,28 +124,45 @@ class GoalWeekTable extends StatelessWidget {
             SizedBox(width: dueWidth, child: Text(t.goalsColumnDue, style: headerStyle)),
             SizedBox(width: doneWidth, child: Text(t.goalsColumnDone, style: headerStyle)),
             Expanded(flex: 2, child: Text(t.goalsColumnServes, style: headerStyle)),
-            // 操作列表头留空：宽度必须与行尾按钮组同宽（`GoalRowActions.width`）。
+            // 操作列表头留空：宽度必须与行尾按钮组同宽（带完成单选时是
+            // 56 + 24，不带时仍是 56）。
             if (onEdit != null && onDelete != null)
-              const SizedBox(width: GoalRowActions.width),
+              SizedBox(width: _actionsWidth),
           ],
         ),
         const SizedBox(height: 6),
-        for (final GoalWeekItem item in view.items) ...<Widget>[
-          Divider(height: 1, thickness: 1, color: tokens.hair),
-          _WeekRow(
-            item: item,
-            t: t,
-            onEdit: onEdit,
-            onDelete: onDelete,
-            editingId: editingId,
-            titleController: titleController,
-            titleFocus: titleFocus,
-            onTitleTap: onTitleTap,
-            onTitleSubmit: onTitleSubmit,
-            onTitleCancel: onTitleCancel,
+        // B17 F 条：按类别分区渲染（顺序与标题全部委托 `goal_category.dart`，
+        // 本表只把 `GoalWeekItem` 喂给泛型分组函数）。分区键 ⇒
+        // `goal-section-<displayKey>` / `goal-section-title-<displayKey>`。
+        GoalSectionList<GoalWeekItem>(
+          groups: groupSectionsByCategory<GoalWeekItem>(
+            t,
+            view.items,
+            domainOf: (GoalWeekItem item) => item.goal.domain,
           ),
-          const SizedBox(height: 6),
-        ],
+          // 一行 = 分隔线 + 行本体 + 行间距：与分组之前的视觉节奏保持一致。
+          rowBuilder: (BuildContext context, GoalWeekItem item) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Divider(height: 1, thickness: 1, color: tokens.hair),
+              _WeekRow(
+                item: item,
+                t: t,
+                onEdit: onEdit,
+                onDelete: onDelete,
+                onToggleDone: onToggleDone,
+                editingId: editingId,
+                titleController: titleController,
+                titleFocus: titleFocus,
+                onTitleTap: onTitleTap,
+                onTitleSubmit: onTitleSubmit,
+                onTitleCancel: onTitleCancel,
+              ),
+              const SizedBox(height: 6),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -146,6 +176,7 @@ class _WeekRow extends StatelessWidget {
     required this.t,
     this.onEdit,
     this.onDelete,
+    this.onToggleDone,
     this.editingId,
     this.titleController,
     this.titleFocus,
@@ -165,6 +196,9 @@ class _WeekRow extends StatelessWidget {
 
   /// 点本行的「删除」。
   final void Function(GoalRow goal)? onDelete;
+
+  /// 点本行的完成单选（null ⇒ 本行不渲染该按钮）。
+  final void Function(GoalRow goal)? onToggleDone;
 
   /// 正在就地编辑的目标 id（null = 无编辑）。
   final String? editingId;
@@ -249,6 +283,12 @@ class _WeekRow extends StatelessWidget {
             deleteKey: 'goal-week-row-delete-${goal.id}',
             onEdit: () => onEdit!(goal),
             onDelete: () => onDelete!(goal),
+            // B17 任务 F：行内完成单选（`onToggleDone == null` 时不渲染，
+            // 宽度回落 56，见 `GoalRowActions`）。
+            goalId: goal.id,
+            isDone: goal.isDone,
+            onToggleDone:
+                onToggleDone == null ? null : () => onToggleDone!(goal),
             t: t,
           ),
       ],

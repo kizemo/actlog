@@ -201,7 +201,7 @@ class _AboutRoute extends StatelessWidget {
 /// 自绘顶栏 [AppTopBar] 挂在本组件里、`LedgerShell` **之上**（不是塞进壳内部），
 /// 窗口动作全部转给 `desktop_shell.dart` 的模块级函数，壳本身完全不感知窗口。
 ///
-/// 各页面（今日 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历 / 设置）都是**内容体**，不带
+/// 各页面（今日 / 待办池 / 蓝图 / 目标 / 项目 / 学习管理 / 日历 / 设置）都是**内容体**，不带
 /// `Scaffold`；导航点击只切本组件的 `_nav` 状态，不做路由 push —— 否则每点
 /// 一次就叠一层壳。
 /// `/todo`、`/calendar`、`/goals`、`/blueprint`、`/settings`、`/about` 保留为**深链入口**：前五个各自
@@ -224,7 +224,7 @@ class ShellHost extends StatefulWidget {
 class _ShellHostState extends State<ShellHost> {
   late String _nav = widget.initialNavId;
 
-  /// 壳级焦点节点：壳自己持焦点 ⇒ `Ctrl+1…8` 在任何页都收得到键。
+  /// 壳级焦点节点：壳自己持焦点 ⇒ `Ctrl+1…7` 在任何页都收得到键。
   ///
   /// `Shortcuts` 靠焦点节点收键：焦点掉回根 scope 时事件不会冒泡下来，
   /// 快捷键就成了死键。切页时把焦点收回这里，键条上的承诺才始终成立。
@@ -240,6 +240,7 @@ class _ShellHostState extends State<ShellHost> {
   Widget build(BuildContext context) {
     return Shortcuts(
       // 键条「切页」的真身：与导航序位逐位绑定，只认有落点的导航项。
+      // B17：7 项 ⇒ digit1..7；「习惯」不再占编号（页面本身仍保留）。
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.digit1, control: true): _NavIntent(
           ShellHost.kTodayNavId,
@@ -248,21 +249,18 @@ class _ShellHostState extends State<ShellHost> {
           'inbox',
         ),
         SingleActivator(LogicalKeyboardKey.digit3, control: true): _NavIntent(
-          'habits',
-        ),
-        SingleActivator(LogicalKeyboardKey.digit4, control: true): _NavIntent(
           'blueprint',
         ),
-        SingleActivator(LogicalKeyboardKey.digit5, control: true): _NavIntent(
+        SingleActivator(LogicalKeyboardKey.digit4, control: true): _NavIntent(
           'goals',
         ),
-        SingleActivator(LogicalKeyboardKey.digit6, control: true): _NavIntent(
+        SingleActivator(LogicalKeyboardKey.digit5, control: true): _NavIntent(
           'projects',
         ),
-        SingleActivator(LogicalKeyboardKey.digit7, control: true): _NavIntent(
+        SingleActivator(LogicalKeyboardKey.digit6, control: true): _NavIntent(
           'learning',
         ),
-        SingleActivator(LogicalKeyboardKey.digit8, control: true): _NavIntent(
+        SingleActivator(LogicalKeyboardKey.digit7, control: true): _NavIntent(
           'calendar',
         ),
       },
@@ -351,6 +349,8 @@ class _ShellHostState extends State<ShellHost> {
   Widget _content() {
     return switch (_nav) {
       'inbox' => const TodoPoolPage(),
+      // B17：「习惯」退出导航清单，页面本身**保留**（旧 id 切过来仍能渲染，
+      // 只是不再占编号、也不再吃 `Ctrl+N`）。
       'habits' => const HabitsPage(),
       // 日历页在壳内没有可 pop 的宿主栈，点格子后靠回调回今日。
       'calendar' => CalendarPage(
@@ -363,7 +363,7 @@ class _ShellHostState extends State<ShellHost> {
       'projects' => ProjectsPage(
         onOpenDayLog: () => setState(() => _nav = ShellHost.kTodayNavId),
       ),
-      // B16：学习是占位项 —— 有真实落点（可点、可被 Ctrl+7 切到），
+      // B16：学习是占位项 —— 有真实落点（可点、可被 Ctrl+6 切到），
       // 但内容体只是居中占位，不接数据、不写库。
       'learning' => const _LearningPlaceholder(),
       _ => const TodayPage(),
@@ -374,19 +374,20 @@ class _ShellHostState extends State<ShellHost> {
     if (id == _nav) {
       return;
     }
-    // 今日 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历 / 设置九项都有真实落点。
+    // 导航七项 + 设置齿轮都有真实落点；「习惯」页保留在 _content() 里。
     setState(() => _nav = id);
   }
 }
 
-/// 「切页」意图（`Ctrl+1…8`，与导航序位逐位绑定）。
+/// 「切页」意图（`Ctrl+1…7`，与导航序位逐位绑定）。
 ///
-/// 只认有落点的导航项：今日 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历。
-/// 设置页虽有落点，但它沉底成齿轮、不占编号 ⇒ 键条与快捷键不承诺它。
+/// 只认有落点的导航项：今日 / 待办池 / 蓝图 / 目标 / 项目 / 学习管理 / 日历。
+/// 设置页虽有落点，但它沉底成齿轮、不占编号 ⇒ 键条与快捷键不承诺它；
+/// 「习惯」页（B17 起退出导航清单）同样不吃 `Ctrl+N`。
 class _NavIntent extends Intent {
   const _NavIntent(this.navId);
 
-  /// 目标导航项 id（`today` / `inbox` / `habits` / `blueprint` / `goals` /
+  /// 目标导航项 id（`today` / `inbox` / `blueprint` / `goals` /
   /// `projects` / `learning` / `calendar`）。
   final String navId;
 }

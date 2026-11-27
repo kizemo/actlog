@@ -32,11 +32,12 @@ class ShellKeyHint {
 /// - `Enter` → 今日计划**行级**焦点：打开「成果 / 进展」回填弹层；
 /// - `Esc` → Flutter 框架 `WidgetsApp` 默认快捷键 `escape → DismissIntent`，
 ///   弹层由 `ModalRoute` 处理 `DismissIntent` 关闭；
-/// - `Ctrl+1…8` → 壳宿主（`ShellHost`）的 `Shortcuts`：与导航序位逐位绑定，
-///   日志 / 待办池 / 习惯 / 蓝图 / 目标 / 项目 / 学习 / 日历（B16 起序位重排）；
-/// - `Ctrl+4` → 同一处：人生蓝图页（B16 起序位前移，原 `Ctrl+7`）；
-/// - `Ctrl+5` → 同一处：目标页（Task 65 UI 半批 B1 起有真实落点；B16 起原 `Ctrl+6`）；
-/// - `Ctrl+6` → 同一处：项目页（Task 56 起有真实落点；B16 起原 `Ctrl+5`）。
+/// - `Ctrl+1…7` → 壳宿主（`ShellHost`）的 `Shortcuts`：与导航序位逐位绑定，
+///   日志 / 待办池 / 蓝图 / 目标 / 项目 / 学习管理 / 日历（B17 起回到 7 项；
+///   「习惯」退出导航清单，`HabitsPage` 与 `habits` 映射保留）；
+/// - `Ctrl+3` → 同一处：人生蓝图页（B17 起序位前移，原 `Ctrl+4`）；
+/// - `Ctrl+4` → 同一处：目标页（Task 65 UI 半批 B1 起有真实落点；原 `Ctrl+5`）；
+/// - `Ctrl+5` → 同一处：项目页（Task 56 起有真实落点；原 `Ctrl+6`）。
 ///
 /// 文案口径（Task 20 / K3）：`Space` 写「勾选 / 取消勾选」，不写原型那种
 /// 「把这一行加进 / 拿出今日计划」的说法——本应用里这一行本来就在今日计划里，
@@ -52,10 +53,10 @@ const List<ShellKeyHint> kShellKeyHints = <ShellKeyHint>[
   ShellKeyHint(keys: <String>['Space'], label: '勾选 / 取消勾选'),
   ShellKeyHint(keys: <String>['Enter'], label: '展开回填'),
   ShellKeyHint(keys: <String>['Esc'], label: '关闭弹层'),
-  ShellKeyHint(keys: <String>['Ctrl+1…8'], label: '切页'),
-  ShellKeyHint(keys: <String>['Ctrl+4'], label: '切到蓝图'),
-  ShellKeyHint(keys: <String>['Ctrl+5'], label: '切到目标'),
-  ShellKeyHint(keys: <String>['Ctrl+6'], label: '切到项目'),
+  ShellKeyHint(keys: <String>['Ctrl+1…7'], label: '切页'),
+  ShellKeyHint(keys: <String>['Ctrl+3'], label: '切到蓝图'),
+  ShellKeyHint(keys: <String>['Ctrl+4'], label: '切到目标'),
+  ShellKeyHint(keys: <String>['Ctrl+5'], label: '切到项目'),
 ];
 
 /// 取当前语言的文案表；不在 [L10nScope] 之下时回落中文态。
@@ -85,10 +86,10 @@ List<ShellKeyHint> shellKeyHintsFor(AppLocalizations t) => <ShellKeyHint>[
   ShellKeyHint(keys: <String>['Space'], label: t.shellKeyToggleCheck),
   ShellKeyHint(keys: <String>['Enter'], label: t.shellKeyExpandBackfill),
   ShellKeyHint(keys: <String>['Esc'], label: t.shellKeyClosePopup),
-  ShellKeyHint(keys: <String>['Ctrl+1…8'], label: t.shellKeySwitchTab),
-  ShellKeyHint(keys: <String>['Ctrl+4'], label: t.shellKeyGoBlueprint),
-  ShellKeyHint(keys: <String>['Ctrl+5'], label: t.shellKeyGoGoals),
-  ShellKeyHint(keys: <String>['Ctrl+6'], label: t.shellKeyGoProjects),
+  ShellKeyHint(keys: <String>['Ctrl+1…7'], label: t.shellKeySwitchTab),
+  ShellKeyHint(keys: <String>['Ctrl+3'], label: t.shellKeyGoBlueprint),
+  ShellKeyHint(keys: <String>['Ctrl+4'], label: t.shellKeyGoGoals),
+  ShellKeyHint(keys: <String>['Ctrl+5'], label: t.shellKeyGoProjects),
 ];
 
 /// 键帽（等价原型 `kbd`）。

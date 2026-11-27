@@ -268,10 +268,16 @@ void main() {
       reason: '未完成的目标不追加完成日',
     );
 
-    // 改期按钮带出的是这一行目标的既有起止。
+    // B17 第 B 条：多余的「日期」图标按钮已下线（与日期文本重复的入口）。
+    expect(
+      find.byKey(ValueKey<String>('goal-blueprint-period-$dated')),
+      findsNothing,
+      reason: 'B17 第 B 条：图标按钮 key 必须不存在',
+    );
+    // 改期入口只剩日期文本自身：点它带出的是这一行目标的既有起止。
     await _tapKey(
       tester,
-      ValueKey<String>('goal-blueprint-period-$dated'),
+      ValueKey<String>('goal-blueprint-period-tap-$dated'),
     );
     expect(tappedStart, _start2026);
     expect(tappedEnd, _end2026);
@@ -329,10 +335,11 @@ void main() {
     );
     expect(labelOf('ultimate').style?.color, tokens.ink);
     expect(labelOf('ultimate').style?.fontWeight, FontWeight.w600);
+    // B17-A：两态等高 ⇒ 活动与非活动页都是 tabHeight（落差已删除）。
     expect(
       heightOf('ultimate'),
-      GoalBlueprintMatrix.tabActiveHeight,
-      reason: '激活页更高（B12 第 2 条）',
+      GoalBlueprintMatrix.tabHeight,
+      reason: 'B17-A：四页签两态等高（46px）',
     );
     // 圆角 8px 是**唯一**超出 `AppTokens.radius`（4px）的例外，必须钉住。
     expect(
@@ -355,8 +362,8 @@ void main() {
     expect(labelOf('short').style?.fontWeight, isNot(FontWeight.w600));
     expect(
       heightOf('short'),
-      GoalBlueprintMatrix.tabInactiveHeight,
-      reason: '未激活页更矮（再叠加 tabInactiveLift 抬高）',
+      GoalBlueprintMatrix.tabHeight,
+      reason: 'B17-A：未激活页与激活页同高（底边抬高已删除）',
     );
 
     // 切到「中期」后，激活态跟着走（不是写死在第一个）。

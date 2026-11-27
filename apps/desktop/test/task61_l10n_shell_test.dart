@@ -4,7 +4,7 @@
 //
 // 覆盖外壳的全部可见文案：
 // * 品牌块（主标题 + 副标题 `actlog`）；
-// * 左主导航 7 项（第 7 项「蓝图」，Task 72 · D-72-b）；
+// * 左主导航 7 项（第 3 项「蓝图」，Task 72 · D-72-b）；
 // * 导航底注**已删除**（Task 72 · D-72-a）⇒ 相关用例改为阴性断言；
 // * 右轨「快捷键 / Shortcuts」面板与 9 条快捷键说明；
 // * 右轨 5 个面板（今日页生产清单 `todayRailPanels`）的标题与 `＋` 动作位文案
@@ -36,22 +36,22 @@ import 'l10n_harness.dart';
 const List<String> _zhNavLabels = <String>[
   '日志',
   '待办池',
-  '习惯',
-  '项目',
-  '日历',
-  '目标',
   '蓝图',
+  '目标',
+  '项目',
+  '学习管理',
+  '日历',
 ];
 
 /// 左主导航 7 项的英文文案（en 态逐字）。
 const List<String> _enNavLabels = <String>[
   'Journal',
   'To-do Pool',
-  'Habits',
-  'Projects',
-  'Calendar',
-  'Goals',
   'Blueprint',
+  'Goals',
+  'Projects',
+  'Learning Management',
+  'Calendar',
 ];
 
 /// 9 条快捷键说明的中文文案（zh 态逐字，含全角 `＋` 与斜杠两侧空格）。

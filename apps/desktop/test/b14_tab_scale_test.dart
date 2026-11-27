@@ -8,6 +8,11 @@
 //    **回报里必须给出「760 宽下实际缩放比例」这个数字**（从 widget 尺寸断言取，
 //    不许目测）。」
 //
+// B17-A 注：`_tabPadding` 18 → 10（B14）→ **16**（B17「页签加宽」），英文页签
+// 文案已缩为 `Short-term` / `Mid-term` / `Long-term` / `Ultimate` ⇒ 760 宽英文
+// 态实测自然宽 680.5px ≤ 可用宽 742px，**不再触发缩字**（显示字号 15.00px、
+// 余量 4.00px）；红线 11px 与余量 1.00px 两条判据一律不改。
+//
 // 量具（全部取自 widget 的 layout / paint 数据，不看截图）：
 //   1) 绘制比：标签条 `FittedBox` 的 child（自然宽 Row）在**自然坐标**上取两点，
 //      `localToGlobal` 后的距离 ÷ 自然距离 = 该轴的实际渲染比例
@@ -537,24 +542,32 @@ void main() {
     debugPrint(s.describe());
 
     // 英文标签的长自然宽必须真的出现，否则说明语言没切过去（会给出假的 1.0）。
+    // B17-A 重定基线：英文文案缩短 + 页签加宽后实测自然宽 680.5px（中文基线
+    // 393.6px）⇒ 门槛 700 收到 600，仍能识别「l10n 没生效」。
     expect(
       s.naturalWidth,
-      greaterThan(700),
-      reason: 'T6：英文四标签自然宽应远大于中文（实测 ${s.naturalWidth}），'
-          '过小说明 l10n 没生效',
-    );
-    expect(
-      s.naturalWidth,
-      greaterThan(s.availableWidth),
-      reason: 'T6：真页面可用宽 ${s.availableWidth} < 英文自然宽 ${s.naturalWidth}'
-          ' ⇒ 这里必须真的缩放',
+      greaterThan(600),
+      reason: 'T6：英文四标签自然宽应远大于中文（实测 ${s.naturalWidth}，'
+          '中文基线 393.6），过小说明 l10n 没生效',
     );
     _expectScaleConsistent(s, 'T6');
-    expect(
-      s.scale,
-      lessThan(1.0),
-      reason: 'T6：英文真页面必须缩放，实测比例 ${s.scale} 却为 1',
-    );
+    // B17-A 新实测：680.5 ≤ 可用宽 742 ⇒ 760 宽英文态**不缩字**（比例 1.0）。
+    // 保留反向守卫：若将来文案变长到自然宽超出可用宽，这里必须真的缩放。
+    if (s.naturalWidth > s.availableWidth) {
+      expect(
+        s.scale,
+        lessThan(1.0),
+        reason: 'T6：自然宽 ${s.naturalWidth} > 可用宽 ${s.availableWidth}'
+            ' ⇒ 必须缩放，实测比例 ${s.scale} 却为 1',
+      );
+    } else {
+      expect(
+        s.scale,
+        closeTo(1.0, 1e-6),
+        reason: 'T6：自然宽 ${s.naturalWidth} ≤ 可用宽 ${s.availableWidth}'
+            ' ⇒ 不该缩放，实测比例 ${s.scale}',
+      );
+    }
     // 红线判据：与语言无关，显示字号 ≥ 11px。
     expect(
       s.clearsRedLine,

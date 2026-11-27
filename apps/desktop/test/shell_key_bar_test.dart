@@ -52,10 +52,10 @@ void main() {
       'Space',
       'Enter',
       'Esc',
-      'Ctrl+1…8',
+      'Ctrl+1…7',
+      'Ctrl+3',
       'Ctrl+4',
       'Ctrl+5',
-      'Ctrl+6',
     ];
     for (final String key in keys) {
       expect(find.text(key), findsOneWidget, reason: '缺少键帽 $key');
@@ -75,30 +75,31 @@ void main() {
       expect(find.text(label), findsOneWidget, reason: '缺少说明 $label');
     }
 
-    // 顺序：第一条是 Ctrl+N，倒数第四条是区间 `Ctrl+1…8`，最后一条是 `Ctrl+6`
-    // （B16 起导航序位重排 ⇒ `Ctrl+4` 蓝图 / `Ctrl+5` 目标 / `Ctrl+6` 项目）。
+    // 顺序：第一条是 Ctrl+N，倒数第四条是区间 `Ctrl+1…7`，最后一条是 `Ctrl+5`
+    // （B17 起导航回到 7 项 ⇒ `Ctrl+3` 蓝图 / `Ctrl+4` 目标 / `Ctrl+5` 项目）。
     final List<KeyCap> caps = tester.widgetList<KeyCap>(find.byType(KeyCap)).toList();
     expect(caps.length, 10);
     expect(caps.first.label, 'Ctrl+N');
-    expect(caps[6].label, 'Ctrl+1…8');
-    expect(caps[7].label, 'Ctrl+4');
-    expect(caps[8].label, 'Ctrl+5');
-    expect(caps.last.label, 'Ctrl+6');
+    expect(caps[6].label, 'Ctrl+1…7');
+    expect(caps[7].label, 'Ctrl+3');
+    expect(caps[8].label, 'Ctrl+4');
+    expect(caps.last.label, 'Ctrl+5');
     // Task 20：`Space` / `Enter` 已补上真实绑定，可以留在键条上；
     // 但原型那种「把这一行加进 / 拿出今日计划」的说法不许回来（K3 / A11）。
     expect(find.text('Space'), findsOneWidget);
     expect(find.text('Enter'), findsOneWidget);
     expect(find.text('排入 / 移出今日'), findsNothing);
-    // A11：只宣称到 `Ctrl+1…8` + `Ctrl+4` + `Ctrl+5` + `Ctrl+6` —— 每一项都有
-    // 真实落点；键条渲染出 `Ctrl+1…6` / `Ctrl+1…7` 仍是假提示（那是「切页」的老写法）。
+    // A11：只宣称到 `Ctrl+1…7` + `Ctrl+3` + `Ctrl+4` + `Ctrl+5` —— 每一项都有
+    // 真实落点；键条渲染出 `Ctrl+1…8` / `Ctrl+1…6` 仍是假提示（那是「切页」的老写法）。
+    expect(find.text('Ctrl+1…8'), findsNothing);
     expect(find.text('Ctrl+1…6'), findsNothing);
-    expect(find.text('Ctrl+1…7'), findsNothing);
+    expect(find.text('Ctrl+1…7'), findsOneWidget);
     expect(find.text('Ctrl+1…3'), findsNothing);
     expect(find.text('Ctrl+1…4'), findsNothing);
-    expect(find.text('Ctrl+1…8'), findsOneWidget);
+    expect(find.text('Ctrl+3'), findsOneWidget);
     expect(find.text('Ctrl+4'), findsOneWidget);
     expect(find.text('Ctrl+5'), findsOneWidget);
-    expect(find.text('Ctrl+6'), findsOneWidget);
+    expect(find.text('Ctrl+6'), findsNothing);
   });
 
   testWidgets('快捷键条底板 = keybg + 上边 hair', (WidgetTester tester) async {

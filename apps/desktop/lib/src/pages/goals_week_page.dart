@@ -182,6 +182,7 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
                         t: t,
                         onEdit: _editGoal,
                         onDelete: _deleteGoal,
+                        onToggleDone: _toggleDone,
                         editingId: _editingId,
                         titleController: _titleEditing,
                         titleFocus: _titleFocus,
@@ -419,13 +420,43 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
     }
   }
 
+  /// 行尾完成单选：切换 `status` 并重取本周视图。
+  ///
+  /// 只传 `status`：归档时刻由数据层按状态派生（`updateGoal` 既有语义），页面
+  /// 不写任何其它列；`isDone` 为真再点即回到进行中。
+  Future<void> _toggleDone(GoalRow goal) async {
+    setState(() => _error = null);
+    try {
+      await ref.read(goalStoreProvider).updateGoal(
+        goal.id,
+        status: goal.isDone ? GoalStatus.active : GoalStatus.done,
+      );
+      if (!mounted) {
+        return;
+      }
+      ref.invalidate(goalWeekViewProvider);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = AppLocalizations.of(context).operationFailed);
+    }
+  }
+
   /// 表单结果写回库（表单式新建入口不在本页：常驻录入行承担新建）。
   Future<void> _updateGoal(GoalRow goal, GoalFormResult form) async {
     final String title = form.title.trim();
     final String? note = _emptyToNull(form.note);
     final String? keywords = _emptyToNull(form.keywords);
-    final String? domain = _emptyToNull(form.domain);
+    // B17 裁决：`category` 与 `domain` 落**同一列**（`Goal.domain`），二者都
+    // 非空时只能取一个 ⇒ **category 优先**（类别是面向用户的唯一入口，领域
+    // 下拉是旧口径的遗留字段）。
+    final String? category = _emptyToNull(form.category ?? '');
+    final String? domain = category ?? _emptyToNull(form.domain);
     final int? dueDate = form.dueDate;
+    // 起止日期：表单回 `DateTime`，库里是毫秒（周目标本来就带本周周期）。
+    final int? periodStart = form.periodStart?.millisecondsSinceEpoch;
+    final int? periodEnd = form.periodEnd?.millisecondsSinceEpoch;
     setState(() => _error = null);
     try {
       await ref.read(goalStoreProvider).updateGoal(
@@ -436,12 +467,15 @@ class _GoalsWeekPageState extends ConsumerState<GoalsWeekPage> {
         domain: domain,
         horizon: _keptHorizon(goal, form.horizon),
         dueDate: dueDate,
+        periodStart: periodStart,
+        periodEnd: periodEnd,
         // 表单里清空的字段必须显式进 `clear`：传 null 的语义是「不动」。
         clear: <GoalField>{
           if (domain == null) GoalField.domain,
           if (note == null) GoalField.note,
           if (keywords == null) GoalField.keywords,
           if (dueDate == null) GoalField.dueDate,
+          if (periodEnd == null) GoalField.periodEnd,
         },
       );
       if (!mounted) {

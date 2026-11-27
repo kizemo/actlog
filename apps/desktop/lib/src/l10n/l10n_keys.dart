@@ -2226,6 +2226,48 @@ abstract final class L10nKeys {
   static const String goalPositionStrengthTags = 'goal-position-strength-tags';
 
   // ---------------------------------------------------------------------------
+  // B17 目标类别 / 表单字段 / 行控件（key 清单的唯一真源仍是
+  // `widgets\goals\goal_category.dart` 的 `goalCategoryLabelGetters`）
+  // ---------------------------------------------------------------------------
+
+  /// 类别：财务目标。
+  static const String goalCategoryWealth = 'goal-category-wealth';
+
+  /// 类别：家庭生活。
+  static const String goalCategoryFamily = 'goal-category-family';
+
+  /// 类别：学习成长。
+  static const String goalCategoryLearning = 'goal-category-learning';
+
+  /// 类别：人际关系。
+  static const String goalCategorySocial = 'goal-category-social';
+
+  /// 类别：健康休闲。
+  static const String goalCategoryHealth = 'goal-category-health';
+
+  /// 类别下拉里的「自定义」。
+  static const String goalCategoryCustom = 'goal-category-custom';
+
+  /// 没有类别 / 类别无法识别时的兜底标题。
+  static const String goalCategoryUncategorized = 'goal-category-uncategorized';
+
+  /// 表单字段：目标类别。
+  static const String goalFormCategoryLabel = 'goal-form-category-label';
+
+  /// 表单字段：自定义类别名称的输入提示。
+  static const String goalFormCustomCategoryHint =
+      'goal-form-custom-category-hint';
+
+  /// 表单字段：起止日期。
+  static const String goalFormDateRange = 'goal-form-date-range';
+
+  /// 数据行完成单选按钮的 tooltip / 语义标签。
+  static const String goalRowDoneTooltip = 'goal-row-done-tooltip';
+
+  /// 起止日期行：还没有设置日期时的占位文案。
+  static const String goalPeriodUnset = 'goal-period-unset';
+
+  // ---------------------------------------------------------------------------
   // 对照表
   // ---------------------------------------------------------------------------
 
@@ -2526,6 +2568,19 @@ abstract final class L10nKeys {
     'goalPositionProofHint': goalPositionProofHint,
     'goalPositionTagsTitle': goalPositionTagsTitle,
     'goalPositionTagsToggle': goalPositionTagsToggle,
+    // B17 目标类别 / 表单字段 / 行控件 12 条
+    'goalCategoryWealth': goalCategoryWealth,
+    'goalCategoryFamily': goalCategoryFamily,
+    'goalCategoryLearning': goalCategoryLearning,
+    'goalCategorySocial': goalCategorySocial,
+    'goalCategoryHealth': goalCategoryHealth,
+    'goalCategoryCustom': goalCategoryCustom,
+    'goalCategoryUncategorized': goalCategoryUncategorized,
+    'goalFormCategoryLabel': goalFormCategoryLabel,
+    'goalFormCustomCategoryHint': goalFormCustomCategoryHint,
+    'goalFormDateRange': goalFormDateRange,
+    'goalRowDoneTooltip': goalRowDoneTooltip,
+    'goalPeriodUnset': goalPeriodUnset,
     // 应用外壳（Task 61 起；Task 64 补导航「目标」/ 快捷键「切到目标」，
     // Task 72 补快捷键「切到蓝图」，B16 补导航「学习」⇒ 序位 07）
     'shellNavToday': shellNavToday,

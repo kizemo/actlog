@@ -926,6 +926,23 @@ l10nAccessors = <String, String Function(AppLocalizations)>{
       t.dialogPoolStartInvalid,
   L10nKeys.dialogPoolAddToToday: (AppLocalizations t) => t.dialogPoolAddToToday,
   L10nKeys.dialogPoolEmptyLong: (AppLocalizations t) => t.dialogPoolEmptyLong,
+  // B17 目标类别 / 表单字段 / 行控件 12 条
+  L10nKeys.goalCategoryWealth: (AppLocalizations t) => t.goalCategoryWealth,
+  L10nKeys.goalCategoryFamily: (AppLocalizations t) => t.goalCategoryFamily,
+  L10nKeys.goalCategoryLearning: (AppLocalizations t) =>
+      t.goalCategoryLearning,
+  L10nKeys.goalCategorySocial: (AppLocalizations t) => t.goalCategorySocial,
+  L10nKeys.goalCategoryHealth: (AppLocalizations t) => t.goalCategoryHealth,
+  L10nKeys.goalCategoryCustom: (AppLocalizations t) => t.goalCategoryCustom,
+  L10nKeys.goalCategoryUncategorized: (AppLocalizations t) =>
+      t.goalCategoryUncategorized,
+  L10nKeys.goalFormCategoryLabel: (AppLocalizations t) =>
+      t.goalFormCategoryLabel,
+  L10nKeys.goalFormCustomCategoryHint: (AppLocalizations t) =>
+      t.goalFormCustomCategoryHint,
+  L10nKeys.goalFormDateRange: (AppLocalizations t) => t.goalFormDateRange,
+  L10nKeys.goalRowDoneTooltip: (AppLocalizations t) => t.goalRowDoneTooltip,
+  L10nKeys.goalPeriodUnset: (AppLocalizations t) => t.goalPeriodUnset,
 };
 
 /// 列表型 getter（`List<String>`）的访问器表（4 条）。
