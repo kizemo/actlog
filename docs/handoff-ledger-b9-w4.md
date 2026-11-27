@@ -1316,3 +1316,107 @@ PS1_ASCII_VIOLATIONS=0
 - 本节写入时**尚未执行**任何 git 写操作（`HEAD` 仍 `1b42e7c`）、**尚未**派发 B16 三棒、**尚未**出包、**尚未**装配。
 - 第 ⑤ 条（760 宽英文态页签不换行不压线）**用户的肉眼验收仍未做**，且**必须在新包装机后**才能做；本节不假装闭合。
 - 「『滚动候选』不是选项卡而是段头卡」「『目标页无法编辑』在盘上不成立（真实缺口 = 无录入框 + 拖放无落点反馈）」两条**均为侦察兵实测映射**（`docs\b16-plan.md` §3），非本节推断。
+### 11.26 · B16 收口（七项界面改动 + 门禁白名单授权闭合 · 绿测 1061 / 门禁 PASS / 新包装机 / 两次 commit） · 2026-11-27 下午 · 控制器（接手会话 `mvs_382f354c18ad42aab11f5e9e380fba1e`）
+
+**背景与本节目的**：§11.25 把用户三项拍板拆成 B16 工作队列（七项界面改动 + 一条门禁白名单授权）。本节记录**七项改动的落盘证据**（四棒写集与逐文件增删）、**实现要点与选型否决**、**门禁终轮逐行判据**（含前两轮判红的归因）、**出包与静默装机的成对数字**、**用户 ③ 的盘上判定**、**两次 commit 的面与托管块字节级处理**，最后写清**仍挂账的两件事**。本节所有数字均为本节书写前的盘上回读值，不从压缩摘要转抄。
+
+**一、结论一览**
+
+- 七项改动全部落盘并进历史：`apps/desktop` 29 项（11 源 + 18 测试）+ `docs\b16-plan.md` + `AGENTS.md` = **31 files / +2737 −870**，commit ① = `c678cb3`。
+- 全量绿测：`+1061: All tests passed!`（`reports\b16-measure-green.txt` 共 1567 行，末行逐字 `05:37 +1061: All tests passed!`）。
+- 权威门禁终轮 **PASS**（`reports\task51-gate\summary.txt`，82 行，`RUN_AT=2026-11-27 13:09:29`），**未传 `-ExcludePaths`**，`GATE_FAILURES=0` / `VIOLATIONS=0` / `OUT_OF_SET=0`。
+- 新包：`release\actlog-Setup-1.0.0_20261127-131242.exe` **22,871,841 B / sha16 `6B64C34FF3DE3C68`**，`release\` exe 计数 64 → **65**。
+- 静默装机已做：`PAYLOAD_MATCH=True` / `DB_UNCHANGED=True` / 装后 `app.so` = 构建树同 hash。
+- commit ② = 本节追加（只 commit 不 push，沿用 B13/B14/B15 惯例）。
+- **未闭合**：用户肉眼验收（七项观感 + 760 宽英文态页签不压线）未做，不得代签；push 未获授权。
+
+**二、四棒落盘（直派 worker，不经接力链装置）**
+
+本批不用 `relay-port` 装置，控制器直派 4 棒 worker；写集四棒零交集，控制器全程零改 `apps\` / `packages\`（`VIOLATIONS=0` 即此项的机器判据）。
+
+| 棒次 | 会话 ID | 状态 | 负责项 | 写集（`git show --numstat c678cb3` 逐文件回读） |
+|---|---|---|---|---|
+| W1 | `bg_ff355314-67a2-41e5-9fef-b860cc6efeea` | succeeded | ①②④ | `goal_blueprint_matrix.dart` 244/129、`goals_blueprint_page.dart` 40/21、新建 `b16_blueprint_inline_create_test.dart` 487/0、`task73_b8_w1_blueprint_edit_test.dart` 55/92、`b12_matrix_tabs_date_test.dart` 56/17、`b13_polish_test.dart` 16/8、`b11_blueprint_roulette_test.dart` 13/4 |
+| W2 | `bg_6c789612-b46b-4ce7-9aca-a33b332c1db9` | **canceled** | ⑥（导航学习占位 + 重排） | `app.dart` 46/13、`nav_rail.dart` 18/11、`key_bar.dart` 13/12、`l10n/parts/shell.dart` 11/0、`l10n/l10n_keys.dart` 5/1、新建 `b16_nav_learning_test.dart` 308/0、`shell_nav_rail_test.dart` 20/9、`nav_shortcut_test.dart` 37/15、`task64_nav_gear_test.dart` 31/14、`shell_key_bar_test.dart` 14/13、`l10n_harness.dart` 3/1、`l10n_base_test.dart` 5/5 |
+| W3 | `bg_dffef5a8-47f2-4719-8e7c-0596fcd4115e` | succeeded | ⑤⑦ | `goals_month_page.dart` 307/166、`goals_week_page.dart` 236/141、`goal_week_table.dart` 109/3、`goals_year_page.dart` 17/79、新建 `b16_goal_input_drag_test.dart` 408/0、`task66_goals_month_page_test.dart` 18/28、`task65_goals_week_test.dart` 21/16、`task66_goals_year_page_test.dart` 15/32 |
+| W4 | `bg_a5399554-15d1-4e75-b22a-20ec282900f3` | succeeded | 追补：键条与导航底注预期同步 | `shell_key_hints_test.dart` 48/31、`nav_rail_footnote_test.dart` 12/7 |
+
+- **W2 处置留档**：W2 代码已全部成形且控制器逐个盘上复核 12 文件通过，但会话链 22 分钟零写入、零测试进程 ⇒ 判「收尾卡死」，`task_stop` 返 `abort-timeout. Process cleanup could not be confirmed.`；事后核实无残留进程。**验收责任不外包**：由控制器逐个文件读源码与测试断言判定，未空等。
+- **两份写集追补**（R1 要求写集外文件先由控制器追补并留档）：`reports\task112-writeset-amendment.md`（3,093 B，W1/W3 各含 1 个受影响旧测试）、`reports\task113-writeset-amendment-w4.md`（4,100 B，W4 棒次及其只同步预期值的硬规则）；`docs\b16-plan.md` §4 已追加 W4 行与硬规则第 6 条。
+- **W4 的边界**：只同步因本批改动而失效的预期值；禁放宽阈值、禁删断言、禁 `skip`、禁动源码。盘上核实：两文件均无 `skip` 新增、无阈值下调。
+
+**三、实现要点与选型否决**
+
+1. **①② 合并实现**：蓝图格内右侧常驻「+」既是「新建」也是「保存+」，保存后「+」仍在，点它换行续加；未改 `goal_form_dialog.dart`（不引入细分标题/关键词）。
+2. **③ 页签留白**：`goal_blueprint_matrix.dart` 新增 `static const double tabVerticalPadding = 4;`（L190）并把页签内边距 `_tabPadding` 定为 10（L217），只加纵向留白，横向配色与选中态不变 ⇒ 用户已判通过的「选中页签与模块底色肉眼可分」不回退。
+3. **④ 日期格**：去掉顶部多余年份行，日期文本 `maxLines: 1` + `softWrap: false`（L1046–L1047），点日期走 `'goal-blueprint-period-tap-${goal.id}'`（L985）。**否决 `DatePickerSheet.show()`**：它只返回 `Future<String?>`、不支持起止区间，强用会造出半吊子区间组件 ⇒ 退回既有 `showGoalPeriodDialog`（起止一体），行为与用户「点日期直接显示日期选项卡」一致。
+4. **⑤ 去除滚动候选**：只删 UI 入口，保留 `goalsDraftSection` getter 与 l10n key（避免牵连数据层与文案测试）。
+5. **⑥ 导航重排**：`app.dart` L263 增 `'learning'`、L368 路由到 `_LearningPlaceholder`（L402 类定义），序位 01 日志 / 02 待办 / 03 习惯 / 04 蓝图 / 05 目标 / 06 项目 / 07 学习 / 08 日历；`key_bar.dart` 与 `nav_rail.dart` 的快捷键与底注同步改（`Ctrl+4` 蓝图 / `Ctrl+5` 目标）。
+6. **⑦ 目标录入拖入**：周页录入行 `goals_week_page.dart:205`（键 `goal-week-input-row`）、月页 `goals_month_page.dart:321`（键 `goal-month-input-row`）；右侧未完成目标可拖入并有落点反馈。**只落周页 + 月页**：年页盘上无上游右栏，硬塞拖入＝造假入口。
+7. **三档配色零改动**：本批未动配色常量与主题装配 ⇒ 默认墨色与 B14 之前逐字节一致的前提未被破坏（用户已判通过的项不回退）。
+
+**四、门禁终轮逐行判据**
+
+产物 `reports\task51-gate\summary.txt`（82 行），关键行逐字：
+
+```text
+GATE_VERDICT=PASS
+GATE_FAILURES=0
+DESKTOP_TESTS=1061
+DESKTOP_DELTA=465
+DESKTOP_EXPECTED=1061
+CORE_DATA_TESTS=204
+CORE_DB_TESTS=96
+CORE_DOMAIN_TESTS=91
+DESKTOP_ANALYZE=VERBATIM
+CORE_DATA_ANALYZE=VERBATIM
+CORE_DB_ANALYZE=VERBATIM
+CORE_DOMAIN_ANALYZE=VERBATIM
+VIOLATIONS=0
+OUT_OF_SET=0
+GATE_EXCLUDED=7
+STATUS_LINES=66
+HEAD=1f42148
+AHEAD=18
+PS1_SCANNED=536
+PS1_NEW_NON_ASCII=0
+PS1_ASCII_VIOLATIONS=0
+PS1_BASELINE_SHA16=5247D49A400CC3F9
+FP_AGENTS_MD=AGENTS.md|370772|C29E7A4CB653652E
+RUN_AT=2026-11-27 13:09:29
+```
+
+- `DESKTOP_DELTA=465` = 内建 `$baseline=596` 与 1061 的差值，**不是本轮增量**（本轮增量看 §11.25 的 1041 → 1061 = +20）；`DESKTOP_EXPECTED` 传的是当轮实测 1061，脚本内建基线未改。
+- `GATE_EXCLUDED=7` 七条逐字：`docs/relay/*`、`docs/relay.json`、`docs/AGENT-RELAY.md`、`docs/RELAY-ADAPTATION.md`、`docs/RELAY-SOP.md`、`docs/plan-relay.md`、`docs/b15-plan.md` —— **零测试文件**，即「排除项没有把本批测试排除在判据之外」。
+- **前两轮判红及归因**（不掩盖）：11:19 一轮为多棒并发争 `apps\desktop\build\native_assets\windows\sqlite3.dll` 引起的偶发（该文件单跑 +11 全绿）；11:28 一轮 `OUT_OF_SET=1`，越界项是控制器自建的 `docs\b16-plan.md` 未入名单。两次处置均为**补名单 + 独占复跑**，全程未改阈值、未改断言、未 `skip`。
+- 门禁自行把 `apps\desktop\build\test_cache\build` 改名为 `build_moved_20261127-130148`（改名不删，符合 R4）。
+- `FP_AGENTS_MD=…|370772|C29E7A4CB653652E` 是**门禁开始时的快照**；文档在门禁之后写 ⇒ 当前 `AGENTS.md` 为 381,857 B / `18CA5BC224C5834B` 属预期，不是漂移。
+
+**五、出包与静默装机**
+
+- `flutter build windows --release` ⇒ `BUILD_EXIT=0`（`reports\b16-build.txt` 逐字 `Building Windows application...  134.3s`）。
+- 构建树 `build\windows\x64\runner\Release\data\app.so` = **9,323,400 B / `F100F1E80E53D9AF`**（旧包为 `4ACEC8BA7ADA2068` ⇒ 确为重编）；`actlog.exe` 484,352 B / `89293205FAF8C3DE` 变化不敏感，**不作判据**。
+- `tools\build\make_installer.ps1 -Version '1.0.0'` ⇒ `makensis_exit=0` / `INSTALLER_EXIT=0` / payload 36 文件 60,600,694 B；产物 `SubType = NSIS-3 Unicode`（`reports\b16-installer.txt` 51 行）。
+- 静默装机（`reports\task103-install-b14.ps1`，自动取 `release\` 下 mtime 最新 exe）：`RUNNING_BEFORE=2` → `WM_CLOSE_PID=335532` / `FORCE_KILL_PID` 命中 `280788` 与 `335532` → `RUNNING_AFTER_CLOSE=0`；`INSTALLER_EXITCODE=0` / `PAYLOAD_MATCH=True`；`DB_BEFORE=425984|EB31F08FACAA8244` = `DB_AFTER` ⇒ `DB_UNCHANGED=True`；`RELAUNCH_PID=568528` / `RELAUNCH_ALIVE=1` / 主窗口 `332590`。装机侧 `app.so` = 9,323,400 B / `F100F1E80E53D9AF` / mtime `2026-11-27 13:12:12`。
+- **库零写入的判据只认成对日志**：装机后活库被运行实例独占，`Get-FileHash` 会报占用 ⇒ 不用外部哈希硬碰。
+
+**六、用户 ③（门禁白名单）的盘上判定**
+
+- `reports\task51-gate.ps1` 盘上事实：**25,373 B / 550 行 / CRLF=550 / 纯 ASCII / 无 BOM / mtime `2026-11-27 11:51:29`**；`apps/desktop/test/b13_polish_test.dart` 在名单中命中 **1 处**。
+- 终轮门禁 `RUN_AT=2026-11-27 13:09:29` 晚于脚本 mtime 89 分钟 ⇒ 终轮读到的是**已含该条目**的脚本，**本轮未临场改脚本**；用户授权的「补录」动作在盘上由 11:51:29 那次编辑落地（`reports\` 整目录被 gitignore，故无独立提交）。
+- 判定闭合证据三条：终轮**未传 `-ExcludePaths`**；`OUT_OF_SET=0`；`GATE_EXCLUDED` 七条全为 relay 文档。⇒ 用户 ③ 的「补录并重跑不带排除项的检查」在机器判据上已成立，不需要也不允许再动脚本。
+
+**七、两次 commit 与托管块（只 commit 不 push）**
+
+- **commit ① `c678cb3`**：`feat(desktop): B16 七项界面改动（蓝图就地建目标 / 页签留白 / 日期直开 / 去滚动候选 / 目标录入拖入 / 学习占位导航重排）`，**31 files / +2737 −870**（面 = `apps/desktop` 29 项 + `docs/b16-plan.md` + `AGENTS.md`）。暂存前逐项断言未混入 `docs/relay*` / `RELAY-*` / `plan-relay` / `b15-plan` / `b8x-` / `incident-`。
+- **托管块字节级剥离**：按字节摘出 `<!-- BEGIN RELAY-PORT -->` … `<!-- END RELAY-PORT -->` = **3,708 B**（`reports\b16-relay-block.bin`），前缀存 `reports\b16-agents-prefix.bin` = **378,149 B**；3,708 + 378,149 = 381,857 与工作区文件字节数校验一致。提交后按「前缀 + 块」拼回 ⇒ `AGENTS.md` 回到 **381,857 B / sha16 `18CA5BC224C5834B`**（`MATCH=True`），工作区重新显示 ` M AGENTS.md`。
+- **HEAD 侧验证**：`git cat-file -s HEAD:AGENTS.md` = **378,149**；`BEGIN RELAY-PORT` / `END RELAY-PORT` 在 HEAD 版命中 **0**（exit 1）；`RELAY-PORT` 字样 3 处均为 §7 的 B14/B15/B16 **文字引用**，非托管块；`git diff --numstat HEAD -- AGENTS.md` = **`26 0`**（只差恢复回来的托管块）。⇒ 托管块**未进历史**，符合用户「不要跟这批一起提交」。
+- 提交后 `STATUS_LINES` 66 → **36**，剩余项除 ` M AGENTS.md` 外全部是接力装置产物（`docs\relay*`、`RELAY-*`、`plan-relay`、`b15-plan`、`b8x-dispatch*`、`incident-*`），按用户口径与本批无关。
+- **commit ②** = 本节追加，单 commit 只含 `docs/handoff-ledger-b9-w4.md`。`AHEAD` 将到 20（门禁快照时 18 + commit ① + commit ②）；**不 push**，`git push` 是人工验收点之外的独立授权。
+
+**八、仍挂账与诚实边界**
+
+- **用户肉眼验收未做**（不得代签）：① 蓝图格「+」就地建目标、保存后「+」常驻可续加；② 页签上下留白不拥挤且选中态仍可分；③ 日期格无多余年份行 / 单行 / 点日期直开；④ 三处「滚动候选」段头卡消失；⑤ 周/月录入行可点可加 + 右侧目标可拖入且有落点反馈；⑥ 导航 8 项序位与「学习」占位；⑦ **760 宽 + 英文态 ⇒ 页签文字不换行、不压线（必须在新装机件上看）**。
+- 上述七条的**代码与 widget 测试证据齐备**（含 `ValueKey` 断言），但「观感是否达标」属人眼判断；合成取帧 / UIA 通道在本项目已判死路，不用假证据替代。
+- **R3 分发界**：`release\` 现 65 个 exe，**唯一可分发 = `actlog-Setup-1.0.0_20261127-131242.exe`（22,871,841 B / `6B64C34FF3DE3C68`）**；B14 包 `…_20261127-012235.exe`（22,873,139 B / `C838CE3E1811C666`）自本批起失效，其余 64 个严禁分发。
+- 本节数字若与后续产物冲突，以产物为准；本节不声称未跑过的检查。
