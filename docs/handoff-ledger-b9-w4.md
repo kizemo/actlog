@@ -1523,3 +1523,72 @@ RUN_AT=2026-11-27 13:09:29
 - **R3 分发界**：`release\` 现 **66** 个 exe，**唯一可分发 = `actlog-Setup-1.0.0_20261127-153051.exe`（22,873,660 B / `D77D47404FAB2763`）**；B16 包 `…_20261127-131242.exe`（22,871,841 B / `6B64C34FF3DE3C68`）自本批起失效（**不含 B17 改动**），其余 65 个严禁分发。
 - **B16 那七项观感**同样仍待肉眼确认（B17 只判 ①④ 通过，其余为「实现达标待看」）。
 - 本节数字若与后续产物冲突，以产物为准；本节不声称未跑过的检查。
+
+### 11.28 · B17 用户验收闭合 + push 已做 + 下一阶段候选（第二轮七项全部通过 · HEAD `b738862` 已上远端） · 2026-11-27 傍晚 · 控制器（会话 `mvs_90fe171f56d74a8c950ad6cab4261ef3`）
+
+**背景与本节目的**：§11.27 收口 B17（实现 + 门禁 + 出包 + 装机 + 两次 commit）后，用户在 2026-11-27 傍晚当轮明确回复「**通过验收**」，并在同轮授权「**现在 push**」。本节记录三件事：**① 验收闭合的口径与归属**（谁判的、判在哪份装机件上、哪些条目随之闭合）、**② push 的硬判据回读**、**③ 下一阶段候选与本轮新增的工具坑**。本节是 B17→下一批的**唯一交接入口**；下一会话读本节 + §11.27 即已掌握 B17 全部背景、目标、进度与下阶段计划，不必回翻派工书。
+
+**一、验收闭合（2026-11-27 傍晚 · 用户当轮回「通过验收」）**
+
+- **结论**：用户在**装机件**上肉眼确认 B17 本批六条改动 + 「760 宽 + 英文态 ⇒ 页签文字不换行、不压线」全部达标 ⇒ **本轮七项观感整体闭合**。
+- **受验对象（盘上回读，验收当时）**：装机目录 `D:\Program Files\actlog`，`data\app.so` = **9,323,400 B / sha16 `BA7EF7A40E83CF37`**（= 构建树同值 ⇒ 跑的就是本轮版本）；运行实例 **PID 29060 / 主窗口句柄 529716**；装机件由 `release\actlog-Setup-1.0.0_20261127-153051.exe`（22,873,660 B / sha16 `D77D47404FAB2763`）静默装配而来。
+- **逐条闭合对照**（括号内为判据落点，均在 `e3dac8e` 42 files 之内）：
+
+  | # | 用户要求 | 闭合形态 | 落点 |
+  |---|---|---|---|
+  | ① | 蓝图格右侧「+」就地建目标、保存后常驻可续加 | 用户上轮已判「通过」，本轮零改动 | `goal_blueprint_matrix.dart` |
+  | ② | 页签左右 padding 加宽、页签间加边距、激活与非激活等高 | 统一 `tabHeight = 46`；`_tabPadding` 10→16；新增 `tabGap = 8` | `goal_blueprint_matrix.dart` :180/:186/:215 |
+  | ③ | 去除多余的「日期」按钮 | 按钮下线，日期格其余行为（无多余年刻度行 / 单行不换行 / 点日期直开选择器）不动 | `goal_blueprint_matrix.dart` |
+  | ④ | 三处「滚动候选」段头卡消失 | 用户上轮已判「通过」，本轮零改动 | — |
+  | ⑤ | 年目标行可加可编 + 月/年页删多余区块 + 三页类别 / 起止日期 / 完成单选 / 同类别分区 | 年页补上新增写库链；月页去「上月复盘」「年度目标汇总」；年页去「月度展开」「年度复盘」「80/20 视角」；类别（5 预设 + 自定义）复用 `goal.domain`；起止日期点击录入；行右侧完成单选；同类别分区作小标题 | `goals_year_page.dart` / `goals_month_page.dart` / `goal_form_dialog.dart` / `goal_category.dart` / `goal_section.dart` / `goal_week_table.dart` |
+  | ⑥ | 导航去「习惯」、「学习」改「学习管理」 | 七项：01 日志 / 02 待办池 / 03 蓝图 / 04 目标 / 05 项目 / 06 学习管理 / 07 日历；`Ctrl+1…7` 重排、`Ctrl+8` 无绑定 | `nav_rail.dart` / `app.dart` / `key_bar.dart` |
+  | ⑦ | 760 宽 + 英文态 ⇒ 页签文字不换行、不压线 | 用户在新装机件上肉眼确认通过；红线 `_redLineFontPx = 11.0`（:86）与 `_requiredMarginPx = 1.00`（:97）**全程一字未动**，b14 六组缩放实测全 PASS（en-760 natural 680.5 ≤ 可用 742.0，余 61.5px） | `goal_blueprint_matrix.dart` |
+
+- **B16 遗留随之闭合**：B16 遗留的七项观感（§11.26 八）**同一装机件全部包含**（该包 payload 含 B16 全部改动），用户本轮「通过验收」是针对这一份装机件 ⇒ B16 的 ①–⑦ 一并闭合。
+- **归属纪律**：本条结论来源是**用户人眼**，控制器**不代签、不补证**。项目内**从未**用 widget 契约或合成取帧替代人眼判据（合成导航 / 取帧通道已判死路，见 §11.16）—— 本次同样如此：只登记「用户已确认通过」，不写「模型已验证通过」。
+- **验收后无回退动作**：验收通过后**未**再改任何 `apps\**` / `packages\**` 代码，未重编译、未重出包 ⇒ 装机件与 `e3dac8e` 源码逐字对应。
+
+**二、push 已做（2026-11-27 傍晚 · 用户当轮授权）**
+
+- **命令与回显**：`git push origin main` ⇒ `23669fb..b738862  main -> main` / `PUSH_EXIT=0`（远端 `https://github.com/kizemo/actlog.git`，分支 `main`）。
+- **硬判据（不以「Everything up-to-date」等回显为准）**：`git rev-parse HEAD` = **`b738862627a3871f7d91a38c0753550035cc7709`**；`git ls-remote origin refs/heads/main` = **同值逐字相等** ⇒ `SHA_EQUAL=True`；`git rev-list --count origin/main..HEAD` = **0**。
+- **推上去的内容**：此前积压的 **22 个提交**一次性上远端，含 B17 两个提交 `e3dac8e`（42 files / +4455 −993）与 `b738862`（台账 §11.27 / 1 file / +103 −0），以及 B16 及更早各批。
+- **R3 分发口径未变**：**唯一可分发**仍是 `release\actlog-Setup-1.0.0_20261127-153051.exe`（22,873,660 B / sha16 `D77D47404FAB2763`）；`release\` 下共 **66** 个 exe，其余 **65** 个严禁分发。push 只动远端 git 引用，不动分发真源。
+- **仍未提交的工作树内容**：`AGENTS.md` 的 RELAY-PORT 托管块（按用户 B15 口径不进批提交）、`docs\relay\*` / `docs\RELAY-SOP.md` / `docs\RELAY-ADAPTATION.md` / `docs\plan-relay.md` / `docs\b8x-dispatch-*.md` / `docs\incident-20261125-phantom-rollback.md` / `docs\relay.json` 等 relay 装置产物（属**别的批次**，本轮不碰、未提交）。
+
+**三、下一阶段计划（B18 尚未立项，等用户新指令；以下为已知的候选与裁决点）**
+
+1. **等用户新指令立项**。当前**没有**用户已下达的 B18 需求；下列三条只是已知的候选/裁决点，**不得**自行开工。
+2. **行内类别列去留（唯一已登记的界面候选）**：类目标题已上移为分区小标题，但**行内类别列仍在**（§11.27 裁决记录第 10 条）。下一轮若要动，需在「删除该列 / 收窄为角标 / 保持」三者中选一；本轮刻意不同批处理，避免「既加分区又删列」导致观感判据混淆。
+3. **relay 装置产物是否成批提交**：工作树里那批 `docs\relay\*` 等至今未进任何提交，需用户单独裁决（成批提交 / 继续搁置 / 归档改名）。**控制器不擅自处理**（AGENTS.md §2 R1 写集纪律 + 该批属别的批次）。
+4. **台账追加锚点口径修正（本轮新坑，见下）**：下轮往台账追加新节时，锚点不要再用「全文件唯一」，改用「末条非空行 + 断言其位于文件末尾」。
+
+**四、已验证 / 推断 / 未验证（严格三分）**
+
+- **已验证（盘上实数 + 实跑产物）**：绿测 `+1106: All tests passed!`（`TEST_EXIT=0` / `E_COUNT=0`）；门禁 `GATE_VERDICT=PASS` / `VIOLATIONS=0` / `OUT_OF_SET=0` / `PS1_ASCII_VIOLATIONS=0` / 四包 analyze 逐字 `No issues found!`；构建树 `app.so` = 9,323,400 B / `BA7EF7A40E83CF37`（≠ B16 的 `F100F1E80E53D9AF`）；装机 `app.so` 同 sha16 ⇒ `PAYLOAD_MATCH=True`；活库 `DB_BEFORE`=`DB_AFTER`=`425984|EB31F08FACAA8244` ⇒ `DB_UNCHANGED=True`；`HEAD` 与 `ls-remote` 逐字相等 ⇒ push 已落地。
+- **推断（本节据实推导，非直接观测）**：「B16 七项观感随之闭合」是**由「同一装机件包含 B16 全部改动」+「用户对该装机件回通过」推出**，非用户逐条点名 B16 各项；「验收通过后无回退」是**由「验收后未再改 `apps\**`/`packages\**`、未重出包」推出**。
+- **未验证（不得声称已过）**：模型侧**没有**任何像素级/取帧证据（不能读图，通道已判死路）；B18 的需求、口径与验收标准**尚不存在**；relay 装置产物的最终处置**未定**；英文态 760 宽的**其它窗口宽度**（非 760）未验证，760 只是用户指定的宽度。
+
+**五、证据路径（全路径，可直接打开）**
+
+- 项目真源与规范：`F:\soft\00selfmade\practilog\AGENTS.md`（§2 R1–R8 铁律、§5 工具坑速查、§7 状态快照、§7.1 设计标准）
+- 本台账：`F:\soft\00selfmade\practilog\docs\handoff-ledger-b9-w4.md`（§11.26 = B16 收口；**§11.27 = B17 实现收口**；**§11.28 = 本节 · 验收闭合与下一阶段**）
+- B17 计划：`F:\soft\00selfmade\practilog\docs\b17-plan.md`（185 行）
+- B17 门禁日志：`F:\soft\00selfmade\practilog\reports\b17-gate-final.txt`（4,071 B）
+- B17 全量测试日志：`F:\soft\00selfmade\practilog\reports\b17-test-final.txt`（325,472 B）
+- B17 装机日志：`F:\soft\00selfmade\practilog\reports\b17-install-final.txt`（582 B）
+- 台账插入前后：`F:\soft\00selfmade\practilog\reports\b17-ledger-11-27.md`（§11.27 正文，18,956 B）/ `F:\soft\00selfmade\practilog\reports\b17-ledger-before-11-27.bak.md`（202,930 B，插入前备份）
+- 提交信息：`F:\soft\00selfmade\practilog\reports\b17-commit-msg.txt`（commit ①）/ `F:\soft\00selfmade\practilog\reports\b17-commit2-msg.txt`（commit ②）
+- AGENTS.md 托管块备份：`F:\soft\00selfmade\practilog\reports\agents-with-relay-block.bak.txt`（392,947 B）
+- 装置：`F:\soft\00selfmade\practilog\reports\task51-gate.ps1` / `reports\task57-ps1-ascii-scan.ps1` / `reports\task103-install-b14.ps1` / `F:\soft\00selfmade\practilog\tools\build\make_installer.ps1`
+- 装机件：`D:\Program Files\actlog\data\app.so`（9,323,400 B / `BA7EF7A40E83CF37`）；安装包 `F:\soft\00selfmade\practilog\release\actlog-Setup-1.0.0_20261127-153051.exe`
+
+**六、本轮新增工具坑（写给下一棒）**
+
+1. **台账锚点唯一性会误报（§11.26 与 §11.27 收尾句完全相同）**：本轮插入 §11.27 时，锚点 `- 本节数字若与后续产物冲突，以产物为准；本节不声称未跑过的检查。` 在 §11.26 结尾**已经出现过一次** ⇒ 若再用「全文件唯一命中」作断言，下轮必然 `exit 3`。正解：**取最后一条非空行**（`LastIndexOf` + 从尾部找首个非空行），并**额外断言其后即为文件末尾**；插入后再独立回读校验「原内容逐字节保留 / 新节标题命中 1 次 / 行尾风格统一」。
+2. **`git add` 提示 `CRLF will be replaced by LF`**：台账工作区是 **CRLF**（1,525/1,525），仓库对象库按 `.gitattributes` 存 **LF** ⇒ 提交时 git 会转一次，**属正常**，不要因此去改工作区行尾（本轮工作区插入后仍全 CRLF）。
+3. **长中文串经 shell 传输会静默吞字**：中文正文一律用 `write` / `edit` 工具落盘；脚本内只放 ASCII；commit 信息走 `-F <文件>`，不直接经 shell 传。
+4. **`Set-Location` + 复杂命令会被本地硬安全策略拦**：一律用绝对路径 + `git -C <abs>`；日志落盘用 `[IO.File]::WriteAllText` 或 `Tee-Object -FilePath`。
+5. **不删文件，一律改名归档**：`reports\b17-ledger-before-11-27.bak.md` 就是 §11.27 插入前的归档（未删原文件）。
+
+**七、本节数字若与后续产物冲突，以产物为准；本节不声称未跑过的检查。**
